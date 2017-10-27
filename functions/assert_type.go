@@ -2,8 +2,7 @@ package functions
 
 import (
 	"fmt"
-	. "github.com/puppetlabs/go-evaluator/eval/evaluator"
-	. "github.com/puppetlabs/go-evaluator/eval/values/api"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 func assertType(c EvalContext, t PType, v PValue, b Lambda) PValue {

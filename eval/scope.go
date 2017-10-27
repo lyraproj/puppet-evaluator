@@ -3,9 +3,8 @@ package eval
 import (
 	"strings"
 
-	. "github.com/puppetlabs/go-evaluator/eval/evaluator"
-	. "github.com/puppetlabs/go-evaluator/eval/values"
-	. "github.com/puppetlabs/go-evaluator/eval/values/api"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/types"
 )
 
 type (

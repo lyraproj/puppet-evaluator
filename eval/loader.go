@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	. "github.com/puppetlabs/go-evaluator/eval/evaluator"
-	. "github.com/puppetlabs/go-evaluator/eval/utils"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 type (

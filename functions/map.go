@@ -1,8 +1,7 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval/evaluator"
-	. "github.com/puppetlabs/go-evaluator/eval/values/api"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 func mapIterableOne(c EvalContext, arg IndexedValue, block Lambda) PValue {

@@ -1,9 +1,8 @@
 package eval
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval/evaluator"
-	. "github.com/puppetlabs/go-evaluator/eval/values"
-	. "github.com/puppetlabs/go-evaluator/eval/values/api"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
