@@ -97,7 +97,7 @@ func (e *evaluator) floatArithmetic(expr *ArithmeticExpression, a float64, b flo
 	case `/`:
 		return a / b
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, expr.Operator(), `a Float`, `a Float`))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, expr.Operator(), `a Float`))
 	}
 }
 
@@ -118,7 +118,7 @@ func (e *evaluator) intArithmetic(expr *ArithmeticExpression, a int64, b int64) 
 	case `>>`:
 		return a >> uint(b)
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, expr.Operator(), `an Integer`, `an Integer`))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, expr.Operator(), `an Integer`))
 	}
 }
 

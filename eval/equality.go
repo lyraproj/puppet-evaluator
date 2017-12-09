@@ -1,9 +1,10 @@
-package types
+package eval
 
 import (
 	"strings"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/types"
 )
 
 // PuppetEquals is like Equals but:
@@ -34,9 +35,11 @@ func init() {
 		case *ArrayValue:
 			if rhs, ok := b.(*ArrayValue); ok {
 				lhs := a.(*ArrayValue)
-				if len(lhs.elements) == len(rhs.elements) {
-					for idx, el := range lhs.elements {
-						if !PuppetEquals(el, rhs.elements[idx]) {
+				lhsElements := lhs.Elements()
+				rhsElements := rhs.Elements()
+				if len(lhsElements) == len(rhsElements) {
+					for idx, el := range lhsElements {
+						if !PuppetEquals(el, rhsElements[idx]) {
 							return false
 						}
 					}
@@ -47,11 +50,13 @@ func init() {
 		case *HashValue:
 			if rhs, ok := b.(*HashValue); ok {
 				lhs := a.(*HashValue)
-				if len(lhs.entries) == len(rhs.entries) {
-					for _, entry := range lhs.entries {
+				lhsEntries := lhs.EntriesSlice()
+				rhsEntries := rhs.EntriesSlice()
+				if len(lhsEntries) == len(rhsEntries) {
+					for _, entry := range lhsEntries {
 						var rhsValue PValue
-						rhsValue, ok = rhs.Get(entry.key)
-						if !(ok && PuppetEquals(entry.value, rhsValue)) {
+						rhsValue, ok = rhs.Get(entry.Key())
+						if !(ok && PuppetEquals(entry.Value(), rhsValue)) {
 							return false
 						}
 					}

@@ -55,7 +55,16 @@ var Generalize func(a PType) PType
 
 var ToArray func(elements []PValue) IndexedValue
 
-func All(array IndexedValue, predicate Predicate) bool {
+func All(elements []PValue, predicate Predicate) bool {
+	for _, elem := range elements {
+		if !predicate(elem) {
+			return false
+		}
+	}
+	return true
+}
+
+func All2(array IndexedValue, predicate Predicate) bool {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		if !predicate(array.At(idx)) {
@@ -65,7 +74,16 @@ func All(array IndexedValue, predicate Predicate) bool {
 	return true
 }
 
-func Any(array IndexedValue, predicate Predicate) bool {
+func Any(elements []PValue, predicate Predicate) bool {
+	for _, elem := range elements {
+		if predicate(elem) {
+			return true
+		}
+	}
+	return false
+}
+
+func Any2(array IndexedValue, predicate Predicate) bool {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		if predicate(array.At(idx)) {
@@ -75,14 +93,29 @@ func Any(array IndexedValue, predicate Predicate) bool {
 	return false
 }
 
-func Each(array IndexedValue, consumer Consumer) {
+func Each(elements []PValue, consumer Consumer) {
+	for _, elem := range elements {
+		consumer(elem)
+	}
+}
+
+func Each2(array IndexedValue, consumer Consumer) {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		consumer(array.At(idx))
 	}
 }
 
-func Find(array IndexedValue, dflt PValue, predicate Predicate) PValue {
+func Find(elements []PValue, dflt PValue, predicate Predicate) PValue {
+	for _, elem := range elements {
+		if predicate(elem) {
+			return elem
+		}
+	}
+	return dflt
+}
+
+func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		v := array.At(idx)
@@ -93,7 +126,15 @@ func Find(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 	return dflt
 }
 
-func Map(array IndexedValue, mapper Mapper) IndexedValue {
+func Map(elements []PValue, mapper Mapper) []PValue {
+	result := make([]PValue, len(elements))
+	for idx, elem := range elements {
+		result[idx] = mapper(elem)
+	}
+	return result
+}
+
+func Map2(array IndexedValue, mapper Mapper) IndexedValue {
 	top := array.Len()
 	result := make([]PValue, top)
 	for idx := 0; idx < top; idx++ {
@@ -102,7 +143,22 @@ func Map(array IndexedValue, mapper Mapper) IndexedValue {
 	return ToArray(result)
 }
 
-func Reduce(array IndexedValue, memo PValue, reductor BiMapper) PValue {
+func MapTypes(types []PType, mapper TypeMapper) []PValue {
+	result := make([]PValue, len(types))
+	for idx, elem := range types {
+		result[idx] = mapper(elem)
+	}
+	return result
+}
+
+func Reduce(elements []PValue, memo PValue, reductor BiMapper) PValue {
+	for _, elem := range elements {
+		memo = reductor(memo, elem)
+	}
+	return memo
+}
+
+func Reduce2(array IndexedValue, memo PValue, reductor BiMapper) PValue {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		memo = reductor(memo, array.At(idx))
@@ -110,7 +166,17 @@ func Reduce(array IndexedValue, memo PValue, reductor BiMapper) PValue {
 	return memo
 }
 
-func Select(array IndexedValue, predicate Predicate) IndexedValue {
+func Select(elements []PValue, predicate Predicate) []PValue {
+	result := make([]PValue, 0, 8)
+	for _, elem := range elements {
+		if predicate(elem) {
+			result = append(result, elem)
+		}
+	}
+	return result
+}
+
+func Select2(array IndexedValue, predicate Predicate) IndexedValue {
 	result := make([]PValue, 0, 8)
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
@@ -122,7 +188,17 @@ func Select(array IndexedValue, predicate Predicate) IndexedValue {
 	return ToArray(result)
 }
 
-func Reject(array IndexedValue, predicate Predicate) IndexedValue {
+func Reject(elements []PValue, predicate Predicate) []PValue {
+	result := make([]PValue, 0, 8)
+	for _, elem := range elements {
+		if !predicate(elem) {
+			result = append(result, elem)
+		}
+	}
+	return result
+}
+
+func Reject2(array IndexedValue, predicate Predicate) IndexedValue {
 	result := make([]PValue, 0, 8)
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {

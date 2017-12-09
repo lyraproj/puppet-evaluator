@@ -160,9 +160,9 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 	}
 
 	higherKeys := higher.Keys()
-	normLower := WrapHash2(Reject(lower.Entries(), func(lev PValue) bool {
+	normLower := WrapHash2(Reject2(lower.Entries(), func(lev PValue) bool {
 		le := lev.(*HashEntry)
-		return Any(higherKeys, func(hk PValue) bool {
+		return Any2(higherKeys, func(hk PValue) bool {
 			return !hk.Equals(le.Key(), nil) && IsAssignable(hk.(PType), le.Key().(PType))
 		})
 	}).Elements())

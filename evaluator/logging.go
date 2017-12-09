@@ -48,6 +48,17 @@ const (
 
 var LOG_LEVELS = []LogLevel{ALERT, CRIT, DEBUG, EMERG, ERR, INFO, NOTICE, WARNING}
 
+func (l LogLevel) Severity() issue.Severity {
+	switch l {
+	case CRIT, EMERG, ERR:
+		return issue.SEVERITY_ERROR
+	case ALERT, WARNING:
+		return issue.SEVERITY_WARNING
+	default:
+		return issue.SEVERITY_IGNORE
+	}
+}
+
 func Alert(logger Logger, format string, args ...interface{}) {
 	logger.Logf(ALERT, format, args)
 }

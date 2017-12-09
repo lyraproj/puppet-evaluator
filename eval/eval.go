@@ -252,6 +252,14 @@ func (e *evaluator) eval(expr Expression, c EvalContext) PValue {
 	return v
 }
 
+func (e *evaluator) eval_AndExpression(expr *AndExpression, c EvalContext) PValue {
+	return WrapBoolean(IsTruthy(e.eval(expr.Lhs(), c)) && IsTruthy(e.eval(expr.Rhs(), c)))
+}
+
+func (e *evaluator) eval_OrExpression(expr *OrExpression, c EvalContext) PValue {
+	return WrapBoolean(IsTruthy(e.eval(expr.Lhs(), c)) || IsTruthy(e.eval(expr.Rhs(), c)))
+}
+
 func (e *evaluator) eval_BlockExpression(expr *BlockExpression, c EvalContext) (result PValue) {
 	for _, statement := range expr.Statements() {
 		result = e.eval(statement, c)
@@ -367,8 +375,8 @@ func (e *evaluator) eval_LiteralString(expr *LiteralString) PValue {
 	return WrapString(expr.StringValue())
 }
 
-func (e *evaluator) eval_LiteralUndef(expr *LiteralUndef) PValue {
-	return UNDEF
+func (e *evaluator) eval_NotExpression(expr *NotExpression, c EvalContext) PValue {
+	return WrapBoolean(!IsTruthy(e.eval(expr.Expr(), c)))
 }
 
 func (e *evaluator) eval_ParenthesizedExpression(expr *ParenthesizedExpression, c EvalContext) PValue {
@@ -396,6 +404,76 @@ func (e *evaluator) eval_RegexpExpression(expr *RegexpExpression) PValue {
 	return WrapRegexp(expr.PatternString())
 }
 
+func (e *evaluator) eval_CaseExpression(expr *CaseExpression, c EvalContext) PValue {
+	return c.Scope().WithLocalScope(func(scope Scope) PValue {
+		c = c.WithScope(scope)
+		test := e.eval(expr.Test(), c)
+		var the_default *CaseOption
+		var selected *CaseOption
+		options: for _, o := range expr.Options() {
+			co := o.(*CaseOption)
+			for _, cv := range co.Values() {
+				cv = unwindParenthesis(cv)
+				switch cv.(type) {
+				case *LiteralDefault:
+					the_default = co
+				case *UnfoldExpression:
+					if Any2(e.eval(cv, c).(IndexedValue), func(v PValue) bool { return e.match(expr.Test(), cv, `match`, scope, test, v) }) {
+						selected = co
+						break options
+					}
+				default:
+					if e.match(expr.Test(), cv, `match`, scope, test, e.eval(cv, c)) {
+						selected = co
+						break options
+					}
+				}
+			}
+		}
+		if selected == nil {
+			selected = the_default
+		}
+		if selected == nil {
+			return UNDEF
+		}
+		return e.eval(selected.Then(), c)
+	})
+}
+
+func (e *evaluator) eval_SelectorExpression(expr *SelectorExpression, c EvalContext) PValue {
+	return c.Scope().WithLocalScope(func(scope Scope) PValue {
+		c = c.WithScope(scope)
+		test := e.eval(expr.Lhs(), c)
+		var the_default *SelectorEntry
+		var selected *SelectorEntry
+		selectors: for _, s := range expr.Selectors() {
+			se := s.(*SelectorEntry)
+			me := unwindParenthesis(se.Matching())
+			switch me.(type) {
+			case *LiteralDefault:
+				the_default = se
+			case *UnfoldExpression:
+				if Any2(e.eval(me, c).(IndexedValue), func(v PValue) bool { return e.match(expr.Lhs(), me, `match`, scope, test, v) }) {
+					selected = se
+					break selectors
+				}
+			default:
+				if e.match(expr.Lhs(), me, `match`, scope, test, e.eval(me, c)) {
+					selected = se
+					break selectors
+				}
+			}
+		}
+		if selected == nil {
+			selected = the_default
+		}
+		if selected == nil {
+			return UNDEF
+		}
+		return e.eval(selected.Value(), c)
+	})
+}
+
 func (e *evaluator) eval_TextExpression(expr *TextExpression, c EvalContext) PValue {
 	return WrapString(Sprintf(`%s`, e.eval(expr.Expr(), c).String()))
 }
@@ -414,6 +492,23 @@ func (e *evaluator) eval_VariableExpression(expr *VariableExpression, c EvalCont
 	}
 	panic(e.evalError(EVAL_UNKNOWN_VARIABLE, expr, idx))
 }
+
+func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext) PValue {
+	candidate := e.eval(expr.Expr(), c)
+	switch candidate.(type) {
+	case *UndefValue:
+		return WrapArray([]PValue{ UNDEF })
+	case *ArrayValue:
+		return candidate
+	case *HashValue:
+		return WrapArray(candidate.(*HashValue).Elements())
+	case IteratorValue:
+		return candidate.(IteratorValue).DynamicValue().AsArray()
+	default:
+		return WrapArray([]PValue{ candidate })
+	}
+}
+
 func (e *evaluator) evalError(code IssueCode, semantic Expression, args ...interface{}) *ReportedIssue {
 	return NewReportedIssue(code, SEVERITY_ERROR, args, semantic)
 }
@@ -422,6 +517,8 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 	switch expr.(type) {
 	case *AccessExpression:
 		return e.eval_AccessExpression(expr.(*AccessExpression), c)
+	case *AndExpression:
+		return e.eval_AndExpression(expr.(*AndExpression), c)
 	case *ArithmeticExpression:
 		return e.eval_ArithmeticExpression(expr.(*ArithmeticExpression), c)
 	case *AssignmentExpression:
@@ -432,6 +529,8 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_CallMethodExpression(expr.(*CallMethodExpression), c)
 	case *CallNamedFunctionExpression:
 		return e.eval_CallNamedFunctionExpression(expr.(*CallNamedFunctionExpression), c)
+	case *CaseExpression:
+		return e.eval_CaseExpression(expr.(*CaseExpression), c)
 	case *ComparisonExpression:
 		return e.eval_ComparisonExpression(expr.(*ComparisonExpression), c)
 	case *ConcatenatedString:
@@ -448,6 +547,10 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_LiteralList(expr.(*LiteralList), c)
 	case *MatchExpression:
 		return e.eval_MatchExpression(expr.(*MatchExpression), c)
+	case *NotExpression:
+		return e.eval_NotExpression(expr.(*NotExpression), c)
+	case *OrExpression:
+		return e.eval_OrExpression(expr.(*OrExpression), c)
 	case *ParenthesizedExpression:
 		return e.eval_ParenthesizedExpression(expr.(*ParenthesizedExpression), c)
 	case *Program:
@@ -458,6 +561,8 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_QualifiedReference(expr.(*QualifiedReference), c)
 	case *RegexpExpression:
 		return e.eval_RegexpExpression(expr.(*RegexpExpression))
+	case *SelectorExpression:
+		return e.eval_SelectorExpression(expr.(*SelectorExpression), c)
 	case *FunctionDefinition, *TypeAlias:
 		// All definitions must be processed at this time
 		return UNDEF
@@ -471,10 +576,12 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_LiteralInteger(expr.(*LiteralInteger))
 	case *LiteralString:
 		return e.eval_LiteralString(expr.(*LiteralString))
-	case *LiteralUndef:
-		return e.eval_LiteralUndef(expr.(*LiteralUndef))
+	case *LiteralUndef, *Nop:
+		return UNDEF
 	case *TextExpression:
 		return e.eval_TextExpression(expr.(*TextExpression), c)
+	case *UnfoldExpression:
+		return e.eval_UnfoldExpression(expr.(*UnfoldExpression), c)
 	case *UnlessExpression:
 		return e.eval_UnlessExpression(expr.(*UnlessExpression), c)
 	case *VariableExpression:

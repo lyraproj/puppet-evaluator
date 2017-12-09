@@ -154,7 +154,7 @@ func (c *CallableType) Parameters() (params []PValue) {
 	if len(tupleParams) == 0 {
 		params = []PValue{ZERO, ZERO}
 	} else {
-		params = Select(WrapArray(tupleParams), func(p PValue) bool { _, ok := p.(*UnitType); return !ok }).Elements()
+		params = Select(tupleParams, func(p PValue) bool { _, ok := p.(*UnitType); return !ok })
 	}
 	if c.blockType != nil {
 		params = append(params, c.blockType)

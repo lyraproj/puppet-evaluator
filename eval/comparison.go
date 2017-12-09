@@ -12,28 +12,27 @@ import (
 )
 
 func (e *evaluator) eval_ComparisonExpression(expr *ComparisonExpression, c EvalContext) PValue {
-	return e.compare(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
+	return e.compare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
 }
 
 func (e *evaluator) eval_MatchExpression(expr *MatchExpression, c EvalContext) PValue {
-	return WrapBoolean(e.match(expr, c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
+	return WrapBoolean(e.match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 
-func (e *evaluator) compare(expr *ComparisonExpression, a PValue, b PValue) PValue {
+func (e *evaluator) compare(expr Expression, op string, a PValue, b PValue) PValue {
 	var result bool
-	switch expr.Operator() {
+	switch op {
 	case `==`:
 		result = PuppetEquals(a, b)
 	case `!=`:
 		result = !PuppetEquals(a, b)
 	default:
-		result = e.compareMagnitude(expr, a, b)
+		result = e.compareMagnitude(expr, op, a, b)
 	}
 	return WrapBoolean(result)
 }
 
-func (e *evaluator) compareMagnitude(expr *ComparisonExpression, a PValue, b PValue) bool {
-	op := expr.Operator()
+func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PValue) bool {
 	switch a.(type) {
 	case PType:
 		left := a.(PType)
@@ -112,7 +111,7 @@ func (e *evaluator) compareMagnitude(expr *ComparisonExpression, a PValue, b PVa
 	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, op, A_an(a.Type()), A_an(b.Type())))
 }
 
-func (e *evaluator) match(expr *MatchExpression, scope Scope, a PValue, b PValue) bool {
+func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope Scope, a PValue, b PValue) bool {
 	result := false
 	switch b.(type) {
 	case PType:
@@ -124,7 +123,7 @@ func (e *evaluator) match(expr *MatchExpression, scope Scope, a PValue, b PValue
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_MATCH_NOT_REGEXP, expr.Rhs(), err.Error()))
+				panic(e.evalError(EVAL_MATCH_NOT_REGEXP, rhs, err.Error()))
 			}
 		} else {
 			rx = b.(*RegexpValue).Regexp()
@@ -132,7 +131,7 @@ func (e *evaluator) match(expr *MatchExpression, scope Scope, a PValue, b PValue
 
 		sv, ok := a.(*StringValue)
 		if !ok {
-			panic(e.evalError(EVAL_MATCH_NOT_STRING, expr.Lhs(), A_an(a.Type())))
+			panic(e.evalError(EVAL_MATCH_NOT_STRING, lhs, A_an(a.Type())))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			scope.RxSet(group)
@@ -148,10 +147,10 @@ func (e *evaluator) match(expr *MatchExpression, scope Scope, a PValue, b PValue
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_NOT_SEMVER, expr.Lhs(), err.Error()))
+				panic(e.evalError(EVAL_NOT_SEMVER, lhs, err.Error()))
 			}
 		} else {
-			panic(e.evalError(EVAL_NOT_SEMVER, expr.Lhs(), fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())))
+			panic(e.evalError(EVAL_NOT_SEMVER, lhs, fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())))
 		}
 		if lv, ok := b.(*SemVerValue); ok {
 			result = lv.Version().Equals(version)
@@ -160,10 +159,10 @@ func (e *evaluator) match(expr *MatchExpression, scope Scope, a PValue, b PValue
 		}
 
 	default:
-		panic(e.evalError(EVAL_MATCH_NOT_REGEXP, expr.Rhs(), fmt.Sprintf(`no conversion from %s to Regexp`, A_anUc(b.Type()))))
+		result = PuppetEquals(b, a)
 	}
 
-	if expr.Operator() == `!~` {
+	if operator == `!~` {
 		result = !result
 	}
 	return result
