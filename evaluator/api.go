@@ -32,6 +32,14 @@ type (
 
 		Logger() Logger
 
+		StackPop()
+
+		StackPush(location Location)
+
+		StackTop() Location
+
 		Scope() Scope
+
+		Stack() []Location
 	}
 )

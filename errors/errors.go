@@ -2,10 +2,12 @@ package errors
 
 import (
 	"fmt"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (
 	StopIteration struct {
+		location Location
 	}
 
 	InstantiationError interface {
@@ -117,6 +119,10 @@ func NewIllegalArgumentCount(name string, expected string, actual int) Instantia
 	return &IllegalArgumentCount{name, expected, actual}
 }
 
-func NewStopIteration() *StopIteration {
-	return &StopIteration{}
+func NewStopIteration(location Location) *StopIteration {
+	return &StopIteration{location}
+}
+
+func (e *StopIteration) Location() Location {
+	return e.location
 }

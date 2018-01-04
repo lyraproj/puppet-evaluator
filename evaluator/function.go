@@ -1,13 +1,8 @@
 package evaluator
 
 type (
-	CallStackEntry interface {
-	}
-
 	Lambda interface {
 		PValue
-
-		CallStackEntry
 
 		Call(c EvalContext, block Lambda, args ...PValue) PValue
 

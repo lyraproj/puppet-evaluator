@@ -59,6 +59,7 @@ type (
 		evaluator Evaluator
 		loader    Loader
 		scope     Scope
+		stack     []Location
 	}
 
 	evaluator struct {
@@ -74,8 +75,8 @@ type (
 	}
 )
 
-func NewEvalContext(eval Evaluator, loader Loader, scope Scope) EvalContext {
-	return &context{eval, loader, scope}
+func NewEvalContext(eval Evaluator, loader Loader, scope Scope, stack []Location) EvalContext {
+	return &context{eval, loader, scope, stack}
 }
 
 func NewEvaluator(defaultLoader DefiningLoader, logger Logger) Evaluator {
@@ -89,7 +90,23 @@ func NewOverriddenEvaluator(defaultLoader DefiningLoader, logger Logger, special
 }
 
 func ResolveGoFunctions(loader DefiningLoader, logger Logger) {
-	loader.ResolveGoFunctions(&context{NewEvaluator(loader, logger), loader, NewScope()})
+	loader.ResolveGoFunctions(&context{NewEvaluator(loader, logger), loader, NewScope(), []Location{}})
+}
+
+func (c *context) StackPush(location Location) {
+	c.stack = append(c.stack, location)
+}
+
+func (c *context) StackPop() {
+  c.stack = c.stack[:len(c.stack)-1]
+}
+
+func (c *context) StackTop() Location {
+	return c.stack[len(c.stack)-1]
+}
+
+func (c *context) Stack() []Location {
+	return c.stack
 }
 
 func (c *context) Evaluator() Evaluator {
@@ -124,7 +141,7 @@ func (c *context) Logger() Logger {
 }
 
 func (c *context) WithScope(scope Scope) EvalContext {
-	return &context{c.evaluator, c.loader, scope}
+	return &context{c.evaluator, c.loader, scope, c.stack}
 }
 
 func (c *context) Loader() Loader {
@@ -158,9 +175,9 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 			if i, ok := r.(*ReportedIssue); ok {
 				result = UNDEF
 				err = i
-			} else if _, ok := r.(*StopIteration); ok {
+			} else if si, ok := r.(*StopIteration); ok {
 				result = UNDEF
-				err = e.evalError(EVAL_ILLEGAL_BREAK, nil)
+				err = e.evalError(EVAL_ILLEGAL_BREAK, si.Location())
 			} else {
 				panic(r)
 			}
@@ -172,7 +189,7 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 	if loader == nil {
 		loader = e.loaderForFile(expr.File())
 	}
-	result = e.eval(expr, &context{e.self, loader, scope})
+	result = e.eval(expr, &context{e.self, loader, scope, make([]Location, 0, 64)})
 	return
 }
 
@@ -202,6 +219,9 @@ func (e *evaluator) call(funcType Namespace, name string, args []PValue, call Ca
 
 	fn := f.(Function)
 	defer convertCallError(e, call, call.Arguments())
+
+	c.StackPush(call)
+	defer func() { c.StackPop() }()
 	return fn.Call(c, block, args...)
 }
 
@@ -387,6 +407,10 @@ func (e *evaluator) eval_ParenthesizedExpression(expr *ParenthesizedExpression, 
 }
 
 func (e *evaluator) eval_Program(expr *Program, c EvalContext) PValue {
+	c.StackPush(expr)
+	defer func() {
+		c.StackPop()
+	}()
 	return e.eval(expr.Body(), c)
 }
 
@@ -512,8 +536,8 @@ func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext)
 	}
 }
 
-func (e *evaluator) evalError(code IssueCode, semantic Expression, args ...interface{}) *ReportedIssue {
-	return NewReportedIssue(code, SEVERITY_ERROR, args, semantic)
+func (e *evaluator) evalError(code IssueCode, location Location, args ...interface{}) *ReportedIssue {
+	return NewReportedIssue(code, SEVERITY_ERROR, args, location)
 }
 
 func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
@@ -621,7 +645,7 @@ func (e *evaluator) ResolveDefinitions() {
 		defs := e.definitions
 		e.definitions = make([]*definition, 0, 16)
 		for _, d := range defs {
-			tr := &context{e.self, d.loader, scope}
+			tr := &context{e.self, d.loader, scope, []Location{} }
 			switch d.definedValue.(type) {
 			case *puppetFunction:
 				d.definedValue.(*puppetFunction).Resolve(tr)
