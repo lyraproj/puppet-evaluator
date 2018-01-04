@@ -22,7 +22,9 @@ type (
 
 		Next() (PValue, bool)
 
-		Reduce(initialValue PValue, redactor BiMapper) PValue
+		Reduce(redactor BiMapper) PValue
+
+		Reduce2(initialValue PValue, redactor BiMapper) PValue
 
 		Reject(predicate Predicate) IteratorValue
 

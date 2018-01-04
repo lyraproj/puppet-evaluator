@@ -152,77 +152,153 @@ func (it *iteratorValue) ToString(b Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func find(iter Iterator, predicate Predicate, dflt PValue, dfltProducer Producer) PValue {
+func find(iter Iterator, predicate Predicate, dflt PValue, dfltProducer Producer) (result PValue) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); ok {
+				result = UNDEF
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
+	ok := false
 	for {
-		v, ok := iter.Next()
+		result, ok = iter.Next()
 		if !ok {
 			if dfltProducer != nil {
-				return dfltProducer()
+				result = dfltProducer()
+			} else {
+				result = dflt
 			}
-			return dflt
+			break
 		}
-		if predicate(v) {
-			return v
+		if predicate(result) {
+			break
 		}
 	}
+	return
 }
 
 func each(iter Iterator, consumer Consumer) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); !ok {
+				panic(err)
+			}
+		}
+	}()
+
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return
+			break
 		}
 		consumer(v)
 	}
 }
 
-func all(iter Iterator, predicate Predicate) bool {
+func all(iter Iterator, predicate Predicate) (result bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); !ok {
+				panic(err)
+			}
+		}
+	}()
+
+	result = true
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return true
+			break
 		}
 		if !predicate(v) {
-			return false
+			result = false
+			break
 		}
 	}
+	return
 }
 
-func any(iter Iterator, predicate Predicate) bool {
+func any(iter Iterator, predicate Predicate) (result bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); !ok {
+				panic(err)
+			}
+		}
+	}()
+
+	result = false
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return false
+			break
 		}
 		if predicate(v) {
-			return true
+			result = true
+			break
 		}
 	}
+	return
 }
 
-func reduce(iter Iterator, value PValue, redactor BiMapper) PValue {
+func reduce2(iter Iterator, value PValue, redactor BiMapper) (result PValue) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); ok {
+				result = value
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return value
+			result = value
+			break
 		}
 		value = redactor(value, v)
 	}
+	return
 }
 
-func asArray(iter Iterator) IndexedValue {
+func reduce(iter Iterator, redactor BiMapper) PValue {
+	v, ok := iter.Next()
+	if !ok {
+		return _UNDEF
+	}
+	return reduce2(iter, v, redactor)
+}
+
+func asArray(iter Iterator) (result IndexedValue) {
 	el := make([]PValue, 0, 16)
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(*StopIteration); ok {
+				result = WrapArray(el)
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return WrapArray(el)
+			result = WrapArray(el)
+			break
 		}
 		if it, ok := v.(IteratorValue); ok {
 			v = asArray(it.DynamicValue())
 		}
 		el = append(el, v)
 	}
+	return
 }
 
 func (ai *indexedIterator) All(predicate Predicate) bool {
@@ -266,8 +342,12 @@ func (ai *indexedIterator) Map(elementType PType, mapFunc Mapper) IteratorValue 
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *indexedIterator) Reduce(initialValue PValue, redactor BiMapper) PValue {
-	return reduce(ai, initialValue, redactor)
+func (ai *indexedIterator) Reduce(redactor BiMapper) PValue {
+	return reduce(ai, redactor)
+}
+
+func (ai *indexedIterator) Reduce2(initialValue PValue, redactor BiMapper) PValue {
+	return reduce2(ai, initialValue, redactor)
 }
 
 func (ai *indexedIterator) Reject(predicate Predicate) IteratorValue {
@@ -290,16 +370,29 @@ func (ai *predicateIterator) Any(predicate Predicate) bool {
 	return any(ai, predicate)
 }
 
-func (ai *predicateIterator) Next() (PValue, bool) {
+func (ai *predicateIterator) Next() (v PValue, ok bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok = err.(*StopIteration); ok {
+				ok = false
+				v = _UNDEF
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
 	for {
-		v, ok := ai.base.Next()
+		v, ok = ai.base.Next()
 		if !ok {
-			return _UNDEF, false
+			v = _UNDEF
+			break
 		}
 		if ai.predicate(v) == ai.outcome {
-			return v, true
+			break
 		}
 	}
+	return
 }
 
 func (ai *predicateIterator) Each(consumer Consumer) {
@@ -326,8 +419,12 @@ func (ai *predicateIterator) Map(elementType PType, mapFunc Mapper) IteratorValu
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *predicateIterator) Reduce(initialValue PValue, redactor BiMapper) PValue {
-	return reduce(ai, initialValue, redactor)
+func (ai *predicateIterator) Reduce(redactor BiMapper) PValue {
+	return reduce(ai, redactor)
+}
+
+func (ai *predicateIterator) Reduce2(initialValue PValue, redactor BiMapper) PValue {
+	return reduce2(ai, initialValue, redactor)
 }
 
 func (ai *predicateIterator) Reject(predicate Predicate) IteratorValue {
@@ -350,14 +447,14 @@ func (ai *mappingIterator) Any(predicate Predicate) bool {
 	return any(ai, predicate)
 }
 
-func (ai *mappingIterator) Next() (PValue, bool) {
-	for {
-		v, ok := ai.base.Next()
-		if !ok {
-			return _UNDEF, false
-		}
-		return ai.mapFunc(v), true
+func (ai *mappingIterator) Next() (v PValue, ok bool) {
+	v, ok = ai.base.Next()
+	if !ok {
+		v = _UNDEF
+	} else {
+		v = ai.mapFunc(v)
 	}
+	return
 }
 
 func (ai *mappingIterator) Each(consumer Consumer) {
@@ -384,8 +481,12 @@ func (ai *mappingIterator) Map(elementType PType, mapFunc Mapper) IteratorValue 
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *mappingIterator) Reduce(initialValue PValue, redactor BiMapper) PValue {
-	return reduce(ai, initialValue, redactor)
+func (ai *mappingIterator) Reduce(redactor BiMapper) PValue {
+	return reduce(ai, redactor)
+}
+
+func (ai *mappingIterator) Reduce2(initialValue PValue, redactor BiMapper) PValue {
+	return reduce2(ai, initialValue, redactor)
 }
 
 func (ai *mappingIterator) Reject(predicate Predicate) IteratorValue {

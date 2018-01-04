@@ -158,6 +158,9 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 			if i, ok := r.(*ReportedIssue); ok {
 				result = UNDEF
 				err = i
+			} else if _, ok := r.(*StopIteration); ok {
+				result = UNDEF
+				err = e.evalError(EVAL_ILLEGAL_BREAK, nil)
 			} else {
 				panic(r)
 			}

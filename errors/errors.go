@@ -5,6 +5,9 @@ import (
 )
 
 type (
+	StopIteration struct {
+	}
+
 	InstantiationError interface {
 		TypeName() string
 		Error() string
@@ -112,4 +115,8 @@ func NewIllegalArgumentType(name string, index int, expected string, actual stri
 
 func NewIllegalArgumentCount(name string, expected string, actual int) InstantiationError {
 	return &IllegalArgumentCount{name, expected, actual}
+}
+
+func NewStopIteration() *StopIteration {
+	return &StopIteration{}
 }
