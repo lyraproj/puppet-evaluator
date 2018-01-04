@@ -9,6 +9,8 @@ const (
 	EVAL_ILLEGAL_ARGUMENT_TYPE         = `EVAL_ILLEGAL_ARGUMENT_TYPE`
 	EVAL_ILLEGAL_ASSIGNMENT            = `EVAL_ILLEGAL_ASSIGNMENT`
 	EVAL_ILLEGAL_BREAK                 = `EVAL_ILLEGAL_BREAK`
+	EVAL_ILLEGAL_NEXT                  = `EVAL_ILLEGAL_NEXT`
+	EVAL_ILLEGAL_RETURN                = `EVAL_ILLEGAL_RETURN`
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
 	EVAL_ILLEGAL_REASSIGNMENT          = `EVAL_ILLEGAL_REASSIGNMENT`
 	EVAL_LHS_MUST_BE_QREF              = `EVAL_LHS_MUST_BE_QREF`
@@ -33,6 +35,8 @@ func init() {
 	HardIssue(EVAL_ILLEGAL_ARGUMENT_TYPE, `Error when evaluating %s: Expected argument %d to be %s, got %s`)
 	HardIssue(EVAL_ILLEGAL_ASSIGNMENT, `Illegal attempt to assign to %s. Not an assignable reference`)
 	HardIssue(EVAL_ILLEGAL_BREAK, `break() from context where this is illegal`)
+	HardIssue(EVAL_ILLEGAL_NEXT, `next() from context where this is illegal`)
+	HardIssue(EVAL_ILLEGAL_RETURN, `return() from context where this is illegal`)
 	HardIssue(EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, `Mismatched number of assignable entries and values, expected %d, got %d`)
 	HardIssue(EVAL_ILLEGAL_REASSIGNMENT, `Cannot reassign variable '$%s'`)
 	HardIssue(EVAL_LHS_MUST_BE_QREF, `Expression to the left of [] expression must be a Type name`)

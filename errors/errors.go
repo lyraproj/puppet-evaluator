@@ -3,16 +3,35 @@ package errors
 import (
 	"fmt"
 	. "github.com/puppetlabs/go-parser/issue"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 type (
-	StopIteration struct {
+	Breaker struct {
 		location Location
+	}
+
+	StopIteration struct {
+		Breaker
+	}
+
+	NextIteration struct {
+		Breaker
+		value PValue
+	}
+
+	Return struct {
+		Breaker
+		value PValue
 	}
 
 	InstantiationError interface {
 		TypeName() string
 		Error() string
+	}
+
+	JumperError struct {
+		realError interface{}
 	}
 
 	GenericError string
@@ -119,10 +138,26 @@ func NewIllegalArgumentCount(name string, expected string, actual int) Instantia
 	return &IllegalArgumentCount{name, expected, actual}
 }
 
-func NewStopIteration(location Location) *StopIteration {
-	return &StopIteration{location}
+func (e *Breaker) Location() Location {
+	return e.location
 }
 
-func (e *StopIteration) Location() Location {
-	return e.location
+func NewStopIteration(location Location) *StopIteration {
+	return &StopIteration{Breaker{location}}
+}
+
+func NewNextIteration(location Location, value PValue) *NextIteration {
+	return &NextIteration{Breaker{location}, value}
+}
+
+func (e *NextIteration) Value() PValue {
+	return e.value
+}
+
+func NewReturn(location Location, value PValue) *Return {
+	return &Return{Breaker{location}, value}
+}
+
+func (e *Return) Value() PValue {
+	return e.value
 }

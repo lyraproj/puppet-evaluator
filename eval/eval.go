@@ -172,13 +172,20 @@ func (e *evaluator) AddDefinitions(expr Expression) {
 func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (result PValue, err *ReportedIssue) {
 	defer func() {
 		if r := recover(); r != nil {
-			if i, ok := r.(*ReportedIssue); ok {
+			switch r.(type) {
+			case *ReportedIssue:
 				result = UNDEF
-				err = i
-			} else if si, ok := r.(*StopIteration); ok {
+				err = r.(*ReportedIssue)
+			case *StopIteration:
 				result = UNDEF
-				err = e.evalError(EVAL_ILLEGAL_BREAK, si.Location())
-			} else {
+				err = e.evalError(EVAL_ILLEGAL_BREAK, r.(*StopIteration).Location())
+			case *NextIteration:
+				result = UNDEF
+				err = e.evalError(EVAL_ILLEGAL_NEXT, r.(*NextIteration).Location())
+			case *Return:
+				result = UNDEF
+				err = e.evalError(EVAL_ILLEGAL_RETURN, r.(*Return).Location())
+			default:
 				panic(r)
 			}
 		}
@@ -205,7 +212,7 @@ func (e *evaluator) callFunction(name string, args []PValue, call CallExpression
 	return e.call(`function`, name, args, call, c)
 }
 
-func (e *evaluator) call(funcType Namespace, name string, args []PValue, call CallExpression, c EvalContext) PValue {
+func (e *evaluator) call(funcType Namespace, name string, args []PValue, call CallExpression, c EvalContext) (result PValue) {
 	tn := NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := c.Loader().Load(tn)
 	if !ok {
@@ -218,15 +225,19 @@ func (e *evaluator) call(funcType Namespace, name string, args []PValue, call Ca
 	}
 
 	fn := f.(Function)
-	defer convertCallError(e, call, call.Arguments())
 
 	c.StackPush(call)
-	defer func() { c.StackPop() }()
-	return fn.Call(c, block, args...)
+	defer func() {
+		c.StackPop()
+		if err := recover(); err != nil {
+			e.convertCallError(err, call, call.Arguments())
+		}
+	}()
+	result = fn.Call(c, block, args...)
+	return
 }
 
-func convertCallError(e *evaluator, expr Expression, args []Expression) {
-	err := recover()
+func (e *evaluator) convertCallError(err interface{}, expr Expression, args []Expression) {
 	switch err.(type) {
 	case nil:
 	case *ArgumentsError:

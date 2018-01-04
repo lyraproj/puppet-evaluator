@@ -101,12 +101,14 @@ func (l *lambda) Signature() Signature {
 	return l.signature
 }
 
-func (l *goLambda) Call(c EvalContext, block Lambda, args ...PValue) PValue {
-	return l.function(c, args)
+func (l *goLambda) Call(c EvalContext, block Lambda, args ...PValue) (result PValue) {
+	result = l.function(c, args)
+	return
 }
 
-func (l *goLambdaWithBlock) Call(c EvalContext, block Lambda, args ...PValue) PValue {
-	return l.function(c, args, block)
+func (l *goLambdaWithBlock) Call(c EvalContext, block Lambda, args ...PValue) (result PValue) {
+	result = l.function(c, args, block)
+	return
 }
 
 var emptyTypeBuilder = &localTypeBuilder{[]*typeDecl{}}
@@ -302,10 +304,11 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 	}
 }
 
-func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) PValue {
+func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) (result PValue) {
 	for _, d := range f.dispatchers {
 		if d.Signature().CallableWith(args, block) {
-			return d.Call(c, block, args...)
+			result = d.Call(c, block, args...)
+			return
 		}
 	}
 
@@ -370,11 +373,21 @@ func NewPuppetLambda(expr *LambdaExpression, tr TypeResolver) Lambda {
 	return &puppetLambda{NewCallableType(sg, resolveReturnType(tr, expr.ReturnType()), nil), expr, rps}
 }
 
-func (l *puppetLambda) Call(c EvalContext, block Lambda, args ...PValue) PValue {
+func (l *puppetLambda) Call(c EvalContext, block Lambda, args ...PValue) (v PValue) {
 	if block != nil {
 		panic(NewArgumentsError(`lambda`, `nested lambdas are not supported`))
 	}
-	return doCall(c, `lambda`, l.parameters, l.signature, l.expression.Body(), args)
+	defer func() {
+		if err := recover(); err != nil {
+			if ni, ok := err.(*NextIteration); ok {
+				v = ni.Value()
+			} else {
+				panic(err)
+			}
+		}
+	}()
+	v = doCall(c, `lambda`, l.parameters, l.signature, l.expression.Body(), args)
+	return
 }
 
 func (l *puppetLambda) Equals(other interface{}, guard Guard) bool {
@@ -403,11 +416,24 @@ func NewPuppetFunction(expr *FunctionDefinition) *puppetFunction {
 	return &puppetFunction{expression: expr}
 }
 
-func (f *puppetFunction) Call(c EvalContext, block Lambda, args ...PValue) PValue {
+func (f *puppetFunction) Call(c EvalContext, block Lambda, args ...PValue) (v PValue) {
 	if block != nil {
 		panic(NewArgumentsError(f.Name(), `Puppet functions does not yet support lambdas`))
 	}
-	return doCall(c, f.Name(), f.parameters, f.signature, f.expression.Body(), args)
+	defer func() {
+		if err := recover(); err != nil {
+			switch err.(type) {
+			case *NextIteration:
+				v = err.(*NextIteration).Value()
+			case *Return:
+				v = err.(*Return).Value()
+			default:
+				panic(err)
+			}
+		}
+	}()
+	v = doCall(c, f.Name(), f.parameters, f.signature, f.expression.Body(), args)
+	return
 }
 
 func (f *puppetFunction) Signature() Signature {
@@ -415,7 +441,7 @@ func (f *puppetFunction) Signature() Signature {
 }
 
 func doCall(c EvalContext, name string, parameters []*parameter, signature *CallableType, body Expression, args []PValue) PValue {
-	return c.Scope().WithLocalScope(func(functionScope Scope) PValue {
+	return c.Scope().WithLocalScope(func(functionScope Scope) (v PValue) {
 		na := len(args)
 		np := len(parameters)
 		if np > na {
@@ -447,11 +473,11 @@ func doCall(c EvalContext, name string, parameters []*parameter, signature *Call
 		for idx, p := range parameters {
 			functionScope.Set(p.pExpr.Name(), args[idx])
 		}
-		v := c.EvaluateIn(body, functionScope)
+		v = c.EvaluateIn(body, functionScope)
 		if !IsInstance(signature.ReturnType(), v) {
 			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`, name, signature.ReturnType().String(), DetailedType(v).String()))
 		}
-		return v
+		return
 	})
 }
 

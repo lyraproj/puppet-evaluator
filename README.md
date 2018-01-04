@@ -127,6 +127,7 @@ Puppet functions implemented:
 
 * [x] alert
 * [x] assert_type
+* [x] break
 * [x] crit
 * [x] debug
 * [x] each
@@ -135,7 +136,10 @@ Puppet functions implemented:
 * [x] info
 * [x] map
 * [x] new
+* [x] next
 * [x] notice
+* [x] reduce
+* [x] return
 * [x] type_of
 * [x] warning
 * [x] with

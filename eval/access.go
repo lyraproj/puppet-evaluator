@@ -153,7 +153,11 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 
 func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, args []PValue, expr *AccessExpression, loader Loader) (tp PType) {
 	dcName := qr.DowncasedName()
-	defer convertCallError(e, expr, expr.Keys())
+	defer func() {
+		if err := recover(); err != nil {
+			e.convertCallError(err, expr, expr.Keys())
+		}
+	}()
 
 	switch dcName {
 	case `array`:
