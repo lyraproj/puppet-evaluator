@@ -242,6 +242,10 @@ func (sv *StringValue) DeleteAll(tv IndexedValue) IndexedValue {
 	panic(`Operation not supported`)
 }
 
+func (sv *StringValue) IsHashStyle() bool {
+	return false
+}
+
 func (sv *StringValue) Iterator() Iterator {
 	return &indexedIterator{ONE_CHAR_STRING_TYPE, -1, sv}
 }

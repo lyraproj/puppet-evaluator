@@ -152,17 +152,18 @@ func (it *iteratorValue) ToString(b Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func find(iter Iterator, predicate Predicate, dflt PValue, dfltProducer Producer) (result PValue) {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(*StopIteration); ok {
-				result = UNDEF
-			} else {
-				panic(err)
-			}
+func stopIteration() {
+	if err := recover(); err != nil {
+		if _, ok := err.(*StopIteration); !ok {
+			panic(err)
 		}
-	}()
+	}
+}
 
+func find(iter Iterator, predicate Predicate, dflt PValue, dfltProducer Producer) (result PValue) {
+	defer stopIteration()
+
+	result = UNDEF
 	ok := false
 	for {
 		result, ok = iter.Next()
@@ -182,13 +183,7 @@ func find(iter Iterator, predicate Predicate, dflt PValue, dfltProducer Producer
 }
 
 func each(iter Iterator, consumer Consumer) {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(*StopIteration); !ok {
-				panic(err)
-			}
-		}
-	}()
+	defer stopIteration()
 
 	for {
 		v, ok := iter.Next()
@@ -199,14 +194,20 @@ func each(iter Iterator, consumer Consumer) {
 	}
 }
 
-func all(iter Iterator, predicate Predicate) (result bool) {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(*StopIteration); !ok {
-				panic(err)
-			}
+func eachWithIndex(iter Iterator, consumer BiConsumer) {
+	defer stopIteration()
+
+	for idx := int64(0);; idx++ {
+		v, ok := iter.Next()
+		if !ok {
+			break
 		}
-	}()
+		consumer(WrapInteger(idx), v)
+	}
+}
+
+func all(iter Iterator, predicate Predicate) (result bool) {
+	defer stopIteration()
 
 	result = true
 	for {
@@ -223,13 +224,7 @@ func all(iter Iterator, predicate Predicate) (result bool) {
 }
 
 func any(iter Iterator, predicate Predicate) (result bool) {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(*StopIteration); !ok {
-				panic(err)
-			}
-		}
-	}()
+	defer stopIteration()
 
 	result = false
 	for {
@@ -246,23 +241,15 @@ func any(iter Iterator, predicate Predicate) (result bool) {
 }
 
 func reduce2(iter Iterator, value PValue, redactor BiMapper) (result PValue) {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(*StopIteration); ok {
-				result = value
-			} else {
-				panic(err)
-			}
-		}
-	}()
+	defer stopIteration()
 
+	result = value
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			result = value
 			break
 		}
-		value = redactor(value, v)
+		result = redactor(result, v)
 	}
 	return
 }
@@ -311,6 +298,10 @@ func (ai *indexedIterator) Any(predicate Predicate) bool {
 
 func (ai *indexedIterator) Each(consumer Consumer) {
 	each(ai, consumer)
+}
+
+func (ai *indexedIterator) EachWithIndex(consumer BiConsumer) {
+	eachWithIndex(ai, consumer)
 }
 
 func (ai *indexedIterator) ElementType() PType {
@@ -399,6 +390,10 @@ func (ai *predicateIterator) Each(consumer Consumer) {
 	each(ai, consumer)
 }
 
+func (ai *predicateIterator) EachWithIndex(consumer BiConsumer) {
+	eachWithIndex(ai, consumer)
+}
+
 func (ai *predicateIterator) ElementType() PType {
 	return ai.base.ElementType()
 }
@@ -459,6 +454,10 @@ func (ai *mappingIterator) Next() (v PValue, ok bool) {
 
 func (ai *mappingIterator) Each(consumer Consumer) {
 	each(ai, consumer)
+}
+
+func (ai *mappingIterator) EachWithIndex(consumer BiConsumer) {
+	eachWithIndex(ai, consumer)
 }
 
 func (ai *mappingIterator) ElementType() PType {

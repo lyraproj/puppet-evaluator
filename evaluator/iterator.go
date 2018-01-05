@@ -10,6 +10,8 @@ type (
 
 		Each(consumer Consumer)
 
+		EachWithIndex(consumer BiConsumer)
+
 		ElementType() PType
 
 		Find(predicate Predicate) PValue

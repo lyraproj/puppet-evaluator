@@ -3,6 +3,8 @@ package evaluator
 type (
 	Consumer func(value PValue)
 
+	BiConsumer func(v1 PValue, v2 PValue)
+
 	Mapper func(value PValue) PValue
 
 	TypeMapper func(value PType) PValue

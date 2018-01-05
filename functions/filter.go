@@ -5,32 +5,32 @@ import (
 	. "github.com/puppetlabs/go-evaluator/types"
 )
 
-func mapIterator(c EvalContext, arg IterableValue, block Lambda) PValue {
-	return arg.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue { return block.Call(c, nil, v) })
+func selectIterator(c EvalContext, arg IterableValue, block Lambda) PValue {
+	return arg.Iterator().Select(func(v PValue) bool { return IsTruthy(block.Call(c, nil, v)) })
 }
 
-func mapIndexIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
+func selectIndexIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
 	index := int64(-1)
-	return iter.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue {
+	return iter.Iterator().Select(func(v PValue) bool {
 		index++
-		return block.Call(c, nil, WrapInteger(index), v)
+		return IsTruthy(block.Call(c, nil, WrapInteger(index), v))
 	})
 }
 
-func mapHashIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
-	return iter.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue {
+func selectHashIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
+	return iter.Iterator().Select(func(v PValue) bool {
 		vi := v.(IndexedValue)
-		return block.Call(c, nil, vi.At(0), vi.At(1))
+		return IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
 	})
 }
 
 func init() {
-	NewGoFunction(`map`,
+	NewGoFunction(`filter`,
 		func(d Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
 			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapIterator(c, args[0].(*HashValue), block)
+				return selectIterator(c, args[0].(*HashValue), block)
 			})
 		},
 
@@ -38,7 +38,7 @@ func init() {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
 			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapHashIterator(c, args[0].(*HashValue), block)
+				return selectHashIterator(c, args[0].(*HashValue), block)
 			})
 		},
 
@@ -46,7 +46,7 @@ func init() {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
 			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapIterator(c, args[0].(IterableValue), block)
+				return selectIterator(c, args[0].(IterableValue), block)
 			})
 		},
 
@@ -56,9 +56,9 @@ func init() {
 			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
 				iter := args[0].(IterableValue)
 				if iter.IsHashStyle() {
-					return mapHashIterator(c, iter, block)
+					return selectHashIterator(c, iter, block)
 				}
-				return mapIndexIterator(c, iter, block)
+				return selectIndexIterator(c, iter, block)
 			})
 		},
 	)

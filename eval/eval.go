@@ -128,6 +128,14 @@ func (c *context) Resolve(expr Expression) PType {
 	panic(Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
 }
 
+func (c *context) Call(name string, args []PValue, block Lambda) PValue {
+	tn := NewTypedName2(`function`, name, c.Loader().NameAuthority())
+	if f, ok := c.Loader().Load(tn); ok {
+		return f.(Function).Call(c, block, args...)
+	}
+	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, []interface{}{tn.String()}, c.StackTop()))
+}
+
 func (c *context) Evaluate(expr Expression) PValue {
 	return c.evaluator.Eval(expr, c)
 }

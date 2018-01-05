@@ -252,6 +252,10 @@ func (he *HashEntry) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (he *HashEntry) IsHashStyle() bool {
+	return false
+}
+
 func (he *HashEntry) Iterator() Iterator {
 	return &indexedIterator{he.ElementType(), -1, he}
 }
@@ -435,6 +439,10 @@ func (hv *HashValue) Get2(key string) PValue {
 func (hv *HashValue) IncludesKey(o PValue) bool {
 	_, ok := hv.valueIndex()[ToKey(o)]
 	return ok
+}
+
+func (hv *HashValue) IsHashStyle() bool {
+	return true
 }
 
 func (hv *HashValue) Iterator() Iterator {

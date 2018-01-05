@@ -33,6 +33,7 @@ type (
 	IterableValue interface {
 		Iterator() Iterator
 		ElementType() PType
+		IsHashStyle() bool
 	}
 
 	IteratorValue interface {

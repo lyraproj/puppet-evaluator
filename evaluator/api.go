@@ -18,6 +18,8 @@ type (
 	}
 
 	EvalContext interface {
+		Call(name string, args []PValue, block Lambda) PValue
+
 		Evaluate(expr Expression) PValue
 
 		EvaluateIn(expr Expression, scope Scope) PValue

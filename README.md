@@ -125,14 +125,18 @@ Type system implemented:
 
 Puppet functions implemented:
 
+* [x] all
+* [x] any
 * [x] alert
 * [x] assert_type
 * [x] break
+* [x] call
 * [x] crit
 * [x] debug
 * [x] each
 * [x] emerg
 * [x] err
+* [x] filter
 * [x] info
 * [x] map
 * [x] new

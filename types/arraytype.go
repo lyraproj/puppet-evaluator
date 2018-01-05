@@ -299,6 +299,10 @@ func (av *ArrayValue) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (av *ArrayValue) IsHashStyle() bool {
+	return false
+}
+
 func (av *ArrayValue) Iterator() Iterator {
 	return &indexedIterator{av.ElementType(), -1, av}
 }

@@ -320,7 +320,7 @@ func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) (result P
 		}
 		DetailedType(a).ToString(b, NONE, nil)
 	}
-	b.WriteString(`] is not assignable to:`)
+	b.WriteString(`] is not an instance of:`)
 	for _, d := range f.dispatchers {
 		b.WriteString("\n  ")
 		d.Signature().ParametersType().ToString(b, NONE, nil)
