@@ -6,11 +6,13 @@ This is an evaluator for the AST produced by the [Puppet Language Parser](/puppe
 
 Unit tests are deliberately very scarse in this project. Tests for virtually everything is written
 in the [Puppet Specification Language](https://docs.google.com/document/d/1VySubOiw8pD99OucVjk0ueyw2xlq4ky4WIWkV6Qoq64)
-and then implemented in the [Puppet PSpec Evaluator](/puppetlabs/go-pspec). The evaluator for the
+and then implemented in the [Puppet PSpec Evaluator](https://github.com/puppetlabs/go-pspec/tree/master/eval_test/testdata). The evaluator for the
 specification language is a specialization of this Puppet evaluator so it's a bit of a chicken and egg
 problem.
 
-### Expression evaluator status:
+## Implementation status
+
+### Expression evaluator:
 
 * [x] literal expressions
 * [x] variable assignment
@@ -60,8 +62,10 @@ problem.
 * [ ] loading functions, plans, data types, and tasks from environment
 * [ ] loading functions, plans, data types, and tasks from module
 * [ ] ruby regexp (using Oniguruma)
+* [ ] type mismatch describer
 
-#### Catalog production
+#### Catalog and Resource related:
+
 * [ ] -> operator
 * [ ] ~> operator
 * [ ] <- operator
@@ -72,14 +76,12 @@ problem.
 * [ ] resource metaparameters
 * [ ] virtual resource expressions
 * [ ] exported resource expressions
-* [ ] resource defaults expressions (see note below)
+* [ ] resource defaults expressions
 * [ ] resource override expressions
 * [ ] resource collection statements
 * [ ] exported resource collection expressions (NYI: importing resources)
 
-Note: resource default expressions use "static scoping" instead of "dynamic scoping"
-
-Type system implemented:
+### Data Type system:
 
 * [x] Any
 * [x] Array
@@ -123,28 +125,61 @@ Type system implemented:
 * [ ] CatalogEntry
 * [ ] Resource
 
-Puppet functions implemented:
+### Puppet functions:
 
 * [x] all
+* [ ] annotate
 * [x] any
 * [x] alert
 * [x] assert_type
+* [ ] binary_file
 * [x] break
 * [x] call
 * [x] crit
+* [ ] convert_to
 * [x] debug
+* [ ] dig
 * [x] each
 * [x] emerg
+* [ ] epp
 * [x] err
+* [ ] eyaml_data
 * [x] fail
 * [x] filter
+* [ ] find_file
+* [ ] hocon_data
+* [ ] include
 * [x] info
+* [ ] inline_epp
+* [ ] json_data
+* [ ] lest
+* [ ] lookup
 * [x] map
+* [ ] match
 * [x] new
 * [x] next
 * [x] notice
 * [x] reduce
+* [ ] regsubst
 * [x] return
-* [x] type_of
+* [ ] reverse_each
+* [ ] scanf
+* [ ] slice
+* [ ] step
+* [ ] strftime
+* [ ] then
+* [ ] tree_each
+* [x] type
+* [ ] unique
+* [ ] unwrap
+* [ ] versioncmp
 * [x] warning
 * [x] with
+* [ ] yaml_data
+
+#### Catalog and Resource related:
+
+* [ ] contain
+* [ ] defined
+* [ ] require
+
