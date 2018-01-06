@@ -4,6 +4,7 @@ import . "github.com/puppetlabs/go-parser/issue"
 
 const (
 	EVAL_ARGUMENTS_ERROR               = `EVAL_ARGUMENTS_ERROR`
+	EVAL_FAILURE                       = `EVAL_FAILURE`
 	EVAL_ILLEGAL_ARGUMENT              = `EVAL_ILLEGAL_ARGUMENT`
 	EVAL_ILLEGAL_ARGUMENT_COUNT        = `EVAL_ILLEGAL_ARGUMENT_COUNT`
 	EVAL_ILLEGAL_ARGUMENT_TYPE         = `EVAL_ILLEGAL_ARGUMENT_TYPE`
@@ -30,6 +31,7 @@ const (
 
 func init() {
 	HardIssue(EVAL_ARGUMENTS_ERROR, `Error when evaluating %s: %s`)
+	HardIssue(EVAL_FAILURE, `Failure: %s`)
 	HardIssue(EVAL_ILLEGAL_ARGUMENT, `Error when evaluating %s, argument %d: %s`)
 	HardIssue(EVAL_ILLEGAL_ARGUMENT_COUNT, `Error when evaluating %s: Expected %s arguments, got %d`)
 	HardIssue(EVAL_ILLEGAL_ARGUMENT_TYPE, `Error when evaluating %s: Expected argument %d to be %s, got %s`)

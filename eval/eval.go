@@ -136,6 +136,10 @@ func (c *context) Call(name string, args []PValue, block Lambda) PValue {
 	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, []interface{}{tn.String()}, c.StackTop()))
 }
 
+func (c *context) Fail(message string) {
+	panic(NewReportedIssue(EVAL_FAILURE, SEVERITY_ERROR, []interface{}{message}, c.StackTop()))
+}
+
 func (c *context) Evaluate(expr Expression) PValue {
 	return c.evaluator.Eval(expr, c)
 }

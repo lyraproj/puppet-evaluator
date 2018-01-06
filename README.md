@@ -136,6 +136,7 @@ Puppet functions implemented:
 * [x] each
 * [x] emerg
 * [x] err
+* [x] fail
 * [x] filter
 * [x] info
 * [x] map

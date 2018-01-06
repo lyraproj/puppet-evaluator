@@ -26,6 +26,8 @@ type (
 
 		Evaluator() Evaluator
 
+		Fail(message string)
+
 		WithScope(scope Scope) EvalContext
 
 		ParseType(str PValue) PType
