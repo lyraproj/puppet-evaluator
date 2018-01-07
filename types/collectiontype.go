@@ -65,6 +65,10 @@ func NewCollectionType2(args ...PValue) *CollectionType {
 	}
 }
 
+func (t *CollectionType) Default() PType {
+	return collectionType_DEFAULT
+}
+
 func (t *CollectionType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*CollectionType); ok {
 		return t.size.Equals(ot.size, g)

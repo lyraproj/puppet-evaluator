@@ -122,6 +122,10 @@ func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	s.value.ToString(bld, format, g)
 }
 
+func (t *StructType) Default() PType {
+	return structType_DEFAULT
+}
+
 func (t *StructType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*StructType); ok && len(t.elements) == len(ot.elements) {
 		for idx, element := range t.elements {

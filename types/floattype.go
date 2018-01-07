@@ -69,6 +69,10 @@ func NewFloatType2(limits ...PValue) *FloatType {
 	return NewFloatType(min, max)
 }
 
+func (t *FloatType) Default() PType {
+	return floatType_DEFAULT
+}
+
 func (t *FloatType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*FloatType); ok {
 		return t.min == ot.min && t.max == ot.max

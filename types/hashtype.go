@@ -111,6 +111,10 @@ func NewHashType2(args ...PValue) *HashType {
 	return NewHashType(keyType, valueType, rng)
 }
 
+func (t *HashType) Default() PType {
+	return hashType_DEFAULT
+}
+
 func (t *HashType) EntryType() PType {
 	return NewTupleType([]PType{t.keyType, t.valueType}, nil)
 }

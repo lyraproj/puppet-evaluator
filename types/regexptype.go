@@ -62,6 +62,11 @@ func NewRegexpType2(args ...PValue) *RegexpType {
 		panic(NewIllegalArgumentCount(`Regexp[]`, `0 - 1`, len(args)))
 	}
 }
+
+func (t *RegexpType) Default() PType {
+	return regexpType_DEFAULT
+}
+
 func (t *RegexpType) Equals(o interface{}, g Guard) bool {
 	ot, ok := o.(*RegexpType)
 	return ok && t.patternString == ot.patternString

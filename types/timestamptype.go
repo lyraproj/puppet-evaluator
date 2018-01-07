@@ -98,6 +98,11 @@ func NewTimestampType2(args ...PValue) *TimestampType {
 		return &TimestampType{min, MAX_TIME}
 	}
 }
+
+func (t *TimestampType) Default() PType {
+	return timestampType_DEFAULT
+}
+
 func (t *TimestampType) Equals(other interface{}, guard Guard) bool {
 	if ot, ok := other.(*TimestampType); ok {
 		return t.min.Equal(ot.min) && t.max.Equal(ot.max)

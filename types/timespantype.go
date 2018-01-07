@@ -90,6 +90,10 @@ func NewTimespanType2(args ...PValue) *TimespanType {
 	}
 }
 
+func (t *TimespanType) Default() PType {
+	return timespanType_DEFAULT
+}
+
 func (t *TimespanType) Equals(other interface{}, guard Guard) bool {
 	if ot, ok := other.(*TimespanType); ok {
 		return t.min == ot.min && t.max == ot.max

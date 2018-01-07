@@ -41,6 +41,16 @@ func generalize(a PType) PType {
 	if g, ok := a.(Generalizable); ok {
 		return g.Generic()
 	}
+	if g, ok := a.(ParameterizedType); ok {
+		return g.Default()
+	}
+	return a
+}
+
+func defaultFor(a PType) PType {
+	if g, ok := a.(ParameterizedType); ok {
+		return g.Default()
+	}
 	return a
 }
 
@@ -207,6 +217,7 @@ func init() {
 	richDataArrayType_DEFAULT.typ = richDataType_DEFAULT
 	richDataHashType_DEFAULT.valueType = richDataType_DEFAULT
 
+	DefaultFor = defaultFor
 	Generalize = generalize
 	IsAssignable = isAssignable
 	IsInstance = isInstance
@@ -244,7 +255,7 @@ func init() {
 		case *UndefValue:
 			return false
 		case *BooleanValue:
-			return tv.(*BooleanValue).value
+			return tv.(*BooleanValue).Bool()
 		default:
 			return true
 		}

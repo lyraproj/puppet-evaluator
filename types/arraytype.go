@@ -114,6 +114,17 @@ func (t *ArrayType) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (t *ArrayType) Generic() PType {
+	if t.typ == anyType_DEFAULT {
+		return arrayType_DEFAULT
+	}
+	return NewArrayType(Generalize(t.typ), nil)
+}
+
+func (t *ArrayType) Default() PType {
+	return arrayType_DEFAULT
+}
+
 func (t *ArrayType) IsAssignable(o PType, g Guard) bool {
 	switch o.(type) {
 	case *ArrayType:

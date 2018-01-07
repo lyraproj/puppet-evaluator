@@ -46,6 +46,10 @@ func NewPatternType2(regexps ...PValue) *PatternType {
 	return NewPatternType(rs)
 }
 
+func (t *PatternType) Default() PType {
+	return patternType_DEFAULT
+}
+
 func (t *PatternType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*PatternType); ok {
 		return len(t.regexps) == len(ot.regexps) && GuardedIncludesAll(EqSlice(t.regexps), EqSlice(ot.regexps), g)

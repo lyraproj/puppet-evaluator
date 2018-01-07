@@ -17,10 +17,10 @@ type (
 	SemVerValue SemVerType
 )
 
-var semverType_DEFAULT = &SemVerType{MATCH_ALL}
+var semVerType_DEFAULT = &SemVerType{MATCH_ALL}
 
 func DefaultSemVerType() *SemVerType {
-	return semverType_DEFAULT
+	return semVerType_DEFAULT
 }
 
 func NewSemVerType(vr *VersionRange) *SemVerType {
@@ -60,6 +60,10 @@ func NewSemVerType2(limits ...PValue) *SemVerType {
 		}
 	}
 	return NewSemVerType(finalRange)
+}
+
+func (t *SemVerType) Default() PType {
+	return semVerType_DEFAULT
 }
 
 func (t *SemVerType) Equals(o interface{}, g Guard) bool {

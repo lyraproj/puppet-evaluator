@@ -49,6 +49,11 @@ func NewTypeAliasType2(args ...PValue) *TypeAliasType {
 		panic(NewIllegalArgumentCount(`TypeAlias[]`, `0 or 2`, len(args)))
 	}
 }
+
+func (t *TypeAliasType) Default() PType {
+	return typeAliasType_DEFAULT
+}
+
 func (t *TypeAliasType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*TypeAliasType); ok && t.name == ot.name {
 		if g == nil {

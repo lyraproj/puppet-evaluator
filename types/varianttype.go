@@ -60,6 +60,10 @@ func (t *VariantType) Generic() PType {
 	return &VariantType{UniqueTypes(alterTypes(t.types, generalize))}
 }
 
+func (t *VariantType) Default() PType {
+	return variantType_DEFAULT
+}
+
 func (t *VariantType) IsAssignable(o PType, g Guard) bool {
 	for _, v := range t.types {
 		if GuardedIsAssignable(v, o, g) {

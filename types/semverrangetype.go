@@ -15,10 +15,10 @@ type (
 	SemVerRangeValue VersionRange
 )
 
-var semverRangeType_DEFAULT = &SemVerRangeType{}
+var semVerRangeType_DEFAULT = &SemVerRangeType{}
 
 func DefaultSemVerRangeType() *SemVerRangeType {
-	return semverRangeType_DEFAULT
+	return semVerRangeType_DEFAULT
 }
 
 func (t *SemVerRangeType) Equals(o interface{}, g Guard) bool {

@@ -37,6 +37,10 @@ func NewIterableType2(args ...PValue) *IterableType {
 	}
 }
 
+func (t *IterableType) Default() PType {
+	return iterableType_DEFAULT
+}
+
 func (t *IterableType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*IterableType); ok {
 		return t.typ.Equals(ot.typ, g)

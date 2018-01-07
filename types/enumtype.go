@@ -48,6 +48,10 @@ func NewEnumType2(args ...PValue) *EnumType {
 	return NewEnumType(enums)
 }
 
+func (t *EnumType) Default() PType {
+	return enumType_DEFAULT
+}
+
 func (t *EnumType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*EnumType); ok {
 		return len(t.values) == len(ot.values) && ContainsAllStrings(t.values, ot.values)

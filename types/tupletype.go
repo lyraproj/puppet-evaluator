@@ -126,6 +126,10 @@ func (t *TupleType) CommonElementType() PType {
 	return cet
 }
 
+func (t *TupleType) Default() PType {
+	return tupleType_DEFAULT
+}
+
 func (t *TupleType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*TupleType); ok && len(t.types) == len(ot.types) && t.size.Equals(ot.size, g) {
 		for idx, col := range t.types {

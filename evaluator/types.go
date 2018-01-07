@@ -21,10 +21,6 @@ type (
 		Size() PType
 	}
 
-	Generalizable interface {
-		Generic() PType
-	}
-
 	TypeResolver interface {
 		ParseResolve(typeString string) PType
 
@@ -40,9 +36,17 @@ type (
 	ParameterizedType interface {
 		PType
 
+		Default() PType
+
 		// Parameters returns the parameters that is needed in order to recreate
 		// an instance of the parameterized type.
 		Parameters() []PValue
+	}
+
+	// Implemented by all parameterized types that have type parameters
+	Generalizable interface {
+		ParameterizedType
+		Generic() PType
 	}
 )
 
@@ -52,6 +56,8 @@ var IsInstance func(puppetType PType, value PValue) bool
 var IsAssignable func(puppetType PType, other PType) bool
 
 var Generalize func(a PType) PType
+
+var DefaultFor func(a PType) PType
 
 var ToArray func(elements []PValue) IndexedValue
 

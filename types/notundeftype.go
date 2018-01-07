@@ -47,6 +47,10 @@ func (t *NotUndefType) ContainedType() PType {
 	return t.typ
 }
 
+func (t *NotUndefType) Default() PType {
+	return notUndefType_DEFAULT
+}
+
 func (t *NotUndefType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*NotUndefType); ok {
 		return t.typ.Equals(ot.typ, g)

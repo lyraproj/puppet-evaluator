@@ -47,6 +47,10 @@ func (t *OptionalType) ContainedType() PType {
 	return t.typ
 }
 
+func (t *OptionalType) Default() PType {
+	return optionalType_DEFAULT
+}
+
 func (t *OptionalType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*OptionalType); ok {
 		return t.typ.Equals(ot.typ, g)

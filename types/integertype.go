@@ -85,6 +85,11 @@ func NewIntegerType2(limits ...PValue) *IntegerType {
 	}
 	return NewIntegerType(min, max)
 }
+
+func (t *IntegerType) Default() PType {
+	return integerType_DEFAULT
+}
+
 func (t *IntegerType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*IntegerType); ok {
 		return t.min == ot.min && t.max == ot.max

@@ -7,23 +7,41 @@ import (
 )
 
 type (
-	BooleanType struct{}
+	BooleanType struct{
+		value int  // -1 == unset, 0 == false, 1 == true
+	}
 
 	// BooleanValue keeps only the value because the type is known and not parameterized
-	BooleanValue struct {
-		value bool
-	}
+	BooleanValue BooleanType
 )
 
-var booleanType_DEFAULT = &BooleanType{}
+var booleanType_DEFAULT = &BooleanType{-1}
 
 func DefaultBooleanType() *BooleanType {
 	return booleanType_DEFAULT
 }
 
+func NewBooleanType(value bool) *BooleanType {
+	n := 0
+	if value {
+		n = 1
+	}
+	return &BooleanType{n}
+}
+
+func (t *BooleanType) Default() PType {
+	return booleanType_DEFAULT
+}
+
+func (t *BooleanType) Generic() PType {
+	return booleanType_DEFAULT
+}
+
 func (t *BooleanType) Equals(o interface{}, g Guard) bool {
-	_, ok := o.(*BooleanType)
-	return ok
+	if bo, ok := o.(*BooleanType); ok {
+		return t.value == bo.value
+	}
+	return false
 }
 
 func (t *BooleanType) Name() string {
@@ -35,13 +53,24 @@ func (t *BooleanType) String() string {
 }
 
 func (t *BooleanType) IsAssignable(o PType, g Guard) bool {
-	_, ok := o.(*BooleanType)
-	return ok
+	if bo, ok := o.(*BooleanType); ok {
+		return t.value == -1 || t.value == bo.value
+	}
+	return false
 }
 
 func (t *BooleanType) IsInstance(o PValue, g Guard) bool {
-	_, ok := o.(*BooleanValue)
-	return ok
+	if bo, ok := o.(*BooleanValue); ok {
+		return t.value == -1 || t.value == bo.value
+	}
+	return false
+}
+
+func (t *BooleanType) Parameters() []PValue {
+  if t.value == -1 {
+  	return EMPTY_VALUES
+	}
+	return []PValue{&BooleanValue{t.value}}
 }
 
 func (t *BooleanType) ToString(b Writer, s FormatContext, g RDetect) {
@@ -53,11 +82,15 @@ func (t *BooleanType) Type() PType {
 }
 
 func WrapBoolean(val bool) *BooleanValue {
-	return &BooleanValue{val}
+	n := 0
+	if val {
+		n = 1
+	}
+	return &BooleanValue{n}
 }
 
 func (bv *BooleanValue) Bool() bool {
-	return bv.value
+	return bv.value == 1
 }
 
 func (bv *BooleanValue) Equals(o interface{}, g Guard) bool {
@@ -68,7 +101,7 @@ func (bv *BooleanValue) Equals(o interface{}, g Guard) bool {
 }
 
 func (bv *BooleanValue) String() string {
-	if bv.value {
+	if bv.value == 1 {
 		return `true`
 	}
 	return `false`
@@ -97,22 +130,16 @@ func (bv *BooleanValue) ToString(b Writer, s FormatContext, g RDetect) {
 }
 
 func (bv *BooleanValue) intVal() int64 {
-	if bv.value {
-		return 1
-	}
-	return 0
+	return int64(bv.value)
 }
 
 func (bv *BooleanValue) floatVal() float64 {
-	if bv.value {
-		return 1.0
-	}
-	return 0.0
+	return float64(bv.value)
 }
 
 func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
 	str := no
-	if bv.value {
+	if bv.value == 1{
 		str = yes
 	}
 	if alt {
@@ -122,7 +149,7 @@ func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
 }
 
 func (bv *BooleanValue) ToKey() HashKey {
-	if bv.value {
+	if bv.value == 1 {
 		return HashKey([]byte{1, HK_BOOLEAN, 1})
 	}
 	return HashKey([]byte{1, HK_BOOLEAN, 0})

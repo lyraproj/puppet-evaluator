@@ -78,6 +78,10 @@ func NewStringType2(args ...PValue) *StringType {
 	return NewStringType(rng, ``)
 }
 
+func (t *StringType) Default() PType {
+	return stringType_DEFAULT
+}
+
 func (t *StringType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*StringType); ok {
 		return t.value == ot.value && t.size.Equals(ot.size, g)

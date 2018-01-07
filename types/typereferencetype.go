@@ -33,6 +33,10 @@ func NewTypeReferenceType2(args ...PValue) *TypeReferenceType {
 	}
 }
 
+func (t *TypeReferenceType) Default() PType {
+	return typeReferenceType_DEFAULT
+}
+
 func (t *TypeReferenceType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*TypeReferenceType); ok {
 		return t.typeString == ot.typeString

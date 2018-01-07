@@ -93,6 +93,10 @@ func (c *CallableType) CallableWith(args []PValue, block Lambda) bool {
 	return c.paramsType.IsInstance2(args, nil)
 }
 
+func (t *CallableType) Default() PType {
+	return callableType_DEFAULT
+}
+
 func (c *CallableType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*CallableType)
 	return ok

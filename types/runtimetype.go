@@ -80,6 +80,10 @@ func NewRuntimeType3(goType reflect.Type) *RuntimeType {
 	return &RuntimeType{`go`, goType.Name(), nil, goType}
 }
 
+func (t *RuntimeType) Default() PType {
+	return runtimeType_DEFAULT
+}
+
 func (t *RuntimeType) Equals(o interface{}, g Guard) bool {
 	if ot, ok := o.(*RuntimeType); ok && t.runtime == ot.runtime && t.name == ot.name {
 		if t.pattern == nil {
