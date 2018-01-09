@@ -90,6 +90,10 @@ func NewTimespanType2(args ...PValue) *TimespanType {
 	}
 }
 
+func (t *TimespanType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *TimespanType) Default() PType {
 	return timespanType_DEFAULT
 }

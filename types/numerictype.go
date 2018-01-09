@@ -11,6 +11,11 @@ type NumericType struct{}
 func DefaultNumericType() *NumericType {
 	return numericType_DEFAULT
 }
+
+func (t *NumericType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *NumericType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*NumericType)
 	return ok

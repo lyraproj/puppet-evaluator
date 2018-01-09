@@ -62,6 +62,10 @@ func NewSemVerType2(limits ...PValue) *SemVerType {
 	return NewSemVerType(finalRange)
 }
 
+func (t *SemVerType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *SemVerType) Default() PType {
 	return semVerType_DEFAULT
 }

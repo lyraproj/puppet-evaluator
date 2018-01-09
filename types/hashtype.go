@@ -111,6 +111,13 @@ func NewHashType2(args ...PValue) *HashType {
 	return NewHashType(keyType, valueType, rng)
 }
 
+func (t *HashType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.size.Accept(v, g)
+	t.keyType.Accept(v, g)
+	t.valueType.Accept(v, g)
+}
+
 func (t *HashType) Default() PType {
 	return hashType_DEFAULT
 }

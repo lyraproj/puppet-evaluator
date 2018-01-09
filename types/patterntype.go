@@ -46,6 +46,13 @@ func NewPatternType2(regexps ...PValue) *PatternType {
 	return NewPatternType(rs)
 }
 
+func (t *PatternType) Accept(v Visitor, g Guard) {
+	v(t)
+	for _, rx := range t.regexps {
+		rx.Accept(v, g)
+	}
+}
+
 func (t *PatternType) Default() PType {
 	return patternType_DEFAULT
 }

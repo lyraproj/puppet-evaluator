@@ -42,6 +42,11 @@ func (t *TypeType) ContainedType() PType {
 	return t.typ
 }
 
+func (t *TypeType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.typ.Accept(v, g)
+}
+
 func (t *TypeType) Default() PType {
 	return typeType_DEFAULT
 }

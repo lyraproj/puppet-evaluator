@@ -33,6 +33,10 @@ func NewTypeReferenceType2(args ...PValue) *TypeReferenceType {
 	}
 }
 
+func (t *TypeReferenceType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *TypeReferenceType) Default() PType {
 	return typeReferenceType_DEFAULT
 }

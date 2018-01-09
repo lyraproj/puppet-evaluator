@@ -103,8 +103,15 @@ func NewArrayType2(args ...PValue) *ArrayType {
 	}
 	return NewArrayType(element, rng)
 }
+
 func (t *ArrayType) ElementType() PType {
 	return t.typ
+}
+
+func (t *ArrayType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.size.Accept(v, g)
+	t.typ.Accept(v, g)
 }
 
 func (t *ArrayType) Equals(o interface{}, g Guard) bool {

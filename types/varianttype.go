@@ -51,6 +51,13 @@ func NewVariantType2(args ...PValue) PType {
 	return &VariantType{variants}
 }
 
+func (t *VariantType) Accept(v Visitor, g Guard) {
+	v(t)
+	for _, c := range t.types {
+		c.Accept(v, g)
+	}
+}
+
 func (t *VariantType) Equals(o interface{}, g Guard) bool {
 	ot, ok := o.(*VariantType)
 	return ok && len(t.types) == len(ot.types) && GuardedIncludesAll(EqSlice(t.types), EqSlice(ot.types), g)

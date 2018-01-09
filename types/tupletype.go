@@ -114,6 +114,15 @@ func tupleFromArgs(callable bool, args []PValue) *TupleType {
 	}
 	return &TupleType{rng, givenOrActualRng, tupleTypes}
 }
+
+func (t *TupleType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.size.Accept(v, g)
+	for _, c := range t.types {
+		c.Accept(v, g)
+	}
+}
+
 func (t *TupleType) CommonElementType() PType {
 	top := len(t.types)
 	if top == 0 {
@@ -255,6 +264,10 @@ func (t *TupleType) ToString(b Writer, s FormatContext, g RDetect) {
 
 func (t *TupleType) Type() PType {
 	return &TypeType{t}
+}
+
+func (t *TupleType) Types() []PType {
+	return t.types
 }
 
 var tupleType_DEFAULT = &TupleType{integerType_POSITIVE, integerType_POSITIVE, []PType{}}

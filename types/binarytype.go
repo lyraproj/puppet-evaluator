@@ -25,6 +25,10 @@ func DefaultBinaryType() *BinaryType {
 	return binaryType_DEFAULT
 }
 
+func (t *BinaryType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *BinaryType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*BinaryType)
 	return ok

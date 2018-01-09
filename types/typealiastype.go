@@ -50,6 +50,17 @@ func NewTypeAliasType2(args ...PValue) *TypeAliasType {
 	}
 }
 
+func (t *TypeAliasType) Accept(v Visitor, g Guard) {
+	if g == nil {
+		g = make(Guard)
+	}
+	if g.Seen(t, v) {
+		return
+	}
+	v(t)
+	t.resolvedType.Accept(v, g)
+}
+
 func (t *TypeAliasType) Default() PType {
 	return typeAliasType_DEFAULT
 }

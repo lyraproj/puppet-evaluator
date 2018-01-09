@@ -69,6 +69,10 @@ func NewFloatType2(limits ...PValue) *FloatType {
 	return NewFloatType(min, max)
 }
 
+func (t *FloatType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *FloatType) Default() PType {
 	return floatType_DEFAULT
 }

@@ -12,6 +12,10 @@ func DefaultUnitType() *UnitType {
 	return unitType_DEFAULT
 }
 
+func (t *UnitType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *UnitType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*UnitType)
 	return ok

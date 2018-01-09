@@ -67,13 +67,13 @@ func NewCallableType2(args ...PValue) *CallableType {
 	}
 	return NewCallableType(tupleFromArgs(true, args), rt, block)
 }
-func (c *CallableType) BlockType() PType {
-	return c.blockType
+func (t *CallableType) BlockType() PType {
+	return t.blockType
 }
 
-func (c *CallableType) CallableWith(args []PValue, block Lambda) bool {
+func (t *CallableType) CallableWith(args []PValue, block Lambda) bool {
 	if block != nil {
-		cb := c.blockType
+		cb := t.blockType
 		switch cb.(type) {
 		case nil:
 			return false
@@ -86,47 +86,55 @@ func (c *CallableType) CallableWith(args []PValue, block Lambda) bool {
 		if !isAssignable(block.Type(), cb) {
 			return false
 		}
-	} else if c.blockType != nil && !isAssignable(c.blockType, anyType_DEFAULT) {
+	} else if t.blockType != nil && !isAssignable(t.blockType, anyType_DEFAULT) {
 		// Required block but non provided
 		return false
 	}
-	return c.paramsType.IsInstance2(args, nil)
+	return t.paramsType.IsInstance2(args, nil)
+}
+
+func (t *CallableType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.paramsType.Accept(v, g)
+	if t.blockType != nil {
+		t.blockType.Accept(v, g)
+	}
 }
 
 func (t *CallableType) Default() PType {
 	return callableType_DEFAULT
 }
 
-func (c *CallableType) Equals(o interface{}, g Guard) bool {
+func (t *CallableType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*CallableType)
 	return ok
 }
 
-func (c *CallableType) Generic() PType {
+func (t *CallableType) Generic() PType {
 	return collectionType_DEFAULT
 }
 
-func (c *CallableType) IsAssignable(o PType, g Guard) bool {
+func (t *CallableType) IsAssignable(o PType, g Guard) bool {
 	oc, ok := o.(*CallableType)
 	if !ok {
 		return ok
 	}
-	if c.returnType != nil {
+	if t.returnType != nil {
 		or := oc.returnType
 		if or == nil {
 			or = anyType_DEFAULT
 		}
-		if !isAssignable(c.returnType, or) {
+		if !isAssignable(t.returnType, or) {
 			return false
 		}
 	}
 
 	// NOTE: these tests are made in reverse as it is calling the callable that is constrained
 	// (it's lower bound), not its upper bound
-	if !(oc.paramsType == nil || isAssignable(oc.paramsType, c.paramsType)) {
+	if !(oc.paramsType == nil || isAssignable(oc.paramsType, t.paramsType)) {
 		return false
 	}
-	if c.blockType == nil {
+	if t.blockType == nil {
 		if oc.blockType != nil {
 			return false
 		}
@@ -135,58 +143,58 @@ func (c *CallableType) IsAssignable(o PType, g Guard) bool {
 	if oc.blockType == nil {
 		return false
 	}
-	return isAssignable(oc.blockType, c.blockType)
+	return isAssignable(oc.blockType, t.blockType)
 }
 
-func (c *CallableType) IsInstance(o PValue, g Guard) bool {
+func (t *CallableType) IsInstance(o PValue, g Guard) bool {
 	if l, ok := o.(Lambda); ok {
-		return isAssignable(c, l.Type())
+		return isAssignable(t, l.Type())
 	}
 	// TODO: Maybe check Go func using reflection
 	return false
 }
 
-func (c *CallableType) Name() string {
+func (t *CallableType) Name() string {
 	return `Callable`
 }
 
-func (c *CallableType) Parameters() (params []PValue) {
-	if *c == *callableType_DEFAULT {
+func (t *CallableType) Parameters() (params []PValue) {
+	if *t == *callableType_DEFAULT {
 		return EMPTY_VALUES
 	}
-	tupleParams := c.paramsType.Parameters()
+	tupleParams := t.paramsType.Parameters()
 	if len(tupleParams) == 0 {
 		params = []PValue{ZERO, ZERO}
 	} else {
 		params = Select(tupleParams, func(p PValue) bool { _, ok := p.(*UnitType); return !ok })
 	}
-	if c.blockType != nil {
-		params = append(params, c.blockType)
+	if t.blockType != nil {
+		params = append(params, t.blockType)
 	}
-	if c.returnType != nil {
-		params = []PValue{WrapArray(params), c.returnType}
+	if t.returnType != nil {
+		params = []PValue{WrapArray(params), t.returnType}
 	}
 	return params
 }
 
-func (c *CallableType) ParametersType() PType {
-	return c.paramsType
+func (t *CallableType) ParametersType() PType {
+	return t.paramsType
 }
 
-func (c *CallableType) ReturnType() PType {
-	return c.returnType
+func (t *CallableType) ReturnType() PType {
+	return t.returnType
 }
 
-func (c *CallableType) String() string {
-	return ToString2(c, NONE)
+func (t *CallableType) String() string {
+	return ToString2(t, NONE)
 }
 
-func (c *CallableType) Type() PType {
-	return &TypeType{c}
+func (t *CallableType) Type() PType {
+	return &TypeType{t}
 }
 
-func (c *CallableType) ToString(b Writer, s FormatContext, g RDetect) {
-	TypeToString(c, b, s, g)
+func (t *CallableType) ToString(b Writer, s FormatContext, g RDetect) {
+	TypeToString(t, b, s, g)
 }
 
 var callableType_DEFAULT = &CallableType{}

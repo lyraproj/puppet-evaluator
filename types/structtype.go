@@ -92,6 +92,11 @@ func NewStructType2(args ...PValue) *StructType {
 	}
 }
 
+func (s *StructElement) Accept(v Visitor, g Guard) {
+	s.key.Accept(v, g)
+	s.value.Accept(v, g)
+}
+
 func (s *StructElement) ActualKeyType() PType {
 	if ot, ok := s.key.(*OptionalType); ok {
 		return ot.typ
@@ -120,6 +125,13 @@ func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	}
 	WriteString(bld, ` => `)
 	s.value.ToString(bld, format, g)
+}
+
+func (t *StructType) Accept(v Visitor, g Guard) {
+	v(t)
+	for _, element := range t.elements {
+		element.Accept(v, g)
+	}
 }
 
 func (t *StructType) Default() PType {

@@ -19,6 +19,10 @@ func DefaultUndefType() *UndefType {
 	return undefType_DEFAULT
 }
 
+func (t *UndefType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *UndefType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*UndefType)
 	return ok

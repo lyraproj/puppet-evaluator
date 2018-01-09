@@ -63,6 +63,11 @@ func NewIteratorType2(args ...PValue) *IteratorType {
 	}
 }
 
+func (t *IteratorType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.typ.Accept(v, g)
+}
+
 func (t *IteratorType) Default() PType {
 	return iteratorType_DEFAULT
 }

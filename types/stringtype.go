@@ -78,6 +78,10 @@ func NewStringType2(args ...PValue) *StringType {
 	return NewStringType(rng, ``)
 }
 
+func (t *StringType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *StringType) Default() PType {
 	return stringType_DEFAULT
 }

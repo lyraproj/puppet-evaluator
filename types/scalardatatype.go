@@ -12,6 +12,10 @@ func DefaultScalarDataType() *ScalarDataType {
 	return scalarDataType_DEFAULT
 }
 
+func (t *ScalarDataType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *ScalarDataType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*ScalarDataType)
 	return ok

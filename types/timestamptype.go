@@ -99,6 +99,10 @@ func NewTimestampType2(args ...PValue) *TimestampType {
 	}
 }
 
+func (t *TimestampType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *TimestampType) Default() PType {
 	return timestampType_DEFAULT
 }

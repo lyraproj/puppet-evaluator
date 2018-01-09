@@ -20,6 +20,10 @@ func DefaultDefaultType() *DefaultType {
 	return defaultType_DEFAULT
 }
 
+func (t *DefaultType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *DefaultType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*DefaultType)
 	return ok

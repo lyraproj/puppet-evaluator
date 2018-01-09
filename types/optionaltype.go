@@ -43,6 +43,11 @@ func NewOptionalType3(str string) *OptionalType {
 	return &OptionalType{NewStringType(nil, str)}
 }
 
+func (t *OptionalType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.typ.Accept(v, g)
+}
+
 func (t *OptionalType) ContainedType() PType {
 	return t.typ
 }

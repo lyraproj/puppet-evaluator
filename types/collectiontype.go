@@ -65,6 +65,11 @@ func NewCollectionType2(args ...PValue) *CollectionType {
 	}
 }
 
+func (t *CollectionType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.size.Accept(v, g)
+}
+
 func (t *CollectionType) Default() PType {
 	return collectionType_DEFAULT
 }

@@ -48,6 +48,10 @@ func NewEnumType2(args ...PValue) *EnumType {
 	return NewEnumType(enums)
 }
 
+func (t *EnumType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *EnumType) Default() PType {
 	return enumType_DEFAULT
 }

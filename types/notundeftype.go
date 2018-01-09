@@ -43,6 +43,11 @@ func NewNotUndefType3(str string) *NotUndefType {
 	return &NotUndefType{NewStringType(nil, str)}
 }
 
+func (t *NotUndefType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.typ.Accept(v, g)
+}
+
 func (t *NotUndefType) ContainedType() PType {
 	return t.typ
 }

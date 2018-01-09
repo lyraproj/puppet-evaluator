@@ -5,6 +5,8 @@ import (
 )
 
 type (
+	Visitor func(t PType)
+
 	PType interface {
 		PValue
 
@@ -13,6 +15,8 @@ type (
 		IsAssignable(t PType, g Guard) bool
 
 		Name() string
+
+		Accept(visitor Visitor, g Guard)
 	}
 
 	SizedType interface {
@@ -43,6 +47,12 @@ type (
 		Parameters() []PValue
 	}
 
+	TypeWithContainedType interface {
+		PType
+
+		ContainedType() PType
+	}
+
 	// Implemented by all parameterized types that have type parameters
 	Generalizable interface {
 		ParameterizedType
@@ -55,9 +65,11 @@ var IsInstance func(puppetType PType, value PValue) bool
 // isAssignable answers if t is assignable to this type
 var IsAssignable func(puppetType PType, other PType) bool
 
-var Generalize func(a PType) PType
+var Generalize func(t PType) PType
 
-var DefaultFor func(a PType) PType
+var Normalize func(t PType) PType
+
+var DefaultFor func(t PType) PType
 
 var ToArray func(elements []PValue) IndexedValue
 

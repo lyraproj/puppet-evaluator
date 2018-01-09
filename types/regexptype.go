@@ -63,6 +63,10 @@ func NewRegexpType2(args ...PValue) *RegexpType {
 	}
 }
 
+func (t *RegexpType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *RegexpType) Default() PType {
 	return regexpType_DEFAULT
 }

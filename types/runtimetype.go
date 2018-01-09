@@ -80,6 +80,10 @@ func NewRuntimeType3(goType reflect.Type) *RuntimeType {
 	return &RuntimeType{`go`, goType.Name(), nil, goType}
 }
 
+func (t *RuntimeType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *RuntimeType) Default() PType {
 	return runtimeType_DEFAULT
 }

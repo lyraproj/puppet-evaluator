@@ -21,6 +21,10 @@ func DefaultSemVerRangeType() *SemVerRangeType {
 	return semVerRangeType_DEFAULT
 }
 
+func (t *SemVerRangeType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *SemVerRangeType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*SemVerRangeType)
 	return ok

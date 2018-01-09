@@ -12,6 +12,10 @@ func DefaultAnyType() *AnyType {
 	return anyType_DEFAULT
 }
 
+func (t *AnyType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *AnyType) Equals(o interface{}, g Guard) bool {
 	_, ok := o.(*AnyType)
 	return ok

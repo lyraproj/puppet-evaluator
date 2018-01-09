@@ -29,6 +29,10 @@ func NewBooleanType(value bool) *BooleanType {
 	return &BooleanType{n}
 }
 
+func (t *BooleanType) Accept(v Visitor, g Guard) {
+	v(t)
+}
+
 func (t *BooleanType) Default() PType {
 	return booleanType_DEFAULT
 }

@@ -37,6 +37,11 @@ func NewIterableType2(args ...PValue) *IterableType {
 	}
 }
 
+func (t *IterableType) Accept(v Visitor, g Guard) {
+	v(t)
+	t.typ.Accept(v, g)
+}
+
 func (t *IterableType) Default() PType {
 	return iterableType_DEFAULT
 }

@@ -47,11 +47,16 @@ func generalize(a PType) PType {
 	return a
 }
 
-func defaultFor(a PType) PType {
-	if g, ok := a.(ParameterizedType); ok {
+func defaultFor(t PType) PType {
+	if g, ok := t.(ParameterizedType); ok {
 		return g.Default()
 	}
-	return a
+	return t
+}
+
+func normalize(t PType) PType {
+	// TODO: Implement for ParameterizedType
+	return t
 }
 
 func GuardedIsInstance(a PType, v PValue, g Guard) bool {
@@ -219,6 +224,7 @@ func init() {
 
 	DefaultFor = defaultFor
 	Generalize = generalize
+	Normalize = normalize
 	IsAssignable = isAssignable
 	IsInstance = isInstance
 
