@@ -7,11 +7,11 @@ import (
 func typeOf(c EvalContext, v PValue, i string) PType {
 	switch i {
 	case `generalized`:
-		return GenericType(v)
+		return GenericValueType(v)
 	case `reduced`:
 		return v.Type()
 	default:
-		return DetailedType(v)
+		return DetailedValueType(v)
 	}
 }
 

@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"fmt"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
@@ -9,11 +8,11 @@ func assertType(c EvalContext, t PType, v PValue, b Lambda) PValue {
 	if IsInstance(t, v) {
 		return v
 	}
+	vt := DetailedValueType(v)
 	if b == nil {
-		// TODO: Use a proper TypeMismatchDescriber once it's been implemented
-		panic(fmt.Sprintf(`Type mismatch. Expected %s, got %s`, t.String(), DetailedType(v)))
+		c.Fail(DescribeMismatch(`assert_type():`, t, vt))
 	}
-	return b.Call(c, nil, t, v)
+	return b.Call(c, nil, t, vt)
 }
 
 func init() {

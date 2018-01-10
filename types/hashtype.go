@@ -249,7 +249,7 @@ func (he *HashEntry) DeleteAll(v IndexedValue) IndexedValue {
 }
 
 func (he *HashEntry) DetailedType() PType {
-	return NewTupleType([]PType{DetailedType(he.key.Type()), DetailedType(he.value.Type())}, NewIntegerType(2, 2))
+	return NewTupleType([]PType{DetailedValueType(he.key), DetailedValueType(he.value)}, NewIntegerType(2, 2))
 }
 
 func (he *HashEntry) Elements() []PValue {
@@ -605,12 +605,12 @@ func (hv *HashValue) prtvDetailedType() PType {
 		for _, entry := range hv.entries {
 			if sv, ok := entry.key.(*StringValue); !ok || len(sv.String()) == 0 {
 				firstEntry := hv.entries[0]
-				commonKeyType := DetailedType(firstEntry.key)
-				commonValueType := DetailedType(firstEntry.value)
+				commonKeyType := DetailedValueType(firstEntry.key)
+				commonValueType := DetailedValueType(firstEntry.value)
 				for idx := 1; idx < top; idx++ {
 					entry := hv.entries[idx]
-					commonKeyType = commonType(commonKeyType, DetailedType(entry.key))
-					commonValueType = commonType(commonValueType, DetailedType(entry.value))
+					commonKeyType = commonType(commonKeyType, DetailedValueType(entry.key))
+					commonValueType = commonType(commonValueType, DetailedValueType(entry.value))
 				}
 				sz := int64(len(hv.entries))
 				hv.detailedType = NewHashType(commonKeyType, commonValueType, NewIntegerType(sz, sz))
@@ -620,7 +620,7 @@ func (hv *HashValue) prtvDetailedType() PType {
 
 		structEntries := make([]*StructElement, top)
 		for idx, entry := range hv.entries {
-			structEntries[idx] = NewStructElement(entry.key, DetailedType(entry.value))
+			structEntries[idx] = NewStructElement(entry.key, DetailedValueType(entry.value))
 		}
 		hv.detailedType = NewStructType(structEntries)
 	}

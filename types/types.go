@@ -139,7 +139,7 @@ func UniqueValues(values []PValue) []PValue {
 }
 
 func NewIllegalArgumentType2(name string, index int, expected string, actual PValue) InstantiationError {
-	return NewIllegalArgumentType(name, index, expected, DetailedType(actual).String())
+	return NewIllegalArgumentType(name, index, expected, DetailedValueType(actual).String())
 }
 
 func TypeToString(t PType, b Writer, s FormatContext, g RDetect) {
@@ -243,19 +243,22 @@ func init() {
 	IsAssignable = isAssignable
 	IsInstance = isInstance
 
-	DetailedType = func(value PValue) PType {
+	DetailedValueType = func(value PValue) PType {
 		if dt, ok := value.(DetailedTypeValue); ok {
 			return dt.DetailedType()
 		}
 		return value.Type()
 	}
 
-	GenericType = func(value PValue) PType {
-		t := value.Type()
+	GenericType = func(t PType) PType {
 		if g, ok := t.(Generalizable); ok {
 			return g.Generic()
 		}
 		return t
+	}
+
+	GenericValueType = func(value PValue) PType {
+		return GenericType(value.Type())
 	}
 
 	ToArray = func(elements []PValue) IndexedValue {

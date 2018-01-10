@@ -92,8 +92,9 @@ var EMPTY_VALUES = []PValue{}
 var UNDEF PValue
 
 var CommonType func(a PType, b PType) PType
-var DetailedType func(value PValue) PType
-var GenericType func(value PValue) PType
+var DetailedValueType func(value PValue) PType
+var GenericType func(t PType) PType
+var GenericValueType func(value PValue) PType
 var ToKey func(value PValue) HashKey
 var IsTruthy func(tv PValue) bool
 

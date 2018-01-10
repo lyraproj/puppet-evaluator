@@ -931,11 +931,31 @@ func unique(v []mismatch) []mismatch {
 	return u
 }
 
-func DescribeSignatures(signatures []Signature, argsTuple *TupleType, block *CallableType) string {
+func init() {
+	DescribeSignatures = describeSignatures
+
+	DescribeMismatch = func(name string, expected, actual PType) string {
+		result := describe(expected, actual, []*pathElement{{name, subject}})
+		switch len(result) {
+		case 0:
+			return ``
+		case 1:
+			return format(result[0])
+		default:
+			rs := make([]string, len(result))
+			for i, r := range result {
+				rs[i] = format(r)
+			}
+			return strings.Join(rs, "\n")
+		}
+	}
+}
+
+func describeSignatures(signatures []Signature, argsTuple PType, block Lambda) string {
 	errorArrays := make([][]mismatch, len(signatures))
 	allSet := true
 	for ix, sg := range signatures {
-		ae := describeSignatureArguments(sg, argsTuple, []*pathElement{{strconv.Itoa(ix), signature}})
+		ae := describeSignatureArguments(sg, argsTuple.(*TupleType), []*pathElement{{strconv.Itoa(ix), signature}})
 		errorArrays[ix] = ae
 		if len(ae) == 0 {
 			allSet = false
@@ -1022,7 +1042,7 @@ func describeSignatureArguments(signature Signature, argsTuple *TupleType, path 
 	return []mismatch{newCountMismatch(path, eSize, aSize)}
 }
 
-func describeSignatureBlock(signature Signature, aBlock *CallableType, path []*pathElement) []mismatch {
+func describeSignatureBlock(signature Signature, aBlock Lambda, path []*pathElement) []mismatch {
 	eBlock := signature.BlockType()
 	if aBlock == nil {
 		if eBlock == nil || IsAssignable(eBlock, DefaultUndefType()) {
@@ -1034,7 +1054,7 @@ func describeSignatureBlock(signature Signature, aBlock *CallableType, path []*p
 	if eBlock == nil {
 		return []mismatch{newUnexpectedBlock(path)}
 	}
-	return describe(eBlock, aBlock, pathWith(path, &pathElement{signature.BlockName(), block}))
+	return describe(eBlock, aBlock.Signature(), pathWith(path, &pathElement{signature.BlockName(), block}))
 }
 
 func signatureString(signature Signature) string {

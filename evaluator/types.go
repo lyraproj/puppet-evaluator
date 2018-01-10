@@ -227,3 +227,7 @@ func Reject2(array IndexedValue, predicate Predicate) IndexedValue {
 	}
 	return ToArray(result)
 }
+
+var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambda) string
+
+var DescribeMismatch func(name string, expected PType, actual PType) string

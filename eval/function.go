@@ -311,13 +311,7 @@ func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) (result P
 			return
 		}
 	}
-
-	// TODO: Type assertion error
-	var blockType *CallableType
-	if block != nil {
-		blockType = block.Type().(*CallableType)
-	}
-	panic(NewArgumentsError(f.name, DescribeSignatures(signatures(f.dispatchers), WrapArray(args).DetailedType().(*TupleType), blockType)))
+	panic(NewArgumentsError(f.name, DescribeSignatures(signatures(f.dispatchers), WrapArray(args).DetailedType(), block)))
 }
 
 func signatures(lambdas []Lambda) []Signature {
@@ -475,7 +469,8 @@ func doCall(c EvalContext, name string, parameters []*parameter, signature *Call
 		}
 		v = c.EvaluateIn(body, functionScope)
 		if !IsInstance(signature.ReturnType(), v) {
-			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`, name, signature.ReturnType().String(), DetailedType(v).String()))
+			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`,
+				name, signature.ReturnType().String(), DetailedValueType(v).String()))
 		}
 		return
 	})
