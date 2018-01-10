@@ -470,7 +470,7 @@ func specialization(e PType, a PType) (result bool) {
 }
 
 func allResolved(es []PType) []PType {
-	rs := make([]PType, 0, len(es))
+	rs := make([]PType, len(es))
 	for i, e := range es {
 		if ea, ok := e.(*TypeAliasType); ok {
 			e = ea.ResolvedType()

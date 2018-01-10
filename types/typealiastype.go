@@ -54,7 +54,7 @@ func (t *TypeAliasType) Accept(v Visitor, g Guard) {
 	if g == nil {
 		g = make(Guard)
 	}
-	if g.Seen(t, v) {
+	if g.Seen(t, nil) {
 		return
 	}
 	v(t)
