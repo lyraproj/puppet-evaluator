@@ -197,6 +197,10 @@ func (t *HashType) Parameters() []PValue {
 	return params
 }
 
+func (t *HashType) Size() *IntegerType {
+	return t.size
+}
+
 func (t *HashType) String() string {
 	return ToString2(t, NONE)
 }

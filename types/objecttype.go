@@ -181,6 +181,15 @@ func NewObjectType3(initHash map[string]PValue, loader Loader) *ObjectType {
 	return result
 }
 
+func (t *ObjectType) Accept(v Visitor, g Guard) {
+	v(t)
+	// TODO: Visit object members
+}
+
+func (t *ObjectType) Default() PType {
+	return objectType_DEFAULT
+}
+
 func (t *ObjectType) Equals(other interface{}, guard Guard) bool {
 	ot, ok := other.(*ObjectType)
 	return ok && t.name == ot.name && t.loader == ot.loader

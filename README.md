@@ -62,7 +62,7 @@ problem.
 * [ ] loading functions, plans, data types, and tasks from environment
 * [ ] loading functions, plans, data types, and tasks from module
 * [ ] ruby regexp (using Oniguruma)
-* [ ] type mismatch describer
+* [x] type mismatch describer
 
 #### Catalog and Resource related:
 

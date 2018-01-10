@@ -44,6 +44,19 @@ func ContainsAllStrings(strings []string, other []string) bool {
 	return true
 }
 
+// Returns true if the string represents a base 10 integer
+func IsDecimalInteger(s string) bool {
+	if len(s) > 0 {
+		for _, c := range s {
+			if c < '0' || c > '9' {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 // Returns true if at least one of the regexps matches str
 func MatchesString(regexps []*regexp.Regexp, str string) bool {
 	if str != `` {

@@ -4,6 +4,7 @@ import (
 	. "io"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"strconv"
 )
 
 type CallableType struct {
@@ -101,6 +102,10 @@ func (t *CallableType) Accept(v Visitor, g Guard) {
 	}
 }
 
+func (t *CallableType) BlockName() string {
+	return `block`
+}
+
 func (t *CallableType) Default() PType {
 	return callableType_DEFAULT
 }
@@ -156,6 +161,16 @@ func (t *CallableType) IsInstance(o PValue, g Guard) bool {
 
 func (t *CallableType) Name() string {
 	return `Callable`
+}
+
+func (t *CallableType) ParameterNames() []string {
+	n := len(t.paramsType.types)
+	r := make([]string, 0, n)
+	for i := 0; i < n; {
+		i++
+		r = append(r, strconv.Itoa(i))
+	}
+	return r
 }
 
 func (t *CallableType) Parameters() (params []PValue) {

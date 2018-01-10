@@ -205,6 +205,21 @@ func DefaultRichDataType() *TypeAliasType {
 	return richDataType_DEFAULT
 }
 
+func NilAs(dflt, t PType) PType {
+	if t == nil {
+		t = dflt
+	}
+	return t
+}
+
+func CopyAppend(types []PType, t PType) []PType {
+	top := len(types)
+	tc := make([]PType, top, top + 1)
+	copy(tc, types)
+	tc[top] = t
+	return tc
+}
+
 var dataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`Data`}}
 var dataHashType_DEFAULT = &HashType{integerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
 var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]PType{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}

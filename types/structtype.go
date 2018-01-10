@@ -108,6 +108,14 @@ func (s *StructElement) Equals(o *StructElement, g Guard) bool {
 	return s.key.Equals(o.key, g) && s.value.Equals(o.value, g)
 }
 
+func (s* StructElement) Key() PType {
+	return s.key
+}
+
+func (s* StructElement) Name() string {
+	return s.name
+}
+
 func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	optionalValue := isAssignable(s.value, undefType_DEFAULT)
 	if _, ok := s.key.(*OptionalType); ok {
@@ -125,6 +133,10 @@ func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	}
 	WriteString(bld, ` => `)
 	s.value.ToString(bld, format, g)
+}
+
+func (s* StructElement) Value() PType {
+	return s.value
 }
 
 func (t *StructType) Accept(v Visitor, g Guard) {
@@ -158,16 +170,25 @@ func (t *StructType) Generic() PType {
 	return NewStructType(al)
 }
 
+func (t *StructType) Elements() []*StructElement {
+	return t.elements
+}
+
 func (t *StructType) HashedMembers() map[string]*StructElement {
 	t.lock.Lock()
-	defer t.lock.Unlock()
 	if t.hashedMembers == nil {
-		t.hashedMembers = make(map[string]*StructElement, len(t.elements))
-		for _, elem := range t.elements {
-			t.hashedMembers[elem.name] = elem
-		}
+		t.hashedMembers = t.HashedMembersCloned()
 	}
+	t.lock.Unlock()
 	return t.hashedMembers
+}
+
+func (t *StructType) HashedMembersCloned() map[string]*StructElement {
+	hashedMembers := make(map[string]*StructElement, len(t.elements))
+	for _, elem := range t.elements {
+		hashedMembers[elem.name] = elem
+	}
+	return hashedMembers
 }
 
 func (t *StructType) IsAssignable(o PType, g Guard) bool {
@@ -262,6 +283,16 @@ func (t *StructType) Parameters() []PValue {
 		entries[idx] = WrapHashEntry(key, s.value)
 	}
 	return []PValue{WrapHash(entries)}
+}
+
+func (t *StructType) Size() *IntegerType {
+	required := 0
+	for _, e := range t.elements {
+		if !GuardedIsAssignable(e.key, undefType_DEFAULT, nil) {
+			required++
+		}
+	}
+	return NewIntegerType(int64(required), int64(len(t.elements)))
 }
 
 func (t *StructType) String() string {

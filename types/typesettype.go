@@ -42,6 +42,15 @@ func DefaultTypeSetType() *TypeSetType {
 	return typeSetType_DEFAULT
 }
 
+func (t *TypeSetType) Accept(v Visitor, g Guard) {
+	v(t)
+	// TODO: Visit typeset members
+}
+
+func (t *TypeSetType) Default() PType {
+	return typeSetType_DEFAULT
+}
+
 func (a *TypeSetType) Equals(other interface{}, guard Guard) bool {
 	panic("implement me")
 }

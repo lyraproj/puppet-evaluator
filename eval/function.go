@@ -313,19 +313,19 @@ func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) (result P
 	}
 
 	// TODO: Type assertion error
-	b := bytes.NewBufferString(`Found no matching parameter signature for function: [`)
-	for idx, a := range args {
-		if idx > 0 {
-			b.WriteByte(',')
-		}
-		DetailedType(a).ToString(b, NONE, nil)
+	var blockType *CallableType
+	if block != nil {
+		blockType = block.Type().(*CallableType)
 	}
-	b.WriteString(`] is not an instance of:`)
-	for _, d := range f.dispatchers {
-		b.WriteString("\n  ")
-		d.Signature().ParametersType().ToString(b, NONE, nil)
+	panic(NewArgumentsError(f.name, DescribeSignatures(signatures(f.dispatchers), WrapArray(args).DetailedType().(*TupleType), blockType)))
+}
+
+func signatures(lambdas []Lambda) []Signature {
+	s := make([]Signature, len(lambdas))
+	for i, l := range lambdas {
+		s[i] = l.Signature()
 	}
-	panic(NewArgumentsError(f.name, b.String()))
+	return s
 }
 
 func (f *goFunction) Dispatchers() []Lambda {
