@@ -44,7 +44,6 @@ problem.
 * [x] method call expressions
 * [x] function call expressions
 * [x] lambdas
-* [ ] class definition statements
 * [x] break statements
 * [x] return statements
 * [x] next statements
@@ -70,6 +69,7 @@ problem.
 * [ ] ~> operator
 * [ ] <- operator
 * [ ] <~ operator
+* [ ] class definition statements
 * [ ] defined type statements
 * [ ] node definition statements
 * [ ] resource expressions
@@ -88,7 +88,6 @@ problem.
 * [x] Binary
 * [x] Boolean
 * [x] Callable
-* [ ] Class
 * [x] Collection
 * [x] Data
 * [x] Default
@@ -123,6 +122,7 @@ problem.
 * [x] Variant
 
 * [ ] CatalogEntry
+* [ ] Class
 * [ ] Resource
 
 ### Puppet functions:
@@ -148,7 +148,6 @@ problem.
 * [x] filter
 * [ ] find_file
 * [ ] hocon_data
-* [ ] include
 * [x] info
 * [ ] inline_epp
 * [ ] json_data
@@ -181,5 +180,6 @@ problem.
 
 * [ ] contain
 * [ ] defined
+* [ ] include
 * [ ] require
 
