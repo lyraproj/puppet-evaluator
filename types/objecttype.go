@@ -7,6 +7,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-evaluator/errors"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 	KEY_OVERRIDE              = `override`
 	KEY_PARENT                = `parent`
 	KEY_TYPE                  = `type`
+	KEY_TYPE_PARAMETERS       = `type_parameters`
 	KEY_VALUE                 = `value`
 
 	CONSTANT         = AttributeKind(`constant`)
@@ -33,7 +35,13 @@ const (
 
 var QREF_PATTERN = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
 
-var annotationType_DEFAULT = &ObjectType{name: `Annotation`, attributes: []*Attribute{}, functions: []*ObjFunc{}, equality: nil, annotations: _EMPTY_MAP}
+var annotationType_DEFAULT = &ObjectType{
+	name: `Annotation`,
+	typeParameters: map[string]AnnotatedMember{},
+	attributes: map[string]AnnotatedMember{},
+	functions: map[string]AnnotatedMember{},
+	equality: nil,
+	annotations: _EMPTY_MAP}
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
@@ -57,6 +65,7 @@ var TYPE_FUNCTION = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
 })
 
+var TYPE_PARAMETERS = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
 var TYPE_ATTRIBUTES = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
 var TYPE_CONSTANTS = NewHashType(TYPE_MEMBER_NAME, DefaultAnyType(), nil)
 var TYPE_FUNCTIONS = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
@@ -66,6 +75,7 @@ var TYPE_CHECKS = DefaultAnyType()
 var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_OBJECT_NAME),
 	NewStructElement(NewOptionalType3(KEY_PARENT), DefaultTypeType()),
+	NewStructElement(NewOptionalType3(KEY_TYPE_PARAMETERS), TYPE_PARAMETERS),
 	NewStructElement(NewOptionalType3(KEY_ATTRIBUTES), TYPE_ATTRIBUTES),
 	NewStructElement(NewOptionalType3(KEY_CONSTANTS), TYPE_CONSTANTS),
 	NewStructElement(NewOptionalType3(KEY_FUNCTIONS), TYPE_FUNCTIONS),
@@ -86,9 +96,24 @@ type (
 		Container() *ObjectType
 
 		Type() PType
+
+		Override() bool
+
+		Final() bool
+
+		accept(v Visitor, g Guard)
 	}
 
 	AttributeKind string
+
+	Attribute interface {
+		AnnotatedMember
+		Kind() AttributeKind
+	}
+
+	Method interface {
+		AnnotatedMember
+	}
 
 	PuppetObject interface {
 		PValue
@@ -105,20 +130,25 @@ type (
 		annotations *HashValue
 	}
 
-	Attribute struct {
+	attribute struct {
 		annotatedMember
 		kind AttributeKind
 	}
 
-	ObjFunc struct {
+	typeParameter struct {
+		attribute
+	}
+
+	function struct {
 		annotatedMember
 	}
 
 	ObjectType struct {
 		name               string
 		parent             PType
-		attributes         []*Attribute
-		functions          []*ObjFunc
+		typeParameters     map[string]AnnotatedMember
+		attributes         map[string]AnnotatedMember
+		functions          map[string]AnnotatedMember
 		equality           []string
 		annotations        *HashValue
 		loader             Loader
@@ -126,10 +156,98 @@ type (
 	}
 )
 
+func argError(e PType, a PValue) errors.InstantiationError {
+	return errors.NewArgumentsError(``, DescribeMismatch(`assert`, e, a.Type()))
+}
+
+func typeArg(v PValue) PType {
+	if t, ok := v.(PType); ok {
+		return t
+	}
+	panic(argError(DefaultTypeType(), v))
+}
+
+func hashArg(v PValue) *HashValue {
+	if v == UNDEF || v == nil {
+		return nil
+	}
+	if t, ok := v.(*HashValue); ok {
+		return t
+	}
+	panic(argError(DefaultHashType(), v))
+}
+
+func boolArg(v PValue, d bool) bool {
+	if v == UNDEF || v == nil {
+		return d
+	}
+	if t, ok := v.(*BooleanValue); ok {
+		return t.Bool()
+	}
+	panic(argError(DefaultBooleanType(), v))
+}
+
+// Visit the keys of an annotations map. All keys are known to be types
+func visitAnnotations(a *HashValue, v Visitor, g Guard) {
+	if a != nil {
+		for _, e := range a.EntriesSlice() {
+			e.key.(PType).Accept(v, g)
+		}
+	}
+}
+
+func (a *annotatedMember) init(name string, container *ObjectType, initHash map[string]PValue) {
+	a.name = name
+	a.container = container
+	a.typ = typeArg(initHash[`type`])
+	a.override = boolArg(initHash[`override`], false)
+	a.final = boolArg(initHash[`final`], false)
+	a.annotations = hashArg(initHash[`annotations`])
+}
+
+func (a *annotatedMember) accept(v Visitor, g Guard) {
+	a.typ.Accept(v, g)
+	visitAnnotations(a.annotations, v, g)
+}
+
 func (a *annotatedMember) Annotations() *HashValue {
 	return a.annotations
 }
 
+// Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with
+// override = true and that the inherited member accepts to be overridden by this member.
+func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember) {
+	parentMember := parentMembers[a.Name()]
+	if parentMember == nil {
+		if a.Override() {
+			panic(errors.NewArgumentsError(``, `expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found`))
+		}
+	}
+
+
+	/*
+	    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
+    # the inherited member accepts to be overridden by this member.
+    #
+    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
+    # @return [PAnnotatedMember] this instance
+    # @raises [Puppet::ParseError] if the assertion fails
+    # @api private
+    def assert_override(parent_members)
+      parent_member = parent_members[@name]
+      if parent_member.nil?
+        if @override
+          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
+              { label: label, feature_type: feature_type }
+        end
+        self
+      else
+        parent_member.assert_can_be_overridden(self)
+      end
+    end
+
+	 */
+}
 func (a *annotatedMember) Name() string {
 	return a.name
 }
@@ -154,11 +272,17 @@ func (a *annotatedMember) Final() bool {
 	return a.final
 }
 
-func (a *Attribute) Kind() AttributeKind {
+func (a *attribute) Kind() AttributeKind {
 	return a.kind
 }
 
-var objectType_DEFAULT = &ObjectType{name: `Object`, initHashExpression: nil, attributes: []*Attribute{}, functions: []*ObjFunc{}, equality: nil, annotations: _EMPTY_MAP}
+var objectType_DEFAULT = &ObjectType{
+	name: `Object`,
+	typeParameters: map[string]AnnotatedMember{},
+	attributes: map[string]AnnotatedMember{},
+	functions: map[string]AnnotatedMember{},
+	equality: nil,
+	annotations: _EMPTY_MAP}
 
 func DefaultObjectType() *ObjectType {
 	return objectType_DEFAULT
@@ -182,8 +306,26 @@ func NewObjectType3(initHash map[string]PValue, loader Loader) *ObjectType {
 }
 
 func (t *ObjectType) Accept(v Visitor, g Guard) {
+	if g == nil {
+		g = make(Guard)
+	}
+	if g.Seen(t, nil) {
+		return
+	}
 	v(t)
-	// TODO: Visit object members
+	visitAnnotations(t.annotations, v, g)
+	if t.parent != nil {
+		t.parent.Accept(v, g)
+	}
+	for _, m := range t.typeParameters {
+		m.accept(v, g)
+	}
+	for _, m := range t.attributes {
+		m.accept(v, g)
+	}
+	for _, m := range t.functions {
+		m.accept(v, g)
+	}
 }
 
 func (t *ObjectType) Default() PType {
