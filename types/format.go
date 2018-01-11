@@ -12,6 +12,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"unicode/utf8"
 )
 
 type (
@@ -593,4 +594,143 @@ func (f *format) WithoutWidth() Format {
 	nf.alt = false
 	nf.origFmt = nf.unParse()
 	return nf
+}
+
+type stringReader struct {
+	i    int
+	text string
+}
+
+func (r *stringReader) Next() (rune, bool) {
+	if r.i >= len(r.text) {
+		return 0, false
+	}
+	c := rune(r.text[r.i])
+	if c < utf8.RuneSelf {
+		r.i++
+		return c, true
+	}
+	c, size := utf8.DecodeRuneInString(r.text[r.i:])
+	if c == utf8.RuneError {
+		panic(`invalid unicode character`)
+	}
+	r.i += size
+	return c, true
+}
+
+// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
+// and using Puppet StringFormatter for evaluating formatting specifications
+func PuppetSprintf(s string, args ...PValue) string {
+	buf := bytes.NewBufferString(``)
+	fprintf(buf, `sprintf`, s,  args...)
+	return buf.String()
+}
+
+// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
+// and using Puppet StringFormatter for evaluating formatting specifications
+func PuppetFprintf(buf io.Writer, s string, args ...PValue) {
+	fprintf(buf, `fprintf`, s,  args...)
+}
+
+// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
+// and using Puppet StringFormatter for evaluating formatting specifications
+func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
+	// Transform the map into a slice of values and a map that maps a key to the position
+	// of its value in the slice.
+	// Transform all %{key} to %[pos]
+	var c rune
+	var ok bool
+	rdr := &stringReader{0, s}
+
+	consumeAndApplyPattern := func(v PValue) {
+		f := bytes.NewBufferString(`%`)
+		for ok {
+			f.WriteRune(c)
+			if 'A' <= c && c <= 'Z' ||  'a' <= c && c <= 'z'  {
+				c, ok = rdr.Next()
+				break
+			}
+			c, ok = rdr.Next()
+		}
+		ctx, err := NewFormatContext3(v, WrapString(f.String()))
+		if err != nil {
+			panic(NewIllegalArgument(callerName, 1, err.Error()))
+		}
+		ToString4(v, ctx, buf)
+	}
+
+	var hashArg *HashValue
+
+	pos := 0
+	top := len(args)
+	c, ok = rdr.Next()
+	nextChar: for ok {
+		if c != '%' {
+			utils.WriteRune(buf, c)
+			c, ok = rdr.Next()
+			continue
+		}
+
+		c, ok = rdr.Next()
+		if c == '%' {
+			// %% means % verbatim
+			utils.WriteRune(buf, c)
+			c, ok = rdr.Next()
+			continue
+		}
+
+		// Both %<key> and %{key} are allowed
+		e := rune(0)
+		if c == '{' {
+			e = '}'
+		} else if c == '<' {
+			e = '>'
+		}
+
+		if e == 0 {
+			// This is a positional argument. It is allowed but there can only be one (for the
+			// hash as a whole)
+			if hashArg != nil {
+				panic(NewArgumentsError(callerName,`keyed and positional format specifications cannot be mixed`))
+			}
+			if pos >= top {
+				panic(NewArgumentsError(callerName,`unbalanced format versus arguments`))
+			}
+			consumeAndApplyPattern(args[pos])
+			pos++
+			continue
+		}
+
+		if pos > 0 {
+			panic(NewArgumentsError(callerName,`keyed and positional format specifications cannot be mixed`))
+		}
+
+		if hashArg == nil {
+			ok = false
+			if top == 1 {
+				hashArg, ok = args[0].(*HashValue)
+			}
+			if !ok {
+				panic(NewArgumentsError(callerName,`keyed format specifications requires one hash argument`))
+			}
+		}
+
+		b := c
+		keyStart := rdr.i
+		c, ok = rdr.Next()
+		for ok {
+			if c == e {
+				keyEnd := rdr.i - 1 // Safe since '}' is below RuneSelf
+				key := s[keyStart:keyEnd]
+				if value, keyFound := hashArg.Get(WrapString(key)); keyFound {
+					c, ok = rdr.Next()
+					consumeAndApplyPattern(value)
+					continue nextChar
+				}
+				panic(NewIllegalArgument(callerName, 1, fmt.Sprintf("key%c%s%c not found", b, key, c)))
+			}
+			c, ok = rdr.Next()
+		}
+		panic(NewArgumentsError(callerName, fmt.Sprintf(`unterminated %%c`, b)))
+	}
 }

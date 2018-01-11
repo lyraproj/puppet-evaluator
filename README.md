@@ -165,6 +165,7 @@ problem.
 * [ ] scanf
 * [ ] slice
 * [ ] step
+* [x] sprintf
 * [ ] strftime
 * [ ] then
 * [ ] tree_each

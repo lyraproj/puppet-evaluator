@@ -104,7 +104,7 @@ const (
 	unresolvedTypeReferenceClass = mismatchClass(`unresolvedTypeReference`)
 )
 
-func (p pathType) format(key string) string {
+func (p pathType) String(key string) string {
 	if p == subject || p == signature {
 		return key
 	}
@@ -118,7 +118,7 @@ func (p pathType) format(key string) string {
 }
 
 func (pe *pathElement) String() string {
-	return pe.pathType.format(pe.key)
+	return pe.pathType.String(pe.key)
 }
 
 func copyMismatch(m mismatch) mismatch {
@@ -148,7 +148,7 @@ func chopPath(m mismatch, index int) mismatch {
 	return withPath(m, cp)
 }
 
-func merge(m mismatch, o mismatch, path []*pathElement) mismatch {
+func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 	m = withPath(m, path)
 	switch m.(type) {
 	case sizeMismatch:
@@ -181,7 +181,7 @@ func joinPath(path []*pathElement) string {
 	return strings.Join(s, ` `)
 }
 
-func format(m mismatch) string {
+func formatMismatch(m mismatch) string {
 	p := m.path()
 	variant := ``
 	position := ``
@@ -898,7 +898,7 @@ func mergeDescriptions(varyingPathPosition int, sm mismatchClass, descriptions [
 			for idx := 1; idx < n; idx++ {
 				curr := mismatches[idx]
 				if pathEquals(prev.canonicalPath(), curr.canonicalPath()) {
-					prev = merge(prev, curr, prev.path())
+					prev = mergeMismatch(prev, curr, prev.path())
 				} else {
 					prev = nil
 					break
@@ -940,11 +940,11 @@ func init() {
 		case 0:
 			return ``
 		case 1:
-			return format(result[0])
+			return formatMismatch(result[0])
 		default:
 			rs := make([]string, len(result))
 			for i, r := range result {
-				rs[i] = format(r)
+				rs[i] = formatMismatch(r)
 			}
 			return strings.Join(rs, "\n")
 		}
@@ -955,7 +955,7 @@ func describeSignatures(signatures []Signature, argsTuple PType, block Lambda) s
 	errorArrays := make([][]mismatch, len(signatures))
 	allSet := true
 	for ix, sg := range signatures {
-		ae := describeSignatureArguments(sg, argsTuple.(*TupleType), []*pathElement{{strconv.Itoa(ix), signature}})
+		ae := describeSignatureArguments(sg, argsTuple, []*pathElement{{strconv.Itoa(ix), signature}})
 		errorArrays[ix] = ae
 		if len(ae) == 0 {
 			allSet = false
@@ -995,36 +995,52 @@ func describeSignatures(signatures []Signature, argsTuple PType, block Lambda) s
 
 	errors = mergeDescriptions(0, countMismatchClass, errors)
 	if len(errors) == 1 {
-		return format(errors[0])
+		return formatMismatch(errors[0])
 	}
 
 	var result []string
 	if len(signatures) == 1 {
 		result = []string{fmt.Sprintf(`expects (%s)`, signatureString(signatures[0]))}
 		for _, e := range errorArrays[0] {
-			result = append(result, fmt.Sprintf(`  rejected:%s`, format(chopPath(e, 0))))
+			result = append(result, fmt.Sprintf(`  rejected:%s`, formatMismatch(chopPath(e, 0))))
 		}
 	} else {
 		result = []string{`expects one of:`}
 		for ix, sg := range signatures {
 			result = append(result, fmt.Sprintf(`  (%s)`, signatureString(sg)))
 			for _, e := range errorArrays[ix] {
-				result = append(result, fmt.Sprintf(`    rejected:%s`, format(chopPath(e, 0))))
+				result = append(result, fmt.Sprintf(`    rejected:%s`, formatMismatch(chopPath(e, 0))))
 			}
 		}
 	}
 	return strings.Join(result, "\n")
 }
 
-func describeSignatureArguments(signature Signature, argsTuple *TupleType, path []*pathElement) []mismatch {
+func describeSignatureArguments(signature Signature, args PType, path []*pathElement) []mismatch {
 	paramsTuple := signature.ParametersType().(*TupleType)
 	eSize := paramsTuple.Size()
-	aSize := argsTuple.Size()
+
+	var aSize *IntegerType
+	var types []PType
+	switch args.(type) {
+	case *TupleType:
+		at := args.(*TupleType)
+		aSize = at.Size()
+		types = at.Types()
+	case *ArrayType:
+		at := args.(*ArrayType)
+		aSize = at.Size()
+		n := int(aSize.Min())
+		types = make([]PType, n)
+		for i := 0; i < n; i++ {
+			types[i] = at.ElementType()
+		}
+	}
 	if IsAssignable(eSize, aSize) {
 		eTypes := paramsTuple.Types()
 		eLast := len(eTypes) - 1
 		eNames := signature.ParameterNames()
-		for ax, aType := range argsTuple.Types() {
+		for ax, aType := range types {
 			ex := ax
 			if ex > eLast {
 				ex = eLast
