@@ -12,7 +12,7 @@ import (
 
 func callNew(c EvalContext, name string, args []PValue, block Lambda) PValue {
 	tn := NewTypedName(`constructor`, name)
-	if ctor, ok := c.Loader().Load(tn); ok {
+	if ctor, ok := Load(c.Loader(), tn); ok {
 		r := ctor.(Function).Call(c, nil, args...)
 		if block != nil {
 			r = block.Call(c, nil, r)

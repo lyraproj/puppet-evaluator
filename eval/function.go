@@ -152,7 +152,7 @@ func (fb *functionBuilder) Resolve(c EvalContext) Function {
 				b.WriteString(td.decl)
 				b.WriteByte('\n')
 			} else {
-				localLoader.SetEntry(NewTypedName(TYPE, td.name), td.tp)
+				localLoader.SetEntry(NewTypedName(TYPE, td.name), NewLoaderEntry(td.tp, ``))
 			}
 		}
 

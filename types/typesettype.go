@@ -82,3 +82,7 @@ func (a *TypeSetType) Annotations() *HashValue {
 func (a *TypeSetType) Name() string {
 	return a.name
 }
+
+func (a *TypeSetType) Resolve(loader Loader) {
+	panic("implement me")
+}

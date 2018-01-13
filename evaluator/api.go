@@ -30,6 +30,8 @@ type (
 
 		WithScope(scope Scope) EvalContext
 
+		ParseAndValidate(str, filename string, singleExpression bool) Expression
+
 		ParseType(str PValue) PType
 
 		Loader() Loader
@@ -47,3 +49,7 @@ type (
 		Stack() []Location
 	}
 )
+
+var GeneralFailure func(error string)
+
+var CurrentContext func() EvalContext

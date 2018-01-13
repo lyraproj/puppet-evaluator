@@ -5,8 +5,29 @@ import "github.com/puppetlabs/go-evaluator/semver"
 type (
 	URI string
 
+	Setting interface {
+		Name() string
+	  Get() PValue
+	  IsSet() bool
+	  Reset()
+	  Set(value PValue)
+	  Type() PType
+	}
+
 	Pcore interface {
-		Loader() Loader
+		Reset()
+
+		SystemLoader() Loader
+
+		EnvironmentLoader() Loader
+
+		Loader(key string) Loader
+
+		Get(key string, defaultProducer Producer) PValue
+
+		Set(key string, value PValue)
+
+		DefineSetting(key string, valueType PType, dflt PValue)
 	}
 )
 

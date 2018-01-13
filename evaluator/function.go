@@ -19,6 +19,11 @@ type (
 		Name() string
 	}
 
+	ResolvableFunction interface {
+		Name() string
+		Resolve(c EvalContext) Function
+	}
+
 	DispatchFunction func(c EvalContext, args []PValue) PValue
 
 	DispatchFunctionWithBlock func(c EvalContext, args []PValue, block Lambda) PValue

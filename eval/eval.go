@@ -75,6 +75,22 @@ type (
 	}
 )
 
+var currentContext EvalContext
+
+func init() {
+	CurrentContext = func() EvalContext {
+		return currentContext
+	}
+
+	GeneralFailure = func(error string) {
+		c := currentContext
+		if c == nil {
+			panic(error)
+		}
+		c.Fail(error)
+	}
+}
+
 func NewEvalContext(eval Evaluator, loader Loader, scope Scope, stack []Location) EvalContext {
 	return &context{eval, loader, scope, stack}
 }
@@ -130,7 +146,7 @@ func (c *context) Resolve(expr Expression) PType {
 
 func (c *context) Call(name string, args []PValue, block Lambda) PValue {
 	tn := NewTypedName2(`function`, name, c.Loader().NameAuthority())
-	if f, ok := c.Loader().Load(tn); ok {
+	if f, ok := Load(c.Loader(), tn); ok {
 		return f.(Function).Call(c, block, args...)
 	}
 	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, []interface{}{tn.String()}, c.StackTop()))
@@ -164,12 +180,31 @@ func (c *context) Scope() Scope {
 	return c.scope
 }
 
-func (c *context) ParseResolve(str string) PType {
-	expr, err := CreateParser().Parse(``, str, false, true)
+func (c *context) ParseAndValidate(str, filename string, singleExpression bool) Expression {
+	expr, err := CreateParser().Parse(filename, str, false, singleExpression)
 	if err != nil {
 		panic(err)
 	}
-	return c.Resolve(expr)
+	checker := validator.NewChecker(validator.STRICT_ERROR)
+	checker.Validate(expr)
+	issues := checker.Issues()
+	if len(issues) > 0 {
+		severity := SEVERITY_IGNORE
+		for _, issue := range issues {
+			c.Logger().Log(LogLevel(issue.Severity()), WrapString(issue.String()))
+			if issue.Severity() > severity {
+				severity = issue.Severity()
+			}
+		}
+		if severity == SEVERITY_ERROR {
+			c.Fail(Sprintf(`Error validating %s`, filename))
+		}
+	}
+	return expr
+}
+
+func (c *context) ParseResolve(str string) PType {
+	return c.Resolve(c.ParseAndValidate(str, ``, true))
 }
 
 func (e *evaluator) AddDefinitions(expr Expression) {
@@ -213,6 +248,7 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 }
 
 func (e *evaluator) Eval(expr Expression, c EvalContext) PValue {
+	currentContext = c
 	return e.internalEval(expr, c)
 }
 
@@ -226,7 +262,7 @@ func (e *evaluator) callFunction(name string, args []PValue, call CallExpression
 
 func (e *evaluator) call(funcType Namespace, name string, args []PValue, call CallExpression, c EvalContext) (result PValue) {
 	tn := NewTypedName2(funcType, name, c.Loader().NameAuthority())
-	f, ok := c.Loader().Load(tn)
+	f, ok := Load(c.Loader(), tn)
 	if !ok {
 		panic(e.evalError(EVAL_UNKNOWN_FUNCTION, call, tn.String()))
 	}
@@ -275,14 +311,14 @@ func (e *evaluator) define(loader DefiningLoader, d Definition) {
 		tn := NewTypedName2(TYPE, taExpr.Name(), loader.NameAuthority())
 		ta := NewTypeAliasType(taExpr.Name(), taExpr.Type(), nil)
 
-		loader.SetEntry(tn, ta)
+		loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))
 		e.definitions = append(e.definitions, &definition{ta, loader})
 	case *FunctionDefinition:
 		fe := d.(*FunctionDefinition)
 		tn := NewTypedName2(FUNCTION, fe.Name(), loader.NameAuthority())
 		fn := NewPuppetFunction(fe)
 
-		loader.SetEntry(tn, fn)
+		loader.SetEntry(tn, NewLoaderEntry(fn, d.File()))
 		e.definitions = append(e.definitions, &definition{fn, loader})
 	default:
 		panic(Sprintf(`Don't know how to define a %T`, d))
@@ -319,6 +355,10 @@ func (e *evaluator) eval_ConcatenatedString(expr *ConcatenatedString, c EvalCont
 		bld.WriteString(e.eval(s, c).(*StringValue).String())
 	}
 	return WrapString(bld.String())
+}
+
+func (e *evaluator) eval_HeredocExpression(expr *HeredocExpression, c EvalContext) PValue {
+	return e.eval(expr.Text(), c)
 }
 
 func (e *evaluator) eval_CallMethodExpression(call *CallMethodExpression, c EvalContext) PValue {
@@ -585,6 +625,8 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_ComparisonExpression(expr.(*ComparisonExpression), c)
 	case *ConcatenatedString:
 		return e.eval_ConcatenatedString(expr.(*ConcatenatedString), c)
+	case *HeredocExpression:
+		return e.eval_HeredocExpression(expr.(*HeredocExpression), c)
 	case *IfExpression:
 		return e.eval_IfExpression(expr.(*IfExpression), c)
 	case *KeyedEntry:
@@ -655,7 +697,7 @@ func (e *evaluator) loaderForDir(dirName string) DefiningLoader {
 
 func (e *evaluator) loadType(name string, loader Loader) PType {
 	tn := NewTypedName2(TYPE, name, loader.NameAuthority())
-	found, ok := loader.Load(tn)
+	found, ok := Load(loader, tn)
 	if ok {
 		return found.(PType)
 	}
