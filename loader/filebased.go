@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/puppetlabs/go-evaluator/utils"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -205,7 +207,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 						return entry
 					}
 				}
-				GeneralFailure(fmt.Sprintf(`The code loaded from %s does not define the TypeSet '%s'`, origins[0], l.moduleName))
+				panic(Error(EVAL_NOT_EXPECTED_TYPESET, H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
 			}
 		default:
 			return nil
@@ -272,7 +274,7 @@ func (l *fileBasedLoader) instantiate(smartPath SmartPath, name TypedName, origi
 func (l *fileBasedLoader) GetContent(path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		GeneralFailure(err.Error())
+		panic(Error(EVAL_UNABLE_TO_READ_FILE, H{`path`: path, `detail`: err.Error()}))
 	}
 	return content
 }

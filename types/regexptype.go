@@ -10,6 +10,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -103,10 +104,15 @@ func (t *RegexpType) PatternString() string {
 
 func (t *RegexpType) Regexp() *Regexp {
 	t.lock.Lock()
-	defer t.lock.Unlock()
 	if t.pattern == nil {
-		t.pattern = MustCompile(t.patternString)
+		pattern, err := Compile(t.patternString)
+		if err != nil {
+			t.lock.Unlock()
+			panic(Error(EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
+		}
+		t.pattern = pattern
 	}
+	t.lock.Unlock()
 	return t.pattern
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/semver"
 	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/parser"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 func (e *evaluator) eval_ComparisonExpression(expr *ComparisonExpression, c EvalContext) PValue {
@@ -49,7 +50,7 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return IsAssignable(left, right)
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
@@ -67,7 +68,7 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
@@ -84,7 +85,7 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
@@ -101,14 +102,14 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 	}
-	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, op, A_an(a.Type()), A_an(b.Type())))
+	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
 }
 
 func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope Scope, a PValue, b PValue) bool {
@@ -123,7 +124,7 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_MATCH_NOT_REGEXP, rhs, err.Error()))
+				panic(e.evalError(EVAL_MATCH_NOT_REGEXP, rhs, H{`detail`: err.Error()}))
 			}
 		} else {
 			rx = b.(*RegexpValue).Regexp()
@@ -131,7 +132,7 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 
 		sv, ok := a.(*StringValue)
 		if !ok {
-			panic(e.evalError(EVAL_MATCH_NOT_STRING, lhs, A_an(a.Type())))
+			panic(e.evalError(EVAL_MATCH_NOT_STRING, lhs, H{`left`: a.Type()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			scope.RxSet(group)
@@ -147,10 +148,11 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_NOT_SEMVER, lhs, err.Error()))
+				panic(e.evalError(EVAL_NOT_SEMVER, lhs, H{`detail`: err.Error()}))
 			}
 		} else {
-			panic(e.evalError(EVAL_NOT_SEMVER, lhs, fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())))
+			panic(e.evalError(EVAL_NOT_SEMVER, lhs,
+				H{`detail`: fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
 		}
 		if lv, ok := b.(*SemVerValue); ok {
 			result = lv.Version().Equals(version)

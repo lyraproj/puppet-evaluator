@@ -2,6 +2,7 @@ package functions
 
 import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 func assertType(c EvalContext, t PType, v PValue, b Lambda) PValue {
@@ -10,7 +11,7 @@ func assertType(c EvalContext, t PType, v PValue, b Lambda) PValue {
 	}
 	vt := DetailedValueType(v)
 	if b == nil {
-		panic(c.Error(nil, EVAL_TYPE_MISMATCH, DescribeMismatch(`assert_type():`, t, vt)))
+		panic(c.Error(nil, EVAL_TYPE_MISMATCH, H{`detail`: DescribeMismatch(`assert_type():`, t, vt)}))
 	}
 	return b.Call(c, nil, t, vt)
 }

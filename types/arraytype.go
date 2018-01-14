@@ -291,8 +291,9 @@ outer:
 
 func (av *ArrayValue) DetailedType() PType {
 	av.lock.Lock()
-	defer av.lock.Unlock()
-	return av.prtvDetailedType()
+	t := av.prtvDetailedType()
+	av.lock.Unlock()
+	return t
 }
 
 func (av *ArrayValue) Elements() []PValue {
@@ -447,8 +448,9 @@ func isArrayOrHash(child PValue) bool {
 
 func (av *ArrayValue) Type() PType {
 	av.lock.Lock()
-	defer av.lock.Unlock()
-	return av.prtvReducedType()
+	t := av.prtvReducedType()
+	av.lock.Unlock()
+	return t
 }
 
 func (av *ArrayValue) prtvDetailedType() PType {

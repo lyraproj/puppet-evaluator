@@ -14,7 +14,7 @@ type (
 	}
 
 	basicLoader struct {
-		lock         sync.Mutex
+		lock         sync.RWMutex
 		namedEntries map[string]Entry
 	}
 
@@ -111,15 +111,16 @@ func (l *basicLoader) LoadEntry(name TypedName) Entry {
 }
 
 func (l *basicLoader) GetEntry(name TypedName) Entry {
-	l.lock.Lock()
+	l.lock.RLock()
 	v := l.namedEntries[name.MapKey()]
-	l.lock.Unlock()
+	l.lock.RUnlock()
 	return v
 }
 
 func (l *basicLoader) SetEntry(name TypedName, entry Entry) Entry {
 	l.lock.Lock()
-	if _, ok := l.namedEntries[name.MapKey()]; ok {
+	_, ok := l.namedEntries[name.MapKey()]
+	if ok {
 		l.lock.Unlock()
 		panic(fmt.Sprintf(`Attempt to redefine %s`, name.String()))
 	}

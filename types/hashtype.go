@@ -393,8 +393,9 @@ func (hv *HashValue) DeleteAll(keys IndexedValue) IndexedValue {
 
 func (hv *HashValue) DetailedType() PType {
 	hv.lock.Lock()
-	defer hv.lock.Unlock()
-	return hv.prtvDetailedType()
+	t := hv.prtvDetailedType()
+	hv.lock.Unlock()
+	return t
 }
 
 func (hv *HashValue) Elements() []PValue {
@@ -582,8 +583,9 @@ func (hv *HashValue) ToString(b Writer, s FormatContext, g RDetect) {
 
 func (hv *HashValue) Type() PType {
 	hv.lock.Lock()
-	defer hv.lock.Unlock()
-	return hv.prtvReducedType()
+	t := hv.prtvReducedType()
+	hv.lock.Unlock()
+	return t
 }
 
 func (hv *HashValue) Values() IndexedValue {
@@ -650,15 +652,13 @@ func (hv *HashValue) prtvReducedType() PType {
 
 func (hv *HashValue) valueIndex() map[HashKey]int {
 	hv.lock.Lock()
-	defer hv.lock.Unlock()
-
-	if hv.index != nil {
-		return hv.index
+	if hv.index == nil {
+		result := make(map[HashKey]int, len(hv.entries))
+		for idx, entry := range hv.entries {
+			result[ToKey(entry.key)] = idx
+		}
+		hv.index = result
 	}
-	result := make(map[HashKey]int, len(hv.entries))
-	for idx, entry := range hv.entries {
-		result[ToKey(entry.key)] = idx
-	}
-	hv.index = result
-	return result
+	hv.lock.Unlock()
+	return hv.index
 }

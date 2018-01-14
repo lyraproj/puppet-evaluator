@@ -7,6 +7,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/parser"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 func (e *evaluator) eval_ArithmeticExpression(expr *ArithmeticExpression, c EvalContext) PValue {
@@ -39,9 +40,9 @@ func (e *evaluator) calculate(expr *ArithmeticExpression, a PValue, b PValue) PV
 		if fv, err := strconv.ParseFloat(sv.String(), 64); err == nil {
 			return e.lhsFloatArithmetic(expr, fv, b)
 		}
-		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Lhs(), sv.String()))
+		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Lhs(), H{`value`: sv.String()}))
 	}
-	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, op, A_an(a.Type())))
+	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
 }
 
 func (e *evaluator) lhsIntArithmetic(expr *ArithmeticExpression, ai int64, b PValue) PValue {
@@ -59,9 +60,9 @@ func (e *evaluator) lhsIntArithmetic(expr *ArithmeticExpression, ai int64, b PVa
 		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
 			return WrapFloat(e.floatArithmetic(expr, float64(ai), fv))
 		}
-		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Rhs(), bv.String()))
+		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Rhs(), H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, op, `an Integer`, A_an(b.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: op, `left`: `Integer`, `right`: b.Type()}))
 	}
 }
 
@@ -80,9 +81,9 @@ func (e *evaluator) lhsFloatArithmetic(expr *ArithmeticExpression, af float64, b
 		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
 			return WrapFloat(e.floatArithmetic(expr, af, fv))
 		}
-		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Rhs(), bv.String()))
+		panic(e.evalError(EVAL_NOT_NUMERIC, expr.Rhs(), H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, op, `a Float`, A_an(b.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: op, `left`: `Float`, `right`: b.Type()}))
 	}
 }
 
@@ -97,7 +98,7 @@ func (e *evaluator) floatArithmetic(expr *ArithmeticExpression, a float64, b flo
 	case `/`:
 		return a / b
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, expr.Operator(), `a Float`))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: expr.Operator(), `left`: `Float`}))
 	}
 }
 
@@ -118,7 +119,7 @@ func (e *evaluator) intArithmetic(expr *ArithmeticExpression, a int64, b int64) 
 	case `>>`:
 		return a >> uint(b)
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, expr.Operator(), `an Integer`))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: expr.Operator(), `left`: `Integer`}))
 	}
 }
 
@@ -144,7 +145,7 @@ func (e *evaluator) concatenate(expr *ArithmeticExpression, a PValue, b PValue) 
 				switch err.(type) {
 				case nil:
 				case *ArgumentsError:
-					panic(e.evalError(EVAL_ARGUMENTS_ERROR, expr, A_an(expr), err.(*ArgumentsError).Error()))
+					panic(e.evalError(EVAL_ARGUMENTS_ERROR, expr, H{`expression`: expr, `message`: err.(*ArgumentsError).Error()}))
 				default:
 					panic(err)
 				}
@@ -154,7 +155,7 @@ func (e *evaluator) concatenate(expr *ArithmeticExpression, a PValue, b PValue) 
 			return a.(*HashValue).Merge(b.(*HashValue))
 		}
 	}
-	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, expr.Operator(), A_an(a.Type()), A_an(b.Type())))
+	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: expr.Operator(), `left`: a.Type(), `right`: b.Type()}))
 }
 
 func (e *evaluator) collectionDelete(expr *ArithmeticExpression, a PValue, b PValue) PValue {
@@ -180,6 +181,6 @@ func (e *evaluator) collectionDelete(expr *ArithmeticExpression, a PValue, b PVa
 			return hv.Delete(b)
 		}
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, expr.Operator(), A_an(a.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: expr.Operator(), `left`: a.Type}))
 	}
 }

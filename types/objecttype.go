@@ -220,8 +220,11 @@ func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember)
 	parentMember := parentMembers[a.Name()]
 	if parentMember == nil {
 		if a.Override() {
-			panic(errors.NewArgumentsError(``, `expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found`))
+			panic(errors.NewArgumentsError(``,
+				`expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found`))
 		}
+	} else {
+		assertCanBeOverridden(parentMember, a)
 	}
 
 	/*
@@ -247,6 +250,27 @@ func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember)
 
 	*/
 }
+
+func assertCanBeOverridden(a AnnotatedMember, b AnnotatedMember) {
+/*
+      unless self.class == member.class
+        raise Puppet::ParseError, _("%{member} attempts to override %{label}") % { member: member.label, label: label }
+      end
+      if @final && !(constant? && member.constant?)
+        raise Puppet::ParseError, _("%{member} attempts to override final %{label}") % { member: member.label, label: label }
+      end
+      unless member.override?
+        #TRANSLATOR 'override => true' is a puppet syntax and should not be translated
+        raise Puppet::ParseError, _("%{member} attempts to override %{label} without having override => true") % { member: member.label, label: label }
+      end
+      unless @type.assignable?(member.type)
+        raise Puppet::ParseError, _("%{member} attempts to override %{label} with a type that does not match") % { member: member.label, label: label }
+      end
+      member
+
+ */
+}
+
 func (a *annotatedMember) Name() string {
 	return a.name
 }

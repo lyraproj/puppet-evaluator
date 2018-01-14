@@ -4,6 +4,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-parser/parser"
 	"strings"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type Instantiator func(loader ContentProvidingLoader, tn TypedName, sources []string)
@@ -16,10 +17,10 @@ func InstantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sour
 	name := tn.Name()
 	fd, ok := getDefinition(ctx, expr, FUNCTION, name).(*FunctionDefinition)
 	if !ok {
-		panic(ctx.Error(expr, EVAL_NO_DEFINITION, expr.File(), FUNCTION, name))
+		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: FUNCTION, `name`: name}))
 	}
 	if strings.ToLower(fd.Name()) != strings.ToLower(name) {
-		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, expr.File(), FUNCTION, name, fd.Name()))
+		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, H{`source`: expr.File(), `type`: FUNCTION, `expected`: name, `actual`: fd.Name()}))
 	}
 	e := ctx.Evaluator()
 	e.AddDefinitions(expr)
@@ -39,10 +40,10 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources 
 	case *TypeDefinition:
 		tdn = def.(*TypeDefinition).Name()
 	default:
-		panic(ctx.Error(expr, EVAL_NO_DEFINITION, expr.File(), TYPE, name))
+		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: TYPE, `name`: name}))
 	}
 	if strings.ToLower(tdn) != strings.ToLower(name) {
-		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, expr.File(), TYPE, name, tdn))
+		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, H{`source`: expr.File(), `type`: TYPE, `expected`: name, `actual`: tdn}))
 	}
 	e := ctx.Evaluator()
 	e.AddDefinitions(expr)
@@ -64,9 +65,9 @@ func getDefinition(ctx EvalContext, expr Expression, ns Namespace, name string) 
 					return d
 				}
 			default:
-				panic(ctx.Error(expr, EVAL_NOT_ONLY_DEFINITION, expr.File(), ns, name))
+				panic(ctx.Error(expr, EVAL_NOT_ONLY_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
 			}
 		}
 	}
-	panic(ctx.Error(expr, EVAL_NO_DEFINITION, expr.File(), ns, name))
+	panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
 }

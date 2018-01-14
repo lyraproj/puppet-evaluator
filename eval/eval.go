@@ -82,12 +82,15 @@ func init() {
 		return currentContext
 	}
 
-	GeneralFailure = func(error string) {
+	Error = func(issueCode IssueCode, args H) *ReportedIssue {
+    var location Location
 		c := currentContext
 		if c == nil {
-			panic(error)
+			location = nil
+		} else {
+			location = c.StackTop()
 		}
-		panic(c.Fail(error))
+		return NewReportedIssue(issueCode, SEVERITY_ERROR, args, location)
 	}
 }
 
@@ -149,14 +152,14 @@ func (c *context) Call(name string, args []PValue, block Lambda) PValue {
 	if f, ok := Load(c.Loader(), tn); ok {
 		return f.(Function).Call(c, block, args...)
 	}
-	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, []interface{}{tn.String()}, c.StackTop()))
+	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, H{`name`: tn.String()}, c.StackTop()))
 }
 
 func (c *context) Fail(message string) *ReportedIssue {
-	return c.Error(nil, EVAL_FAILURE, message)
+	return c.Error(nil, EVAL_FAILURE, H{`message`: message})
 }
 
-func (c *context) Error(location Location, issueCode IssueCode, args ...interface{}) *ReportedIssue {
+func (c *context) Error(location Location, issueCode IssueCode, args H) *ReportedIssue {
 	if location == nil {
 		location = c.StackTop()
 	}
@@ -232,13 +235,13 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 				err = r.(*ReportedIssue)
 			case *StopIteration:
 				result = UNDEF
-				err = e.evalError(EVAL_ILLEGAL_BREAK, r.(*StopIteration).Location())
+				err = e.evalError(EVAL_ILLEGAL_BREAK, r.(*StopIteration).Location(), NO_ARGS)
 			case *NextIteration:
 				result = UNDEF
-				err = e.evalError(EVAL_ILLEGAL_NEXT, r.(*NextIteration).Location())
+				err = e.evalError(EVAL_ILLEGAL_NEXT, r.(*NextIteration).Location(), NO_ARGS)
 			case *Return:
 				result = UNDEF
-				err = e.evalError(EVAL_ILLEGAL_RETURN, r.(*Return).Location())
+				err = e.evalError(EVAL_ILLEGAL_RETURN, r.(*Return).Location(), NO_ARGS)
 			default:
 				panic(r)
 			}
@@ -271,7 +274,7 @@ func (e *evaluator) call(funcType Namespace, name string, args []PValue, call Ca
 	tn := NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := Load(c.Loader(), tn)
 	if !ok {
-		panic(e.evalError(EVAL_UNKNOWN_FUNCTION, call, tn.String()))
+		panic(e.evalError(EVAL_UNKNOWN_FUNCTION, call, H{`name`: tn.String()}))
 	}
 
 	var block Lambda
@@ -296,16 +299,17 @@ func (e *evaluator) convertCallError(err interface{}, expr Expression, args []Ex
 	switch err.(type) {
 	case nil:
 	case *ArgumentsError:
-		panic(e.evalError(EVAL_ARGUMENTS_ERROR, expr, A_an(expr), err.(*ArgumentsError).Error()))
+		panic(e.evalError(EVAL_ARGUMENTS_ERROR, expr, H{`expression`: expr, `message`: err.(*ArgumentsError).Error()}))
 	case *IllegalArgument:
 		ia := err.(*IllegalArgument)
-		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT, args[ia.Index()], A_an(expr), ia.Index(), ia.Error()))
+		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT, args[ia.Index()], H{`expression`: expr, `number`: ia.Index(), `message`: ia.Error()}))
 	case *IllegalArgumentType:
 		ia := err.(*IllegalArgumentType)
-		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_TYPE, args[ia.Index()], A_an(expr), ia.Index(), ia.Expected(), ia.Actual()))
+		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_TYPE, args[ia.Index()],
+			H{`expression`: expr, `number`: ia.Index(), `expected`: ia.Expected(), `actual`: ia.Actual()}))
 	case *IllegalArgumentCount:
 		iac := err.(*IllegalArgumentCount)
-		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, A_an(expr), iac.Expected(), iac.Actual()))
+		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: expr, `expected`: iac.Expected(), `actual`: iac.Actual()}))
 	default:
 		panic(err)
 	}
@@ -371,11 +375,13 @@ func (e *evaluator) eval_HeredocExpression(expr *HeredocExpression, c EvalContex
 func (e *evaluator) eval_CallMethodExpression(call *CallMethodExpression, c EvalContext) PValue {
 	fc, ok := call.Functor().(*NamedAccessExpression)
 	if !ok {
-		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(), A_anUc(call.Functor()), `function accessor`, A_an(call)))
+		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+			H{`expression`: call.Functor(), `feature`: `function accessor`, `container`: call}))
 	}
 	qn, ok := fc.Rhs().(*QualifiedName)
 	if !ok {
-		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(), A_anUc(call.Functor()), `function name`, A_an(call)))
+		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+			H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 	}
 	// TODO: Check if receiver[0] is an Object, and if so, call method on that object
 	receiver := e.unfold([]Expression{fc.Lhs()}, c)
@@ -390,7 +396,8 @@ func (e *evaluator) eval_CallNamedFunctionExpression(call *CallNamedFunctionExpr
 	case *QualifiedReference:
 		return e.callFunction(`new`, e.unfold(call.Arguments(), c, WrapString(fc.(*QualifiedReference).Name())), call, c)
 	default:
-		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(), A_anUc(call.Functor()), `function name`, A_an(call)))
+		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+			H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 	}
 }
 
@@ -583,13 +590,13 @@ func (e *evaluator) eval_VariableExpression(expr *VariableExpression, c EvalCont
 		if value, ok = c.Scope().Get(name); ok {
 			return value
 		}
-		panic(e.evalError(EVAL_UNKNOWN_VARIABLE, expr, name))
+		panic(e.evalError(EVAL_UNKNOWN_VARIABLE, expr, H{`name`: name}))
 	}
 	idx, _ := expr.Index()
 	if value, ok = c.Scope().RxGet(int(idx)); ok {
 		return value
 	}
-	panic(e.evalError(EVAL_UNKNOWN_VARIABLE, expr, idx))
+	panic(e.evalError(EVAL_UNKNOWN_VARIABLE, expr, H{`name`: idx}))
 }
 
 func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext) PValue {
@@ -608,7 +615,7 @@ func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext)
 	}
 }
 
-func (e *evaluator) evalError(code IssueCode, location Location, args ...interface{}) *ReportedIssue {
+func (e *evaluator) evalError(code IssueCode, location Location, args H) *ReportedIssue {
 	return NewReportedIssue(code, SEVERITY_ERROR, args, location)
 }
 
@@ -688,7 +695,7 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 	case *VariableExpression:
 		return e.eval_VariableExpression(expr.(*VariableExpression), c)
 	default:
-		panic(e.evalError(EVAL_UNHANDLED_EXPRESSION, expr, expr))
+		panic(e.evalError(EVAL_UNHANDLED_EXPRESSION, expr, H{`expression`: expr}))
 	}
 }
 

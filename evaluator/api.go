@@ -29,7 +29,7 @@ type (
 
 		// Creates a ReportedIssue with the given issue code, location, and arguments
 		// Typical use is to panic with the returned value
-		Error(location Location, issueCode IssueCode, args ...interface{}) *ReportedIssue
+		Error(location Location, issueCode IssueCode, args H) *ReportedIssue
 
 		// Creates a ReportedIssue with the EVAL_FAILURE issue code, location from stack top,
 		// and the given message
@@ -58,6 +58,8 @@ type (
 	}
 )
 
-var GeneralFailure func(error string)
-
 var CurrentContext func() EvalContext
+
+// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Typical use is to panic with the returned value
+var Error func(issueCode IssueCode, args H) *ReportedIssue

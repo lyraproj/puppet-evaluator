@@ -20,7 +20,7 @@ type (
 	}
 
 	pcoreImpl struct {
-		lock              sync.Mutex
+		lock              sync.RWMutex
 		systemLoader      Loader
 		environmentLoader Loader
 		moduleLoaders     map[string]Loader
@@ -97,21 +97,22 @@ func (p *pcoreImpl) Loader(key string) Loader {
 }
 
 func (p *pcoreImpl) DefineSetting(key string, valueType PType, dflt PValue) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
 
 	s := &setting{name: key, valueType: valueType, defaultValue: dflt}
 	if dflt != nil {
 		s.Set(dflt)
 	}
+	p.lock.Lock()
 	p.settings[key] = s
+	p.lock.Unlock()
 }
 
 func (p *pcoreImpl) Get(key string, defaultProducer Producer) PValue {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.lock.RLock()
+	v, ok := p.settings[key]
+	p.lock.RUnlock()
 
-	if v, ok := p.settings[key]; ok {
+	if ok {
 		if v.IsSet() {
 			return v.Get()
 		}
@@ -124,10 +125,11 @@ func (p *pcoreImpl) Get(key string, defaultProducer Producer) PValue {
 }
 
 func (p *pcoreImpl) Set(key string, value PValue) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.lock.RLock()
+	v, ok := p.settings[key]
+	p.lock.RUnlock()
 
-	if v, ok := p.settings[key]; ok {
+	if ok {
 		v.Set(value)
 		return
 	}

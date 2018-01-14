@@ -4,6 +4,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/parser"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext) (result PValue) {
@@ -25,7 +26,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 	if sv, ok := lhs.(SizedValue); ok {
 		opV = sv
 	} else {
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, `[]`, A_an(lhs.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, H{`operator`: `[]`, `left`: lhs.Type()}))
 	}
 
 	intArg := func(index int) int {
@@ -33,7 +34,8 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 		if arg, ok := ToInt(key); ok {
 			return int(arg)
 		}
-		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_TYPE, keys[index], A_an(opV.Type()), 0, `Integer`, key))
+		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_TYPE, keys[index],
+			H{`expression`: opV.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
 	indexArg := func(argIndex int) int {
@@ -76,7 +78,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 		}
 		hv := opV.(*HashValue)
 		if nArgs == 0 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, A_an(opV.Type()), `at least one`, nArgs))
+			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
@@ -94,7 +96,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 
 	case *ArrayValue:
 		if nArgs == 0 || nArgs > 2 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, A_an(opV.Type()), `1 or 2`, nArgs))
+			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
 		}
 		if nArgs == 2 {
 			start := indexArg(0)
@@ -121,7 +123,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 
 	case *StringValue:
 		if nArgs == 0 || nArgs > 2 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, A_an(opV.Type()), `1 or 2`, nArgs))
+			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
 		}
 		if nArgs == 2 {
 			start := indexArg(0)
@@ -147,7 +149,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 		return opV.(*StringValue).Slice(pos, pos+1)
 
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, `[]`, A_an(opV.Type())))
+		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, H{`operator`: `[]`, `left`: opV.Type()}))
 	}
 }
 
@@ -218,7 +220,7 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 	case `typealias`:
 	case `undef`:
 	case `unit`:
-		panic(e.evalError(EVAL_NOT_PARAMETERIZED_TYPE, expr, A_anUc(expr)))
+		panic(e.evalError(EVAL_NOT_PARAMETERIZED_TYPE, expr, H{`type`: expr}))
 	default:
 		tp = NewTypeReferenceType(expr.String())
 	}

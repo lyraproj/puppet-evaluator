@@ -725,7 +725,11 @@ nextChar:
 				key := s[keyStart:keyEnd]
 				if value, keyFound := hashArg.Get(WrapString(key)); keyFound {
 					c, ok = rdr.Next()
-					consumeAndApplyPattern(value)
+					if b == '{' {
+						ToString4(value, NONE, buf)
+					} else {
+						consumeAndApplyPattern(value)
+					}
 					continue nextChar
 				}
 				panic(NewIllegalArgument(callerName, 1, fmt.Sprintf("key%c%s%c not found", b, key, c)))
