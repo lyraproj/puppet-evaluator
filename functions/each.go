@@ -5,7 +5,6 @@ import (
 	. "github.com/puppetlabs/go-evaluator/types"
 )
 
-
 func eachIterator(c EvalContext, arg IterableValue, block Lambda) {
 	arg.Iterator().Each(func(v PValue) { block.Call(c, nil, v) })
 }

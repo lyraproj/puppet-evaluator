@@ -7,8 +7,8 @@ import (
 )
 
 type (
-	BooleanType struct{
-		value int  // -1 == unset, 0 == false, 1 == true
+	BooleanType struct {
+		value int // -1 == unset, 0 == false, 1 == true
 	}
 
 	// BooleanValue keeps only the value because the type is known and not parameterized
@@ -71,8 +71,8 @@ func (t *BooleanType) IsInstance(o PValue, g Guard) bool {
 }
 
 func (t *BooleanType) Parameters() []PValue {
-  if t.value == -1 {
-  	return EMPTY_VALUES
+	if t.value == -1 {
+		return EMPTY_VALUES
 	}
 	return []PValue{&BooleanValue{t.value}}
 }
@@ -143,7 +143,7 @@ func (bv *BooleanValue) floatVal() float64 {
 
 func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
 	str := no
-	if bv.value == 1{
+	if bv.value == 1 {
 		str = yes
 	}
 	if alt {

@@ -9,11 +9,12 @@ import (
 
 type (
 	loaderEntry struct {
-		value interface{}
+		value  interface{}
 		origin string
 	}
 
 	basicLoader struct {
+		lock         sync.Mutex
 		namedEntries map[string]Entry
 	}
 
@@ -23,7 +24,7 @@ type (
 	}
 )
 
-var staticLoader = &basicLoader{make(map[string]Entry, 64)}
+var staticLoader = &basicLoader{namedEntries: make(map[string]Entry, 64)}
 var resolvableConstructors = make([]ResolvableFunction, 0, 16)
 var resolvableFunctions = make([]ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
@@ -34,7 +35,7 @@ func init() {
 	}
 
 	NewParentedLoader = func(parent Loader) DefiningLoader {
-		return &parentedLoader{basicLoader{make(map[string]Entry, 64)}, parent}
+		return &parentedLoader{basicLoader{namedEntries: make(map[string]Entry, 64)}, parent}
 	}
 
 	RegisterGoFunction = func(function ResolvableFunction) {
@@ -43,13 +44,13 @@ func init() {
 		resolvableFunctionsLock.Unlock()
 	}
 
-  RegisterGoConstructor = func(function ResolvableFunction) {
+	RegisterGoConstructor = func(function ResolvableFunction) {
 		resolvableFunctionsLock.Lock()
 		resolvableConstructors = append(resolvableConstructors, function)
 		resolvableFunctionsLock.Unlock()
 	}
 
-	NewLoaderEntry = func (value interface{}, origin string) Entry {
+	NewLoaderEntry = func(value interface{}, origin string) Entry {
 		return &loaderEntry{value, origin}
 	}
 
@@ -84,7 +85,7 @@ func (l *basicLoader) ResolveGoFunctions(c EvalContext) {
 		l.SetEntry(NewTypedName(FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
 	}
 	for _, ct := range ctors {
-		l.SetEntry(NewTypedName(CONSTRUCTOR, ct.Name()), &loaderEntry{ct.Resolve(c) ,``})
+		l.SetEntry(NewTypedName(CONSTRUCTOR, ct.Name()), &loaderEntry{ct.Resolve(c), ``})
 	}
 }
 
@@ -110,14 +111,20 @@ func (l *basicLoader) LoadEntry(name TypedName) Entry {
 }
 
 func (l *basicLoader) GetEntry(name TypedName) Entry {
-	return l.namedEntries[name.MapKey()]
+	l.lock.Lock()
+	v := l.namedEntries[name.MapKey()]
+	l.lock.Unlock()
+	return v
 }
 
 func (l *basicLoader) SetEntry(name TypedName, entry Entry) Entry {
+	l.lock.Lock()
 	if _, ok := l.namedEntries[name.MapKey()]; ok {
+		l.lock.Unlock()
 		panic(fmt.Sprintf(`Attempt to redefine %s`, name.String()))
 	}
 	l.namedEntries[name.MapKey()] = entry
+	l.lock.Unlock()
 	return entry
 }
 

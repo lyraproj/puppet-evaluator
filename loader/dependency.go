@@ -5,7 +5,7 @@ import . "github.com/puppetlabs/go-evaluator/evaluator"
 type dependencyLoader struct {
 	basicLoader
 	loaders []ModuleLoader
-	index map[string]ModuleLoader
+	index   map[string]ModuleLoader
 }
 
 func newDependencyLoader(loaders []ModuleLoader) Loader {
@@ -15,8 +15,8 @@ func newDependencyLoader(loaders []ModuleLoader) Loader {
 	}
 	return &dependencyLoader{
 		basicLoader: basicLoader{namedEntries: make(map[string]Entry, 32)},
-		loaders: loaders,
-		index: index}
+		loaders:     loaders,
+		index:       index}
 }
 
 func init() {
@@ -40,9 +40,9 @@ func (l *dependencyLoader) LoaderFor(moduleName string) ModuleLoader {
 }
 
 func (l *dependencyLoader) find(name TypedName) Entry {
-  if name.IsQualified() {
-  	if ml, ok := l.index[name.NameParts()[0]]; ok {
-  		return ml.LoadEntry(name)
+	if name.IsQualified() {
+		if ml, ok := l.index[name.NameParts()[0]]; ok {
+			return ml.LoadEntry(name)
 		}
 		return nil
 	}

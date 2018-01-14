@@ -38,11 +38,11 @@ type (
 	}
 )
 
-const(
+const (
 	PUPPET_DATA_TYPE_PATH = PathType(`puppetDataType`)
-	PUPPET_FUNCTION_PATH = PathType(`puppetFunction`)
-	PLAN_PATH = PathType(`plan`)
-	TASK_PATH = PathType(`task`)
+	PUPPET_FUNCTION_PATH  = PathType(`puppetFunction`)
+	PLAN_PATH             = PathType(`plan`)
+	TASK_PATH             = PathType(`task`)
 )
 
 var moduleNameRX = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)

@@ -6,8 +6,8 @@ import (
 	"reflect"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/utils"
 )
 
 type (

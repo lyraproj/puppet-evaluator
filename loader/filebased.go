@@ -1,14 +1,14 @@
 package loader
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
-	"path/filepath"
-	"os"
-	"strings"
-	"io/ioutil"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/types"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type (
@@ -20,13 +20,13 @@ type (
 
 	fileBasedLoader struct {
 		parentedLoader
-		path string
-		moduleName string
-		initPlanName TypedName
-		initTaskName TypedName
+		path            string
+		moduleName      string
+		initPlanName    TypedName
+		initTaskName    TypedName
 		initTypeSetName TypedName
-		paths map[Namespace][]SmartPath
-		index map[string][]string
+		paths           map[Namespace][]SmartPath
+		index           map[string][]string
 	}
 )
 
@@ -39,12 +39,13 @@ func newFileBasedLoader(parent Loader, path, moduleName string, loadables ...Pat
 	loader := &fileBasedLoader{
 		parentedLoader: parentedLoader{
 			basicLoader: basicLoader{namedEntries: make(map[string]Entry, 64)},
-			parent: parent},
-		path: path,
-		initPlanName: NewTypedName2(PLAN, `init`, parent.NameAuthority()),
-		initTaskName: NewTypedName2(TASK, `init`, parent.NameAuthority()),
+			parent:      parent},
+		path:            path,
+		initPlanName:    NewTypedName2(PLAN, `init`, parent.NameAuthority()),
+		initTaskName:    NewTypedName2(TASK, `init`, parent.NameAuthority()),
 		initTypeSetName: NewTypedName2(TYPE, `init_typeset`, parent.NameAuthority()),
-		moduleName: moduleName, paths: paths}
+		moduleName:      moduleName,
+		paths:           paths}
 
 	for _, p := range loadables {
 		path := loader.newSmartPath(p, !(moduleName == `` || moduleName == `environment`))
@@ -53,7 +54,6 @@ func newFileBasedLoader(parent Loader, path, moduleName string, loadables ...Pat
 		} else {
 			paths[path.Namespace()] = []SmartPath{path}
 		}
-		loader.addToIndex(path)
 	}
 	return loader
 }
@@ -75,49 +75,49 @@ func (l *fileBasedLoader) newSmartPath(pathType PathType, moduleNameRelative boo
 
 func (l *fileBasedLoader) newPuppetFunctionPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
-		relativePath: `functions`,
-		loader: l,
-		namespace: FUNCTION,
-		extension: `.pp`,
+		relativePath:       `functions`,
+		loader:             l,
+		namespace:          FUNCTION,
+		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
-		matchMany: false,
-		instantiator: InstantiatePuppetFunction,
+		matchMany:          false,
+		instantiator:       InstantiatePuppetFunction,
 	}
 }
 
 func (l *fileBasedLoader) newPlanPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
-		relativePath: `plans`,
-		loader: l,
-		namespace: PLAN,
-		extension: `.pp`,
+		relativePath:       `plans`,
+		loader:             l,
+		namespace:          PLAN,
+		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
-		matchMany: false,
-		instantiator: InstantiatePuppetTask,
+		matchMany:          false,
+		instantiator:       InstantiatePuppetTask,
 	}
 }
 
 func (l *fileBasedLoader) newPuppetTypePath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
-		relativePath: `types`,
-		loader: l,
-		namespace: TYPE,
-		extension: `.pp`,
+		relativePath:       `types`,
+		loader:             l,
+		namespace:          TYPE,
+		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
-		matchMany: false,
-		instantiator: InstantiatePuppetType,
+		matchMany:          false,
+		instantiator:       InstantiatePuppetType,
 	}
 }
 
 func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
-		relativePath: `tasks`,
-		loader: l,
-		namespace: TASK,
-		extension: ``,
+		relativePath:       `tasks`,
+		loader:             l,
+		namespace:          TASK,
+		extension:          ``,
 		moduleNameRelative: moduleNameRelative,
-		matchMany: true,
-		instantiator: InstantiatePuppetTask,
+		matchMany:          true,
+		instantiator:       InstantiatePuppetTask,
 	}
 }
 
@@ -243,14 +243,25 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 }
 
 func (l *fileBasedLoader) findExistingPath(name TypedName) (origins []string, smartPath SmartPath) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	if paths, ok := l.paths[name.Namespace()]; ok {
 		for _, sm := range paths {
+			l.ensureIndexed(sm)
 			if paths, ok := l.index[name.MapKey()]; ok {
 				return paths, sm
 			}
 		}
 	}
 	return nil, nil
+}
+
+func (l *fileBasedLoader) ensureIndexed(sp SmartPath) {
+	if !sp.Indexed() {
+		sp.SetIndexed()
+		l.addToIndex(sp)
+	}
 }
 
 func (l *fileBasedLoader) instantiate(smartPath SmartPath, name TypedName, origins []string) Entry {
@@ -280,7 +291,7 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 		}
 		if !info.IsDir() {
 			if noExtension || strings.HasSuffix(path, ext) {
-				rel, err :=  filepath.Rel(generic, path)
+				rel, err := filepath.Rel(generic, path)
 				if err == nil {
 					tn := smartPath.TypedName(l.NameAuthority(), rel)
 					if tn != nil {

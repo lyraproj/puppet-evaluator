@@ -1,8 +1,8 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/errors"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 func init() {
@@ -11,7 +11,9 @@ func init() {
 			d.OptionalParam(`Any`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				arg := UNDEF
-				if len(args) > 0 { arg = args[0] }
+				if len(args) > 0 {
+					arg = args[0]
+				}
 				panic(NewNextIteration(c.StackTop(), arg))
 			})
 		},

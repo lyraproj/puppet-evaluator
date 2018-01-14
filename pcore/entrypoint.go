@@ -1,29 +1,31 @@
 package pcore
 
 import (
+	"fmt"
 	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/types"
 	_ "github.com/puppetlabs/go-evaluator/loader"
 	_ "github.com/puppetlabs/go-evaluator/functions"
-	. "github.com/puppetlabs/go-evaluator/types"
-	"fmt"
-	"path/filepath"
 	"io/ioutil"
+	"path/filepath"
+	"sync"
 )
 
 type (
 	setting struct {
-		name string
-		value PValue
+		name         string
+		value        PValue
 		defaultValue PValue
-		valueType PType
+		valueType    PType
 	}
 
 	pcoreImpl struct {
-		systemLoader Loader
+		lock              sync.Mutex
+		systemLoader      Loader
 		environmentLoader Loader
-		moduleLoaders map[string]Loader
-		settings map[string]Setting
+		moduleLoaders     map[string]Loader
+		settings          map[string]Setting
 	}
 )
 
@@ -35,11 +37,11 @@ func NewPcore(logger Logger) Pcore {
 	p := &pcoreImpl{systemLoader: loader, settings: settings}
 
 	ResolveGoFunctions(loader, logger)
-	Puppet = p
 
 	p.DefineSetting(`environment`, DefaultStringType(), WrapString(`production`))
 	p.DefineSetting(`environmentpath`, DefaultStringType(), nil)
 	p.DefineSetting(`module_path`, DefaultStringType(), nil)
+	Puppet = p
 	return p
 }
 
@@ -55,6 +57,9 @@ func (p *pcoreImpl) SystemLoader() Loader {
 }
 
 func (p *pcoreImpl) EnvironmentLoader() Loader {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	if p.environmentLoader == nil {
 		envLoader := p.systemLoader // TODO: Add proper environment loader
 		s := p.settings[`module_path`]
@@ -93,6 +98,9 @@ func (p *pcoreImpl) Loader(key string) Loader {
 }
 
 func (p *pcoreImpl) DefineSetting(key string, valueType PType, dflt PValue) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	s := &setting{name: key, valueType: valueType, defaultValue: dflt}
 	if dflt != nil {
 		s.Set(dflt)
@@ -101,6 +109,9 @@ func (p *pcoreImpl) DefineSetting(key string, valueType PType, dflt PValue) {
 }
 
 func (p *pcoreImpl) Get(key string, defaultProducer Producer) PValue {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	if v, ok := p.settings[key]; ok {
 		if v.IsSet() {
 			return v.Get()
@@ -114,6 +125,9 @@ func (p *pcoreImpl) Get(key string, defaultProducer Producer) PValue {
 }
 
 func (p *pcoreImpl) Set(key string, value PValue) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	if v, ok := p.settings[key]; ok {
 		v.Set(value)
 		return

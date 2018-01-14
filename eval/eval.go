@@ -114,7 +114,7 @@ func (c *context) StackPush(location Location) {
 }
 
 func (c *context) StackPop() {
-  c.stack = c.stack[:len(c.stack)-1]
+	c.stack = c.stack[:len(c.stack)-1]
 }
 
 func (c *context) StackTop() Location {
@@ -500,7 +500,8 @@ func (e *evaluator) eval_CaseExpression(expr *CaseExpression, c EvalContext) PVa
 		test := e.eval(expr.Test(), c)
 		var the_default *CaseOption
 		var selected *CaseOption
-		options: for _, o := range expr.Options() {
+	options:
+		for _, o := range expr.Options() {
 			co := o.(*CaseOption)
 			for _, cv := range co.Values() {
 				cv = unwindParenthesis(cv)
@@ -536,7 +537,8 @@ func (e *evaluator) eval_SelectorExpression(expr *SelectorExpression, c EvalCont
 		test := e.eval(expr.Lhs(), c)
 		var the_default *SelectorEntry
 		var selected *SelectorEntry
-		selectors: for _, s := range expr.Selectors() {
+	selectors:
+		for _, s := range expr.Selectors() {
 			se := s.(*SelectorEntry)
 			me := unwindParenthesis(se.Matching())
 			switch me.(type) {
@@ -587,7 +589,7 @@ func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext)
 	candidate := e.eval(expr.Expr(), c)
 	switch candidate.(type) {
 	case *UndefValue:
-		return WrapArray([]PValue{ UNDEF })
+		return WrapArray([]PValue{UNDEF})
 	case *ArrayValue:
 		return candidate
 	case *HashValue:
@@ -595,7 +597,7 @@ func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext)
 	case IteratorValue:
 		return candidate.(IteratorValue).DynamicValue().AsArray()
 	default:
-		return WrapArray([]PValue{ candidate })
+		return WrapArray([]PValue{candidate})
 	}
 }
 
@@ -710,7 +712,7 @@ func (e *evaluator) ResolveDefinitions() {
 		defs := e.definitions
 		e.definitions = make([]*definition, 0, 16)
 		for _, d := range defs {
-			tr := &context{e.self, d.loader, scope, []Location{} }
+			tr := &context{e.self, d.loader, scope, []Location{}}
 			switch d.definedValue.(type) {
 			case *puppetFunction:
 				d.definedValue.(*puppetFunction).Resolve(tr)

@@ -4,10 +4,10 @@ import (
 	"io"
 	"regexp"
 
+	"github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-evaluator/errors"
 )
 
 const (
@@ -36,12 +36,12 @@ const (
 var QREF_PATTERN = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
 
 var annotationType_DEFAULT = &ObjectType{
-	name: `Annotation`,
+	name:           `Annotation`,
 	typeParameters: map[string]AnnotatedMember{},
-	attributes: map[string]AnnotatedMember{},
-	functions: map[string]AnnotatedMember{},
-	equality: nil,
-	annotations: _EMPTY_MAP}
+	attributes:     map[string]AnnotatedMember{},
+	functions:      map[string]AnnotatedMember{},
+	equality:       nil,
+	annotations:    _EMPTY_MAP}
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
@@ -224,29 +224,28 @@ func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember)
 		}
 	}
 
-
 	/*
-	    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
-    # the inherited member accepts to be overridden by this member.
-    #
-    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
-    # @return [PAnnotatedMember] this instance
-    # @raises [Puppet::ParseError] if the assertion fails
-    # @api private
-    def assert_override(parent_members)
-      parent_member = parent_members[@name]
-      if parent_member.nil?
-        if @override
-          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
-              { label: label, feature_type: feature_type }
-        end
-        self
-      else
-        parent_member.assert_can_be_overridden(self)
-      end
-    end
+		    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
+	    # the inherited member accepts to be overridden by this member.
+	    #
+	    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
+	    # @return [PAnnotatedMember] this instance
+	    # @raises [Puppet::ParseError] if the assertion fails
+	    # @api private
+	    def assert_override(parent_members)
+	      parent_member = parent_members[@name]
+	      if parent_member.nil?
+	        if @override
+	          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
+	              { label: label, feature_type: feature_type }
+	        end
+	        self
+	      else
+	        parent_member.assert_can_be_overridden(self)
+	      end
+	    end
 
-	 */
+	*/
 }
 func (a *annotatedMember) Name() string {
 	return a.name
@@ -277,12 +276,12 @@ func (a *attribute) Kind() AttributeKind {
 }
 
 var objectType_DEFAULT = &ObjectType{
-	name: `Object`,
+	name:           `Object`,
 	typeParameters: map[string]AnnotatedMember{},
-	attributes: map[string]AnnotatedMember{},
-	functions: map[string]AnnotatedMember{},
-	equality: nil,
-	annotations: _EMPTY_MAP}
+	attributes:     map[string]AnnotatedMember{},
+	functions:      map[string]AnnotatedMember{},
+	equality:       nil,
+	annotations:    _EMPTY_MAP}
 
 func DefaultObjectType() *ObjectType {
 	return objectType_DEFAULT

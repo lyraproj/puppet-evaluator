@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
-	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/semver"
+	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/parser"
 )
 

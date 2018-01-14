@@ -108,11 +108,11 @@ func (s *StructElement) Equals(o *StructElement, g Guard) bool {
 	return s.key.Equals(o.key, g) && s.value.Equals(o.value, g)
 }
 
-func (s* StructElement) Key() PType {
+func (s *StructElement) Key() PType {
 	return s.key
 }
 
-func (s* StructElement) Name() string {
+func (s *StructElement) Name() string {
 	return s.name
 }
 
@@ -135,7 +135,7 @@ func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	s.value.ToString(bld, format, g)
 }
 
-func (s* StructElement) Value() PType {
+func (s *StructElement) Value() PType {
 	return s.value
 }
 

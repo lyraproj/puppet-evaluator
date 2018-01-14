@@ -7,11 +7,11 @@ type (
 
 	Setting interface {
 		Name() string
-	  Get() PValue
-	  IsSet() bool
-	  Reset()
-	  Set(value PValue)
-	  Type() PType
+		Get() PValue
+		IsSet() bool
+		Reset()
+		Set(value PValue)
+		Type() PType
 	}
 
 	Pcore interface {

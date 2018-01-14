@@ -4,6 +4,7 @@ import (
 	. "github.com/puppetlabs/go-parser/issue"
 	. "github.com/puppetlabs/go-parser/parser"
 )
+
 type (
 	Evaluator interface {
 		AddDefinitions(expression Expression)

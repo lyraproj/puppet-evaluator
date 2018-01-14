@@ -2,8 +2,8 @@ package errors
 
 import (
 	"fmt"
-	. "github.com/puppetlabs/go-parser/issue"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (

@@ -1,8 +1,8 @@
 package eval
 
 import (
-	_ "github.com/puppetlabs/go-evaluator/loader"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	_ "github.com/puppetlabs/go-evaluator/loader"
 	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"

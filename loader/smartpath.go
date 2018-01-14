@@ -3,36 +3,47 @@ package loader
 import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"path/filepath"
-	"strings"
 	"regexp"
+	"strings"
 )
 
 type (
 	SmartPath interface {
-    Loader() Loader
+		Loader() Loader
 		GenericPath() string
-    EffectivePath(name TypedName) string
-    Extension() string
-    RelativePath() string
-    Namespace() Namespace
-    IsMatchMany() bool
+		EffectivePath(name TypedName) string
+		Extension() string
+		RelativePath() string
+		Namespace() Namespace
+		IsMatchMany() bool
 		PreferredOrigin(i []string) string
 		TypedName(nameAuthority URI, relativePath string) TypedName
-    Instantiator() Instantiator
+		Instantiator() Instantiator
+		Indexed() bool
+		SetIndexed()
 	}
 
 	smartPath struct {
 		relativePath string
-		loader *fileBasedLoader
-		namespace Namespace
-		extension string
+		loader       *fileBasedLoader
+		namespace    Namespace
+		extension    string
 
 		// Paths are not supposed to contain module name
 		moduleNameRelative bool
-		matchMany bool
-		instantiator Instantiator
+		matchMany          bool
+		instantiator       Instantiator
+		indexed            bool
 	}
 )
+
+func (p *smartPath) Indexed() bool {
+	return p.indexed
+}
+
+func (p *smartPath) SetIndexed() {
+	p.indexed = true
+}
 
 func (p *smartPath) Loader() Loader {
 	return p.loader
@@ -47,7 +58,7 @@ func (p *smartPath) EffectivePath(name TypedName) string {
 		nameParts = nameParts[1:]
 	}
 
-	parts := make([]string, 0, len(nameParts) + 2)
+	parts := make([]string, 0, len(nameParts)+2)
 	parts = append(parts, p.loader.path) // system, environment, or module root
 	if p.relativePath != `` {
 		parts = append(parts, p.relativePath)

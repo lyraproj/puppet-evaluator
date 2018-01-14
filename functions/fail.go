@@ -1,8 +1,8 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"bytes"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 func init() {

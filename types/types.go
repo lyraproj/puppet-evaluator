@@ -214,7 +214,7 @@ func NilAs(dflt, t PType) PType {
 
 func CopyAppend(types []PType, t PType) []PType {
 	top := len(types)
-	tc := make([]PType, top, top + 1)
+	tc := make([]PType, top, top+1)
 	copy(tc, types)
 	tc[top] = t
 	return tc

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-evaluator/utils"
 	"unicode/utf8"
 )
 
@@ -622,14 +622,14 @@ func (r *stringReader) Next() (rune, bool) {
 // and using Puppet StringFormatter for evaluating formatting specifications
 func PuppetSprintf(s string, args ...PValue) string {
 	buf := bytes.NewBufferString(``)
-	fprintf(buf, `sprintf`, s,  args...)
+	fprintf(buf, `sprintf`, s, args...)
 	return buf.String()
 }
 
 // Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
 func PuppetFprintf(buf io.Writer, s string, args ...PValue) {
-	fprintf(buf, `fprintf`, s,  args...)
+	fprintf(buf, `fprintf`, s, args...)
 }
 
 // Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
@@ -646,7 +646,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 		f := bytes.NewBufferString(`%`)
 		for ok {
 			f.WriteRune(c)
-			if 'A' <= c && c <= 'Z' ||  'a' <= c && c <= 'z'  {
+			if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' {
 				c, ok = rdr.Next()
 				break
 			}
@@ -664,7 +664,8 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 	pos := 0
 	top := len(args)
 	c, ok = rdr.Next()
-	nextChar: for ok {
+nextChar:
+	for ok {
 		if c != '%' {
 			utils.WriteRune(buf, c)
 			c, ok = rdr.Next()
@@ -691,10 +692,10 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 			// This is a positional argument. It is allowed but there can only be one (for the
 			// hash as a whole)
 			if hashArg != nil {
-				panic(NewArgumentsError(callerName,`keyed and positional format specifications cannot be mixed`))
+				panic(NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
 			}
 			if pos >= top {
-				panic(NewArgumentsError(callerName,`unbalanced format versus arguments`))
+				panic(NewArgumentsError(callerName, `unbalanced format versus arguments`))
 			}
 			consumeAndApplyPattern(args[pos])
 			pos++
@@ -702,7 +703,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 		}
 
 		if pos > 0 {
-			panic(NewArgumentsError(callerName,`keyed and positional format specifications cannot be mixed`))
+			panic(NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
 		}
 
 		if hashArg == nil {
@@ -711,7 +712,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 				hashArg, ok = args[0].(*HashValue)
 			}
 			if !ok {
-				panic(NewArgumentsError(callerName,`keyed format specifications requires one hash argument`))
+				panic(NewArgumentsError(callerName, `keyed format specifications requires one hash argument`))
 			}
 		}
 

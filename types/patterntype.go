@@ -3,8 +3,8 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/utils"
 )
 
 type PatternType struct {

@@ -68,13 +68,13 @@ func (t *typedName) Parent() TypedName {
 	}
 	parts := t.nameParts[1:]
 	name := strings.Join(parts, `::`)
-  compoundName := string(t.nameAuthority) + `/` + string(t.namespace) + `/` + name
+	compoundName := string(t.nameAuthority) + `/` + string(t.namespace) + `/` + name
 
 	return &typedName{
-		nameParts: parts,
-		namespace: t.namespace,
+		nameParts:     parts,
+		namespace:     t.namespace,
 		nameAuthority: t.nameAuthority,
-		compoundName: compoundName,
+		compoundName:  compoundName,
 		canonicalName: strings.ToLower(compoundName)}
 }
 

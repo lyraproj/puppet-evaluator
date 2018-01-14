@@ -4,9 +4,9 @@ import (
 	"bytes"
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/semver"
+	. "github.com/puppetlabs/go-evaluator/utils"
 )
 
 type (

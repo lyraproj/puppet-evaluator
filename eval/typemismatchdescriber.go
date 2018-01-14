@@ -3,18 +3,18 @@ package eval
 import (
 	"fmt"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
-	"strings"
-	"reflect"
 	. "github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/parser"
-	"strconv"
-	"math"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-parser/parser"
+	"math"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 type (
 	pathElement struct {
-		key string
+		key      string
 		pathType pathType
 	}
 
@@ -47,60 +47,60 @@ type (
 
 	sizeMismatchFunc func(path []*pathElement, expected *IntegerType, actual *IntegerType) mismatch
 
-  basicMismatch struct {
+	basicMismatch struct {
 		vpath []*pathElement
 	}
 
-	unexpectedBlock struct { basicMismatch }
+	unexpectedBlock struct{ basicMismatch }
 
-	missingRequiredBlock struct { basicMismatch }
+	missingRequiredBlock struct{ basicMismatch }
 
 	keyMismatch struct {
 		basicMismatch
 		key string
 	}
 
-	missingKey struct { keyMismatch }
-	missingParameter struct { keyMismatch }
-	extraneousKey struct { keyMismatch }
-	invalidParameter struct { keyMismatch }
-	unresolvedTypeReference struct { keyMismatch }
+	missingKey              struct{ keyMismatch }
+	missingParameter        struct{ keyMismatch }
+	extraneousKey           struct{ keyMismatch }
+	invalidParameter        struct{ keyMismatch }
+	unresolvedTypeReference struct{ keyMismatch }
 
 	basicEAMismatch struct {
 		basicMismatch
-		actualType PType
+		actualType   PType
 		expectedType PType
 	}
 
-	typeMismatch struct { basicEAMismatch }
-	patternMismatch struct { typeMismatch }
-	basicSizeMismatch struct { basicEAMismatch }
-	countMismatch struct { basicSizeMismatch }
+	typeMismatch      struct{ basicEAMismatch }
+	patternMismatch   struct{ typeMismatch }
+	basicSizeMismatch struct{ basicEAMismatch }
+	countMismatch     struct{ basicSizeMismatch }
 )
 
 var NO_MISMATCH = []mismatch{}
 
 const (
-	subject = pathType(``)
-	entry  = pathType(`entry`)
-	entryKey = pathType(`key of entry`)
+	subject    = pathType(``)
+	entry      = pathType(`entry`)
+	entryKey   = pathType(`key of entry`)
 	_parameter = pathType(`parameter`)
-	_return = pathType(`return`)
-	block = pathType(`block`)
-	index = pathType(`index`)
-	variant = pathType(`variant`)
-	signature = pathType(`singature`)
+	_return    = pathType(`return`)
+	block      = pathType(`block`)
+	index      = pathType(`index`)
+	variant    = pathType(`variant`)
+	signature  = pathType(`singature`)
 
-	countMismatchClass = mismatchClass(`countMismatch`)
-	missingKeyClass = mismatchClass(`missingKey`)
-	missingParameterClass = mismatchClass(`missingParameter`)
-	missingRequiredBlockClass = mismatchClass(`missingRequiredBlock`)
-	extraneousKeyClass = mismatchClass(`extraneousKey`)
-	invalidParameterClass = mismatchClass(`invalidParameter`)
-	patternMismatchClass = mismatchClass(`patternMismatch`)
-	sizeMismatchClass = mismatchClass(`sizeMismatch`)
-	typeMismatchClass = mismatchClass(`typeMismatch`)
-	unexpectedBlockClass = mismatchClass(`unexpectedBlock`)
+	countMismatchClass           = mismatchClass(`countMismatch`)
+	missingKeyClass              = mismatchClass(`missingKey`)
+	missingParameterClass        = mismatchClass(`missingParameter`)
+	missingRequiredBlockClass    = mismatchClass(`missingRequiredBlock`)
+	extraneousKeyClass           = mismatchClass(`extraneousKey`)
+	invalidParameterClass        = mismatchClass(`invalidParameter`)
+	patternMismatchClass         = mismatchClass(`patternMismatch`)
+	sizeMismatchClass            = mismatchClass(`sizeMismatch`)
+	typeMismatchClass            = mismatchClass(`typeMismatch`)
+	unexpectedBlockClass         = mismatchClass(`unexpectedBlock`)
 	unresolvedTypeReferenceClass = mismatchClass(`unresolvedTypeReference`)
 )
 
@@ -240,7 +240,7 @@ func (m *basicMismatch) equals(other mismatch) bool {
 }
 
 func newUnexpectedBlock(path []*pathElement) mismatch {
-	return &unexpectedBlock{basicMismatch{vpath:path}}
+	return &unexpectedBlock{basicMismatch{vpath: path}}
 }
 
 func (*unexpectedBlock) class() mismatchClass {
@@ -252,7 +252,7 @@ func (*unexpectedBlock) text() string {
 }
 
 func newMissingRequiredBlock(path []*pathElement) mismatch {
-	return &missingRequiredBlock{basicMismatch{vpath:path}}
+	return &missingRequiredBlock{basicMismatch{vpath: path}}
 }
 
 func (*missingRequiredBlock) class() mismatchClass {
@@ -271,7 +271,7 @@ func (m *keyMismatch) equals(other mismatch) bool {
 }
 
 func newMissingKey(path []*pathElement, key string) mismatch {
-	return &missingKey{keyMismatch{basicMismatch{vpath:path}, key}}
+	return &missingKey{keyMismatch{basicMismatch{vpath: path}, key}}
 }
 
 func (*missingKey) class() mismatchClass {
@@ -283,7 +283,7 @@ func (m *missingKey) text() string {
 }
 
 func newMissingParameter(path []*pathElement, key string) mismatch {
-	return &missingParameter{keyMismatch{basicMismatch{vpath:path}, key}}
+	return &missingParameter{keyMismatch{basicMismatch{vpath: path}, key}}
 }
 
 func (*missingParameter) class() mismatchClass {
@@ -295,7 +295,7 @@ func (m *missingParameter) text() string {
 }
 
 func newExtraneousKey(path []*pathElement, key string) mismatch {
-	return &extraneousKey{keyMismatch{basicMismatch{vpath:path}, key}}
+	return &extraneousKey{keyMismatch{basicMismatch{vpath: path}, key}}
 }
 
 func (*extraneousKey) class() mismatchClass {
@@ -307,7 +307,7 @@ func (m *extraneousKey) text() string {
 }
 
 func newInvalidParameter(path []*pathElement, key string) mismatch {
-	return &invalidParameter{keyMismatch{basicMismatch{vpath:path}, key}}
+	return &invalidParameter{keyMismatch{basicMismatch{vpath: path}, key}}
 }
 
 func (*invalidParameter) class() mismatchClass {
@@ -319,7 +319,7 @@ func (m *invalidParameter) text() string {
 }
 
 func newUnresolvedTypeReference(path []*pathElement, key string) mismatch {
-	return &unresolvedTypeReference{keyMismatch{basicMismatch{vpath:path}, key}}
+	return &unresolvedTypeReference{keyMismatch{basicMismatch{vpath: path}, key}}
 }
 
 func (*unresolvedTypeReference) class() mismatchClass {
@@ -350,7 +350,7 @@ func (ea *basicEAMismatch) setExpected(expected PType) {
 }
 
 func newTypeMismatch(path []*pathElement, expected PType, actual PType) mismatch {
-	return &typeMismatch{basicEAMismatch{basicMismatch{vpath:path}, actual, expected}}
+	return &typeMismatch{basicEAMismatch{basicMismatch{vpath: path}, actual, expected}}
 }
 
 func (*typeMismatch) class() mismatchClass {
@@ -407,7 +407,7 @@ func (tm *typeMismatch) text() string {
 	}
 
 	if multi {
-    return fmt.Sprintf(`expects a value of type %s, got %s`, es, as)
+		return fmt.Sprintf(`expects a value of type %s, got %s`, es, as)
 	}
 	return fmt.Sprintf(`expects %s %s value, got %s`, parser.Article(es), es, as)
 }
@@ -490,7 +490,7 @@ func assignableToDefault(es []PType, a PType) bool {
 			e = ea.ResolvedType()
 		}
 		if IsAssignable(DefaultFor(e), a) {
-      return true
+			return true
 		}
 	}
 	return false
@@ -500,7 +500,7 @@ func newPatternMismatch(path []*pathElement, expected PType, actual PType) misma
 	return &patternMismatch{
 		typeMismatch{
 			basicEAMismatch{
-				basicMismatch{vpath:path}, actual, expected}}}
+				basicMismatch{vpath: path}, actual, expected}}}
 }
 
 func (*patternMismatch) class() mismatchClass {
@@ -528,8 +528,8 @@ func (m *patternMismatch) actualString() string {
 
 func newSizeMismatch(path []*pathElement, expected *IntegerType, actual *IntegerType) mismatch {
 	return &basicSizeMismatch{
-			basicEAMismatch{
-				basicMismatch{vpath:path}, actual, expected}}
+		basicEAMismatch{
+			basicMismatch{vpath: path}, actual, expected}}
 }
 
 func (*basicSizeMismatch) class() mismatchClass {
@@ -571,7 +571,7 @@ func rangeToS(rng *IntegerType, zeroString string) string {
 func newCountMismatch(path []*pathElement, expected *IntegerType, actual *IntegerType) mismatch {
 	return &countMismatch{basicSizeMismatch{
 		basicEAMismatch{
-			basicMismatch{vpath:path}, actual, expected}}}
+			basicMismatch{vpath: path}, actual, expected}}}
 }
 
 func (*countMismatch) class() mismatchClass {
@@ -591,8 +591,8 @@ func (tm *countMismatch) text() string {
 }
 
 func describeOptionalType(expected *OptionalType, original, actual PType, path []*pathElement) []mismatch {
-  if _, ok := actual.(*UndefType); ok {
-  	return NO_MISMATCH
+	if _, ok := actual.(*UndefType); ok {
+		return NO_MISMATCH
 	}
 	if _, ok := original.(*TypeAliasType); !ok {
 		// If the original expectation is an alias, it must now track the optional type instead
@@ -726,7 +726,7 @@ func describeTuple(expected *TupleType, original, actual PType, path []*pathElem
 	}
 
 	if at, ok := actual.(*TupleType); ok {
-		if expected.Equals(actual, nil)  {
+		if expected.Equals(actual, nil) {
 			return NO_MISMATCH
 		}
 
@@ -746,7 +746,7 @@ func describeTuple(expected *TupleType, original, actual PType, path []*pathElem
 				ex = exl - 1
 				ext := expected.Types()[ex]
 				descriptions = append(descriptions, internalDescribe(ext, ext, at,
-					pathWith(path, &pathElement{strconv.Itoa(ax), index }))...)
+					pathWith(path, &pathElement{strconv.Itoa(ax), index}))...)
 			}
 		}
 		return descriptions
@@ -770,7 +770,7 @@ func pathEquals(a, b []*pathElement) bool {
 
 func pathWith(path []*pathElement, elem *pathElement) []*pathElement {
 	top := len(path)
-	pc := make([]*pathElement, top + 1)
+	pc := make([]*pathElement, top+1)
 	copy(pc, path)
 	pc[top] = elem
 	return pc
@@ -786,7 +786,7 @@ func describeCallableType(expected *CallableType, original, actual PType, path [
 		}
 		if len(paramErrors) == 0 {
 			er := expected.ReturnType()
-			ar :=  NilAs(DefaultAnyType(), ca.ReturnType())
+			ar := NilAs(DefaultAnyType(), ca.ReturnType())
 			if er == nil || IsAssignable(er, ar) {
 				eb := expected.BlockType()
 				ab := ca.BlockType()
@@ -920,7 +920,8 @@ func mergeDescriptions(varyingPathPosition int, sm mismatchClass, descriptions [
 
 func unique(v []mismatch) []mismatch {
 	u := make([]mismatch, 0, len(v))
-	next: for _, m := range v {
+next:
+	for _, m := range v {
 		for _, x := range u {
 			if m == x {
 				break next
@@ -1045,11 +1046,11 @@ func describeSignatureArguments(signature Signature, args PType, path []*pathEle
 			if ex > eLast {
 				ex = eLast
 			}
-      eType := eTypes[ex]
-      if !IsAssignable(eType, aType) {
-      	descriptions := describe(eType, aType, pathWith(path, &pathElement{eNames[ex], _parameter}))
-      	if len(descriptions) > 0 {
-      		return descriptions
+			eType := eTypes[ex]
+			if !IsAssignable(eType, aType) {
+				descriptions := describe(eType, aType, pathWith(path, &pathElement{eNames[ex], _parameter}))
+				if len(descriptions) > 0 {
+					return descriptions
 				}
 			}
 		}
@@ -1086,7 +1087,7 @@ func signatureString(signature Signature) string {
 	results := make([]string, 0, limit)
 	for ix, t := range types {
 		indicator := ``
-		if size.Max() == math.MaxInt64 && ix == limit - 1 {
+		if size.Max() == math.MaxInt64 && ix == limit-1 {
 			// Last is a repeated_param.
 			indicator = `*`
 			if size.Min() == int64(len(names)) {

@@ -206,7 +206,7 @@ func each(iter Iterator, consumer Consumer) {
 func eachWithIndex(iter Iterator, consumer BiConsumer) {
 	defer stopIteration()
 
-	for idx := int64(0);; idx++ {
+	for idx := int64(0); ; idx++ {
 		v, ok := iter.Next()
 		if !ok {
 			break

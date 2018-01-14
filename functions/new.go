@@ -6,8 +6,8 @@ import (
 
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
-	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/semver"
+	. "github.com/puppetlabs/go-evaluator/types"
 )
 
 func callNew(c EvalContext, name string, args []PValue, block Lambda) PValue {
