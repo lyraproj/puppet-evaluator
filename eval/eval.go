@@ -87,7 +87,7 @@ func init() {
 		if c == nil {
 			panic(error)
 		}
-		c.Fail(error)
+		panic(c.Fail(error))
 	}
 }
 
@@ -152,8 +152,15 @@ func (c *context) Call(name string, args []PValue, block Lambda) PValue {
 	panic(NewReportedIssue(EVAL_UNKNOWN_FUNCTION, SEVERITY_ERROR, []interface{}{tn.String()}, c.StackTop()))
 }
 
-func (c *context) Fail(message string) {
-	panic(NewReportedIssue(EVAL_FAILURE, SEVERITY_ERROR, []interface{}{message}, c.StackTop()))
+func (c *context) Fail(message string) *ReportedIssue {
+	return c.Error(nil, EVAL_FAILURE, message)
+}
+
+func (c *context) Error(location Location, issueCode IssueCode, args ...interface{}) *ReportedIssue {
+	if location == nil {
+		location = c.StackTop()
+	}
+	return NewReportedIssue(issueCode, SEVERITY_ERROR, args, location)
 }
 
 func (c *context) Evaluate(expr Expression) PValue {

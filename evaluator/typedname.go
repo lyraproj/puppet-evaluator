@@ -2,13 +2,14 @@ package evaluator
 
 import (
 	"strings"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 type (
 	Namespace string
 
 	TypedName interface {
-		Equals(tn TypedName) bool
+		parser.Named
 
 		IsQualified() bool
 
@@ -49,7 +50,7 @@ func NewTypedName(namespace Namespace, name string) TypedName {
 func NewTypedName2(namespace Namespace, name string, nameAuthority URI) TypedName {
 	tn := typedName{}
 
-	parts := strings.Split(name, `::`)
+	parts := strings.Split(strings.ToLower(name), `::`)
 	if len(parts) > 0 && parts[0] == `` {
 		parts = parts[1:]
 		name = name[2:]
@@ -66,20 +67,25 @@ func (t *typedName) Parent() TypedName {
 	if !t.IsQualified() {
 		return nil
 	}
-	parts := t.nameParts[1:]
-	name := strings.Join(parts, `::`)
-	compoundName := string(t.nameAuthority) + `/` + string(t.namespace) + `/` + name
-
+	lx := strings.LastIndex(t.compoundName, `::`)
 	return &typedName{
-		nameParts:     parts,
+		nameParts:     t.nameParts[:len(t.nameParts)-1],
 		namespace:     t.namespace,
 		nameAuthority: t.nameAuthority,
-		compoundName:  compoundName,
-		canonicalName: strings.ToLower(compoundName)}
+		compoundName:  t.compoundName[:lx],
+		canonicalName: t.canonicalName[:lx]}
 }
 
-func (t *typedName) Equals(tn TypedName) bool {
-	return t.canonicalName == tn.MapKey()
+func (t *typedName) Equals(other interface{}, g Guard) bool {
+	if tn, ok := other.(TypedName); ok {
+		return t.canonicalName == tn.MapKey()
+	}
+	return false
+}
+
+func (t *typedName) Name() string {
+	cn := t.compoundName
+	return cn[strings.LastIndex(cn,`/`) + 1:]
 }
 
 func (t *typedName) IsQualified() bool {

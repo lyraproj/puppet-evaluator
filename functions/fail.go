@@ -17,8 +17,7 @@ func init() {
 					}
 					ToString3(arg, w)
 				}
-				c.Fail(w.String())
-				return UNDEF
+				panic(c.Fail(w.String()))
 			})
 		},
 	)

@@ -225,25 +225,25 @@ func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember)
 	}
 
 	/*
-		    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
-	    # the inherited member accepts to be overridden by this member.
-	    #
-	    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
-	    # @return [PAnnotatedMember] this instance
-	    # @raises [Puppet::ParseError] if the assertion fails
-	    # @api private
-	    def assert_override(parent_members)
-	      parent_member = parent_members[@name]
-	      if parent_member.nil?
-	        if @override
-	          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
-	              { label: label, feature_type: feature_type }
-	        end
-	        self
-	      else
-	        parent_member.assert_can_be_overridden(self)
-	      end
-	    end
+			    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
+		    # the inherited member accepts to be overridden by this member.
+		    #
+		    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
+		    # @return [PAnnotatedMember] this instance
+		    # @raises [Puppet::ParseError] if the assertion fails
+		    # @api private
+		    def assert_override(parent_members)
+		      parent_member = parent_members[@name]
+		      if parent_member.nil?
+		        if @override
+		          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
+		              { label: label, feature_type: feature_type }
+		        end
+		        self
+		      else
+		        parent_member.assert_can_be_overridden(self)
+		      end
+		    end
 
 	*/
 }

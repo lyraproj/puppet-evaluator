@@ -27,7 +27,14 @@ type (
 
 		Evaluator() Evaluator
 
-		Fail(message string)
+		// Creates a ReportedIssue with the given issue code, location, and arguments
+		// Typical use is to panic with the returned value
+		Error(location Location, issueCode IssueCode, args ...interface{}) *ReportedIssue
+
+		// Creates a ReportedIssue with the EVAL_FAILURE issue code, location from stack top,
+		// and the given message
+		// Typical use is to panic with the returned value
+		Fail(message string) *ReportedIssue
 
 		WithScope(scope Scope) EvalContext
 
