@@ -457,6 +457,11 @@ func (hv *HashValue) IncludesKey(o PValue) bool {
 	return ok
 }
 
+func (hv *HashValue) IncludesKey2(key string) bool {
+	_, ok := hv.valueIndex()[HashKey(key)]
+	return ok
+}
+
 func (hv *HashValue) IsHashStyle() bool {
 	return true
 }

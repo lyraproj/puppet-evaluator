@@ -8,6 +8,8 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	. "github.com/puppetlabs/go-parser/issue"
+	"fmt"
 )
 
 const (
@@ -27,6 +29,7 @@ const (
 	KEY_TYPE_PARAMETERS       = `type_parameters`
 	KEY_VALUE                 = `value`
 
+	DEFAULT_KIND     = AttributeKind(``)
 	CONSTANT         = AttributeKind(`constant`)
 	DERIVED          = AttributeKind(`derived`)
 	GIVEN_OR_DERIVED = AttributeKind(`given_or_derived`)
@@ -91,7 +94,13 @@ type (
 	}
 
 	AnnotatedMember interface {
+		HashKeyValue
+
 		Name() string
+
+		Label() string
+
+		FeatureType() string
 
 		Container() *ObjectType
 
@@ -133,6 +142,7 @@ type (
 	attribute struct {
 		annotatedMember
 		kind AttributeKind
+		value PValue
 	}
 
 	typeParameter struct {
@@ -168,8 +178,8 @@ func typeArg(v PValue) PType {
 }
 
 func hashArg(v PValue) *HashValue {
-	if v == UNDEF || v == nil {
-		return nil
+	if v == _UNDEF {
+		return _EMPTY_MAP
 	}
 	if t, ok := v.(*HashValue); ok {
 		return t
@@ -178,13 +188,23 @@ func hashArg(v PValue) *HashValue {
 }
 
 func boolArg(v PValue, d bool) bool {
-	if v == UNDEF || v == nil {
+	if v == _UNDEF {
 		return d
 	}
 	if t, ok := v.(*BooleanValue); ok {
 		return t.Bool()
 	}
 	panic(argError(DefaultBooleanType(), v))
+}
+
+func stringArg(v PValue, d string) string {
+	if v == _UNDEF {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		return t.String()
+	}
+	panic(argError(DefaultStringType(), v))
 }
 
 // Visit the keys of an annotations map. All keys are known to be types
@@ -196,13 +216,13 @@ func visitAnnotations(a *HashValue, v Visitor, g Guard) {
 	}
 }
 
-func (a *annotatedMember) init(name string, container *ObjectType, initHash map[string]PValue) {
+func (a *annotatedMember) initialize(name string, container *ObjectType, initHash *HashValue) {
 	a.name = name
 	a.container = container
-	a.typ = typeArg(initHash[`type`])
-	a.override = boolArg(initHash[`override`], false)
-	a.final = boolArg(initHash[`final`], false)
-	a.annotations = hashArg(initHash[`annotations`])
+	a.typ = typeArg(initHash.Get2(KEY_TYPE))
+	a.override = boolArg(initHash.Get2(KEY_OVERRIDE), false)
+	a.final = boolArg(initHash.Get2(KEY_FINAL), false)
+	a.annotations = hashArg(initHash.Get2(KEY_ANNOTATIONS))
 }
 
 func (a *annotatedMember) accept(v Visitor, g Guard) {
@@ -220,55 +240,29 @@ func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember)
 	parentMember := parentMembers[a.Name()]
 	if parentMember == nil {
 		if a.Override() {
-			panic(errors.NewArgumentsError(``,
-				`expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found`))
+			panic(Error(EVAL_OVERRIDDEN_NOT_FOUND, H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
 		}
 	} else {
 		assertCanBeOverridden(parentMember, a)
 	}
-
-	/*
-			    # Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with override = true and that
-		    # the inherited member accepts to be overridden by this member.
-		    #
-		    # @param parent_members [Hash{String=>PAnnotatedMember}] the hash of inherited members
-		    # @return [PAnnotatedMember] this instance
-		    # @raises [Puppet::ParseError] if the assertion fails
-		    # @api private
-		    def assert_override(parent_members)
-		      parent_member = parent_members[@name]
-		      if parent_member.nil?
-		        if @override
-		          raise Puppet::ParseError, _("expected %{label} to override an inherited %{feature_type}, but no such %{feature_type} was found") %
-		              { label: label, feature_type: feature_type }
-		        end
-		        self
-		      else
-		        parent_member.assert_can_be_overridden(self)
-		      end
-		    end
-
-	*/
 }
 
-func assertCanBeOverridden(a AnnotatedMember, b AnnotatedMember) {
-/*
-      unless self.class == member.class
-        raise Puppet::ParseError, _("%{member} attempts to override %{label}") % { member: member.label, label: label }
-      end
-      if @final && !(constant? && member.constant?)
-        raise Puppet::ParseError, _("%{member} attempts to override final %{label}") % { member: member.label, label: label }
-      end
-      unless member.override?
-        #TRANSLATOR 'override => true' is a puppet syntax and should not be translated
-        raise Puppet::ParseError, _("%{member} attempts to override %{label} without having override => true") % { member: member.label, label: label }
-      end
-      unless @type.assignable?(member.type)
-        raise Puppet::ParseError, _("%{member} attempts to override %{label} with a type that does not match") % { member: member.label, label: label }
-      end
-      member
-
- */
+func assertCanBeOverridden(a AnnotatedMember, member AnnotatedMember) {
+	if a.FeatureType() != member.FeatureType() {
+		panic(Error(EVAL_OVERRIDE_MEMBER_MISMATCH, H{`member`: member.Label(), `label`: a.Label()}))
+	}
+	if a.Final() {
+		aa, ok := a.(Attribute)
+		if !(ok && aa.Kind() == CONSTANT && member.(Attribute).Kind() == CONSTANT) {
+			panic(Error(EVAL_OVERRIDE_OF_FINAL, H{`member`: member.Label(), `label`: a.Label()}))
+		}
+	}
+	if !member.Override() {
+		panic(Error(EVAL_OVERRIDE_IS_MISSING, H{`member`: member.Label(), `label`: a.Label()}))
+	}
+	if !IsAssignable(a.Type(), member.Type()) {
+		panic(Error(EVAL_OVERRIDE_TYPE_MISMATCH, H{`member`: member.Label(), `label`: a.Label()}))
+	}
 }
 
 func (a *annotatedMember) Name() string {
@@ -295,8 +289,63 @@ func (a *annotatedMember) Final() bool {
 	return a.final
 }
 
+func (a *attribute) initialize(name string, container *ObjectType, initHash *HashValue) {
+	a.annotatedMember.initialize(name, container, initHash)
+	a.kind = AttributeKind(stringArg(initHash.Get2(KEY_KIND), ``))
+	if a.kind == CONSTANT { // final is implied
+    if initHash.IncludesKey2(KEY_FINAL) && !a.final {
+    	panic(Error(EVAL_CONSTANT_WITH_FINAL, H{`label`: a.Label()}))
+		}
+		a.final = true
+	}
+	if initHash.IncludesKey2(KEY_VALUE) {
+		if a.kind == DERIVED || a.kind == GIVEN_OR_DERIVED {
+			panic(Error(EVAL_ILLEGAL_KIND_VALUE_COMBINATION, H{`label`: a.Label(), `kind`: a.kind}))
+		}
+		v := initHash.Get2(KEY_VALUE)
+		if _, ok := v.(*DefaultValue); ok || IsInstance(a.typ, v) {
+			a.value = v
+		} else {
+			panic(Error(EVAL_TYPE_MISMATCH, H{`detail`: DescribeMismatch(a.Label(), a.typ, DetailedValueType(v))}))
+		}
+	} else {
+		if a.kind == CONSTANT {
+			panic(Error(EVAL_CONSTANT_REQUIRES_VALUE, H{`label`: a.Label()}))
+		}
+		a.value = _UNDEF // Not to be confused with nil or :default
+	}
+}
+
 func (a *attribute) Kind() AttributeKind {
 	return a.kind
+}
+
+func (a *attribute) FeatureType() string {
+	return `attribute`
+}
+
+func (a *attribute) Label() string {
+	return fmt.Sprintf(`attribute %s[%s]`, a.container.Label(), a.Name())
+}
+
+func (a *attribute) Equals(other interface{}, g Guard) bool {
+	if oa, ok := other.(*attribute); ok {
+		return a.kind == oa.kind && a.override == oa.override && a.name == oa.name && a.final == oa.final && a.typ.Equals(oa.typ, g)
+	}
+	return false
+}
+
+func (a *attribute) ToKey() HashKey {
+	// TODO: Improve this
+	return HashKey(a.Label())
+}
+
+func (a *function) FeatureType() string {
+	return `function`
+}
+
+func (a *function) Label() string {
+	return fmt.Sprintf(`function %s[%s]`, a.container.Label(), a.Name())
 }
 
 var objectType_DEFAULT = &ObjectType{
@@ -361,6 +410,13 @@ func (t *ObjectType) Equals(other interface{}, guard Guard) bool {
 }
 
 func (t *ObjectType) Name() string {
+	return t.name
+}
+
+func (t *ObjectType) Label() string {
+	if t.name == `` {
+		return `Object`
+	}
 	return t.name
 }
 
