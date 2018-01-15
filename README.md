@@ -184,3 +184,18 @@ problem.
 * [ ] include
 * [ ] require
 
+#### Concepts
+* [x] Settings
+* [x] String formatting
+* [x] File based loader hierarchies
+* [x] Issue based error reporting
+* [x] Logging
+* [ ] Facts as global variables
+* [ ] Pcore serialization
+* [ ] Pcore RichData <-> Data transformation
+* [ ] Remote calls to other language runtimes
+* [ ] Hiera 5
+* [ ] Automatic Parameter Lookup
+* [ ] CLI
+* [ ] Puppet PAL
+* [ ] Catalog production
