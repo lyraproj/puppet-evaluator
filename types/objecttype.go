@@ -4,12 +4,14 @@ import (
 	"io"
 	"regexp"
 
+	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/hash"
+	. "github.com/puppetlabs/go-parser/issue"
 	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	. "github.com/puppetlabs/go-parser/issue"
-	"fmt"
+	"sync/atomic"
 )
 
 const (
@@ -39,12 +41,13 @@ const (
 var QREF_PATTERN = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
 
 var annotationType_DEFAULT = &ObjectType{
-	name:           `Annotation`,
-	typeParameters: map[string]AnnotatedMember{},
-	attributes:     map[string]AnnotatedMember{},
-	functions:      map[string]AnnotatedMember{},
-	equality:       nil,
-	annotations:    _EMPTY_MAP}
+	annotatable: annotatable{annotations:_EMPTY_MAP},
+	hashKey:     HashKey("\x00tAnnotation"),
+	name:        `Annotation`,
+	parameters:  EMPTY_STRINGHASH,
+	attributes:  EMPTY_STRINGHASH,
+	functions:   EMPTY_STRINGHASH,
+	equality:    nil}
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
@@ -94,7 +97,7 @@ type (
 	}
 
 	AnnotatedMember interface {
-		HashKeyValue
+		Equality
 
 		Name() string
 
@@ -110,7 +113,11 @@ type (
 
 		Final() bool
 
+		InitHash() *HashValue
+
 		accept(v Visitor, g Guard)
+
+		callableType() *CallableType
 	}
 
 	AttributeKind string
@@ -118,9 +125,18 @@ type (
 	Attribute interface {
 		AnnotatedMember
 		Kind() AttributeKind
+
+		// return true if a value has been defined for this attribute.
+		HasValue() bool
+
+		// return true if the given value equals the default value for this attribute
+		Default(value PValue) bool
+
+		// Returns the value of this attribute, or raises an error if no value has been defined.
+		Value() PValue
 	}
 
-	Method interface {
+	ObjFunc interface {
 		AnnotatedMember
 	}
 
@@ -130,18 +146,22 @@ type (
 		InitHash() *HashValue
 	}
 
+	annotatable struct {
+		annotations *HashValue
+	}
+
 	annotatedMember struct {
+		annotatable
 		name        string
 		container   *ObjectType
 		typ         PType
 		override    bool
 		final       bool
-		annotations *HashValue
 	}
 
 	attribute struct {
 		annotatedMember
-		kind AttributeKind
+		kind  AttributeKind
 		value PValue
 	}
 
@@ -154,15 +174,17 @@ type (
 	}
 
 	ObjectType struct {
-		name               string
-		parent             PType
-		typeParameters     map[string]AnnotatedMember
-		attributes         map[string]AnnotatedMember
-		functions          map[string]AnnotatedMember
-		equality           []string
-		annotations        *HashValue
-		loader             Loader
-		initHashExpression Expression
+		annotatable
+		hashKey             HashKey
+		name                string
+		parent              PType
+		parameters          *StringHash // map doesn't preserve order
+		attributes          *StringHash
+		functions           *StringHash
+		equality            []string
+		equalityIncludeType bool
+		loader              Loader
+		initHashExpression  interface{} // Expression or *HashValue
 	}
 )
 
@@ -170,15 +192,20 @@ func argError(e PType, a PValue) errors.InstantiationError {
 	return errors.NewArgumentsError(``, DescribeMismatch(`assert`, e, a.Type()))
 }
 
-func typeArg(v PValue) PType {
+func typeArg(hash *HashValue, key string, d PType) PType {
+	v := hash.Get2(key, nil)
+	if v == nil {
+		return d
+	}
 	if t, ok := v.(PType); ok {
 		return t
 	}
 	panic(argError(DefaultTypeType(), v))
 }
 
-func hashArg(v PValue) *HashValue {
-	if v == _UNDEF {
+func hashArg(hash *HashValue, key string) *HashValue {
+	v := hash.Get2(key, nil)
+	if v == nil {
 		return _EMPTY_MAP
 	}
 	if t, ok := v.(*HashValue); ok {
@@ -187,8 +214,9 @@ func hashArg(v PValue) *HashValue {
 	panic(argError(DefaultHashType(), v))
 }
 
-func boolArg(v PValue, d bool) bool {
-	if v == _UNDEF {
+func boolArg(hash *HashValue, key string, d bool) bool {
+	v := hash.Get2(key, nil)
+	if v == nil {
 		return d
 	}
 	if t, ok := v.(*BooleanValue); ok {
@@ -197,8 +225,9 @@ func boolArg(v PValue, d bool) bool {
 	panic(argError(DefaultBooleanType(), v))
 }
 
-func stringArg(v PValue, d string) string {
-	if v == _UNDEF {
+func stringArg(hash *HashValue, key string, d string) string {
+	v := hash.Get2(key, nil)
+	if v == nil {
 		return d
 	}
 	if t, ok := v.(*StringValue); ok {
@@ -216,13 +245,25 @@ func visitAnnotations(a *HashValue, v Visitor, g Guard) {
 	}
 }
 
+func (a *annotatable) initialize(initHash *HashValue) {
+	a.annotations = hashArg(initHash, KEY_ANNOTATIONS)
+}
+
+func (a *annotatable) initHash() map[string]PValue {
+	h := make(map[string]PValue, 5)
+	if a.annotations != nil {
+		h[KEY_ANNOTATIONS] = a.annotations
+	}
+	return h
+}
+
 func (a *annotatedMember) initialize(name string, container *ObjectType, initHash *HashValue) {
+	a.annotatable.initialize(initHash)
 	a.name = name
 	a.container = container
-	a.typ = typeArg(initHash.Get2(KEY_TYPE))
-	a.override = boolArg(initHash.Get2(KEY_OVERRIDE), false)
-	a.final = boolArg(initHash.Get2(KEY_FINAL), false)
-	a.annotations = hashArg(initHash.Get2(KEY_ANNOTATIONS))
+	a.typ = typeArg(initHash, KEY_TYPE, DefaultTypeType())
+	a.override = boolArg(initHash, KEY_OVERRIDE, false)
+	a.final = boolArg(initHash, KEY_FINAL, false)
 }
 
 func (a *annotatedMember) accept(v Visitor, g Guard) {
@@ -236,8 +277,8 @@ func (a *annotatedMember) Annotations() *HashValue {
 
 // Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with
 // override = true and that the inherited member accepts to be overridden by this member.
-func assertOverride(a AnnotatedMember, parentMembers map[string]AnnotatedMember) {
-	parentMember := parentMembers[a.Name()]
+func assertOverride(a AnnotatedMember, parentMembers *StringHash) {
+	parentMember := parentMembers.Get(a.Name(), nil).(AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
 			panic(Error(EVAL_OVERRIDDEN_NOT_FOUND, H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
@@ -281,28 +322,43 @@ func (a *annotatedMember) Override() bool {
 	return a.override
 }
 
-func (a *annotatedMember) InitHash() *HashValue {
-	return WrapHash([]*HashEntry{})
+func (a *annotatedMember) initHash() map[string]PValue {
+	h := a.annotatable.initHash()
+	h[KEY_TYPE] = a.typ
+	if a.final {
+		h[KEY_FINAL] = WrapBoolean(true)
+	}
+	if a.override {
+		h[KEY_OVERRIDE] = WrapBoolean(true)
+	}
+	return h
 }
 
 func (a *annotatedMember) Final() bool {
 	return a.final
 }
 
+func newAttribute(name string, container *ObjectType, initHash *HashValue) Attribute {
+	a := &attribute{}
+	a.initialize(name, container, initHash)
+	return a
+}
+
 func (a *attribute) initialize(name string, container *ObjectType, initHash *HashValue) {
 	a.annotatedMember.initialize(name, container, initHash)
-	a.kind = AttributeKind(stringArg(initHash.Get2(KEY_KIND), ``))
+	AssertInstance(func() string { return fmt.Sprintf(`initializer for %s`, a.Label()) }, TYPE_ATTRIBUTE, initHash)
+	a.kind = AttributeKind(stringArg(initHash, KEY_KIND, ``))
 	if a.kind == CONSTANT { // final is implied
-    if initHash.IncludesKey2(KEY_FINAL) && !a.final {
-    	panic(Error(EVAL_CONSTANT_WITH_FINAL, H{`label`: a.Label()}))
+		if initHash.IncludesKey2(KEY_FINAL) && !a.final {
+			panic(Error(EVAL_CONSTANT_WITH_FINAL, H{`label`: a.Label()}))
 		}
 		a.final = true
 	}
-	if initHash.IncludesKey2(KEY_VALUE) {
+	v := initHash.Get2(KEY_VALUE, nil)
+	if v != nil {
 		if a.kind == DERIVED || a.kind == GIVEN_OR_DERIVED {
 			panic(Error(EVAL_ILLEGAL_KIND_VALUE_COMBINATION, H{`label`: a.Label(), `kind`: a.kind}))
 		}
-		v := initHash.Get2(KEY_VALUE)
 		if _, ok := v.(*DefaultValue); ok || IsInstance(a.typ, v) {
 			a.value = v
 		} else {
@@ -316,8 +372,38 @@ func (a *attribute) initialize(name string, container *ObjectType, initHash *Has
 	}
 }
 
+func (a *attribute) Default(value PValue) bool {
+	return Equals(a.value, value)
+}
+
 func (a *attribute) Kind() AttributeKind {
 	return a.kind
+}
+
+func (a *attribute) HasValue() bool {
+	return a.value != nil
+}
+
+func (a *attribute) initHash() map[string]PValue {
+	hash := a.annotatedMember.initHash()
+	if a.kind != DEFAULT_KIND {
+		hash[KEY_KIND] = WrapString(string(a.kind))
+	}
+	if a.value != nil {
+		hash[KEY_VALUE] = a.value
+	}
+	return hash
+}
+
+func (a *attribute) InitHash() *HashValue {
+	return WrapHash3(a.initHash())
+}
+
+func (a *attribute) Value() PValue {
+	if a.value == nil {
+		panic(Error(EVAL_ATTRIBUTE_HAS_NO_VALUE, H{`label`: a.Label()}))
+	}
+	return a.value
 }
 
 func (a *attribute) FeatureType() string {
@@ -335,44 +421,103 @@ func (a *attribute) Equals(other interface{}, g Guard) bool {
 	return false
 }
 
-func (a *attribute) ToKey() HashKey {
-	// TODO: Improve this
-	return HashKey(a.Label())
+func (a *attribute) callableType() *CallableType {
+	return TYPE_ATTRIBUTE_CALLABLE
 }
 
-func (a *function) FeatureType() string {
+func newTypeParameter(name string, container *ObjectType, initHash *HashValue) Attribute {
+	t := &typeParameter{}
+	t.initialize(name, container, initHash)
+	return t
+}
+
+func (t *typeParameter) initHash() map[string]PValue {
+	hash := t.attribute.initHash()
+	hash[KEY_TYPE] = hash[KEY_TYPE].(*TypeType).Type()
+	if v, ok := hash[KEY_VALUE]; ok && Equals(v, _UNDEF) {
+		delete(hash, KEY_VALUE)
+	}
+	return hash
+}
+
+func (t *typeParameter) InitHash() *HashValue {
+	return WrapHash3(t.initHash())
+}
+
+func (t *typeParameter) FeatureType() string {
+	return `type_parameter`
+}
+
+func newFunction(name string, container *ObjectType, initHash *HashValue) ObjFunc {
+	f := &function{}
+	f.initialize(name, container, initHash)
+	return f
+}
+
+func (f *function) initialize(name string, container *ObjectType, initHash *HashValue) {
+	f.annotatedMember.initialize(name, container, initHash)
+	AssertInstance(func() string { return fmt.Sprintf(`initializer for %s`, f.Label()) }, TYPE_FUNCTION, initHash)
+}
+
+func (f *function) Equals(other interface{}, g Guard) bool {
+	if of, ok := other.(*function); ok {
+		return f.override == of.override && f.name == of.name && f.final == of.final && f.typ.Equals(of.typ, g)
+	}
+	return false
+}
+
+func (f *function) FeatureType() string {
 	return `function`
 }
 
-func (a *function) Label() string {
-	return fmt.Sprintf(`function %s[%s]`, a.container.Label(), a.Name())
+func (f *function) Label() string {
+	return fmt.Sprintf(`function %s[%s]`, f.container.Label(), f.Name())
+}
+
+func (f *function) callableType() *CallableType {
+	return f.typ.(*CallableType)
+}
+
+func (f *function) InitHash() *HashValue {
+	return WrapHash3(f.initHash())
 }
 
 var objectType_DEFAULT = &ObjectType{
-	name:           `Object`,
-	typeParameters: map[string]AnnotatedMember{},
-	attributes:     map[string]AnnotatedMember{},
-	functions:      map[string]AnnotatedMember{},
-	equality:       nil,
-	annotations:    _EMPTY_MAP}
+	annotatable: annotatable{annotations:_EMPTY_MAP},
+	name:        `Object`,
+	hashKey:     HashKey("\x00tObject"),
+	parameters:  EMPTY_STRINGHASH,
+	attributes:  EMPTY_STRINGHASH,
+	functions:   EMPTY_STRINGHASH,
+	equality:    nil}
 
 func DefaultObjectType() *ObjectType {
 	return objectType_DEFAULT
 }
 
+var objectId = int64(0)
+
 func NewObjectType(name string, initHashExpression Expression) *ObjectType {
-	return &ObjectType{name: name, initHashExpression: initHashExpression, attributes: nil, functions: nil, equality: nil, annotations: _EMPTY_MAP}
+	return &ObjectType{
+		annotatable: annotatable{annotations: _EMPTY_MAP},
+		name: name,
+		hashKey:     HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
+		initHashExpression: initHashExpression,
+		parameters:  EMPTY_STRINGHASH,
+		attributes:  EMPTY_STRINGHASH,
+		functions:   EMPTY_STRINGHASH,
+		equality: nil}
 }
 
-func NewObjectType2(initHash map[string]PValue) *ObjectType {
-	result := &ObjectType{}
-	result.Pcore_initFromHash(initHash)
+func NewObjectType2(initHash *HashValue) *ObjectType {
+	result := &ObjectType{hashKey: HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1)))}
+	result.initFromHash(initHash)
 	return result
 }
 
-func NewObjectType3(initHash map[string]PValue, loader Loader) *ObjectType {
-	result := &ObjectType{}
-	result.Pcore_initFromHash(initHash)
+func NewObjectType3(initHash *HashValue, loader Loader) *ObjectType {
+	result := &ObjectType{hashKey: HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1)))}
+	result.initFromHash(initHash)
 	result.loader = loader
 	return result
 }
@@ -389,15 +534,9 @@ func (t *ObjectType) Accept(v Visitor, g Guard) {
 	if t.parent != nil {
 		t.parent.Accept(v, g)
 	}
-	for _, m := range t.typeParameters {
-		m.accept(v, g)
-	}
-	for _, m := range t.attributes {
-		m.accept(v, g)
-	}
-	for _, m := range t.functions {
-		m.accept(v, g)
-	}
+	t.parameters.EachValue(func(p interface{}) { p.(AnnotatedMember).accept(v, g) })
+	t.attributes.EachValue(func(a interface{}) { a.(AnnotatedMember).accept(v, g) })
+	t.functions.EachValue(func(f interface{}) { f.(AnnotatedMember).accept(v, g) })
 }
 
 func (t *ObjectType) Default() PType {
@@ -418,6 +557,10 @@ func (t *ObjectType) Label() string {
 		return `Object`
 	}
 	return t.name
+}
+
+func (t *ObjectType) ToKey() HashKey {
+	return t.hashKey
 }
 
 func (t *ObjectType) ToString(bld io.Writer, format FormatContext, g RDetect) {
@@ -449,6 +592,10 @@ func (t *ObjectType) String() string {
 	return ToString2(t, EXPANDED)
 }
 
+func (t *ObjectType) InitHash(includeName bool) *HashValue {
+	return WrapHash3(t.initHash(includeName))
+}
+
 func (t *ObjectType) IsInstance(o PValue, g Guard) bool {
 	return isAssignable(t, o.Type())
 }
@@ -465,10 +612,397 @@ func (t *ObjectType) IsAssignable(o PType, g Guard) bool {
 	return false
 }
 
-func (t *ObjectType) Resolve(resolver TypeResolver) {
+func (t *ObjectType) Resolve(resolver TypeResolver) PType {
+  if t.initHashExpression != nil {
+  	ihe := t.initHashExpression
+  	t.initHashExpression = nil
 
+  	var initHash *HashValue
+  	if lh, ok := ihe.(*LiteralHash); ok {
+  		initHash = resolver.Resolve(lh).(*HashValue)
+		} else {
+			initHash = resolveTypeRefs(resolver, ihe.(*HashValue)).(*HashValue)
+		}
+		t.initFromHash(initHash)
+	}
+	return t
 }
 
-func (t *ObjectType) Pcore_initFromHash(initHash map[string]PValue) {
+func resolveTypeRefs(resolver TypeResolver, v PValue) PValue {
+  switch v.(type) {
+	case *HashValue:
+		hv := v.(*HashValue)
+		he := make([]*HashEntry, hv.Len())
+		i := 0
+		hv.EachPair(func(key, value PValue) {
+			he[i] = WrapHashEntry(
+				resolveTypeRefs(resolver, key), resolveTypeRefs(resolver, value))
+			i++
+		})
+		return WrapHash(he)
+	case *ArrayValue:
+		av := v.(*ArrayValue)
+		ae := make([]PValue, av.Len())
+		i := 0
+		av.Each(func(value PValue) {
+			ae[i] = resolveTypeRefs(resolver, value)
+			i++
+		})
+		return WrapArray(ae)
+	case ResolvableType:
+		return v.(ResolvableType).Resolve(resolver)
+	default:
+		return v
+	}
+}
 
+func (t *ObjectType) initFromHash(initHash *HashValue) {
+	AssertInstance(`object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
+	t.parameters = EMPTY_STRINGHASH
+	t.attributes = EMPTY_STRINGHASH
+	t.functions = EMPTY_STRINGHASH
+	t.name = stringArg(initHash, KEY_NAME, t.name)
+
+	t.parent = typeArg(initHash, KEY_PARENT, nil)
+
+	parentMembers := EMPTY_STRINGHASH
+	parentTypeParams := EMPTY_STRINGHASH
+	var parentObjectType *ObjectType
+
+	if t.parent != nil {
+		t.checkSelfRecursion(t)
+		parentObjectType = t.resolvedParent()
+		parentMembers = parentObjectType.members(true)
+		parentTypeParams = parentObjectType.typeParameters(true)
+	}
+
+	typeParameters := hashArg(initHash, KEY_TYPE_PARAMETERS)
+	if !typeParameters.IsEmpty() {
+		parameters := NewStringHash(typeParameters.Len())
+		for _, he := range typeParameters.EntriesSlice() {
+			key := he.Key().String()
+			paramSpec := he.Value()
+			var paramType PType
+			var paramValue PValue
+			if ph, ok := paramSpec.(*HashValue); ok {
+				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
+				paramValue = ph.Get2(KEY_VALUE, nil)
+			} else {
+				paramType = paramSpec.(PType)
+				paramValue = nil
+			}
+			if _, ok := paramType.(*OptionalType); !ok {
+				paramType = NewOptionalType(paramType)
+			}
+			param := newTypeParameter(key, t, WrapHash4(H{
+				KEY_TYPE:  paramType,
+				KEY_VALUE: paramValue}))
+			assertOverride(param, parentTypeParams)
+			parameters.Put(key, WrapHashEntry2(key, WrapRuntime(param)))
+		}
+		parameters.Freeze()
+		t.parameters = parameters
+	}
+
+	constants := hashArg(initHash, KEY_CONSTANTS)
+	attributes := hashArg(initHash, KEY_ATTRIBUTES)
+	attrSpecs := NewStringHash(constants.Len() + attributes.Len())
+	for _, ae := range attributes.EntriesSlice() {
+		attrSpecs.Put(ae.Key().String(), ae.Value())
+	}
+
+	if !constants.IsEmpty() {
+		for _, he := range constants.EntriesSlice() {
+			key := he.Key().String()
+			if attrSpecs.Includes(key) {
+				panic(Error(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, H{`label`: t.Label(), `key`: key}))
+			}
+			value := he.Value().(PValue)
+			attrSpec := H{
+				KEY_TYPE:  Generalize(value.Type()),
+				KEY_VALUE: value,
+				KEY_KIND:  CONSTANT}
+			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
+			attrSpecs.Put(key, WrapHash4(attrSpec))
+		}
+	}
+
+	if !attrSpecs.IsEmpty() {
+		attributes := NewStringHash(attrSpecs.Size())
+		attrSpecs.EachPair(func(key string, ifv interface{}) {
+			value := ifv.(PValue)
+			attrSpec, ok := value.(*HashValue)
+			if !ok {
+				attrType := AssertInstance(
+					func() string { return fmt.Sprint(`attribute %s[%s]`, t.Label(), key) },
+					DefaultTypeType(), value)
+				hash := H{KEY_TYPE: attrType}
+				if _, ok = attrType.(*OptionalType); ok {
+					hash[KEY_VALUE] = UNDEF
+				}
+				attrSpec = WrapHash4(hash)
+			}
+			attr := newAttribute(key, t, attrSpec)
+			assertOverride(attr, parentMembers)
+			attributes.Put(key, attr)
+		})
+		attributes.Freeze()
+		t.attributes = attributes
+	}
+
+	funcSpecs := hashArg(initHash, KEY_FUNCTIONS)
+	if !funcSpecs.IsEmpty() {
+		functions := NewStringHash(funcSpecs.Len())
+		funcSpecs.EachPair(func(key, value PValue) {
+			funcSpec, ok := value.(*HashValue)
+			if !ok {
+				funcType := AssertInstance(
+					func() string { return fmt.Sprint(`function %s[%s]`, t.Label(), key) },
+					TYPE_FUNCTION_TYPE, value)
+				funcSpec = WrapHash4(H{KEY_TYPE: funcType})
+			}
+			fnc := newFunction(key.String(), t, funcSpec)
+			assertOverride(fnc, parentMembers)
+			functions.Put(key.String(), fnc)
+		})
+		functions.Freeze()
+		t.functions = functions
+	}
+	t.equalityIncludeType = boolArg(initHash, KEY_EQUALITY_INCLUDE_TYPE, true)
+
+	var equality []string
+	eq := initHash.Get2(KEY_EQUALITY, nil)
+	if es, ok := eq.(*StringValue); ok {
+		equality = []string{es.String()}
+	} else if ea, ok := eq.(*ArrayValue); ok {
+		equality = make([]string, ea.Len())
+	} else {
+		equality = nil
+	}
+	if equality != nil {
+    for _, attrName := range equality {
+    	var attr Attribute
+    	ok := false
+    	mbr := parentMembers.Get(attrName, nil)
+    	if mbr == nil {
+				mbr = t.attributes.Get(attrName, func() interface{} {
+					return t.functions.Get(attrName, nil)
+				})
+				attr, ok = mbr.(Attribute)
+			} else {
+				attr, ok = mbr.(Attribute)
+				// Assert that attribute is not already include by parent equality
+				if ok && parentObjectType.EqualityAttributes().Includes(attrName) {
+					includingParent := t.findEqualityDefiner(attrName)
+					panic(Error(EVAL_EQUALITY_REDEFINED, H{`label`: t.Label(), `attribute`: attr.Label(), `including_parent`: includingParent}))
+				}
+			}
+			if !ok {
+				if mbr == nil {
+					panic(Error(EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND, H{`label`: t.Label(), `attribute`: attrName}))
+				}
+				panic(Error(EVAL_EQUALITY_NOT_ATTRIBUTE, H{`label`: t.Label(), `member`: mbr.(AnnotatedMember).Label()}))
+			}
+			if attr.Kind() == CONSTANT {
+				panic(Error(EVAL_EQUALITY_ON_CONSTANT, H{`label`: t.Label(), `attribute`: mbr.(AnnotatedMember).Label()}))
+			}
+		}
+	}
+	t.equality = equality
+}
+
+func (t *ObjectType) EqualityAttributes() *StringHash {
+  eqa := make([]string, 0, 8)
+	tp := t
+	for tp != nil {
+		if tp.equality != nil {
+			eqa = append(eqa, tp.equality...)
+		}
+		tp = tp.resolvedParent()
+	}
+	attrs := NewStringHash(len(eqa))
+	for _, an := range eqa {
+		attrs.Put(an, t.GetAttribute(an))
+	}
+	return attrs
+}
+
+func (t *ObjectType) GetAttribute(name string) Attribute {
+	a, _ := t.attributes.Get2(name, func() interface{} {
+		p := t.resolvedParent()
+		if p != nil {
+			return p.GetAttribute(name)
+		}
+		return nil
+	}).(Attribute)
+	return a
+}
+
+func (t *ObjectType) GetFunction(name string) Function {
+	f, _ := t.functions.Get2(name, func() interface{} {
+		p := t.resolvedParent()
+		if p != nil {
+			return p.GetFunction(name)
+		}
+		return nil
+	}).(Function)
+	return f
+}
+
+func (t *ObjectType) GetMember(name string) AnnotatedMember {
+	m, _ := t.attributes.Get2(name, func() interface{} {
+		return t.functions.Get2(name, func() interface{} {
+			p := t.resolvedParent()
+			if p != nil {
+				return p.GetMember(name)
+			}
+			return nil
+		})}).(AnnotatedMember)
+	return m
+}
+
+func (t *ObjectType) Parameters() []PValue {
+	return t.Parameters2(true)
+}
+
+func (t *ObjectType) Parameters2(includeName bool) []PValue {
+	return []PValue{t.InitHash(includeName)}
+}
+
+func compressedMembersHash(mh *StringHash) *HashValue {
+	he := make([]*HashEntry, 0, mh.Size())
+	mh.EachPair(func(key string, value interface{}) {
+		fh := value.(AnnotatedMember).InitHash()
+		if fh.Len() == 1 {
+			tp := fh.Get2(KEY_TYPE, nil)
+			if tp != nil {
+				he = append(he, WrapHashEntry2(key, tp))
+				return
+			}
+		}
+		he = append(he, WrapHashEntry2(key, fh))
+	})
+	return WrapHash(he)
+}
+
+func (t *ObjectType) checkSelfRecursion(originator *ObjectType) {
+	if t.parent != nil {
+		op := t.resolvedParent()
+		if Equals(op, originator) {
+			panic(Error(EVAL_OBJECT_INHERITS_SELF, H{`label`: originator.Label()}))
+		}
+		op.checkSelfRecursion(originator)
+	}
+}
+
+func (t *ObjectType) findEqualityDefiner(attrName string) *ObjectType {
+	tp := t
+	for tp != nil {
+		p := tp.resolvedParent()
+		if p == nil || !p.EqualityAttributes().Includes(attrName) {
+			return tp
+		}
+		tp = p
+	}
+	return nil
+}
+
+func (t *ObjectType) initHash(includeName bool) map[string]PValue {
+	h := t.annotatable.initHash()
+	if includeName && t.name != `` {
+		h[KEY_NAME] = WrapString(t.name)
+	}
+	if t.parent != nil {
+		h[KEY_PARENT] = t.parent
+	}
+	if !t.parameters.IsEmpty() {
+		h[KEY_TYPE_PARAMETERS] = compressedMembersHash(t.parameters)
+	}
+	if !t.attributes.IsEmpty() {
+		// Divide attributes into constants and others
+		constants := make([]*HashEntry, 0)
+		others := NewStringHash(5)
+		t.attributes.EachPair(func(key string, value interface{}) {
+			a := value.(Attribute)
+			if a.Kind() == CONSTANT && Equals(a.Type(), Generalize(a.Value().Type())) {
+				constants = append(constants, WrapHashEntry2(key, a.Value()))
+			} else {
+				others.Put(key, a)
+			}
+			if !others.IsEmpty() {
+				h[KEY_ATTRIBUTES] = compressedMembersHash(others)
+			}
+			if len(constants) > 0 {
+				h[KEY_CONSTANTS] = WrapHash(constants)
+			}
+		})
+	}
+	if !t.functions.IsEmpty() {
+		h[KEY_FUNCTIONS] = compressedMembersHash(t.functions)
+	}
+	if t.equality != nil {
+		ev := make([]PValue, len(t.equality))
+		for i, e := range t.equality {
+			ev[i] = WrapString(e)
+		}
+		h[KEY_EQUALITY] = WrapArray(ev)
+	}
+	return h
+}
+
+func (t *ObjectType) resolvedParent() *ObjectType {
+	tp := t.parent
+	for {
+		switch tp.(type) {
+		case nil:
+			return nil
+		case *ObjectType:
+			return tp.(*ObjectType)
+		case *TypeAliasType:
+			tp = tp.(*TypeAliasType).resolvedType
+		default:
+			panic(Error(EVAL_ILLEGAL_OBJECT_INHERITANCE, H{`label`: t.Label(), `type`: tp.Type().String()}))
+		}
+	}
+}
+
+func (t *ObjectType) members(includeParent bool) *StringHash {
+	collector := NewStringHash(7)
+	t.collectMembers(includeParent, collector)
+	return collector
+}
+
+func (t *ObjectType) typeParameters(includeParent bool) *StringHash {
+	collector := NewStringHash(5)
+	t.collectParameters(includeParent, collector)
+	return collector
+}
+
+func (t *ObjectType) collectAttributes(includeParent bool, collector *StringHash) {
+	if includeParent && t.parent != nil {
+		t.resolvedParent().collectAttributes(true, collector)
+	}
+	collector.PutAll(t.attributes)
+}
+
+func (t *ObjectType) collectFunctions(includeParent bool, collector *StringHash) {
+	if includeParent && t.parent != nil {
+		t.resolvedParent().collectFunctions(true, collector)
+	}
+	collector.PutAll(t.functions)
+}
+
+func (t *ObjectType) collectMembers(includeParent bool, collector *StringHash) {
+	if includeParent && t.parent != nil {
+		t.resolvedParent().collectMembers(true, collector)
+	}
+	collector.PutAll(t.attributes)
+	collector.PutAll(t.functions)
+}
+
+func (t *ObjectType) collectParameters(includeParent bool, collector *StringHash) {
+	if includeParent && t.parent != nil {
+		t.resolvedParent().collectParameters(true, collector)
+	}
+	collector.PutAll(t.parameters)
 }

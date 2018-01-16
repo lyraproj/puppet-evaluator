@@ -289,7 +289,7 @@ func NewFormatMap2(t PType, tf Format, fm FormatMap) FormatMap {
 func FormatFromHash(h *HashValue) Format {
 
 	stringArg := func(key string, required bool) string {
-		v := h.Get2(key)
+		v := h.Get2(key, _UNDEF)
 		switch v.(type) {
 		case *StringValue:
 			return v.String()
@@ -303,7 +303,7 @@ func FormatFromHash(h *HashValue) Format {
 
 	var cf FormatMap
 	cf = nil
-	if v := h.Get2(`string_formats`); v != UNDEF {
+	if v := h.Get2(`string_formats`, _UNDEF); !Equals(v, _UNDEF) {
 		hv, ok := v.(*HashValue)
 		if !ok {
 			panic(GenericError(fmt.Sprintf(`Expected 'string_formats' to be a Hash. Got %s`, v.Type().String())))

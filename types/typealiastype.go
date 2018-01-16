@@ -115,11 +115,12 @@ func (t *TypeAliasType) Parameters() []PValue {
 	return []PValue{t.resolvedType}
 }
 
-func (t *TypeAliasType) Resolve(resolver TypeResolver) {
+func (t *TypeAliasType) Resolve(resolver TypeResolver) PType {
 	if t.resolvedType != nil {
 		panic(Sprintf(`Attempt to resolve already resolved type %s`, t.name))
 	}
-	t.resolvedType = resolver.Resolve(t.typeExpression)
+	t.resolvedType = resolver.ResolveType(t.typeExpression)
+	return t
 }
 
 func (t *TypeAliasType) ResolvedType() PType {

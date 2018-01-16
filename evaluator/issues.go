@@ -7,8 +7,14 @@ import (
 
 const (
 	EVAL_ARGUMENTS_ERROR                = `EVAL_ARGUMENTS_ERROR`
+	EVAL_ATTRIBUTE_HAS_NO_VALUE         = `EVAL_ATTRIBUTE_HAS_NO_VALUE`
+	EVAL_BOTH_CONSTANT_AND_ATTRIBUTE    = `EVAL_BOTH_CONSTANT_AND_ATTRIBUTE`
 	EVAL_CONSTANT_REQUIRES_VALUE        = `EVAL_CONSTANT_REQUIRES_VALUE`
 	EVAL_CONSTANT_WITH_FINAL            = `EVAL_CONSTANT_WITH_FINAL`
+	EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND   = `EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND`
+	EVAL_EQUALITY_NOT_ATTRIBUTE         = `EVAL_EQUALITY_NOT_ATTRIBUTE`
+	EVAL_EQUALITY_ON_CONSTANT           = `EVAL_EQUALITY_ON_CONSTANT`
+	EVAL_EQUALITY_REDEFINED             = `EVAL_EQUALITY_REDEFINED`
 	EVAL_FAILURE                        = `EVAL_FAILURE`
 	EVAL_ILLEGAL_ARGUMENT               = `EVAL_ILLEGAL_ARGUMENT`
 	EVAL_ILLEGAL_ARGUMENT_COUNT         = `EVAL_ILLEGAL_ARGUMENT_COUNT`
@@ -17,6 +23,7 @@ const (
 	EVAL_ILLEGAL_BREAK                  = `EVAL_ILLEGAL_BREAK`
 	EVAL_ILLEGAL_KIND_VALUE_COMBINATION = `EVAL_ILLEGAL_KIND_VALUE_COMBINATION`
 	EVAL_ILLEGAL_NEXT                   = `EVAL_ILLEGAL_NEXT`
+	EVAL_ILLEGAL_OBJECT_INHERITANCE     = `EVAL_ILLEGAL_OBJECT_INHERITANCE`
 	EVAL_ILLEGAL_RETURN                 = `EVAL_ILLEGAL_RETURN`
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE  = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
 	EVAL_ILLEGAL_REASSIGNMENT           = `EVAL_ILLEGAL_REASSIGNMENT`
@@ -32,6 +39,7 @@ const (
 	EVAL_NOT_NUMERIC                    = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE         = `EVAL_NOT_PARAMETERIZED_TYPE`
 	EVAL_NOT_SEMVER                     = `EVAL_NOT_SEMVER`
+	EVAL_OBJECT_INHERITS_SELF           = `EVAL_OBJECT_INHERITS_SELF`
 	EVAL_OPERATOR_NOT_APPLICABLE        = `EVAL_OPERATOR_NOT_APPLICABLE`
 	EVAL_OPERATOR_NOT_APPLICABLE_WHEN   = `EVAL_OPERATOR_NOT_APPLICABLE_WHEN`
 	EVAL_OVERRIDE_MEMBER_MISMATCH       = `EVAL_OVERRIDE_MEMBER_MISMATCH`
@@ -50,10 +58,22 @@ const (
 func init() {
 	HardIssue2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, HF{`expression`: A_an})
 
+	HardIssue(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, `attribute %{label}[%{key}] is defined as both a constant and an attribute`)
+
+	HardIssue(EVAL_ATTRIBUTE_HAS_NO_VALUE, `%{label} has no value`)
+
 	HardIssue(EVAL_CONSTANT_REQUIRES_VALUE, `%{label} of kind 'constant' requires a value`)
 
 	// TRANSLATOR 'final => false' is puppet syntax and should not be translated
 	HardIssue(EVAL_CONSTANT_WITH_FINAL, `%{label} of kind 'constant' cannot be combined with final => false`)
+
+	HardIssue(EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND, `%{label} equality is referencing non existent attribute '%{attribute}'`)
+
+	HardIssue(EVAL_EQUALITY_NOT_ATTRIBUTE, `{label} equality is referencing %{attribute}. Only attribute references are allowed`)
+
+	HardIssue(EVAL_EQUALITY_ON_CONSTANT, `%{label} equality is referencing constant %{attribute}.`)
+
+	HardIssue(EVAL_EQUALITY_REDEFINED, `%{label} equality is referencing %{attribute} which is included in equality of %{including_parent}`)
 
 	HardIssue(EVAL_FAILURE, `Failure: %{message}`)
 
@@ -77,6 +97,8 @@ func init() {
 
 	HardIssue(EVAL_ILLEGAL_NEXT, `next() from context where this is illegal`)
 
+	HardIssue(EVAL_ILLEGAL_OBJECT_INHERITANCE, `An Object can only inherit another Object or alias thereof. The %{label} inherits from a %{type}.`)
+
 	HardIssue(EVAL_ILLEGAL_RETURN, `return() from context where this is illegal`)
 
 	HardIssue(EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, `Mismatched number of assignable entries and values, expected %{expected}, got %{actual}`)
@@ -94,6 +116,8 @@ func init() {
 	HardIssue2(EVAL_MATCH_NOT_STRING, `"Left match operand must result in a String value. Got %{left}`, HF{`left`: A_an})
 
 	HardIssue(EVAL_MISSING_MULTI_ASSIGNMENT_KEY, `No value for required key '%{name}' in assignment to variables from hash`)
+
+	HardIssue(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 
 	HardIssue(EVAL_NO_DEFINITION, `The code loaded from %{source} does not define the %{type} '%{name}`)
 

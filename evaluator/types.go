@@ -28,13 +28,15 @@ type (
 	TypeResolver interface {
 		ParseResolve(typeString string) PType
 
-		Resolve(expr parser.Expression) PType
+		Resolve(expr parser.Expression) PValue
+
+		ResolveType(expr parser.Expression) PType
 	}
 
 	ResolvableType interface {
 		PType
 
-		Resolve(resolver TypeResolver)
+		Resolve(resolver TypeResolver) PType
 	}
 
 	ParameterizedType interface {
@@ -144,7 +146,7 @@ func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 	return dflt
 }
 
-func Map(elements []PValue, mapper Mapper) []PValue {
+func Map1(elements []PValue, mapper Mapper) []PValue {
 	result := make([]PValue, len(elements))
 	for idx, elem := range elements {
 		result[idx] = mapper(elem)
@@ -184,7 +186,7 @@ func Reduce2(array IndexedValue, memo PValue, reductor BiMapper) PValue {
 	return memo
 }
 
-func Select(elements []PValue, predicate Predicate) []PValue {
+func Select1(elements []PValue, predicate Predicate) []PValue {
 	result := make([]PValue, 0, 8)
 	for _, elem := range elements {
 		if predicate(elem) {
@@ -230,4 +232,8 @@ func Reject2(array IndexedValue, predicate Predicate) IndexedValue {
 
 var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambda) string
 
-var DescribeMismatch func(name string, expected PType, actual PType) string
+var DescribeMismatch func(pfx string, expected PType, actual PType) string
+
+var AssertType func(pfx interface{}, expected, actual PType) PType
+
+var AssertInstance func(pfx interface{}, expected PType, value PValue) PValue

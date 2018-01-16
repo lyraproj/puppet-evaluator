@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"regexp"
 )
 
 func TestUnique(t *testing.T) {
@@ -42,4 +43,36 @@ func TestTuple(t *testing.T) {
 	tuple := tupleFromArgs(false, []PValue{DefaultStringType(), DefaultIntegerType()})
 	t.Log(tuple.String())
 
+}
+
+func TestWrapAliasedString(t *testing.T) {
+	v := wrap(FUNCTION)
+	s, ok := v.(*StringValue)
+	if !(ok && s.String() == `function`) {
+		t.Errorf("Namespace got wrapped as %T %s", v, v.String())
+	}
+}
+
+func TestWrapMapOfInterface(t *testing.T) {
+	type M map[string]interface{}
+	a := wrap(M{
+		`foo`: 23,
+		`fee`: `hello`,
+		`fum`: M{
+			`x`: `1`,
+			`y`: []int{1, 2, 3},
+			`z`: regexp.MustCompile(`^[a-z]+$`)}})
+
+	e := WrapHash([]*HashEntry{
+		WrapHashEntry2(`foo`, WrapInteger(23)),
+		WrapHashEntry2(`fee`, WrapString(`hello`)),
+		WrapHashEntry2(`fum`, WrapHash([]*HashEntry{
+			WrapHashEntry2(`x`, WrapString(`1`)),
+			WrapHashEntry2(`y`, WrapArray([]PValue{
+				WrapInteger(1), WrapInteger(2), WrapInteger(3)})),
+			WrapHashEntry2(`z`, WrapRegexp(`^[a-z]+$`))}))})
+
+	if !Equals(e, a) {
+		t.Errorf(`Expected '%s', got '%s'`, e, a)
+	}
 }

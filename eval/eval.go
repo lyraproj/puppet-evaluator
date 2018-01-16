@@ -139,8 +139,12 @@ func (c *context) ParseType(typeString PValue) PType {
 	panic(NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
 }
 
-func (c *context) Resolve(expr Expression) PType {
-	resolved := c.evaluator.Eval(expr, c)
+func (c *context) Resolve(expr Expression) PValue {
+	return c.evaluator.Eval(expr, c)
+}
+
+func (c *context) ResolveType(expr Expression) PType {
+	resolved := c.Resolve(expr)
 	if pt, ok := resolved.(PType); ok {
 		return pt
 	}
@@ -214,7 +218,7 @@ func (c *context) ParseAndValidate(str, filename string, singleExpression bool) 
 }
 
 func (c *context) ParseResolve(str string) PType {
-	return c.Resolve(c.ParseAndValidate(str, ``, true))
+	return c.ResolveType(c.ParseAndValidate(str, ``, true))
 }
 
 func (e *evaluator) AddDefinitions(expr Expression) {

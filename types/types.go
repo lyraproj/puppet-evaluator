@@ -2,11 +2,14 @@ package types
 
 import (
 	"bytes"
-	. "io"
-	"reflect"
+	"io"
+	. "reflect"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-evaluator/semver"
+	"time"
+	"regexp"
 )
 
 const (
@@ -111,7 +114,7 @@ func UniqueTypes(types []PType) []PType {
 // method will panic if the given argument is not a slice or array, or if not all
 // elements implement the PValue interface
 func ValueSlice(slice interface{}) []PValue {
-	sv := reflect.ValueOf(slice)
+	sv := ValueOf(slice)
 	top := sv.Len()
 	result := make([]PValue, top)
 	for idx := 0; idx < top; idx++ {
@@ -142,7 +145,7 @@ func NewIllegalArgumentType2(name string, index int, expected string, actual PVa
 	return NewIllegalArgumentType(name, index, expected, DetailedValueType(actual).String())
 }
 
-func TypeToString(t PType, b Writer, s FormatContext, g RDetect) {
+func TypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 	f := GetFormat(s.FormatMap(), t.Type())
 	switch f.FormatChar() {
 	case 's', 'p':
@@ -159,8 +162,8 @@ func TypeToString(t PType, b Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func basicTypeToString(t PType, b Writer, s FormatContext, g RDetect) {
-	WriteString(b, t.Name())
+func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
+	io.WriteString(b, t.Name())
 	if pt, ok := t.(ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
@@ -303,4 +306,87 @@ func appendKey(b *bytes.Buffer, v PValue) {
 	} else {
 		panic(NewIllegalArgumentType2(`ToKey`, 0, `value used as hash key`, v))
 	}
+}
+
+func wrap(v interface{}) (pv PValue) {
+	switch v.(type) {
+	case nil:
+		pv = _UNDEF
+	case PValue:
+		pv = v.(PValue)
+	case string:
+		pv = WrapString(v.(string))
+	case int64:
+		pv = WrapInteger(v.(int64))
+	case int:
+		pv = WrapInteger(int64(v.(int)))
+	case float64:
+		pv = WrapFloat(v.(float64))
+	case bool:
+		pv = WrapBoolean(v.(bool))
+	case *regexp.Regexp:
+		pv = WrapRegexp2(v.(*regexp.Regexp))
+	case []byte:
+		pv = WrapBinary(v.([]byte))
+	case *semver.Version:
+		pv = WrapSemVer(v.(*semver.Version))
+	case *semver.VersionRange:
+		pv = WrapSemVerRange(v.(*semver.VersionRange))
+	case time.Duration:
+		pv = WrapTimespan(v.(time.Duration))
+	case time.Time:
+		pv = WrapTimestamp(v.(time.Time))
+	case []PValue:
+		pv = WrapArray(v.([]PValue))
+	case map[string]PValue:
+		pv = WrapHash3(v.(map[string]PValue))
+
+	default:
+		// Can still be an alias, slice, or map in which case reflection conversion will work
+		pv = wrapValue(ValueOf(v))
+	}
+	return pv
+}
+
+func wrapValue(vr Value) (pv PValue) {
+	switch vr.Kind() {
+	case String:
+		pv = WrapString(vr.String())
+	case Int64, Int32, Int16, Int8:
+		pv = WrapInteger(vr.Int())
+	case Uint, Uint64, Uint32, Uint16, Uint8:
+		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
+	case Bool:
+		pv = WrapBoolean(vr.Bool())
+	case Float64, Float32:
+		pv = WrapFloat(vr.Float())
+	case Slice, Array:
+		top := vr.Len()
+		els := make([]PValue, top)
+		for i := 0; i < top; i++ {
+			els[i] = wrap(interfaceOrNil(vr.Index(i)))
+		}
+		pv = WrapArray(els)
+	case Map:
+		keys := vr.MapKeys()
+		els := make([]*HashEntry, len(keys))
+		for i, k := range keys {
+			els[i] = WrapHashEntry(wrap(interfaceOrNil(k)), wrap(interfaceOrNil(vr.MapIndex(k))))
+		}
+		pv = WrapHash(els)
+	default:
+		if vr.CanInterface() {
+			pv = WrapRuntime(vr.Interface())
+		} else {
+			pv = _UNDEF
+		}
+	}
+	return pv
+}
+
+func interfaceOrNil(vr Value) interface{} {
+	if vr.CanInterface() {
+		return vr.Interface()
+	}
+	return nil
 }

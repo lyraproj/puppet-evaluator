@@ -203,6 +203,12 @@ func (sv *StringValue) Elements() []PValue {
 	return el
 }
 
+func (sv *StringValue) Each(consumer Consumer) {
+	for _, c := range sv.String() {
+		consumer(WrapString(string(c)))
+	}
+}
+
 func (sv *StringValue) ElementType() PType {
 	return ONE_CHAR_STRING_TYPE
 }
@@ -248,6 +254,10 @@ func (sv *StringValue) Delete(v PValue) IndexedValue {
 
 func (sv *StringValue) DeleteAll(tv IndexedValue) IndexedValue {
 	panic(`Operation not supported`)
+}
+
+func (sv *StringValue) IsEmpty() bool {
+	return sv.Len() == 0
 }
 
 func (sv *StringValue) IsHashStyle() bool {

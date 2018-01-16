@@ -159,6 +159,10 @@ func WrapRegexp(str string) *RegexpValue {
 	return (*RegexpValue)(NewRegexpType(str))
 }
 
+func WrapRegexp2(pattern *Regexp) *RegexpValue {
+	return (*RegexpValue)(NewRegexpTypeR(pattern))
+}
+
 func (sv *RegexpValue) Equals(o interface{}, g Guard) bool {
 	if ov, ok := o.(*RegexpValue); ok {
 		return sv.String() == ov.String()

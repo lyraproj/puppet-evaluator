@@ -6,6 +6,9 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
+var Boolean_FALSE = &BooleanValue{0}
+var Boolean_TRUE = &BooleanValue{1}
+
 type (
 	BooleanType struct {
 		value int // -1 == unset, 0 == false, 1 == true
@@ -86,11 +89,10 @@ func (t *BooleanType) Type() PType {
 }
 
 func WrapBoolean(val bool) *BooleanValue {
-	n := 0
 	if val {
-		n = 1
+		return Boolean_TRUE
 	}
-	return &BooleanValue{n}
+	return Boolean_FALSE
 }
 
 func (bv *BooleanValue) Bool() bool {

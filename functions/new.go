@@ -76,7 +76,7 @@ func init() {
 			d.Param(`StringHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hv := args[0].(KeyedValue)
-				return BinaryFromString(hv.Get2(`value`).String(), hv.Get2(`format`).String())
+				return BinaryFromString(hv.Get2(`value`, UNDEF).String(), hv.Get2(`format`, UNDEF).String())
 			})
 		},
 
@@ -98,9 +98,9 @@ func init() {
 			d.Param(`NamedArgs`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				h := args[0].(*HashValue)
-				n := fromConvertible(h.Get2(`from`))
-				a := h.Get2(`abs`)
-				if a != UNDEF && a.(*BooleanValue).Bool() {
+				n := fromConvertible(h.Get2(`from`, UNDEF))
+				a := h.Get2(`abs`, nil)
+				if a != nil && a.(*BooleanValue).Bool() {
 					n = n.Abs()
 				}
 				return n
@@ -170,17 +170,17 @@ func init() {
 			d.Param(`SemVerHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hash := args[0].(*HashValue)
-				major := hash.Get2(`major`).(*IntegerValue).Int()
-				minor := hash.Get2(`minor`).(*IntegerValue).Int()
-				patch := hash.Get2(`patch`).(*IntegerValue).Int()
+				major := hash.Get2(`major`, ZERO).(*IntegerValue).Int()
+				minor := hash.Get2(`minor`, ZERO).(*IntegerValue).Int()
+				patch := hash.Get2(`patch`, ZERO).(*IntegerValue).Int()
 				preRelease := ``
 				build := ``
-				ev := hash.Get2(`prerelease`)
-				if ev != UNDEF {
+				ev := hash.Get2(`prerelease`, nil)
+				if ev != nil {
 					preRelease = ev.String()
 				}
-				ev = hash.Get2(`build`)
-				if ev != UNDEF {
+				ev = hash.Get2(`build`, nil)
+				if ev != nil {
 					build = ev.String()
 				}
 				v, err := semver.NewVersion3(int(major), int(minor), int(patch), preRelease, build)
@@ -238,19 +238,19 @@ func init() {
 			d.Param(`SemVerRangeHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hash := args[0].(*HashValue)
-				start := hash.Get2(`min`).(*SemVerValue).Version()
+				start := hash.Get2(`min`, nil).(*SemVerValue).Version()
 
 				var end *semver.Version
-				ev := hash.Get2(`max`)
-				if ev == UNDEF {
+				ev := hash.Get2(`max`, nil)
+				if ev == nil {
 					end = semver.MAX
 				} else {
 					end = ev.(*SemVerValue).Version()
 				}
 
 				excludeEnd := false
-				ev = hash.Get2(`excludeMax`)
-				if ev != UNDEF {
+				ev = hash.Get2(`excludeMax`, nil)
+				if ev != nil {
 					excludeEnd = ev.(*BooleanValue).Bool()
 				}
 				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))

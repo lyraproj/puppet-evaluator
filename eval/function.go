@@ -531,7 +531,7 @@ func resolveReturnType(tr TypeResolver, typeExpr Expression) PType {
 	if typeExpr == nil {
 		return DefaultAnyType()
 	}
-	return tr.Resolve(typeExpr)
+	return tr.ResolveType(typeExpr)
 }
 
 func resolveParameters(tr TypeResolver, eps []Expression) []*parameter {
@@ -542,7 +542,7 @@ func resolveParameters(tr TypeResolver, eps []Expression) []*parameter {
 		if pd.Type() == nil {
 			pt = DefaultAnyType()
 		} else {
-			pt = tr.Resolve(pd.Type())
+			pt = tr.ResolveType(pd.Type())
 		}
 		pps[idx] = &parameter{pt, pd}
 	}

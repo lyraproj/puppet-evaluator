@@ -23,6 +23,7 @@ type (
 	SizedValue interface {
 		PValue
 		Len() int
+		IsEmpty() bool
 	}
 
 	InterfaceValue interface {
@@ -49,6 +50,10 @@ type (
 		At(index int) PValue
 		Delete(PValue) IndexedValue
 		DeleteAll(IndexedValue) IndexedValue
+
+		// Iterate over each element. This method will not catch break exceptions. If that is
+		// desired, use an Iterator instead.
+		Each(Consumer)
 		Elements() []PValue
 	}
 
@@ -71,10 +76,15 @@ type (
 		SizedValue
 		IterableValue
 		Entries() IndexedValue
+
+		// Iterate over each key/value pair. This method will not catch break exceptions. If that is
+		// desired, use an Iterator instead.
+		EachPair(BiConsumer)
+
 		Keys() IndexedValue
 		Values() IndexedValue
 		Get(key PValue) (PValue, bool)
-		Get2(key string) PValue
+		Get2(key string, dflt PValue) PValue
 	}
 
 	NumericValue interface {

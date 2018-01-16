@@ -221,6 +221,10 @@ func WrapHashEntry(key PValue, value PValue) *HashEntry {
 	return &HashEntry{key, value}
 }
 
+func WrapHashEntry2(key string, value PValue) *HashEntry {
+	return &HashEntry{WrapString(key), value}
+}
+
 func (he *HashEntry) Add(v PValue) IndexedValue {
 	panic(`Operation not supported`)
 }
@@ -252,6 +256,11 @@ func (he *HashEntry) DetailedType() PType {
 	return NewTupleType([]PType{DetailedValueType(he.key), DetailedValueType(he.value)}, NewIntegerType(2, 2))
 }
 
+func (he *HashEntry) Each(consumer Consumer) {
+	consumer(he.key)
+	consumer(he.value)
+}
+
 func (he *HashEntry) Elements() []PValue {
 	return []PValue{he.key, he.value}
 }
@@ -264,6 +273,10 @@ func (he *HashEntry) Equals(o interface{}, g Guard) bool {
 	if ov, ok := o.(*HashEntry); ok {
 		return he.key.Equals(ov.key, g) && he.value.Equals(ov.value, g)
 	}
+	return false
+}
+
+func (he *HashEntry) IsEmpty() bool {
 	return false
 }
 
@@ -309,6 +322,28 @@ func WrapHash2(entries []PValue) *HashValue {
 	hvEntries := make([]*HashEntry, len(entries))
 	for idx, entry := range entries {
 		hvEntries[idx] = entry.(*HashEntry)
+	}
+	return &HashValue{entries: hvEntries}
+}
+
+// This wrap variant does not preserve order since order is undefined in a Go map
+func WrapHash3(hash map[string]PValue) *HashValue {
+	hvEntries := make([]*HashEntry, len(hash))
+	i := 0
+	for k, v := range hash {
+		hvEntries[i] = WrapHashEntry(WrapString(k), v)
+		i++
+	}
+	return &HashValue{entries: hvEntries}
+}
+
+// This wrap variant does not preserve order since order is undefined in a Go map
+func WrapHash4(hash map[string]interface{}) *HashValue {
+	hvEntries := make([]*HashEntry, len(hash))
+	i := 0
+	for k, v := range hash {
+		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		i++
 	}
 	return &HashValue{entries: hvEntries}
 }
@@ -422,6 +457,18 @@ func (hv *HashValue) EntriesSlice() []*HashEntry {
 	return hv.entries
 }
 
+func (hv *HashValue) Each(consumer Consumer) {
+	for _, e := range hv.entries {
+		consumer(WrapArray(e.Elements()))
+	}
+}
+
+func (hv *HashValue) EachPair(consumer BiConsumer) {
+	for _, e := range hv.entries {
+		consumer(e.key, e.value)
+	}
+}
+
 func (hv *HashValue) Equals(o interface{}, g Guard) bool {
 	if ov, ok := o.(*HashValue); ok {
 		if top := len(hv.entries); top == len(ov.entries) {
@@ -445,11 +492,11 @@ func (hv *HashValue) Get(key PValue) (PValue, bool) {
 	return _UNDEF, false
 }
 
-func (hv *HashValue) Get2(key string) PValue {
+func (hv *HashValue) Get2(key string, dflt PValue) PValue {
 	if pos, ok := hv.valueIndex()[HashKey(key)]; ok {
 		return hv.entries[pos].value
 	}
-	return _UNDEF
+	return dflt
 }
 
 func (hv *HashValue) IncludesKey(o PValue) bool {
@@ -460,6 +507,10 @@ func (hv *HashValue) IncludesKey(o PValue) bool {
 func (hv *HashValue) IncludesKey2(key string) bool {
 	_, ok := hv.valueIndex()[HashKey(key)]
 	return ok
+}
+
+func (hv *HashValue) IsEmpty() bool {
+	return len(hv.entries) == 0
 }
 
 func (hv *HashValue) IsHashStyle() bool {

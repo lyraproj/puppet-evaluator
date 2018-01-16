@@ -236,6 +236,14 @@ func WrapArray(elements []PValue) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
 
+func WrapArray2(elements []interface{}) *ArrayValue {
+	els := make([]PValue, len(elements))
+	for i, e := range elements {
+		els[i] = wrap(e)
+	}
+	return &ArrayValue{elements: els}
+}
+
 func (av *ArrayValue) Add(ov PValue) IndexedValue {
 	return WrapArray(append(av.elements, ov))
 }
@@ -296,6 +304,12 @@ func (av *ArrayValue) DetailedType() PType {
 	return t
 }
 
+func (av *ArrayValue) Each(consumer Consumer) {
+	for _, e := range av.elements {
+		consumer(e)
+	}
+}
+
 func (av *ArrayValue) Elements() []PValue {
 	return av.elements
 }
@@ -316,6 +330,10 @@ func (av *ArrayValue) Equals(o interface{}, g Guard) bool {
 		}
 	}
 	return false
+}
+
+func (av *ArrayValue) IsEmpty() bool {
+	return len(av.elements) == 0
 }
 
 func (av *ArrayValue) IsHashStyle() bool {

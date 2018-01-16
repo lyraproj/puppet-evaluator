@@ -181,7 +181,7 @@ func (t *CallableType) Parameters() (params []PValue) {
 	if len(tupleParams) == 0 {
 		params = []PValue{ZERO, ZERO}
 	} else {
-		params = Select(tupleParams, func(p PValue) bool { _, ok := p.(*UnitType); return !ok })
+		params = Select1(tupleParams, func(p PValue) bool { _, ok := p.(*UnitType); return !ok })
 	}
 	if t.blockType != nil {
 		params = append(params, t.blockType)

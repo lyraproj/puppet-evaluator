@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -950,6 +951,30 @@ func init() {
 			return strings.Join(rs, "\n")
 		}
 	}
+
+	AssertType = func(pfx interface{}, expected, actual PType) PType {
+		if !IsAssignable(expected, actual) {
+			panic(Error(EVAL_TYPE_MISMATCH, H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
+		}
+		return actual
+	}
+
+	AssertInstance = func(pfx interface{}, expected PType, value PValue) PValue {
+		if !IsInstance(expected, value) {
+			panic(Error(EVAL_TYPE_MISMATCH, H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
+		}
+		return value
+	}
+}
+
+func getPrefix(pfx interface{}) string {
+	name := ``
+	if s, ok := pfx.(string); ok {
+		name = s
+	} else if f, ok := pfx.(func() string); ok {
+		name = f()
+	}
+	return name
 }
 
 func describeSignatures(signatures []Signature, argsTuple PType, block Lambda) string {
