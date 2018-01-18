@@ -152,6 +152,31 @@ func chopPath(m mismatch, index int) mismatch {
 func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 	m = withPath(m, path)
 	switch m.(type) {
+	case *typeMismatch:
+		et := m.(*typeMismatch)
+		if ot, ok := o.(*typeMismatch); ok {
+			if ev, ok := et.expectedType.(*VariantType); ok {
+				if ov, ok := ot.expectedType.(*VariantType); ok {
+					ts := make([]PType, len(ev.Types()) + len(ov.Types()))
+					ts = append(ts, ev.Types()...)
+					ts = append(ts, ov.Types()...)
+					et.setExpected(NewVariantType(UniqueTypes(ts)))
+				} else {
+					et.setExpected(NewVariantType(UniqueTypes(CopyAppend(ev.Types(), ot.expectedType))))
+				}
+			} else {
+				if ov, ok := ot.expectedType.(*VariantType); ok {
+					ts := make([]PType, len(ev.Types()) + 1)
+					ts = append(ts, et.expectedType)
+					ts = append(ts, ov.Types()...)
+					et.setExpected(NewVariantType(UniqueTypes(ts)))
+				} else {
+					if !Equals(et.expectedType, ot.expectedType) {
+						et.setExpected(NewVariantType([]PType{et.expectedType, ot.expectedType}))
+					}
+				}
+			}
+		}
 	case sizeMismatch:
 		esm := m.(sizeMismatch)
 		if osm, ok := o.(sizeMismatch); ok {
@@ -371,7 +396,7 @@ func (tm *typeMismatch) text() string {
 	es := ``
 	if vt, ok := e.(*VariantType); ok {
 		el := vt.Types()
-		els := make([]string, 0, len(el))
+		els := make([]string, len(el))
 		if reportDetailed(el, a) {
 			as = detailedToActualToS(el, a)
 			for i, e := range el {
@@ -673,10 +698,13 @@ func describeStructType(expected *StructType, original, actual PType, path []*pa
 			e2, ok := h2[key]
 			if ok {
 				delete(h2, key)
-				descriptions = append(descriptions, internalDescribe(e1.Key(), e1.Key(), e2.Key(), pathWith(path, &pathElement{key, entryKey}))...)
+				ek := e1.ActualKeyType()
+				descriptions = append(descriptions, internalDescribe(ek, ek, e2.ActualKeyType(), pathWith(path, &pathElement{key, entryKey}))...)
 				descriptions = append(descriptions, internalDescribe(e1.Value(), e1.Value(), e2.Value(), pathWith(path, &pathElement{key, entry}))...)
 			} else {
-				descriptions = append(descriptions, newMissingKey(path, e1.Name()))
+				if !e1.Optional() {
+					descriptions = append(descriptions, newMissingKey(path, e1.Name()))
+				}
 			}
 		}
 		for key := range h2 {
@@ -864,10 +892,10 @@ func describeVariantType(expected *VariantType, original, actual PType, path []*
 	}
 
 	for ex, vt := range types {
-		d := internalDescribe(vt, vt, actual, pathWith(path, &pathElement{strconv.Itoa(ex), variant}))
-		if len(d) == 0 {
+		if IsAssignable(vt, actual) {
 			return NO_MISMATCH
 		}
+		d := internalDescribe(vt, vt, actual, pathWith(path, &pathElement{strconv.Itoa(ex), variant}))
 		variantDescs = append(variantDescs, d...)
 	}
 
@@ -1047,26 +1075,26 @@ func describeSignatureArguments(signature Signature, args PType, path []*pathEle
 	eSize := paramsTuple.Size()
 
 	var aSize *IntegerType
-	var types []PType
+	var aTypes []PType
 	switch args.(type) {
 	case *TupleType:
 		at := args.(*TupleType)
 		aSize = at.Size()
-		types = at.Types()
+		aTypes = at.Types()
 	case *ArrayType:
 		at := args.(*ArrayType)
 		aSize = at.Size()
 		n := int(aSize.Min())
-		types = make([]PType, n)
+		aTypes = make([]PType, n)
 		for i := 0; i < n; i++ {
-			types[i] = at.ElementType()
+			aTypes[i] = at.ElementType()
 		}
 	}
 	if IsAssignable(eSize, aSize) {
 		eTypes := paramsTuple.Types()
 		eLast := len(eTypes) - 1
 		eNames := signature.ParameterNames()
-		for ax, aType := range types {
+		for ax, aType := range aTypes {
 			ex := ax
 			if ex > eLast {
 				ex = eLast
