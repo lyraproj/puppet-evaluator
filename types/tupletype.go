@@ -159,7 +159,7 @@ func (t *TupleType) IsAssignable(o PType, g Guard) bool {
 	switch o.(type) {
 	case *ArrayType:
 		at := o.(*ArrayType)
-		if !GuardedIsAssignable(t.givenOrActualSize, at.size, g) {
+		if !GuardedIsInstance(t.givenOrActualSize, WrapInteger(at.size.Min()), g) {
 			return false
 		}
 		top := len(t.types)
@@ -176,7 +176,7 @@ func (t *TupleType) IsAssignable(o PType, g Guard) bool {
 
 	case *TupleType:
 		tt := o.(*TupleType)
-		if !GuardedIsAssignable(t.givenOrActualSize, tt.givenOrActualSize, g) {
+		if !GuardedIsInstance(t.givenOrActualSize, WrapInteger(tt.givenOrActualSize.Min()), g) {
 			return false
 		}
 

@@ -24,7 +24,7 @@ func InstantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sour
 	}
 	e := ctx.Evaluator()
 	e.AddDefinitions(expr)
-	e.ResolveDefinitions()
+	e.ResolveDefinitions(ctx)
 }
 
 func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources []string) {
@@ -39,6 +39,8 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources 
 		tdn = def.(*TypeAlias).Name()
 	case *TypeDefinition:
 		tdn = def.(*TypeDefinition).Name()
+	case *TypeMapping:
+		tdn = def.(*TypeMapping).Type().Label()
 	default:
 		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: TYPE, `name`: name}))
 	}
@@ -47,7 +49,7 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources 
 	}
 	e := ctx.Evaluator()
 	e.AddDefinitions(expr)
-	e.ResolveDefinitions()
+	e.ResolveDefinitions(ctx)
 }
 
 func InstantiatePuppetTask(loader ContentProvidingLoader, name TypedName, sources []string) {

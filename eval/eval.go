@@ -73,7 +73,21 @@ type (
 		definedValue interface{}
 		loader       Loader
 	}
+
+	systemLocation struct {}
 )
+
+func (systemLocation) File() string {
+	return `System`
+}
+
+func (systemLocation) Line() int {
+	return 0
+}
+
+func (systemLocation) Pos() int {
+	return 0
+}
 
 var currentContext EvalContext
 
@@ -121,7 +135,11 @@ func (c *context) StackPop() {
 }
 
 func (c *context) StackTop() Location {
-	return c.stack[len(c.stack)-1]
+	s := len(c.stack)
+	if s == 0 {
+		return &systemLocation{}
+	}
+	return c.stack[s-1]
 }
 
 func (c *context) Stack() []Location {
@@ -253,11 +271,14 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 	}()
 
 	err = nil
-	e.ResolveDefinitions()
 	if loader == nil {
 		loader = e.loaderForFile(expr.File())
 	}
-	result = e.eval(expr, &context{e.self, loader, scope, make([]Location, 0, 64)})
+	ctx :=  &context{e.self, loader, scope, make([]Location, 0, 64)}
+	ctx.StackPush(expr)
+	e.ResolveDefinitions(ctx)
+	currentContext = ctx
+	result = e.eval(expr, ctx)
 	return
 }
 
@@ -275,6 +296,9 @@ func (e *evaluator) callFunction(name string, args []PValue, call CallExpression
 }
 
 func (e *evaluator) call(funcType Namespace, name string, args []PValue, call CallExpression, c EvalContext) (result PValue) {
+if c == nil || c.Loader() == nil {
+	panic(`foo`)
+}
 	tn := NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := Load(c.Loader(), tn)
 	if !ok {
@@ -323,11 +347,38 @@ func (e *evaluator) define(loader DefiningLoader, d Definition) {
 	switch d.(type) {
 	case *TypeAlias:
 		taExpr := d.(*TypeAlias)
-		tn := NewTypedName2(TYPE, taExpr.Name(), loader.NameAuthority())
-		ta := NewTypeAliasType(taExpr.Name(), taExpr.Type(), nil)
+    name := taExpr.Name()
+		tn := NewTypedName2(TYPE, name, loader.NameAuthority())
+		body := taExpr.Type()
+		var ta PType
+		switch body.(type) {
+		case *QualifiedReference:
+			ta = NewTypeAliasType(name, body, nil)
+		case *AccessExpression:
+			ta = nil
+			ae := body.(*AccessExpression)
+			if len(ae.Keys()) == 1 {
+				arg := ae.Keys()[0]
+				if hash, ok := arg.(*LiteralHash); ok {
+					if lq, ok := ae.Operand().(*QualifiedReference); ok {
+						if lq.Name() == `Object` {
+							ta = NewObjectType(name, hash)
+						} // TODO else if lq.Name() == `TypeSet`
+					}
+				}
+			}
+			if ta == nil {
+				ta = NewTypeAliasType(name, body, nil)
+			}
+		case *LiteralHash:
+			// TODO
+		case *LiteralList:
+			// TODO
+		}
 
 		loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))
 		e.definitions = append(e.definitions, &definition{ta, loader})
+
 	case *FunctionDefinition:
 		fe := d.(*FunctionDefinition)
 		tn := NewTypedName2(FUNCTION, fe.Name(), loader.NameAuthority())
@@ -675,7 +726,7 @@ func (e *evaluator) internalEval(expr Expression, c EvalContext) PValue {
 		return e.eval_RegexpExpression(expr.(*RegexpExpression))
 	case *SelectorExpression:
 		return e.eval_SelectorExpression(expr.(*SelectorExpression), c)
-	case *FunctionDefinition, *TypeAlias:
+	case *FunctionDefinition, *TypeAlias, *TypeMapping:
 		// All definitions must be processed at this time
 		return UNDEF
 	case *LiteralBoolean:
@@ -724,13 +775,14 @@ func (e *evaluator) loadType(name string, loader Loader) PType {
 	return NewTypeReferenceType(name)
 }
 
-func (e *evaluator) ResolveDefinitions() {
+func (e *evaluator) ResolveDefinitions(c EvalContext) {
 	for len(e.definitions) > 0 {
 		scope := NewScope()
 		defs := e.definitions
 		e.definitions = make([]*definition, 0, 16)
 		for _, d := range defs {
-			tr := &context{e.self, d.loader, scope, []Location{}}
+			tr := &context{e.self, d.loader, scope, c.Stack()}
+			currentContext = tr
 			switch d.definedValue.(type) {
 			case *puppetFunction:
 				d.definedValue.(*puppetFunction).Resolve(tr)

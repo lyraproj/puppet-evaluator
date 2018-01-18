@@ -164,6 +164,12 @@ func TypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 
 func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 	io.WriteString(b, t.Name())
+	if s != EXPANDED {
+		switch t.(type) {
+		case *ObjectType, *TypeAliasType, *TypeSetType:
+			return
+		}
+	}
 	if pt, ok := t.(ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
@@ -217,7 +223,7 @@ func NilAs(dflt, t PType) PType {
 
 func CopyAppend(types []PType, t PType) []PType {
 	top := len(types)
-	tc := make([]PType, top, top+1)
+	tc := make([]PType, top+1, top+1)
 	copy(tc, types)
 	tc[top] = t
 	return tc
@@ -287,6 +293,8 @@ func init() {
 			return true
 		}
 	}
+
+	WrapUnknown = wrap
 }
 
 func appendKey(b *bytes.Buffer, v PValue) {

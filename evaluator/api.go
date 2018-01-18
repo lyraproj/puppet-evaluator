@@ -9,7 +9,7 @@ type (
 	Evaluator interface {
 		AddDefinitions(expression Expression)
 
-		ResolveDefinitions()
+		ResolveDefinitions(c EvalContext)
 
 		Evaluate(expression Expression, scope Scope, loader Loader) (PValue, *ReportedIssue)
 

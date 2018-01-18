@@ -165,7 +165,7 @@ func (fb *functionBuilder) Resolve(c EvalContext) Function {
 			localEval.AddDefinitions(p)
 		}
 
-		localEval.ResolveDefinitions()
+		localEval.ResolveDefinitions(c)
 		c = NewEvalContext(localEval, localLoader, NewScope(), c.Stack())
 	}
 	ds := make([]Lambda, len(fb.dispatchers))

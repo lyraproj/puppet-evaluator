@@ -96,9 +96,14 @@ func (t *CallableType) CallableWith(args []PValue, block Lambda) bool {
 
 func (t *CallableType) Accept(v Visitor, g Guard) {
 	v(t)
-	t.paramsType.Accept(v, g)
+	if t.paramsType != nil {
+		t.paramsType.Accept(v, g)
+	}
 	if t.blockType != nil {
 		t.blockType.Accept(v, g)
+	}
+	if t.returnType != nil {
+		t.returnType.Accept(v, g)
 	}
 }
 
@@ -122,7 +127,7 @@ func (t *CallableType) Generic() PType {
 func (t *CallableType) IsAssignable(o PType, g Guard) bool {
 	oc, ok := o.(*CallableType)
 	if !ok {
-		return ok
+		return false
 	}
 	if t.returnType != nil {
 		or := oc.returnType

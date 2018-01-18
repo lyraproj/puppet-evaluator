@@ -51,6 +51,12 @@ var annotationType_DEFAULT = &ObjectType{
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
+
+var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
+	NewStructElement2(KEY_TYPE, DefaultTypeType()),
+	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
+})
+
 var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
 	NewStructElement2(KEY_TYPE, DefaultTypeType()),
 	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
@@ -278,7 +284,7 @@ func (a *annotatedMember) Annotations() *HashValue {
 // Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with
 // override = true and that the inherited member accepts to be overridden by this member.
 func assertOverride(a AnnotatedMember, parentMembers *StringHash) {
-	parentMember := parentMembers.Get(a.Name(), nil).(AnnotatedMember)
+	parentMember, _ := parentMembers.Get(a.Name(), nil).(AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
 			panic(Error(EVAL_OVERRIDDEN_NOT_FOUND, H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
@@ -563,25 +569,8 @@ func (t *ObjectType) ToKey() HashKey {
 	return t.hashKey
 }
 
-func (t *ObjectType) ToString(bld io.Writer, format FormatContext, g RDetect) {
-	/*
-		if fmt == EXPANDED {
-			appendObjectHash(bld, t.InitHash())
-		} else {
-			if ts, ok := fmt.TypeSet(); ok {
-				WriteString(bld, ts.NameFor(t, t.Name()))
-			}
-		}
-		/*
-			# @api private
-			def string_PObjectType(t)
-			if @expanded
-			append_object_hash(t._pcore_init_hash(@type_set.nil? || !@type_set.defines_type?(t)))
-			else
-			@bld << (@type_set ? @type_set.name_for(t, t.label) : t.label)
-			end
-			end
-	*/
+func (t *ObjectType) ToString(b io.Writer, s FormatContext, g RDetect) {
+	TypeToString(t, b, s, g)
 }
 
 func (t *ObjectType) Type() PType {
@@ -681,14 +670,18 @@ func (t *ObjectType) initFromHash(initHash *HashValue) {
 		parameters := NewStringHash(typeParameters.Len())
 		for _, he := range typeParameters.EntriesSlice() {
 			key := he.Key().String()
-			paramSpec := he.Value()
 			var paramType PType
 			var paramValue PValue
-			if ph, ok := paramSpec.(*HashValue); ok {
+			if ph, ok := he.value.(*HashValue); ok {
+				AssertInstance(
+					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
+					TYPE_TYPE_PARAMETER, ph)
 				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
 				paramValue = ph.Get2(KEY_VALUE, nil)
 			} else {
-				paramType = paramSpec.(PType)
+				paramType = AssertInstance(
+					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
+					DefaultTypeType(), he.value).(PType)
 				paramValue = nil
 			}
 			if _, ok := paramType.(*OptionalType); !ok {
@@ -734,7 +727,7 @@ func (t *ObjectType) initFromHash(initHash *HashValue) {
 			attrSpec, ok := value.(*HashValue)
 			if !ok {
 				attrType := AssertInstance(
-					func() string { return fmt.Sprint(`attribute %s[%s]`, t.Label(), key) },
+					func() string { return fmt.Sprintf(`attribute %s[%s]`, t.Label(), key) },
 					DefaultTypeType(), value)
 				hash := H{KEY_TYPE: attrType}
 				if _, ok = attrType.(*OptionalType); ok {
@@ -757,7 +750,7 @@ func (t *ObjectType) initFromHash(initHash *HashValue) {
 			funcSpec, ok := value.(*HashValue)
 			if !ok {
 				funcType := AssertInstance(
-					func() string { return fmt.Sprint(`function %s[%s]`, t.Label(), key) },
+					func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
 					TYPE_FUNCTION_TYPE, value)
 				funcSpec = WrapHash4(H{KEY_TYPE: funcType})
 			}

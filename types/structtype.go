@@ -116,6 +116,11 @@ func (s *StructElement) Name() string {
 	return s.name
 }
 
+func (s *StructElement) Optional() bool {
+	_, ok := s.key.(*OptionalType)
+	return ok
+}
+
 func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 	optionalValue := isAssignable(s.value, undefType_DEFAULT)
 	if _, ok := s.key.(*OptionalType); ok {

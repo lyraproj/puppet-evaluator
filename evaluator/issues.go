@@ -16,6 +16,7 @@ const (
 	EVAL_EQUALITY_ON_CONSTANT           = `EVAL_EQUALITY_ON_CONSTANT`
 	EVAL_EQUALITY_REDEFINED             = `EVAL_EQUALITY_REDEFINED`
 	EVAL_FAILURE                        = `EVAL_FAILURE`
+	EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE = `EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE`
 	EVAL_ILLEGAL_ARGUMENT               = `EVAL_ILLEGAL_ARGUMENT`
 	EVAL_ILLEGAL_ARGUMENT_COUNT         = `EVAL_ILLEGAL_ARGUMENT_COUNT`
 	EVAL_ILLEGAL_ARGUMENT_TYPE          = `EVAL_ILLEGAL_ARGUMENT_TYPE`
@@ -75,7 +76,9 @@ func init() {
 
 	HardIssue(EVAL_EQUALITY_REDEFINED, `%{label} equality is referencing %{attribute} which is included in equality of %{including_parent}`)
 
-	HardIssue(EVAL_FAILURE, `Failure: %{message}`)
+	HardIssue(EVAL_FAILURE, `%{message}`)
+
+	HardIssue(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, `Attempt to create a Runtime['go', '%{name}'] without providing a Go type`)
 
 	HardIssue2(EVAL_ILLEGAL_ARGUMENT,
 		`Error when evaluating %{expression}, argument %{number}:  %{message}`, HF{`expression`: A_an})

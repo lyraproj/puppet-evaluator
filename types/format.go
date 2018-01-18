@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,7 +70,7 @@ func (f *format) ToString(bld io.Writer, format FormatContext, g RDetect) {
 }
 
 func (f *format) Type() PType {
-	return NewRuntimeType3(reflect.TypeOf(f))
+	return WrapRuntime(f).Type()
 }
 
 var DEFAULT_CONTAINER_FORMATS = FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), simpleFormat('p'))}))

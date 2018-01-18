@@ -8,6 +8,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/utils"
+	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -35,7 +36,10 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 	if runtimeName == `` && name == `` && pattern == nil {
 		return DefaultRuntimeType()
 	}
-	return &RuntimeType{runtimeName, name, pattern, nil}
+	if runtimeName == `go` {
+		panic(Error(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, H{`name`: name}))
+	}
+	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }
 
 func NewRuntimeType2(args ...PValue) *RuntimeType {
@@ -53,16 +57,17 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 	}
 
 	var pattern *RegexpType
-	var runtimeName string
+	var runtimeName PValue
 	if top == 1 {
-		runtimeName = ``
+		runtimeName = EMPTY_STRING
 	} else {
 		var rv *StringValue
 		rv, ok = args[1].(*StringValue)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Runtime[]`, 1, `String`, args[1]))
 		}
-		runtimeName = rv.String()
+		runtimeName = name
+		name = rv
 
 		if top == 2 {
 			pattern = nil
@@ -73,11 +78,18 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 			}
 		}
 	}
-	return NewRuntimeType(runtimeName, name.String(), pattern)
+	return NewRuntimeType(runtimeName.String(), name.String(), pattern)
 }
 
-func NewRuntimeType3(goType reflect.Type) *RuntimeType {
-	return &RuntimeType{`go`, goType.Name(), nil, goType}
+// Creates a Go runtime by extracting the element type of the given slice or array. The
+// reason the argument must be a slice or array as opposed to an element, is that there is
+// no way to create elements of an interface but an empty array with an interface element type
+// is possible.
+//
+// To create an Runtime for the interface Foo, pass []Foo{} to this method.
+func NewGoRuntimeType(array interface{}) *RuntimeType {
+	goType :=  reflect.TypeOf(array).Elem()
+	return &RuntimeType{runtime:`go`, name: goType.String(), goType: goType}
 }
 
 func (t *RuntimeType) Accept(v Visitor, g Guard) {
@@ -100,6 +112,9 @@ func (t *RuntimeType) Equals(o interface{}, g Guard) bool {
 
 func (t *RuntimeType) IsAssignable(o PType, g Guard) bool {
 	if rt, ok := o.(*RuntimeType); ok {
+		if t.goType != nil && rt.goType != nil {
+			return rt.goType.AssignableTo(t.goType)
+		}
 		if t.runtime == `` {
 			return true
 		}
@@ -115,7 +130,6 @@ func (t *RuntimeType) IsAssignable(o PType, g Guard) bool {
 		if t.name == rt.name {
 			return true
 		}
-		// There is no way to turn a string into a Type and then check assignability in Go
 	}
 	return false
 }
@@ -125,8 +139,8 @@ func (t *RuntimeType) IsInstance(o PValue, g Guard) bool {
 	if !ok {
 		return false
 	}
-	if t.goType != nil && reflect.ValueOf(rt.Interface()).Type().AssignableTo(t.goType) {
-		return true
+	if t.goType != nil {
+		return reflect.ValueOf(rt.Interface()).Type().AssignableTo(t.goType)
 	}
 	if t.runtime == `` {
 		return true
@@ -172,7 +186,8 @@ func (t *RuntimeType) Type() PType {
 }
 
 func WrapRuntime(value interface{}) *RuntimeValue {
-	return &RuntimeValue{NewRuntimeType(`go`, Sprintf("%T", value), nil), value}
+	goType := reflect.TypeOf(value)
+	return &RuntimeValue{&RuntimeType{runtime:`go`, name: goType.String(), goType: goType}, value}
 }
 
 func (rv *RuntimeValue) Equals(o interface{}, g Guard) bool {

@@ -448,7 +448,7 @@ func childToString(child PValue, indent Indentation, parentCtx FormatContext, cf
 
 func isContainer(child PValue) bool {
 	switch child.(type) {
-	case *ArrayValue, *HashValue, PuppetObject:
+	case *ArrayValue, *HashValue, PType, PuppetObject:
 		return true
 	default:
 		return false
