@@ -36,7 +36,7 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 	if runtimeName == `` && name == `` && pattern == nil {
 		return DefaultRuntimeType()
 	}
-	if runtimeName == `go` {
+	if runtimeName == `go` && name != `` {
 		panic(Error(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, H{`name`: name}))
 	}
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
@@ -51,22 +51,21 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 		return DefaultRuntimeType()
 	}
 
-	name, ok := args[0].(*StringValue)
+	runtimeName, ok := args[0].(*StringValue)
 	if !ok {
 		panic(NewIllegalArgumentType2(`Runtime[]`, 0, `String`, args[0]))
 	}
 
 	var pattern *RegexpType
-	var runtimeName PValue
+	var name PValue
 	if top == 1 {
-		runtimeName = EMPTY_STRING
+		name = EMPTY_STRING
 	} else {
 		var rv *StringValue
 		rv, ok = args[1].(*StringValue)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Runtime[]`, 1, `String`, args[1]))
 		}
-		runtimeName = name
 		name = rv
 
 		if top == 2 {
