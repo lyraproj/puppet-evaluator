@@ -12,6 +12,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"unicode/utf8"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -321,9 +322,7 @@ func (c *formatContext) FormatMap() FormatMap {
 }
 
 func (c *formatContext) UnsupportedFormat(t PType, supportedFormats string, actualFormat Format) error {
-	return NewIllegalArgument(`String`, 1, fmt.Sprintf(
-		`Illegal format '%c' specified for value of %s type - expected one of the characters '%s'`,
-		actualFormat.FormatChar(), t.Name(), supportedFormats))
+	return Error(EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
 }
 
 func newIndentation(indenting bool, level int) Indentation {

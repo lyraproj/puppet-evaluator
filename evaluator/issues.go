@@ -53,6 +53,7 @@ const (
 	EVAL_UNHANDLED_EXPRESSION           = `EVAL_UNHANDLED_EXPRESSION`
 	EVAL_UNKNOWN_FUNCTION               = `EVAL_UNKNOWN_FUNCTION`
 	EVAL_UNKNOWN_VARIABLE               = `EVAL_UNKNOWN_VARIABLE`
+	EVAL_UNSUPPORTED_STRING_FORMAT      = `EVAL_UNSUPPORTED_STRING_FORMAT`
 	EVAL_WRONG_DEFINITION               = `EVAL_WRONG_DEFINITION`
 )
 
@@ -160,6 +161,8 @@ func init() {
 	HardIssue(EVAL_UNKNOWN_FUNCTION, `Unknown function: '%{name}'`)
 
 	HardIssue(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
+
+	HardIssue(EVAL_UNSUPPORTED_STRING_FORMAT, `Illegal format '%<format>c' specified for value of %{type} type - expected one of the characters '%{supported_formats}'`)
 
 	HardIssue(EVAL_WRONG_DEFINITION, `The code loaded from %{source} produced %{type} with the wrong name, expected %{expected}, actual %{actual}`)
 }
