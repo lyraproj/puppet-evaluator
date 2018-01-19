@@ -361,9 +361,7 @@ func (e *evaluator) define(loader DefiningLoader, d Definition) {
 				arg := ae.Keys()[0]
 				if hash, ok := arg.(*LiteralHash); ok {
 					if lq, ok := ae.Operand().(*QualifiedReference); ok {
-						if lq.Name() == `Object` {
-							ta = NewObjectType(name, hash)
-						} // TODO else if lq.Name() == `TypeSet`
+						ta = createMetaType(name, lq.Name(), hash)
 					}
 				}
 			}
@@ -371,9 +369,25 @@ func (e *evaluator) define(loader DefiningLoader, d Definition) {
 				ta = NewTypeAliasType(name, body, nil)
 			}
 		case *LiteralHash:
-			// TODO
+			ta = createMetaType(name, `Object`, body.(*LiteralHash))
 		case *LiteralList:
-			// TODO
+			ll := body.(*LiteralList)
+			if len(ll.Elements()) == 1 {
+				if hash, ok := ll.Elements()[0].(*LiteralHash); ok {
+					ta = createMetaType(name, `Object`, hash)
+				}
+			}
+		case *KeyedEntry:
+			ke := body.(*KeyedEntry)
+			if pn, ok := ke.Key().(*QualifiedReference); ok {
+				if hash, ok := ke.Value().(*LiteralHash); ok {
+					ta = createMetaType(name, pn.Name(), hash)
+				}
+			}
+		}
+
+		if ta == nil {
+			panic(Sprintf(`cannot create object from a %T`, body))
 		}
 
 		loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))
@@ -389,6 +403,13 @@ func (e *evaluator) define(loader DefiningLoader, d Definition) {
 	default:
 		panic(Sprintf(`Don't know how to define a %T`, d))
 	}
+}
+
+func createMetaType(name string, parentName string, hash *LiteralHash) PType {
+	if parentName == `Object` {
+		return NewObjectType(name, hash)
+	} // TODO else if lq.Name() == `TypeSet`
+  return nil
 }
 
 func (e *evaluator) eval(expr Expression, c EvalContext) PValue {
