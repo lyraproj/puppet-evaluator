@@ -12,12 +12,17 @@ import (
 	. "github.com/puppetlabs/go-parser/issue"
 )
 
+func init() {
+  PuppetMatch = func(a, b PValue) bool {
+  	return match(nil, nil, `=~`, nil, a, b)
+	}
+}
 func (e *evaluator) eval_ComparisonExpression(expr *ComparisonExpression, c EvalContext) PValue {
 	return e.compare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
 }
 
 func (e *evaluator) eval_MatchExpression(expr *MatchExpression, c EvalContext) PValue {
-	return WrapBoolean(e.match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
+	return WrapBoolean(match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 
 func (e *evaluator) compare(expr Expression, op string, a PValue, b PValue) PValue {
@@ -112,7 +117,7 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
 }
 
-func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope Scope, a PValue, b PValue) bool {
+func match(lhs Expression, rhs Expression, operator string, scope Scope, a PValue, b PValue) bool {
 	result := false
 	switch b.(type) {
 	case PType:
@@ -124,7 +129,7 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_MATCH_NOT_REGEXP, rhs, H{`detail`: err.Error()}))
+				panic(Error2(rhs, EVAL_MATCH_NOT_REGEXP, H{`detail`: err.Error()}))
 			}
 		} else {
 			rx = b.(*RegexpValue).Regexp()
@@ -132,10 +137,12 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 
 		sv, ok := a.(*StringValue)
 		if !ok {
-			panic(e.evalError(EVAL_MATCH_NOT_STRING, lhs, H{`left`: a.Type()}))
+			panic(Error2(lhs, EVAL_MATCH_NOT_STRING, H{`left`: a.Type()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
-			scope.RxSet(group)
+			if scope != nil {
+				scope.RxSet(group)
+			}
 			result = true
 		}
 
@@ -148,10 +155,10 @@ func (e *evaluator) match(lhs Expression, rhs Expression, operator string, scope
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {
-				panic(e.evalError(EVAL_NOT_SEMVER, lhs, H{`detail`: err.Error()}))
+				panic(Error2(lhs, EVAL_NOT_SEMVER, H{`detail`: err.Error()}))
 			}
 		} else {
-			panic(e.evalError(EVAL_NOT_SEMVER, lhs,
+			panic(Error2(lhs, EVAL_NOT_SEMVER,
 				H{`detail`: fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
 		}
 		if lv, ok := b.(*SemVerValue); ok {

@@ -12,6 +12,7 @@ import (
 	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"sync/atomic"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 const (
@@ -150,6 +151,8 @@ type (
 		PValue
 
 		InitHash() *HashValue
+
+		Get(key string) (value PValue, ok bool)
 	}
 
 	annotatable struct {
@@ -191,6 +194,11 @@ type (
 		equalityIncludeType bool
 		loader              Loader
 		initHashExpression  interface{} // Expression or *HashValue
+	}
+
+	ObjectValue struct {
+		typ PType
+		values *HashValue
 	}
 )
 
@@ -555,6 +563,16 @@ func (t *ObjectType) Equals(other interface{}, guard Guard) bool {
 	}
 
 	return t.name == ot.name && t.loader.NameAuthority() == ot.loader.NameAuthority()
+}
+
+func (t *ObjectType) GetValue(key string, o PValue) (value PValue, ok bool) {
+	if pu, ok := o.(PuppetObject); ok {
+		return pu.Get(key)
+	}
+
+	// TODO: Perhaps use other ways of extracting attributes with reflection
+	// in case native types must be described by Object
+	return nil, false
 }
 
 func (t *ObjectType) Name() string {
@@ -1009,4 +1027,38 @@ func (t *ObjectType) collectParameters(includeParent bool, collector *StringHash
 		t.resolvedParent().collectParameters(true, collector)
 	}
 	collector.PutAll(t.parameters)
+}
+
+func NewObjectValue(typ PType, values *HashValue) *ObjectValue {
+	return &ObjectValue{typ, values}
+}
+
+func (o *ObjectValue) Get(key string) (PValue, bool) {
+	return o.values.Get3(key)
+}
+
+func (o *ObjectValue) Equals(other interface{}, g Guard) bool {
+	if ov, ok := other.(*ObjectValue); ok {
+		return o.typ.Equals(ov.typ, g) && o.values.Equals(ov.values, g)
+	}
+	return false
+}
+
+func (o *ObjectValue) String() string {
+	return ToString(o)
+}
+
+func (o *ObjectValue) ToString(bld io.Writer, format FormatContext, g RDetect) {
+	Generalize(o.typ).ToString(bld, format, g)
+	utils.WriteByte(bld, '(')
+	o.values.ToString(bld, format, g)
+	utils.WriteByte(bld, ')')
+}
+
+func (o *ObjectValue) Type() PType {
+	return o.typ
+}
+
+func (o *ObjectValue) InitHash() *HashValue {
+  return o.values
 }

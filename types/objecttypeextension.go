@@ -12,9 +12,11 @@ type ObjectTypeExtension struct {
 	parameters *StringHash
 }
 
+var ObjectTypeExtension_Type PType
+
 func init() {
-	ObjectTypeExtensionType = newType(`ObjectTypeExtensionType`,
-		`AnyType {
+	ObjectTypeExtension_Type = newType(`ObjectTypeExtensionType`,
+		`AnyType {]
 			attributes => {
 				base_type => Type,
 				init_parameters => Array
@@ -77,7 +79,7 @@ func (te *ObjectTypeExtension) ToString(bld io.Writer, format FormatContext, g R
 }
 
 func (te *ObjectTypeExtension) Type() PType {
-	return ObjectTypeExtensionType
+	return ObjectTypeExtension_Type
 }
 
 func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters []PValue) {
@@ -130,4 +132,63 @@ func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters [
 	te.parameters = byName
 }
 
-var ObjectTypeExtensionType PType
+// Checks that the given `paramValues` hash contains all keys present in the `parameters` of
+// this instance and that each keyed value is a match for the given parameter. The match is done
+// using case expression semantics.
+//
+// This method is only called when a given type is found to be assignable to the base type of
+// this extension.
+func (te *ObjectTypeExtension) testAssignable(paramValues *StringHash, g Guard) bool {
+	// Default implementation performs case expression style matching of all parameter values
+	// provided that the value exist (this should always be the case, since all defaults have
+	// been assigned at this point)
+	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
+		if v2, ok := paramValues.Get3(key); ok {
+			a := v2.(PValue)
+			b := v1.(PValue)
+			if PuppetMatch(a, b) {
+        return true
+			}
+			if at, ok := a.(PType); ok {
+				if bt, ok := b.(PType); ok {
+					return IsAssignable(bt, at)
+				}
+			}
+		}
+		return false
+	})
+}
+
+// Checks that the given instance `o` has one attribute for each key present in the `parameters` of
+// this instance and that each attribute value is a match for the given parameter. The match is done
+// using case expression semantics.
+//
+// This method is only called when the given value is found to be an instance of the base type of
+// this extension.
+func (te *ObjectTypeExtension) testInstance(o PValue, g Guard) bool {
+	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
+		v2, ok := te.baseType.GetValue(key, o)
+		return ok && PuppetMatch(v2, v1.(PValue))
+	})
+}
+
+/*
+  #
+  # @param o [Object] the instance to test
+  # @param guard[RecursionGuard] guard against endless recursion
+  # @return [Boolean] true or false to indicate if the value is an instance or not
+  # @api public
+  def test_instance?(o, guard)
+    eval = Parser::EvaluatingParser.singleton.evaluator
+    @parameters.keys.all? do |pn|
+      begin
+        m = o.public_method(pn)
+        m.arity == 0 ? eval.match?(m.call, @parameters[pn]) : false
+      rescue NameError
+        false
+      end
+    end
+  end
+
+
+ */

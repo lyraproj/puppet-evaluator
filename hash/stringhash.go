@@ -49,6 +49,37 @@ func (h *StringHash) Copy() *StringHash {
 	return &StringHash{entries, index, false}
 }
 
+// Call the given consumer function once for each key in this hash
+func (h *StringHash) EachKey(consumer func(key string)) {
+	for _, e := range h.entries {
+		consumer(e.key)
+	}
+}
+
+// Call the given function once for each key/value pair in this hash. Return
+// true if all invcations returned true. False otherwise.
+// The method returns true if the hash i empty.
+func (h *StringHash) AllPair(f func(key string, value interface{}) bool) bool {
+	for _, e := range h.entries {
+		if !f(e.key, e.value) {
+			return false
+		}
+	}
+	return true
+}
+
+// Call the given function once for each key/value pair in this hash. Return
+// true when an invcation returns true. False otherwise.
+// The method returns false if the hash i empty.
+func (h *StringHash) AnyPair(f func(key string, value interface{}) bool) bool {
+	for _, e := range h.entries {
+		if f(e.key, e.value) {
+			return true
+		}
+	}
+	return false
+}
+
 // Call the given consumer function once for each key/value pair in this hash
 func (h *StringHash) EachPair(consumer func(key string, value interface{})) {
 	for _, e := range h.entries {
@@ -56,7 +87,7 @@ func (h *StringHash) EachPair(consumer func(key string, value interface{})) {
 	}
 }
 
-// Call the given consumer function once for each key/value pair in this hash
+// Call the given consumer function once for each value in this hash
 func (h *StringHash) EachValue(consumer func(value interface{})) {
 	for _, e := range h.entries {
 		consumer(e.value)

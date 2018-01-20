@@ -547,12 +547,12 @@ func (e *evaluator) eval_CaseExpression(expr *CaseExpression, c EvalContext) PVa
 				case *LiteralDefault:
 					the_default = co
 				case *UnfoldExpression:
-					if Any2(e.eval(cv, c).(IndexedValue), func(v PValue) bool { return e.match(expr.Test(), cv, `match`, scope, test, v) }) {
+					if Any2(e.eval(cv, c).(IndexedValue), func(v PValue) bool { return match(expr.Test(), cv, `match`, scope, test, v) }) {
 						selected = co
 						break options
 					}
 				default:
-					if e.match(expr.Test(), cv, `match`, scope, test, e.eval(cv, c)) {
+					if match(expr.Test(), cv, `match`, scope, test, e.eval(cv, c)) {
 						selected = co
 						break options
 					}
@@ -583,12 +583,12 @@ func (e *evaluator) eval_SelectorExpression(expr *SelectorExpression, c EvalCont
 			case *LiteralDefault:
 				the_default = se
 			case *UnfoldExpression:
-				if Any2(e.eval(me, c).(IndexedValue), func(v PValue) bool { return e.match(expr.Lhs(), me, `match`, scope, test, v) }) {
+				if Any2(e.eval(me, c).(IndexedValue), func(v PValue) bool { return match(expr.Lhs(), me, `match`, scope, test, v) }) {
 					selected = se
 					break selectors
 				}
 			default:
-				if e.match(expr.Lhs(), me, `match`, scope, test, e.eval(me, c)) {
+				if match(expr.Lhs(), me, `match`, scope, test, e.eval(me, c)) {
 					selected = se
 					break selectors
 				}

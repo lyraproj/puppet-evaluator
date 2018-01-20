@@ -511,6 +511,13 @@ func (hv *HashValue) Get2(key string, dflt PValue) PValue {
 	return dflt
 }
 
+func (hv *HashValue) Get3(key string) (PValue, bool) {
+	if pos, ok := hv.valueIndex()[HashKey(key)]; ok {
+		return hv.entries[pos].value, true
+	}
+	return _UNDEF, false
+}
+
 func (hv *HashValue) IncludesKey(o PValue) bool {
 	_, ok := hv.valueIndex()[ToKey(o)]
 	return ok
