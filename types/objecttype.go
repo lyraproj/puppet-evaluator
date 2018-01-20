@@ -503,25 +503,20 @@ func DefaultObjectType() *ObjectType {
 
 var objectId = int64(0)
 
-func NewObjectType(name string, initHashExpression Expression) *ObjectType {
+func NewObjectType(name string, parent PType, initHashExpression Expression) *ObjectType {
 	return &ObjectType{
 		annotatable: annotatable{annotations: _EMPTY_MAP},
 		name: name,
 		hashKey:     HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
 		initHashExpression: initHashExpression,
+		parent:      parent,
 		parameters:  EMPTY_STRINGHASH,
 		attributes:  EMPTY_STRINGHASH,
 		functions:   EMPTY_STRINGHASH,
 		equality: nil}
 }
 
-func NewObjectType2(initHash *HashValue) *ObjectType {
-	result := &ObjectType{hashKey: HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1)))}
-	result.initFromHash(initHash)
-	return result
-}
-
-func NewObjectType3(initHash *HashValue, loader Loader) *ObjectType {
+func NewObjectType2(initHash *HashValue, loader Loader) *ObjectType {
 	result := &ObjectType{hashKey: HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1)))}
 	result.initFromHash(initHash)
 	result.loader = loader
@@ -551,7 +546,15 @@ func (t *ObjectType) Default() PType {
 
 func (t *ObjectType) Equals(other interface{}, guard Guard) bool {
 	ot, ok := other.(*ObjectType)
-	return ok && t.name == ot.name && t.loader == ot.loader
+	if !ok {
+		return false
+	}
+
+  if t.name == `` || ot.name == `` {
+  	return t == ot
+	}
+
+	return t.name == ot.name && t.loader.NameAuthority() == ot.loader.NameAuthority()
 }
 
 func (t *ObjectType) Name() string {
@@ -601,6 +604,10 @@ func (t *ObjectType) IsAssignable(o PType, g Guard) bool {
 	return false
 }
 
+func (t *ObjectType) IsParameterized() bool {
+	return !t.parameters.IsEmpty()
+}
+
 func (t *ObjectType) Resolve(resolver TypeResolver) PType {
   if t.initHashExpression != nil {
   	ihe := t.initHashExpression
@@ -609,10 +616,14 @@ func (t *ObjectType) Resolve(resolver TypeResolver) PType {
   	var initHash *HashValue
   	if lh, ok := ihe.(*LiteralHash); ok {
   		initHash = resolver.Resolve(lh).(*HashValue)
+  		if prt, ok := t.parent.(ResolvableType); ok {
+  			t.parent = resolveTypeRefs(resolver, prt).(PType)
+			}
 		} else {
 			initHash = resolveTypeRefs(resolver, ihe.(*HashValue)).(*HashValue)
 		}
 		t.initFromHash(initHash)
+		t.loader = resolver.Loader()
 	}
 	return t
 }
@@ -691,7 +702,7 @@ func (t *ObjectType) initFromHash(initHash *HashValue) {
 				KEY_TYPE:  paramType,
 				KEY_VALUE: paramValue}))
 			assertOverride(param, parentTypeParams)
-			parameters.Put(key, WrapHashEntry2(key, WrapRuntime(param)))
+			parameters.Put(key,param)
 		}
 		parameters.Freeze()
 		t.parameters = parameters

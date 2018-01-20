@@ -4,6 +4,7 @@ import (
 	. "io"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-evaluator/errors"
 )
 
 var Boolean_FALSE = &BooleanValue{0}
@@ -30,6 +31,20 @@ func NewBooleanType(value bool) *BooleanType {
 		n = 1
 	}
 	return &BooleanType{n}
+}
+
+func NewBooleanType2(args ...PValue) *BooleanType {
+	switch len(args) {
+	case 0:
+		return DefaultBooleanType()
+	case 1:
+		if bv, ok := args[0].(*BooleanValue); ok {
+			return NewBooleanType(bv.Bool())
+		}
+		panic(NewIllegalArgumentType2(`Boolean[]`, 0, `Boolean`, args[0]))
+	default:
+		panic(errors.NewIllegalArgumentCount(`Boolean[]`, `0 or 1`, len(args)))
+	}
 }
 
 func (t *BooleanType) Accept(v Visitor, g Guard) {

@@ -35,7 +35,7 @@ func NewPcore(logger Logger) Pcore {
 	settings := make(map[string]Setting, 32)
 	p := &pcoreImpl{systemLoader: loader, settings: settings}
 
-	ResolveGoFunctions(loader, logger)
+	ResolveResolvables(loader, logger)
 
 	p.DefineSetting(`environment`, DefaultStringType(), WrapString(`production`))
 	p.DefineSetting(`environmentpath`, DefaultStringType(), nil)

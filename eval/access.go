@@ -17,7 +17,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 	}
 
 	if qr, ok := op.(*QualifiedReference); ok {
-		return e.eval_ParameterizedTypeExpression(qr, args, expr, c.Loader())
+		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 
 	lhs := e.eval(op, c)
@@ -153,7 +153,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 	}
 }
 
-func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, args []PValue, expr *AccessExpression, loader Loader) (tp PType) {
+func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, args []PValue, expr *AccessExpression, c EvalContext) (tp PType) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {
@@ -208,9 +208,10 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 		tp = NewTypeReferenceType2(args...)
 	case `variant`:
 		tp = NewVariantType2(args...)
+	case `boolean`:
+    tp = NewBooleanType2(args...)
 	case `any`:
 	case `binary`:
-	case `boolean`:
 	case `catalogentry`:
 	case `data`:
 	case `default`:
@@ -222,7 +223,12 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 	case `unit`:
 		panic(e.evalError(EVAL_NOT_PARAMETERIZED_TYPE, expr, H{`type`: expr}))
 	default:
-		tp = NewTypeReferenceType(expr.String())
+		oe := e.eval(qr, c)
+		if oo, ok := oe.(*ObjectType); ok && oo.IsParameterized() {
+			tp = NewObjectTypeExtension(oo, args)
+		} else {
+			tp = NewTypeReferenceType(expr.String())
+		}
 	}
 	return
 }

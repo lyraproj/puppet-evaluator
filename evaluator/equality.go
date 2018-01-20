@@ -54,6 +54,18 @@ func Equals(a interface{}, b interface{}) bool {
 	}
 }
 
+func GuardedEquals(a interface{}, b interface{}, g Guard) bool {
+	switch a.(type) {
+	case Equality:
+		return a.(Equality).Equals(b, g)
+	case string:
+		bs, ok := b.(string)
+		return ok && a.(string) == bs
+	default:
+		return reflect.DeepEqual(a, b)
+	}
+}
+
 func IncludesAll(a []Equality, b []Equality) bool {
 	return GuardedIncludesAll(a, b, nil)
 }

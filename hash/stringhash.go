@@ -1,6 +1,9 @@
 package hash
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/puppetlabs/go-evaluator/evaluator"
+)
 
 // Mutable and order preserving hash with string keys and arbitrary values. Used, among other things, by the
 // Object type to store parameters, attributes, and functions
@@ -58,6 +61,23 @@ func (h *StringHash) EachValue(consumer func(value interface{})) {
 	for _, e := range h.entries {
 		consumer(e.value)
 	}
+}
+
+// Compares two hashes for equality. Hashes are considered equal if the have
+// the same size and contains the same key/value associations irrespective of order
+func (h *StringHash) Equals(other interface{}, g evaluator.Guard) bool {
+	oh, ok := other.(*StringHash)
+	if !ok || len(h.entries) != len(oh.entries) {
+		return false
+	}
+
+	for _, e := range h.entries {
+		oi, ok := oh.index[e.key]
+		if !(ok && evaluator.GuardedEquals(e.value, oh.entries[oi].value, g)) {
+			return false
+		}
+	}
+	return true
 }
 
 // Prevents further changes to the hash

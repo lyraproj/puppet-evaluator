@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/types"
 )
 
 type (
@@ -79,7 +80,16 @@ func (e *loaderEntry) Value() interface{} {
 	return e.value
 }
 
-func (l *basicLoader) ResolveGoFunctions(c EvalContext) {
+func (l *basicLoader) ResolveResolvables(c EvalContext) {
+	types := PopDeclaredTypes()
+	for _, t := range types {
+		l.SetEntry(NewTypedName(TYPE, t.Name()), &loaderEntry{t, ``})
+	}
+
+	for _, t := range types {
+		t.Resolve(c)
+	}
+
 	funcs, ctors := popDeclaredGoFunctions()
 	for _, rf := range funcs {
 		l.SetEntry(NewTypedName(FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})

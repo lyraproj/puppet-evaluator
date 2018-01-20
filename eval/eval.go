@@ -106,6 +106,10 @@ func init() {
 		}
 		return NewReportedIssue(issueCode, SEVERITY_ERROR, args, location)
 	}
+
+	Error2 = func(location Location, issueCode IssueCode, args H) *ReportedIssue {
+		return NewReportedIssue(issueCode, SEVERITY_ERROR, args, location)
+	}
 }
 
 func NewEvalContext(eval Evaluator, loader Loader, scope Scope, stack []Location) EvalContext {
@@ -122,8 +126,8 @@ func NewOverriddenEvaluator(defaultLoader DefiningLoader, logger Logger, special
 	return &evaluator{self: specialization, logger: logger, definitions: make([]*definition, 0, 16), defaultLoader: defaultLoader}
 }
 
-func ResolveGoFunctions(loader DefiningLoader, logger Logger) {
-	loader.ResolveGoFunctions(&context{NewEvaluator(loader, logger), loader, NewScope(), []Location{}})
+func ResolveResolvables(loader DefiningLoader, logger Logger) {
+	loader.ResolveResolvables(&context{NewEvaluator(loader, logger), loader, NewScope(), []Location{}})
 }
 
 func (c *context) StackPush(location Location) {
@@ -344,72 +348,16 @@ func (e *evaluator) convertCallError(err interface{}, expr Expression, args []Ex
 }
 
 func (e *evaluator) define(loader DefiningLoader, d Definition) {
-	switch d.(type) {
-	case *TypeAlias:
-		taExpr := d.(*TypeAlias)
-    name := taExpr.Name()
-		tn := NewTypedName2(TYPE, name, loader.NameAuthority())
-		body := taExpr.Type()
-		var ta PType
-		switch body.(type) {
-		case *QualifiedReference:
-			ta = NewTypeAliasType(name, body, nil)
-		case *AccessExpression:
-			ta = nil
-			ae := body.(*AccessExpression)
-			if len(ae.Keys()) == 1 {
-				arg := ae.Keys()[0]
-				if hash, ok := arg.(*LiteralHash); ok {
-					if lq, ok := ae.Operand().(*QualifiedReference); ok {
-						ta = createMetaType(name, lq.Name(), hash)
-					}
-				}
-			}
-			if ta == nil {
-				ta = NewTypeAliasType(name, body, nil)
-			}
-		case *LiteralHash:
-			ta = createMetaType(name, `Object`, body.(*LiteralHash))
-		case *LiteralList:
-			ll := body.(*LiteralList)
-			if len(ll.Elements()) == 1 {
-				if hash, ok := ll.Elements()[0].(*LiteralHash); ok {
-					ta = createMetaType(name, `Object`, hash)
-				}
-			}
-		case *KeyedEntry:
-			ke := body.(*KeyedEntry)
-			if pn, ok := ke.Key().(*QualifiedReference); ok {
-				if hash, ok := ke.Value().(*LiteralHash); ok {
-					ta = createMetaType(name, pn.Name(), hash)
-				}
-			}
-		}
-
-		if ta == nil {
-			panic(Sprintf(`cannot create object from a %T`, body))
-		}
-
-		loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))
-		e.definitions = append(e.definitions, &definition{ta, loader})
-
-	case *FunctionDefinition:
-		fe := d.(*FunctionDefinition)
-		tn := NewTypedName2(FUNCTION, fe.Name(), loader.NameAuthority())
-		fn := NewPuppetFunction(fe)
-
-		loader.SetEntry(tn, NewLoaderEntry(fn, d.File()))
-		e.definitions = append(e.definitions, &definition{fn, loader})
-	default:
-		panic(Sprintf(`Don't know how to define a %T`, d))
+	var ta interface{}
+	var tn TypedName
+	if fe, ok := d.(*FunctionDefinition); ok {
+		tn = NewTypedName2(FUNCTION, fe.Name(), loader.NameAuthority())
+		ta = NewPuppetFunction(fe)
+	} else {
+		ta, tn = CreateTypeDefinition(d, loader.NameAuthority())
 	}
-}
-
-func createMetaType(name string, parentName string, hash *LiteralHash) PType {
-	if parentName == `Object` {
-		return NewObjectType(name, hash)
-	} // TODO else if lq.Name() == `TypeSet`
-  return nil
+	loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))
+	e.definitions = append(e.definitions, &definition{ta, loader})
 }
 
 func (e *evaluator) eval(expr Expression, c EvalContext) PValue {

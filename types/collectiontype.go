@@ -13,6 +13,16 @@ type CollectionType struct {
 	size *IntegerType
 }
 
+var Collection_Type PType
+
+func init() {
+	Collection_Type = newType(`CollectionType`, `AnyType {
+  attributes => {
+    'size_type' => { type => Optional[Integer], value => undef }
+  }
+}`)
+}
+
 func DefaultCollectionType() *CollectionType {
 	return collectionType_DEFAULT
 }
@@ -133,7 +143,7 @@ func (t *CollectionType) ToString(b Writer, s FormatContext, g RDetect) {
 }
 
 func (t *CollectionType) Type() PType {
-	return &TypeType{t}
+	return Collection_Type
 }
 
 var collectionType_DEFAULT = &CollectionType{integerType_POSITIVE}

@@ -15,7 +15,7 @@ func InstantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sour
 	ctx := CurrentContext()
 	expr := ctx.ParseAndValidate(content, source, false)
 	name := tn.Name()
-	fd, ok := getDefinition(ctx, expr, FUNCTION, name).(*FunctionDefinition)
+	fd, ok := getDefinition(expr, FUNCTION, name).(*FunctionDefinition)
 	if !ok {
 		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: FUNCTION, `name`: name}))
 	}
@@ -32,7 +32,7 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources 
 	ctx := CurrentContext()
 	expr := ctx.ParseAndValidate(content, sources[0], false)
 	name := tn.Name()
-	def := getDefinition(ctx, expr, TYPE, name)
+	def := getDefinition(expr, TYPE, name)
 	var tdn string
 	switch def.(type) {
 	case *TypeAlias:
@@ -57,7 +57,7 @@ func InstantiatePuppetTask(loader ContentProvidingLoader, name TypedName, source
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains
 // only one Definition
-func getDefinition(ctx EvalContext, expr Expression, ns Namespace, name string) Definition {
+func getDefinition(expr Expression, ns Namespace, name string) Definition {
 	if p, ok := expr.(*Program); ok {
 		if b, ok := p.Body().(*BlockExpression); ok {
 			switch len(b.Statements()) {
@@ -67,9 +67,9 @@ func getDefinition(ctx EvalContext, expr Expression, ns Namespace, name string) 
 					return d
 				}
 			default:
-				panic(ctx.Error(expr, EVAL_NOT_ONLY_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
+				panic(Error2(expr, EVAL_NOT_ONLY_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
 			}
 		}
 	}
-	panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
+	panic(Error2(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: ns, `name`: name}))
 }

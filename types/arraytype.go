@@ -28,6 +28,17 @@ type (
 	}
 )
 
+var Array_Type PType
+
+func init() {
+	Array_Type = newType(`ArrayType`,
+		`CollectionType {
+  attributes => {
+    'element_type' => { type => Optional[Type], value => Any }
+  }
+}`)
+}
+
 func DefaultArrayType() *ArrayType {
 	return arrayType_DEFAULT
 }
@@ -182,7 +193,7 @@ func (t *ArrayType) String() string {
 }
 
 func (t *ArrayType) Type() PType {
-	return &TypeType{t}
+	return Array_Type
 }
 
 func writeTypes(bld Writer, format FormatContext, g RDetect, types ...PType) bool {

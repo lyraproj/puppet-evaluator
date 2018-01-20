@@ -31,6 +31,8 @@ type (
 		Resolve(expr parser.Expression) PValue
 
 		ResolveType(expr parser.Expression) PType
+
+		Loader() Loader
 	}
 
 	ResolvableType interface {
@@ -237,3 +239,5 @@ var DescribeMismatch func(pfx string, expected PType, actual PType) string
 var AssertType func(pfx interface{}, expected, actual PType) PType
 
 var AssertInstance func(pfx interface{}, expected PType, value PValue) PValue
+
+var NewType func(name, typeDecl string) PType

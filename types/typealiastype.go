@@ -120,6 +120,7 @@ func (t *TypeAliasType) Resolve(resolver TypeResolver) PType {
 		panic(Sprintf(`Attempt to resolve already resolved type %s`, t.name))
 	}
 	t.resolvedType = resolver.ResolveType(t.typeExpression)
+	t.loader = resolver.Loader()
 	return t
 }
 

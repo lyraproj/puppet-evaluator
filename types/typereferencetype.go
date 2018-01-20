@@ -5,6 +5,7 @@ import (
 
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type TypeReferenceType struct {
@@ -70,6 +71,17 @@ func (t *TypeReferenceType) Parameters() []PValue {
 		return EMPTY_VALUES
 	}
 	return []PValue{WrapString(t.typeString)}
+}
+
+func (t *TypeReferenceType) Resolve(resolver TypeResolver) PType {
+	r := resolver.ParseResolve(t.typeString)
+	if rt, ok := r.(ResolvableType); ok {
+		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {
+			panic(Error(EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
+		}
+		r = rt.Resolve(resolver)
+	}
+	return r
 }
 
 func (t *TypeReferenceType) ToString(b Writer, s FormatContext, g RDetect) {

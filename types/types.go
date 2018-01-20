@@ -10,6 +10,11 @@ import (
 	"github.com/puppetlabs/go-evaluator/semver"
 	"time"
 	"regexp"
+	. "github.com/puppetlabs/go-parser/parser"
+	"runtime"
+	"github.com/puppetlabs/go-parser/issue"
+	"fmt"
+	"sync"
 )
 
 const (
@@ -239,6 +244,9 @@ var richDataHashType_DEFAULT = &HashType{integerType_POSITIVE, richKeyType_DEFAU
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 	[]PType{scalarType_DEFAULT, binaryType_DEFAULT, defaultType_DEFAULT, typeType_DEFAULT, undefType_DEFAULT, richDataArrayType_DEFAULT, richDataHashType_DEFAULT}}, nil}
 
+var resolvableTypes = make([]ResolvableType, 0, 16)
+var resolvableTypesLock sync.Mutex
+
 func init() {
 	// "resolve" the dataType and richDataType
 	dataArrayType_DEFAULT.typ = dataType_DEFAULT
@@ -294,7 +302,25 @@ func init() {
 		}
 	}
 
+	RegisterResolvableType = registerResolvableType
+
 	WrapUnknown = wrap
+}
+
+func PopDeclaredTypes() (types []ResolvableType) {
+	resolvableTypesLock.Lock()
+	types = resolvableTypes
+	if len(types) > 0 {
+		resolvableTypes = make([]ResolvableType, 0, 16)
+	}
+	resolvableTypesLock.Unlock()
+	return
+}
+
+func registerResolvableType(tp ResolvableType) {
+	resolvableTypesLock.Lock()
+	resolvableTypes = append(resolvableTypes, tp)
+	resolvableTypesLock.Unlock()
 }
 
 func appendKey(b *bytes.Buffer, v PValue) {
@@ -397,4 +423,94 @@ func interfaceOrNil(vr Value) interface{} {
 		return vr.Interface()
 	}
 	return nil
+}
+
+func init() {
+	NewType = newType
+}
+
+func newType(name, typeDecl string) PType {
+	p := CreateParser()
+	_, fileName, fileLine, _ := runtime.Caller(1)
+	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), false, true)
+	if err != nil {
+		err = convertReportedIssue(err, fileName, fileLine)
+		panic(err)
+	}
+
+	if ta, ok := expr.(*TypeAlias); ok {
+		rt, _ := CreateTypeDefinition(ta, RUNTIME_NAME_AUTHORITY)
+		registerResolvableType(rt.(ResolvableType))
+		return rt.(PType)
+	}
+	panic(convertReportedIssue(Error2(expr, EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: TYPE, `name`: name}), fileName, fileLine))
+}
+
+func convertReportedIssue(err error, fileName string, lineOffset int) error {
+	if ri, ok := err.(*issue.ReportedIssue); ok {
+		return ri.OffsetByLocation(issue.NewLocation(fileName, lineOffset, 0))
+	}
+	return err
+}
+
+func CreateTypeDefinition(d Definition, na URI) (interface{}, TypedName) {
+	switch d.(type) {
+	case *TypeAlias:
+		taExpr := d.(*TypeAlias)
+		name := taExpr.Name()
+		body := taExpr.Type()
+		tn := NewTypedName2(TYPE, name, na)
+		var ta PType
+		switch body.(type) {
+		case *QualifiedReference:
+			ta = NewTypeAliasType(name, body, nil)
+		case *AccessExpression:
+			ta = nil
+			ae := body.(*AccessExpression)
+			if len(ae.Keys()) == 1 {
+				arg := ae.Keys()[0]
+				if hash, ok := arg.(*LiteralHash); ok {
+					if lq, ok := ae.Operand().(*QualifiedReference); ok {
+						if lq.Name() == `Object` || lq.Name() == `TypeSet` {
+							ta = createMetaType(name, lq.Name(), hash)
+						}
+					}
+				}
+			}
+			if ta == nil {
+				ta = NewTypeAliasType(name, body, nil)
+			}
+		case *LiteralHash:
+			ta = createMetaType(name, ``, body.(*LiteralHash))
+		case *LiteralList:
+			ll := body.(*LiteralList)
+			if len(ll.Elements()) == 1 {
+				if hash, ok := ll.Elements()[0].(*LiteralHash); ok {
+					ta = createMetaType(name, ``, hash)
+				}
+			}
+		case *KeyedEntry:
+			ke := body.(*KeyedEntry)
+			if pn, ok := ke.Key().(*QualifiedReference); ok {
+				if hash, ok := ke.Value().(*LiteralHash); ok {
+					ta = createMetaType(name, pn.Name(), hash)
+				}
+			}
+		}
+
+		if ta == nil {
+			panic(fmt.Sprintf(`cannot create object from a %T`, body))
+		}
+		return ta, tn
+	default:
+		panic(fmt.Sprintf(`Don't know how to define a %T`, d))
+	}
+}
+
+func createMetaType(name string, parentName string, hash *LiteralHash) PType {
+	if parentName == `` || parentName == `Object` {
+		return NewObjectType(name, nil, hash)
+	} // TODO else if lq.Name() == `TypeSet`
+
+	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
 }

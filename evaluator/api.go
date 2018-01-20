@@ -19,6 +19,8 @@ type (
 	}
 
 	EvalContext interface {
+		TypeResolver
+
 		Call(name string, args []PValue, block Lambda) PValue
 
 		Evaluate(expr Expression) PValue
@@ -42,8 +44,6 @@ type (
 
 		ParseType(str PValue) PType
 
-		Loader() Loader
-
 		Logger() Logger
 
 		StackPop()
@@ -63,3 +63,7 @@ var CurrentContext func() EvalContext
 // Creates a ReportedIssue with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error func(issueCode IssueCode, args H) *ReportedIssue
+
+// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Typical use is to panic with the returned value
+var Error2 func(location Location, issueCode IssueCode, args H) *ReportedIssue

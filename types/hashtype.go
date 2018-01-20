@@ -8,6 +8,7 @@ import (
 
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-evaluator/hash"
 )
 
 type (
@@ -345,6 +346,17 @@ func WrapHash4(hash map[string]interface{}) *HashValue {
 		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
 		i++
 	}
+	return &HashValue{entries: hvEntries}
+}
+
+// This wrap variant does not preserve order since order is undefined in a Go map
+func WrapHash5(hash *hash.StringHash) *HashValue {
+	hvEntries := make([]*HashEntry, hash.Size())
+	i := 0
+	hash.EachPair(func(k string, v interface{}) {
+		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		i++
+	})
 	return &HashValue{entries: hvEntries}
 }
 

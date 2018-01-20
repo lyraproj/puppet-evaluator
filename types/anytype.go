@@ -8,6 +8,12 @@ import (
 
 type AnyType struct{}
 
+var Any_Type PType
+
+func init() {
+	Any_Type = newType(`AnyType`, `{}`)
+}
+
 func DefaultAnyType() *AnyType {
 	return anyType_DEFAULT
 }
@@ -42,7 +48,7 @@ func (t *AnyType) ToString(b Writer, s FormatContext, g RDetect) {
 }
 
 func (t *AnyType) Type() PType {
-	return typeType_DEFAULT
+	return Any_Type
 }
 
 var anyType_DEFAULT = &AnyType{}

@@ -129,11 +129,16 @@ func newFormatContext2(indentation Indentation, formatMap FormatMap) FormatConte
 	return &formatContext{indentation, formatMap}
 }
 
+
+var TYPE_STRING_FORMAT = NewVariantType([]PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
+
 func newFormatContext3(value PValue, format PValue) (context FormatContext, err error) {
+	AssertInstance(`String format`, TYPE_STRING_FORMAT, format)
+
 	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
-			if err, ok = r.(error); !ok {
+			if err, ok = r.(*issue.ReportedIssue); !ok {
 				panic(r)
 			}
 		}
@@ -144,10 +149,8 @@ func newFormatContext3(value PValue, format PValue) (context FormatContext, err 
 		context = NewFormatContext(value.Type(), newFormat(format.String()), DEFAULT_INDENTATION)
 	case *DefaultValue:
 		context = DEFAULT_FORMAT_CONTEXT
-	case *HashValue:
-		context = newFormatContext2(DEFAULT_INDENTATION, mergeFormats(DEFAULT_FORMATS, NewFormatMap(format.(*HashValue))))
 	default:
-		panic(GenericError(fmt.Sprintf(`A value of type %s cannot be used as a String format`, format.Type().String())))
+		context = newFormatContext2(DEFAULT_INDENTATION, mergeFormats(DEFAULT_FORMATS, NewFormatMap(format.(*HashValue))))
 	}
 	return
 }
@@ -261,22 +264,19 @@ func typeRank(pt PType) int {
 	return 0
 }
 
+var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType([]PType{DefaultStringType(), DefaultHashType()}), nil)
+
 func NewFormatMap(h *HashValue) FormatMap {
+	AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
 	entries := h.EntriesSlice()
 	result := make([]*HashEntry, len(entries))
 	for idx, entry := range entries {
-		pt, ok := entry.Key().(PType)
-		if !ok {
-			panic(GenericError(fmt.Sprintf(`Expected key of format hash to be a Type. Got %s`, entry.Key().Type().String())))
-		}
+		pt := entry.Key().(PType)
 		v := entry.Value()
-		switch v.(type) {
-		case *StringValue:
-			result[idx] = WrapHashEntry(pt, newFormat(v.String()))
-		case *HashValue:
+		if s, ok := v.(*StringValue); ok {
+			result[idx] = WrapHashEntry(pt, newFormat(s.String()))
+		} else {
 			result[idx] = WrapHashEntry(pt, FormatFromHash(v.(*HashValue)))
-		default:
-			panic(GenericError(fmt.Sprintf(`Expected key of format hash to be a Variant[String,Hash]. Got %s`, v.Type().String())))
 		}
 	}
 	return FormatMap(WrapHash(result))
@@ -286,29 +286,30 @@ func NewFormatMap2(t PType, tf Format, fm FormatMap) FormatMap {
 	return mergeFormats(fm, FormatMap(WrapHash([]*HashEntry{&HashEntry{t, tf}})))
 }
 
+var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement {
+	NewStructElement2(`format`, DefaultStringType()),
+	NewStructElement(NewOptionalType3(`separator`), DefaultStringType()),
+	NewStructElement(NewOptionalType3(`separator2`), DefaultStringType()),
+	NewStructElement(NewOptionalType3(`string_formats`), DefaultHashType()),
+})
+
 func FormatFromHash(h *HashValue) Format {
+	AssertInstance(`String format hash`, TYPE_STRING_FORMAT_HASH, h)
 
 	stringArg := func(key string, required bool) string {
 		v := h.Get2(key, _UNDEF)
 		switch v.(type) {
 		case *StringValue:
 			return v.String()
-		case *UndefValue:
-			if !required {
-				return NO_STRING
-			}
+		default:
+			return NO_STRING
 		}
-		panic(GenericError(fmt.Sprintf(`Expected '%s' to be a String. Got %s`, key, v.Type().String())))
 	}
 
 	var cf FormatMap
 	cf = nil
 	if v := h.Get2(`string_formats`, _UNDEF); !Equals(v, _UNDEF) {
-		hv, ok := v.(*HashValue)
-		if !ok {
-			panic(GenericError(fmt.Sprintf(`Expected 'string_formats' to be a Hash. Got %s`, v.Type().String())))
-		}
-		cf = NewFormatMap(hv)
+		cf = NewFormatMap(v.(*HashValue))
 	}
 	return parseFormat(stringArg(`format`, true), stringArg(`separator`, false), stringArg(`separator2`, false), cf)
 }
@@ -396,7 +397,7 @@ func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerForm
 func parseFormat(origFmt string, separator string, separator2 string, containerFormats FormatMap) Format {
 	group := FORMAT_PATTERN.FindStringSubmatch(origFmt)
 	if group == nil {
-		panic(fmt.Sprintf(`The format '%s' is not a valid format on the form '%%<flags><width>.<prec><format>'`, origFmt))
+		panic(Error(EVAL_INVALID_STRING_FORMAT_SPEC, issue.H{`format`: origFmt}))
 	}
 
 	flags := group[1]
@@ -412,8 +413,7 @@ func parseFormat(origFmt string, separator string, separator2 string, containerF
 	for _, delim := range delimiters {
 		if hasDelimOnce(flags, origFmt, delim) {
 			if foundDelim != 0 {
-				panic(NewArgumentsError(`FormatContext`,
-					fmt.Sprintf(`Only one of the delimiters [ { ( < | can be given in the format flags, got '%s'`, origFmt)))
+				panic(Error(EVAL_INVALID_STRING_FORMAT_DELIMITER, issue.H{`delimiter`: foundDelim}))
 			}
 			foundDelim = delim
 		}
@@ -480,7 +480,7 @@ func hasDelimOnce(flags string, format string, delim byte) bool {
 	for _, b := range flags {
 		if byte(b) == delim {
 			if found {
-				panic(NewArgumentsError(`FormatContext`, fmt.Sprintf(`The same flag can only be used once, got '%s'`, format)))
+				panic(Error(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, issue.H{`format`: format}))
 			}
 			found = true
 		}
