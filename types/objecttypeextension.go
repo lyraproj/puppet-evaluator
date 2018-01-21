@@ -16,7 +16,7 @@ var ObjectTypeExtension_Type PType
 
 func init() {
 	ObjectTypeExtension_Type = newType(`ObjectTypeExtensionType`,
-		`AnyType {]
+		`AnyType {
 			attributes => {
 				base_type => Type,
 				init_parameters => Array
