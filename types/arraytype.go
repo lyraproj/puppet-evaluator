@@ -368,7 +368,10 @@ func (av *ArrayValue) String() string {
 }
 
 func (av *ArrayValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), av.Type())
+	av.ToString2(b, s, GetFormat(s.FormatMap(), av.Type()), '[', g)
+}
+
+func (av *ArrayValue) ToString2(b Writer, s FormatContext, f Format, delim byte, g RDetect) {
 	switch f.FormatChar() {
 	case 'a', 's', 'p':
 	default:
@@ -381,7 +384,13 @@ func (av *ArrayValue) ToString(b Writer, s FormatContext, g RDetect) {
 		WriteString(b, "\n")
 		WriteString(b, indent.Padding())
 	}
-	delims := delimiterPairs[f.LeftDelimiter()]
+
+	var delims [2]byte
+	if f.LeftDelimiter() == 0 {
+		delims = delimiterPairs[delim]
+	} else {
+		delims = delimiterPairs[f.LeftDelimiter()]
+	}
 	if delims[0] != 0 {
 		b.Write(delims[:1])
 	}

@@ -1,9 +1,5 @@
 package evaluator
 
-import (
-	"github.com/puppetlabs/go-parser/parser"
-)
-
 type (
 	Visitor func(t PType)
 
@@ -25,20 +21,10 @@ type (
 		Size() PType
 	}
 
-	TypeResolver interface {
-		ParseResolve(typeString string) PType
-
-		Resolve(expr parser.Expression) PValue
-
-		ResolveType(expr parser.Expression) PType
-
-		Loader() Loader
-	}
-
 	ResolvableType interface {
 		PType
 
-		Resolve(resolver TypeResolver) PType
+		Resolve(c EvalContext) PType
 	}
 
 	ParameterizedType interface {

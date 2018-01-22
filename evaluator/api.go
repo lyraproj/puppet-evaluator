@@ -19,8 +19,6 @@ type (
 	}
 
 	EvalContext interface {
-		TypeResolver
-
 		Call(name string, args []PValue, block Lambda) PValue
 
 		Evaluate(expr Expression) PValue
@@ -38,13 +36,21 @@ type (
 		// Typical use is to panic with the returned value
 		Fail(message string) *ReportedIssue
 
+		Loader() Loader
+
+		Logger() Logger
+
 		WithScope(scope Scope) EvalContext
 
 		ParseAndValidate(str, filename string, singleExpression bool) Expression
 
+		ParseResolve(typeString string) PType
+
 		ParseType(str PValue) PType
 
-		Logger() Logger
+		Resolve(expr Expression) PValue
+
+		ResolveType(expr Expression) PType
 
 		StackPop()
 

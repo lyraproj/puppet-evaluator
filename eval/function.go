@@ -170,7 +170,7 @@ func (fb *functionBuilder) Resolve(c EvalContext) Function {
 	}
 	ds := make([]Lambda, len(fb.dispatchers))
 	for idx, d := range fb.dispatchers {
-		ds[idx] = d.createDispatch(c.(TypeResolver))
+		ds[idx] = d.createDispatch(c)
 	}
 	return &goFunction{fb.name, ds}
 }
@@ -183,20 +183,20 @@ func (tb *localTypeBuilder) Type2(name string, tp PType) {
 	tb.localTypes = append(tb.localTypes, &typeDecl{name, ``, tp})
 }
 
-func (db *dispatchBuilder) createDispatch(tr TypeResolver) Lambda {
+func (db *dispatchBuilder) createDispatch(c EvalContext) Lambda {
 	for idx, tp := range db.types {
 		if trt, ok := tp.(*TypeReferenceType); ok {
-			db.types[idx] = tr.ParseResolve(trt.TypeString())
+			db.types[idx] = c.ParseResolve(trt.TypeString())
 		}
 	}
 	if r, ok := db.blockType.(*TypeReferenceType); ok {
-		db.blockType = tr.ParseResolve(r.TypeString())
+		db.blockType = c.ParseResolve(r.TypeString())
 	}
 	if db.optionalBlock {
 		db.blockType = NewOptionalType(db.blockType)
 	}
 	if r, ok := db.returnType.(*TypeReferenceType); ok {
-		db.returnType = tr.ParseResolve(r.TypeString())
+		db.returnType = c.ParseResolve(r.TypeString())
 	}
 	if db.function2 == nil {
 		return &goLambda{lambda{NewCallableType(NewTupleType(db.types, NewIntegerType(db.min, db.max)), db.returnType, nil)}, db.function}
@@ -360,11 +360,11 @@ func (f *goFunction) Type() PType {
 	return NewVariantType(variants)
 }
 
-func NewPuppetLambda(expr *LambdaExpression, tr TypeResolver) Lambda {
-	rps := resolveParameters(tr, expr.Parameters())
+func NewPuppetLambda(expr *LambdaExpression, c EvalContext) Lambda {
+	rps := resolveParameters(c, expr.Parameters())
 	sg := createTupleType(rps)
 
-	return &puppetLambda{NewCallableType(sg, resolveReturnType(tr, expr.ReturnType()), nil), expr, rps}
+	return &puppetLambda{NewCallableType(sg, resolveReturnType(c, expr.ReturnType()), nil), expr, rps}
 }
 
 func (l *puppetLambda) Call(c EvalContext, block Lambda, args ...PValue) (v PValue) {
@@ -503,12 +503,12 @@ func (f *puppetFunction) Type() PType {
 	return f.signature
 }
 
-func (f *puppetFunction) Resolve(tr TypeResolver) {
+func (f *puppetFunction) Resolve(c EvalContext) {
 	if f.parameters != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
 	}
-	f.parameters = resolveParameters(tr, f.expression.Parameters())
-	f.signature = NewCallableType(createTupleType(f.parameters), resolveReturnType(tr, f.expression.ReturnType()), nil)
+	f.parameters = resolveParameters(c, f.expression.Parameters())
+	f.signature = NewCallableType(createTupleType(f.parameters), resolveReturnType(c, f.expression.ReturnType()), nil)
 }
 
 func createTupleType(params []*parameter) *TupleType {
@@ -527,14 +527,14 @@ func createTupleType(params []*parameter) *TupleType {
 	return NewTupleType(tps, NewIntegerType(int64(min), int64(max)))
 }
 
-func resolveReturnType(tr TypeResolver, typeExpr Expression) PType {
+func resolveReturnType(c EvalContext, typeExpr Expression) PType {
 	if typeExpr == nil {
 		return DefaultAnyType()
 	}
-	return tr.ResolveType(typeExpr)
+	return c.ResolveType(typeExpr)
 }
 
-func resolveParameters(tr TypeResolver, eps []Expression) []*parameter {
+func resolveParameters(c EvalContext, eps []Expression) []*parameter {
 	pps := make([]*parameter, len(eps))
 	for idx, ep := range eps {
 		pd := ep.(*Parameter)
@@ -542,7 +542,7 @@ func resolveParameters(tr TypeResolver, eps []Expression) []*parameter {
 		if pd.Type() == nil {
 			pt = DefaultAnyType()
 		} else {
-			pt = tr.ResolveType(pd.Type())
+			pt = c.ResolveType(pd.Type())
 		}
 		pps[idx] = &parameter{pt, pd}
 	}
@@ -570,5 +570,13 @@ func init() {
 
 	NewGoConstructor2 = func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator) {
 		RegisterGoConstructor(buildFunction(typeName, localTypes, creators))
+	}
+
+	MakeGoConstructor = func(typeName string, creators ...DispatchCreator) ResolvableFunction {
+		return buildFunction(typeName, nil, creators)
+	}
+
+	MakeGoConstructor2 = func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator)  ResolvableFunction {
+		return buildFunction(typeName, localTypes, creators)
 	}
 }

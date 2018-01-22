@@ -54,6 +54,10 @@ const (
 	EVAL_OVERRIDDEN_NOT_FOUND            = `EVAL_OVERRIDDEN_NOT_FOUND`
 	EVAL_OVERRIDE_OF_FINAL               = `EVAL_OVERRIDE_OF_FINAL`
 	EVAL_OVERRIDE_IS_MISSING             = `EVAL_OVERRIDE_IS_MISSING`
+	EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND = `EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND`
+	EVAL_SERIALIZATION_NOT_ATTRIBUTE     = `EVAL_SERIALIZATION_NOT_ATTRIBUTE`
+	EVAL_SERIALIZATION_BAD_KIND          = `EVAL_SERIALIZATION_BAD_KIND`
+	EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL = `EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL`
 	EVAL_TYPE_MISMATCH                   = `EVAL_TYPE_MISMATCH`
 	EVAL_UNABLE_TO_READ_FILE             = `EVAL_UNABLE_TO_READ_FILE`
 	EVAL_UNHANDLED_EXPRESSION            = `EVAL_UNHANDLED_EXPRESSION`
@@ -170,6 +174,14 @@ func init() {
 	HardIssue(EVAL_OVERRIDE_IS_MISSING, `%{member} attempts to override %{label} without having override => true`)
 
 	HardIssue(EVAL_OVERRIDE_OF_FINAL, `%{member} attempts to override final %{label}`)
+
+	HardIssue(EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND, `%{label} serialization is referencing non existent attribute '%{attribute}'`)
+
+	HardIssue(EVAL_SERIALIZATION_NOT_ATTRIBUTE, `{label} serialization is referencing %{attribute}. Only attribute references are allowed`)
+
+	HardIssue(EVAL_SERIALIZATION_BAD_KIND, `%{label} equality is referencing {kind} %{attribute}.`)
+
+	HardIssue(EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, `%{label} serialization is referencing required %{required} after optional %{optional}. Optional attributes must be last`)
 
 	HardIssue(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 

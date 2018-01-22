@@ -73,13 +73,13 @@ func (t *TypeReferenceType) Parameters() []PValue {
 	return []PValue{WrapString(t.typeString)}
 }
 
-func (t *TypeReferenceType) Resolve(resolver TypeResolver) PType {
-	r := resolver.ParseResolve(t.typeString)
+func (t *TypeReferenceType) Resolve(c EvalContext) PType {
+	r := c.ParseResolve(t.typeString)
 	if rt, ok := r.(ResolvableType); ok {
 		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {
 			panic(Error(EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
 		}
-		r = rt.Resolve(resolver)
+		r = rt.Resolve(c)
 	}
 	return r
 }

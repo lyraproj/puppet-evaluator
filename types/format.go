@@ -91,11 +91,12 @@ func init() {
 
 var DEFAULT_ARRAY_FORMAT = basicFormat('a', `,`, '[', DEFAULT_CONTAINER_FORMATS)
 var DEFAULT_HASH_FORMAT = basicFormat('h', ` => `, '{', DEFAULT_CONTAINER_FORMATS)
+var DEFAULT_OBJECT_FORMAT = basicFormat('p', ` => `, '(', DEFAULT_CONTAINER_FORMATS)
 
 var DEFAULT_INDENTATION = newIndentation(false, 0)
 
 var DEFAULT_FORMATS = FormatMap(WrapHash([]*HashEntry{
-	WrapHashEntry(DefaultObjectType(), simpleFormat('p')),
+	WrapHashEntry(DefaultObjectType(), DEFAULT_OBJECT_FORMAT),
 	WrapHashEntry(DefaultTypeType(), simpleFormat('p')),
 	WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
 	WrapHashEntry(DefaultNumericType(), simpleFormat('d')),

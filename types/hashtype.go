@@ -574,7 +574,10 @@ func (hv *HashValue) String() string {
 }
 
 func (hv *HashValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), hv.Type())
+	hv.ToString2(b, s, GetFormat(s.FormatMap(), hv.Type()), '{', g)
+}
+
+func (hv *HashValue) ToString2(b Writer, s FormatContext, f Format, delim byte, g RDetect) {
 	switch f.FormatChar() {
 	case 'a':
 		WrapArray(hv.Elements()).ToString(b, s, g)
@@ -590,7 +593,7 @@ func (hv *HashValue) ToString(b Writer, s FormatContext, g RDetect) {
 
 		var delims [2]byte
 		if f.LeftDelimiter() == 0 {
-			delims = delimiterPairs['{']
+			delims = delimiterPairs[delim]
 		} else {
 			delims = delimiterPairs[f.LeftDelimiter()]
 		}

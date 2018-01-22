@@ -96,3 +96,7 @@ var NewGoFunction2 func(name string, localTypes LocalTypesCreator, creators ...D
 var NewGoConstructor func(typeName string, creators ...DispatchCreator)
 
 var NewGoConstructor2 func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator)
+
+var MakeGoConstructor func(typeName string, creators ...DispatchCreator) ResolvableFunction
+
+var MakeGoConstructor2 func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator) ResolvableFunction
