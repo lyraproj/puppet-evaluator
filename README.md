@@ -111,6 +111,7 @@ problem.
 * [x] SemVerRange
 * [x] String
 * [x] Struct
+* [x] Target
 * [ ] Task
 * [ ] Timespan
 * [ ] Timestamp
