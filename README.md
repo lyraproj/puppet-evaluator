@@ -92,7 +92,7 @@ problem.
 * [x] Data
 * [x] Default
 * [x] Enum
-* [ ] Error
+* [x] Error
 * [x] Float
 * [x] Hash
 * [x] Integer
