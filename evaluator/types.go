@@ -37,6 +37,93 @@ type (
 		Parameters() []PValue
 	}
 
+	Annotatable interface {
+		Annotations() KeyedValue
+	}
+
+	CallableMember interface {
+		Call(c EvalContext, receiver PValue, block Lambda, args []PValue) PValue
+	}
+
+	TypeWithCallableMembers interface {
+		// Returns an attribute reader or other function and true, or nil and false if no such member exists
+		Member(name string) (CallableMember, bool)
+	}
+
+	AnnotatedMember interface {
+		Equality
+		CallableMember
+
+		Name() string
+
+		Label() string
+
+		FeatureType() string
+
+		Container() ObjectType
+
+		Type() PType
+
+		Override() bool
+
+		Final() bool
+
+		InitHash() KeyedValue
+
+		Accept(v Visitor, g Guard)
+
+		CallableType() PType
+	}
+
+	AttributeKind string
+
+	Attribute interface {
+		AnnotatedMember
+		Kind() AttributeKind
+
+		// return true if a value has been defined for this attribute.
+		HasValue() bool
+
+		// return true if the given value equals the default value for this attribute
+		Default(value PValue) bool
+
+		// Returns the value of this attribute, or raises an error if no value has been defined.
+		Value() PValue
+	}
+
+	ObjFunc interface {
+		AnnotatedMember
+	}
+
+	PuppetObject interface {
+		PValue
+
+		InitHash() KeyedValue
+
+		Get(key string) (value PValue, ok bool)
+	}
+
+	ParameterInfo interface {
+		NameToPos() map[string]int
+
+		PosToName() map[int]string
+
+		Attributes() []Attribute
+
+		EqualityAttributeIndex() []int
+
+		RequiredCount() int
+	}
+
+	ObjectType interface {
+		ParameterizedType
+		TypeWithCallableMembers
+
+		IsParameterized() bool
+
+		ParameterInfo() ParameterInfo
+	}
+
 	TypeWithContainedType interface {
 		PType
 

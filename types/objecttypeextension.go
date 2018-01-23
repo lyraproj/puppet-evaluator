@@ -7,8 +7,8 @@ import (
 	"io"
 )
 
-type ObjectTypeExtension struct {
-	baseType *ObjectType
+type objectTypeExtension struct {
+	baseType *objectType
 	parameters *StringHash
 }
 
@@ -24,69 +24,95 @@ func init() {
 		}`)
 }
 
-func NewObjectTypeExtension(baseType *ObjectType, initParameters []PValue) *ObjectTypeExtension {
-  o := &ObjectTypeExtension{}
-  o.initialize(baseType, initParameters)
+func NewObjectTypeExtension(baseType ObjectType, initParameters []PValue) *objectTypeExtension {
+  o := &objectTypeExtension{}
+  o.initialize(baseType.(*objectType), initParameters)
   return o
 }
 
-func (te *ObjectTypeExtension) Accept(v Visitor, g Guard) {
+func (te *objectTypeExtension) Accept(v Visitor, g Guard) {
 	v(te)
 	te.baseType.Accept(v, g)
 }
 
-func (te *ObjectTypeExtension) Default() PType {
+func (te *objectTypeExtension) Default() PType {
 	return te.baseType.Default()
 }
 
-func (te *ObjectTypeExtension) Equals(other interface{}, g Guard) bool {
-	op, ok := other.(*ObjectTypeExtension)
+func (te *objectTypeExtension) Equals(other interface{}, g Guard) bool {
+	op, ok := other.(*objectTypeExtension)
 	return ok && te.baseType.Equals(op.baseType, g) && te.parameters.Equals(op.parameters, g)
 }
 
-func (te *ObjectTypeExtension) Generalize() PType {
+func (te *objectTypeExtension) Generalize() PType {
   return te.baseType
 }
 
-func (te *ObjectTypeExtension) IsAssignable(t PType, g Guard) bool {
-	panic("implement me")
+func (te *objectTypeExtension) IsAssignable(t PType, g Guard) bool {
+	if ote, ok := t.(*objectTypeExtension); ok {
+		return te.baseType.IsAssignable(ote.baseType, g) && te.testAssignable(ote.parameters, g)
+	}
+	if ot, ok := t.(*objectType); ok {
+		return te.baseType.IsAssignable(ot, g) && te.testAssignable(EMPTY_STRINGHASH, g)
+	}
+	return false
 }
 
-func (te *ObjectTypeExtension) IsInstance(v PValue, g Guard) bool {
-	panic("implement me")
+func (te *objectTypeExtension) IsParameterized() bool {
+	return true
 }
 
-func (te *ObjectTypeExtension) Name() string {
+func (te *objectTypeExtension) IsInstance(v PValue, g Guard) bool {
+	return te.baseType.IsInstance(v, g) && te.testInstance(v, g)
+}
+
+func (te *objectTypeExtension) Member(name string) (CallableMember, bool) {
+	return te.baseType.Member(name)
+}
+
+func (te *objectTypeExtension) Name() string {
 	return te.baseType.Name()
 }
 
-func (te *ObjectTypeExtension) Parameters() []PValue {
-	n := te.parameters.Size()
+func (te *objectTypeExtension) Parameters() []PValue {
+	pts := te.baseType.typeParameters(true)
+	n := pts.Size()
 	if n > 2 {
 		return []PValue{WrapHash5(te.parameters)}
 	}
 	params := make([]PValue, 0, n)
-	te.parameters.EachValue(func(v interface{}) { params = append(params, v.(PValue)) })
-	return params
+	top := 0
+	idx := 0
+	pts.EachKey(func(k string) {
+		v, ok := te.parameters.Get3(k)
+		if ok {
+			top = idx + 1
+		} else {
+			v = WrapDefault()
+		}
+		params = append(params, v.(PValue))
+		idx++
+	})
+	return params[:top]
 }
 
-func (te *ObjectTypeExtension) String() string {
+func (te *objectTypeExtension) String() string {
 	return ToString2(te, NONE)
 }
 
-func (te *ObjectTypeExtension) ToString(bld io.Writer, format FormatContext, g RDetect) {
+func (te *objectTypeExtension) ToString(bld io.Writer, format FormatContext, g RDetect) {
 	TypeToString(te, bld, format, g)
 }
 
-func (te *ObjectTypeExtension) Type() PType {
+func (te *objectTypeExtension) Type() PType {
 	return ObjectTypeExtension_Type
 }
 
-func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters []PValue) {
+func (te *objectTypeExtension) initialize(baseType *objectType, initParameters []PValue) {
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
-		Error(EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()})
+		panic(Error(EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
 	}
 	te.baseType = baseType
 	namedArgs := false
@@ -109,7 +135,7 @@ func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters [
 			pn := k.String()
 			tp := pts.Get(pn, nil).(*typeParameter)
 			if tp == nil {
-				Error(EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()})
+				panic(Error(EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !Equals(pv, WrapDefault()) {
 			  byName.Put(pn, checkParam(tp, pv))
@@ -127,9 +153,13 @@ func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters [
 		}
 	}
 	if byName.IsEmpty() {
-		Error(EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()})
+		panic(Error(EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
 	}
 	te.parameters = byName
+}
+
+func (o *objectTypeExtension) ParameterInfo() ParameterInfo {
+	return o.baseType.ParameterInfo()
 }
 
 // Checks that the given `paramValues` hash contains all keys present in the `parameters` of
@@ -138,7 +168,7 @@ func (te *ObjectTypeExtension) initialize(baseType *ObjectType, initParameters [
 //
 // This method is only called when a given type is found to be assignable to the base type of
 // this extension.
-func (te *ObjectTypeExtension) testAssignable(paramValues *StringHash, g Guard) bool {
+func (te *objectTypeExtension) testAssignable(paramValues *StringHash, g Guard) bool {
 	// Default implementation performs case expression style matching of all parameter values
 	// provided that the value exist (this should always be the case, since all defaults have
 	// been assigned at this point)
@@ -165,30 +195,9 @@ func (te *ObjectTypeExtension) testAssignable(paramValues *StringHash, g Guard) 
 //
 // This method is only called when the given value is found to be an instance of the base type of
 // this extension.
-func (te *ObjectTypeExtension) testInstance(o PValue, g Guard) bool {
+func (te *objectTypeExtension) testInstance(o PValue, g Guard) bool {
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
 		v2, ok := te.baseType.GetValue(key, o)
 		return ok && PuppetMatch(v2, v1.(PValue))
 	})
 }
-
-/*
-  #
-  # @param o [Object] the instance to test
-  # @param guard[RecursionGuard] guard against endless recursion
-  # @return [Boolean] true or false to indicate if the value is an instance or not
-  # @api public
-  def test_instance?(o, guard)
-    eval = Parser::EvaluatingParser.singleton.evaluator
-    @parameters.keys.all? do |pn|
-      begin
-        m = o.public_method(pn)
-        m.arity == 0 ? eval.match?(m.call, @parameters[pn]) : false
-      rescue NameError
-        false
-      end
-    end
-  end
-
-
- */

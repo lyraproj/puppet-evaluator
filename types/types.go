@@ -82,7 +82,6 @@ func GuardedIsAssignable(a PType, b PType, g Guard) bool {
 		if !GuardedIsAssignable(nt, undefType_DEFAULT, g) {
 			return GuardedIsAssignable(a, nt, g)
 		}
-		return false
 	case *OptionalType:
 		if GuardedIsAssignable(a, undefType_DEFAULT, g) {
 			ot := b.(*OptionalType).typ
@@ -171,7 +170,7 @@ func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 	io.WriteString(b, t.Name())
 	if s != EXPANDED {
 		switch t.(type) {
-		case *ObjectType, *TypeAliasType, *TypeSetType:
+		case *objectType, *TypeAliasType, *TypeSetType:
 			return
 		}
 	}

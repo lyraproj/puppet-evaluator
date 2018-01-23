@@ -38,6 +38,7 @@ const (
 	EVAL_MATCH_NOT_REGEXP                = `EVAL_MATCH_NOT_REGEXP`
 	EVAL_MATCH_NOT_SEMVER_RANGE          = `EVAL_MATCH_NOT_SEMVER_RANGE`
 	EVAL_MATCH_NOT_STRING                = `EVAL_MATCH_NOT_STRING`
+	EVAL_MEMBER_NAME_CONFLICT            = `EVAL_MEMBER_NAME_CONFLICT`
 	EVAL_MISSING_MULTI_ASSIGNMENT_KEY    = `EVAL_MISSING_MULTI_ASSIGNMENT_KEY`
 	EVAL_MISSING_TYPE_PARAMETER          = `EVAL_MISSING_TYPE_PARAMETER`
 	EVAL_NO_DEFINITION                   = `EVAL_NO_DEFINITION`
@@ -139,6 +140,8 @@ func init() {
 	HardIssue(EVAL_MATCH_NOT_SEMVER_RANGE, `Can not convert right match operand to a semantic version range. Caused by '%s'`)
 
 	HardIssue2(EVAL_MATCH_NOT_STRING, `"Left match operand must result in a String value. Got %{left}`, HF{`left`: A_an})
+
+	HardIssue(EVAL_MEMBER_NAME_CONFLICT, `%{label} conflicts with attribute with the same name`)
 
 	HardIssue(EVAL_MISSING_MULTI_ASSIGNMENT_KEY, `No value for required key '%{name}' in assignment to variables from hash`)
 

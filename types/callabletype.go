@@ -69,6 +69,9 @@ func NewCallableType2(args ...PValue) *CallableType {
 	return NewCallableType(tupleFromArgs(true, args), rt, block)
 }
 func (t *CallableType) BlockType() PType {
+	if t.blockType == nil {
+		return nil // Return untyped nil
+	}
 	return t.blockType
 }
 
@@ -141,9 +144,10 @@ func (t *CallableType) IsAssignable(o PType, g Guard) bool {
 
 	// NOTE: these tests are made in reverse as it is calling the callable that is constrained
 	// (it's lower bound), not its upper bound
-	if !(oc.paramsType == nil || isAssignable(oc.paramsType, t.paramsType)) {
+	if oc.paramsType != nil && (t.paramsType == nil || !isAssignable(oc.paramsType, t.paramsType)) {
 		return false
 	}
+
 	if t.blockType == nil {
 		if oc.blockType != nil {
 			return false
@@ -198,6 +202,9 @@ func (t *CallableType) Parameters() (params []PValue) {
 }
 
 func (t *CallableType) ParametersType() PType {
+	if t.paramsType == nil {
+		return nil // Return untyped nil
+	}
 	return t.paramsType
 }
 
@@ -217,4 +224,4 @@ func (t *CallableType) ToString(b Writer, s FormatContext, g RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-var callableType_DEFAULT = &CallableType{}
+var callableType_DEFAULT = &CallableType{paramsType:nil,blockType:nil,returnType:nil}

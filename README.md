@@ -101,7 +101,7 @@ problem.
 * [x] NotUndef
 * [x] Numeric
 * [x] Optional
-* [ ] Object
+* [x] Object
 * [x] Pattern
 * [x] Regexp
 * [x] Runtime

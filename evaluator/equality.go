@@ -44,6 +44,8 @@ func EqSlice(slice interface{}) []Equality {
 
 func Equals(a interface{}, b interface{}) bool {
 	switch a.(type) {
+	case nil:
+		return b == nil
 	case Equality:
 		return a.(Equality).Equals(b, nil)
 	case string:
@@ -56,6 +58,8 @@ func Equals(a interface{}, b interface{}) bool {
 
 func GuardedEquals(a interface{}, b interface{}, g Guard) bool {
 	switch a.(type) {
+	case nil:
+		return b == nil
 	case Equality:
 		return a.(Equality).Equals(b, g)
 	case string:

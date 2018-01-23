@@ -407,8 +407,17 @@ func (e *evaluator) eval_CallMethodExpression(call *CallMethodExpression, c Eval
 		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
 			H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 	}
-	// TODO: Check if receiver[0] is an Object, and if so, call method on that object
 	receiver := e.unfold([]Expression{fc.Lhs()}, c)
+	obj := receiver[0]
+	if tem, ok := obj.Type().(TypeWithCallableMembers); ok {
+		if mbr, ok := tem.Member(qn.Name()); ok {
+			var block Lambda
+			if call.Lambda() != nil {
+				block = e.Eval(call.Lambda(), c).(Lambda)
+			}
+			return mbr.Call(c, obj, block, e.unfold(call.Arguments(), c))
+		}
+	}
 	return e.callFunction(qn.Name(), e.unfold(call.Arguments(), c, receiver...), call, c)
 }
 

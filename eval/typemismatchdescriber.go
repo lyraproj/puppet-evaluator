@@ -755,7 +755,7 @@ func describeTuple(expected *TupleType, original, actual PType, path []*pathElem
 	}
 
 	if at, ok := actual.(*TupleType); ok {
-		if expected.Equals(actual, nil) {
+		if Equals(expected, actual) {
 			return NO_MISMATCH
 		}
 
@@ -811,7 +811,7 @@ func describeCallableType(expected *CallableType, original, actual PType, path [
 		paramErrors := NO_MISMATCH
 		if ep != nil {
 			ap := ca.ParametersType()
-			paramErrors = describeArgumentTuple(expected.ParametersType().(*TupleType), NilAs(DefaultTupleType(), ap), path)
+			paramErrors = describeArgumentTuple(ep.(*TupleType), NilAs(DefaultTupleType(), ap), path)
 		}
 		if len(paramErrors) == 0 {
 			er := expected.ReturnType()

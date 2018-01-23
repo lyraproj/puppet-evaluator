@@ -224,7 +224,7 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 		panic(e.evalError(EVAL_NOT_PARAMETERIZED_TYPE, expr, H{`type`: expr}))
 	default:
 		oe := e.eval(qr, c)
-		if oo, ok := oe.(*ObjectType); ok && oo.IsParameterized() {
+		if oo, ok := oe.(ObjectType); ok && oo.IsParameterized() {
 			tp = NewObjectTypeExtension(oo, args)
 		} else {
 			tp = NewTypeReferenceType(expr.String())

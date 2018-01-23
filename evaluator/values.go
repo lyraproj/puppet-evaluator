@@ -129,3 +129,11 @@ func ToString3(t PValue, writer io.Writer) {
 func ToString4(t PValue, format FormatContext, writer io.Writer) {
 	t.ToString(writer, format, nil)
 }
+
+func CopyValues(src []PValue) []PValue {
+	dst := make([]PValue, len(src))
+	for i, v := range src {
+		dst[i] = v
+	}
+	return dst
+}
