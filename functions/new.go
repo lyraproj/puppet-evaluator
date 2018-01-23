@@ -11,7 +11,12 @@ import (
 )
 
 func callNew(c EvalContext, name string, args []PValue, block Lambda) PValue {
-	tn := NewTypedName(`constructor`, name)
+	// Always make an attempt to load the named type
+	// TODO: This should be a properly checked load but it currently isn't because some receivers in the PSpec
+	// evaluator are not proper types yet.
+	Load(c.Loader(), NewTypedName(TYPE, name))
+
+	tn := NewTypedName(CONSTRUCTOR, name)
 	if ctor, ok := Load(c.Loader(), tn); ok {
 		r := ctor.(Function).Call(c, nil, args...)
 		if block != nil {
