@@ -1182,21 +1182,22 @@ func NewObjectValue(typ *objectType, values []PValue) *ObjectValue {
 	if len(values) > 0 && typ.IsParameterized() {
 		return NewObjectValue2(typ, makeValueHash(typ.AttributesInfo(), values))
 	}
+	fillValueSlice(values, typ.AttributesInfo().Attributes())
 	return &ObjectValue{typ, values}
 }
 
 func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
-	nameToPos := typ.AttributesInfo().NameToPos()
-	top := len(nameToPos)
-	va := make([]PValue, top)
-	for ix := 0; ix < top; ix++ {
-		va[ix] = UNDEF
-	}
+	ai := typ.AttributesInfo()
+
+	nameToPos := ai.NameToPos()
+	va := make([]PValue, len(nameToPos))
+
 	hash.EachPair(func(k PValue, v PValue) {
 		if ix, ok := nameToPos[k.String()]; ok {
 			va[ix] = v
 		}
 	})
+	fillValueSlice(va, ai.Attributes())
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
 		typ.typeParameters(true).EachPair(func(k string, v interface{}) {
@@ -1209,6 +1210,19 @@ func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
 		}
 	}
 	return &ObjectValue{typ, va}
+}
+
+// Ensure that all entries in the value slice that are nil receive default values from the given attributes
+func fillValueSlice(values []PValue, attrs []Attribute) {
+	for ix, v := range values {
+		if v == nil {
+			at := attrs[ix]
+			if !at.HasValue() {
+				panic(Error(EVAL_MISSING_REQUIRED_ATTRIBUTE, H{`label`: at.Label()}))
+			}
+			values[ix] = at.Value()
+		}
+	}
 }
 
 func (o *ObjectValue) Get(key string) (PValue, bool) {
