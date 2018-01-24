@@ -632,6 +632,9 @@ func describeEnumType(expected *EnumType, original, actual PType, path []*pathEl
 }
 
 func describePatternType(expected *PatternType, original, actual PType, path []*pathElement) []mismatch {
+	if IsAssignable(expected, actual) {
+		return NO_MISMATCH
+	}
 	return []mismatch{newPatternMismatch(path, original, actual)}
 }
 
