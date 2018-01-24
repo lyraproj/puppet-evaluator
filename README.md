@@ -112,7 +112,7 @@ problem.
 * [x] String
 * [x] Struct
 * [x] Target
-* [ ] Task
+* [x] Task
 * [ ] Timespan
 * [ ] Timestamp
 * [x] Tuple
