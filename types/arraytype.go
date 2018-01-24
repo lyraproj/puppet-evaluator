@@ -498,7 +498,7 @@ func (av *ArrayValue) prtvDetailedType() PType {
 		} else {
 			types := make([]PType, len(av.elements))
 			for idx, element := range av.elements {
-				types[idx] = element.Type()
+				types[idx] = DetailedValueType(element)
 			}
 			av.detailedType = NewTupleType(types, nil)
 		}
