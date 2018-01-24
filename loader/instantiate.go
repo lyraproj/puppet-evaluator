@@ -5,6 +5,10 @@ import (
 	. "github.com/puppetlabs/go-parser/parser"
 	"strings"
 	. "github.com/puppetlabs/go-parser/issue"
+	"path/filepath"
+	"encoding/json"
+	"github.com/puppetlabs/go-evaluator/types"
+	"bytes"
 )
 
 type Instantiator func(loader ContentProvidingLoader, tn TypedName, sources []string)
@@ -52,7 +56,75 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources 
 	e.ResolveDefinitions(ctx)
 }
 
-func InstantiatePuppetTask(loader ContentProvidingLoader, name TypedName, sources []string) {
+func InstantiatePuppetTask(loader ContentProvidingLoader, tn TypedName, sources []string) {
+	name := tn.Name()
+	metadata := ``
+	taskSource := ``
+	for _, sourceRef := range sources {
+		if strings.HasSuffix(sourceRef, `.json`) {
+			metadata = sourceRef
+		} else if taskSource == `` {
+			taskSource = sourceRef
+		} else {
+			panic(Error(EVAL_TASK_TOO_MANY_FILES, H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
+		}
+	}
+
+	if taskSource == `` {
+		panic(Error(EVAL_TASK_NO_EXECUTABLE_FOUND, H{`name`: name, `directory`: filepath.Dir(sources[0])}))
+	}
+	task := createTask(CurrentContext(), loader, name, taskSource, metadata)
+	origin := metadata
+	if origin == `` {
+		origin = taskSource
+	}
+	loader.(DefiningLoader).SetEntry(tn, NewLoaderEntry(task, origin))
+}
+
+func createTask(ctx EvalContext, loader ContentProvidingLoader, name, taskSource, metadata string) PValue {
+  if metadata == `` {
+  	return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
+  }
+  jsonText := loader.GetContent(metadata)
+  var parsedValue interface{}
+  d := json.NewDecoder(bytes.NewReader(jsonText))
+  d.UseNumber()
+  if err := d.Decode(&parsedValue); err != nil {
+  	panic(Error(EVAL_TASK_BAD_JSON, H{`path`: metadata, `detail`: err}))
+  }
+  if jo, ok := parsedValue.(map[string]interface{}); ok {
+  	return createTaskFromHash(ctx, name, taskSource, jo)
+  }
+	panic(Error(EVAL_TASK_NOT_JSON_OBJECT, H{`path`: metadata}))
+}
+
+func createTaskFromHash(ctx EvalContext, name, taskSource string, hash map[string]interface{}) PValue {
+	arguments := make(map[string]interface{}, 7)
+	arguments[`name`] = types.WrapString(name)
+	arguments[`executable`] = types.WrapString(taskSource)
+	for key, value := range hash {
+    if key == `parameters` || key == `output` {
+	    if params, ok := value.(map[string]interface{}); ok {
+	    	for _, param := range params {
+	    		if paramHash, ok := param.(map[string]interface{}); ok {
+				    if t, ok := paramHash[`type`]; ok {
+				    	if s, ok := t.(string); ok {
+						    paramHash[`type`] = ctx.ParseResolve(s)
+					    }
+				    } else {
+					    paramHash[`type`] = types.DefaultDataType()
+				    }
+			    }
+		    }
+	    }
+    }
+    arguments[key] = value
+	}
+
+	if taskCtor, ok := Load(ctx.Loader(), NewTypedName(CONSTRUCTOR, `Task`)); ok {
+		return taskCtor.(Function).Call(ctx, nil, types.WrapHash4(arguments))
+	}
+  panic(Error(EVAL_TASK_INITIALIZER_NOT_FOUND, NO_ARGS))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains

@@ -40,6 +40,7 @@ const (
 	EVAL_MATCH_NOT_STRING                = `EVAL_MATCH_NOT_STRING`
 	EVAL_MEMBER_NAME_CONFLICT            = `EVAL_MEMBER_NAME_CONFLICT`
 	EVAL_MISSING_MULTI_ASSIGNMENT_KEY    = `EVAL_MISSING_MULTI_ASSIGNMENT_KEY`
+	EVAL_MISSING_REQUIRED_ATTRIBUTE      = `EVAL_MISSING_REQUIRED_ATTRIBUTE`
 	EVAL_MISSING_TYPE_PARAMETER          = `EVAL_MISSING_TYPE_PARAMETER`
 	EVAL_NO_DEFINITION                   = `EVAL_NO_DEFINITION`
 	EVAL_NOT_EXPECTED_TYPESET            = `EVAL_NOT_EXPECTED_TYPESET`
@@ -59,10 +60,16 @@ const (
 	EVAL_SERIALIZATION_NOT_ATTRIBUTE     = `EVAL_SERIALIZATION_NOT_ATTRIBUTE`
 	EVAL_SERIALIZATION_BAD_KIND          = `EVAL_SERIALIZATION_BAD_KIND`
 	EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL = `EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL`
+	EVAL_TASK_BAD_JSON                   = `EVAL_TASK_BAD_JSON`
+	EVAL_TASK_INITIALIZER_NOT_FOUND      = `EVAL_TASK_INITIALIZER_NOT_FOUND`
+	EVAL_TASK_NO_EXECUTABLE_FOUND        = `EVAL_TASK_NO_EXECUTABLE_FOUND`
+	EVAL_TASK_NOT_JSON_OBJECT            = `EVAL_TASK_NOT_JSON_OBJECT`
+	EVAL_TASK_TOO_MANY_FILES             = `EVAL_TASK_TOO_MANY_FILES`
 	EVAL_TYPE_MISMATCH                   = `EVAL_TYPE_MISMATCH`
 	EVAL_UNABLE_TO_READ_FILE             = `EVAL_UNABLE_TO_READ_FILE`
 	EVAL_UNHANDLED_EXPRESSION            = `EVAL_UNHANDLED_EXPRESSION`
 	EVAL_UNKNOWN_FUNCTION                = `EVAL_UNKNOWN_FUNCTION`
+	EVAL_UNKNOWN_TASK                    = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                = `EVAL_UNKNOWN_VARIABLE`
 	EVAL_UNRESOLVED_TYPE                = `EVAL_UNRESOLVED_TYPE`
 	EVAL_UNSUPPORTED_STRING_FORMAT      = `EVAL_UNSUPPORTED_STRING_FORMAT`
@@ -145,6 +152,8 @@ func init() {
 
 	HardIssue(EVAL_MISSING_MULTI_ASSIGNMENT_KEY, `No value for required key '%{name}' in assignment to variables from hash`)
 
+	HardIssue(EVAL_MISSING_REQUIRED_ATTRIBUTE, `%{label} requires a value but none was provided`)
+
 	HardIssue(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
 
 	HardIssue(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
@@ -186,6 +195,16 @@ func init() {
 
 	HardIssue(EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, `%{label} serialization is referencing required %{required} after optional %{optional}. Optional attributes must be last`)
 
+	HardIssue(EVAL_TASK_BAD_JSON, `Unable to parse task metadata from '%{path}': %{detail}`)
+
+	HardIssue(EVAL_TASK_INITIALIZER_NOT_FOUND, `Unable to load the initializer for the Task data`)
+
+	HardIssue(EVAL_TASK_NO_EXECUTABLE_FOUND, `No source besides task metadata was found in directory %{directory} for task %{name}`)
+
+	HardIssue(EVAL_TASK_NOT_JSON_OBJECT, `The content of '%{path}' does not represent a JSON Object`)
+
+	HardIssue(EVAL_TASK_TOO_MANY_FILES, `Only one file can exists besides the .json file for task %{name} in directory %{directory}`)
+
 	HardIssue(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 
 	HardIssue(EVAL_UNABLE_TO_READ_FILE, `Unable to read file '%{path}': %{detail}`)
@@ -193,6 +212,8 @@ func init() {
 	HardIssue(EVAL_UNHANDLED_EXPRESSION, `Evaluator cannot handle an expression of type %<expression>T`)
 
 	HardIssue(EVAL_UNKNOWN_FUNCTION, `Unknown function: '%{name}'`)
+
+	HardIssue(EVAL_UNKNOWN_TASK, `Task not found: '%{name}'`)
 
 	HardIssue(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
 
