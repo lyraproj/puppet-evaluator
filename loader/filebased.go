@@ -152,6 +152,10 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 			// ok since such a "module" cannot have namespaced content).
 			return nil
 		}
+		if name.Namespace() == TASK && len(name.NameParts()) > 2 {
+			// Subdirectories beneath the tasks directory are currently not recognized
+			return nil
+		}
 	} else {
 		// The name is in the global name space.
 		switch name.Namespace() {
