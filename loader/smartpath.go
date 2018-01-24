@@ -110,11 +110,7 @@ func (p *smartPath) PreferredOrigin(origins []string) string {
 var dropExtension = regexp.MustCompile(`\.[^\/]*\z`)
 
 func (p *smartPath) TypedName(nameAuthority URI, relativePath string) TypedName {
-	parts := filepath.SplitList(relativePath)
-	if p.moduleNameRelative {
-		parts = append([]string{p.loader.moduleName}, parts...)
-	}
-
+	parts := strings.Split(relativePath, `/`)
 	l := len(parts) - 1
 	s := parts[l]
 	if p.extension == `` {
@@ -123,6 +119,10 @@ func (p *smartPath) TypedName(nameAuthority URI, relativePath string) TypedName 
 		s = s[:len(s)-len(p.extension)]
 	}
 	parts[l] = s
+
+	if p.moduleNameRelative && !(len(parts) == 1 && (s == `init` || s == `init_typeset`)) {
+		parts = append([]string{p.loader.moduleName}, parts...)
+	}
 	return NewTypedName2(p.namespace, strings.Join(parts, `::`), nameAuthority)
 }
 
