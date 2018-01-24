@@ -145,7 +145,7 @@ func init() {
 
 	HardIssue(EVAL_MISSING_MULTI_ASSIGNMENT_KEY, `No value for required key '%{name}' in assignment to variables from hash`)
 
-	HardIssue(EVAL_MISSING_TYPE_PARAMETER, `'%{pn}' is not a known type parameter for %{label}-Type`)
+	HardIssue(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
 
 	HardIssue(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 
