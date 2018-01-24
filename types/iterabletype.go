@@ -68,6 +68,8 @@ func (t *IterableType) IsAssignable(o PType, g Guard) bool {
 		et = o.(*HashType).EntryType()
 	case *StringType:
 		et = ONE_CHAR_STRING_TYPE
+	case *TupleType:
+		return allAssignableTo(o.(*TupleType).types, t.typ, g)
 	default:
 		return false
 	}
