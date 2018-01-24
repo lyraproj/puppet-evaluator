@@ -133,12 +133,12 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 		hash := initParameters[0].(*HashValue)
 		hash.EachPair(func(k, pv PValue) {
 			pn := k.String()
-			tp := pts.Get(pn, nil).(*typeParameter)
+			tp := pts.Get(pn, nil)
 			if tp == nil {
 				panic(Error(EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !Equals(pv, WrapDefault()) {
-			  byName.Put(pn, checkParam(tp, pv))
+			  byName.Put(pn, checkParam(tp.(*typeParameter), pv))
 			}
 		})
 	} else {
@@ -158,8 +158,8 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 	te.parameters = byName
 }
 
-func (o *objectTypeExtension) ParameterInfo() ParameterInfo {
-	return o.baseType.ParameterInfo()
+func (o *objectTypeExtension) AttributesInfo() AttributesInfo {
+	return o.baseType.AttributesInfo()
 }
 
 // Checks that the given `paramValues` hash contains all keys present in the `parameters` of

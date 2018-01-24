@@ -103,7 +103,7 @@ type (
 		Get(key string) (value PValue, ok bool)
 	}
 
-	ParameterInfo interface {
+	AttributesInfo interface {
 		NameToPos() map[string]int
 
 		PosToName() map[int]string
@@ -121,7 +121,7 @@ type (
 
 		IsParameterized() bool
 
-		ParameterInfo() ParameterInfo
+		AttributesInfo() AttributesInfo
 	}
 
 	TypeWithContainedType interface {

@@ -128,7 +128,7 @@ type (
 		annotatedMember
 	}
 
-	parameterInfo struct {
+	attributesInfo struct {
 		nameToPos map[string]int
 		posToName map[int]string
 		attributes []Attribute
@@ -149,7 +149,7 @@ type (
 		serialization       []string
 		loader              Loader
 		initHashExpression  interface{} // Expression or *HashValue
-		paramInfo           *parameterInfo
+		attrInfo            *attributesInfo
 	}
 
 	ObjectValue struct {
@@ -859,11 +859,11 @@ func (t *objectType) initFromHash(initHash *HashValue) {
 		}
 		t.serialization = serialization
 	}
-	t.paramInfo = t.createParameterInfo()
+	t.attrInfo = t.createAttributesInfo()
 }
 
 func (o *objectType) createNewFunction(c EvalContext) {
-	pi := o.ParameterInfo()
+	pi := o.AttributesInfo()
 	ctor := MakeGoConstructor(o.name,
 		func(d Dispatch) {
 			for i, attr := range pi.Attributes() {
@@ -890,8 +890,8 @@ func (o *objectType) createNewFunction(c EvalContext) {
 	o.loader.(DefiningLoader).SetEntry(NewTypedName(CONSTRUCTOR, o.name), NewLoaderEntry(ctor.Resolve(c), ``))
 }
 
-func (o *objectType) ParameterInfo() ParameterInfo {
-	return o.paramInfo
+func (o *objectType) AttributesInfo() AttributesInfo {
+	return o.attrInfo
 }
 
 func (o *objectType) createInitType() *StructType {
@@ -919,7 +919,7 @@ func (o *objectType) EachAttribute(includeParent bool, consumer func(attr Attrib
 	o.attributes.EachValue(func(a interface{}) { consumer(a.(Attribute))})
 }
 
-func (o *objectType) createParameterInfo() *parameterInfo {
+func (o *objectType) createAttributesInfo() *attributesInfo {
 	attrs := make([]Attribute, 0)
 	nonOptSize := 0
   if o.serialization == nil {
@@ -951,7 +951,7 @@ func (o *objectType) createParameterInfo() *parameterInfo {
 	return NewParamInfo(attrs, nonOptSize, o.EqualityAttributes().Keys())
 }
 
-func NewParamInfo(attributes []Attribute, requiredCount int, equality []string) *parameterInfo {
+func NewParamInfo(attributes []Attribute, requiredCount int, equality []string) *attributesInfo {
   nameToPos := make(map[string]int, len(attributes))
 	posToName := make(map[int]string, len(attributes))
   for ix, at := range attributes {
@@ -964,26 +964,26 @@ func NewParamInfo(attributes []Attribute, requiredCount int, equality []string) 
 		ei[ix] = nameToPos[e]
 	}
 
-	return &parameterInfo{attributes:attributes, nameToPos: nameToPos, posToName: posToName, equalityAttributeIndexes: ei, requiredCount: requiredCount}
+	return &attributesInfo{attributes:attributes, nameToPos: nameToPos, posToName: posToName, equalityAttributeIndexes: ei, requiredCount: requiredCount}
 }
 
-func (pi *parameterInfo) NameToPos() map[string]int {
+func (pi *attributesInfo) NameToPos() map[string]int {
 	return pi.nameToPos
 }
 
-func (pi *parameterInfo) PosToName() map[int]string {
+func (pi *attributesInfo) PosToName() map[int]string {
 	return pi.posToName
 }
 
-func (pi *parameterInfo) Attributes() []Attribute {
+func (pi *attributesInfo) Attributes() []Attribute {
 	return pi.attributes
 }
 
-func (pi *parameterInfo) EqualityAttributeIndex() []int {
+func (pi *attributesInfo) EqualityAttributeIndex() []int {
 	return pi.equalityAttributeIndexes
 }
 
-func (pi *parameterInfo) RequiredCount() int {
+func (pi *attributesInfo) RequiredCount() int {
 	return pi.requiredCount
 }
 
@@ -1180,13 +1180,13 @@ func (t *objectType) collectParameters(includeParent bool, collector *StringHash
 
 func NewObjectValue(typ *objectType, values []PValue) *ObjectValue {
 	if len(values) > 0 && typ.IsParameterized() {
-		return &ObjectValue{NewObjectTypeExtension(typ, []PValue{makeValueHash(typ.ParameterInfo(), values)}), values}
+		return NewObjectValue2(typ, makeValueHash(typ.AttributesInfo(), values))
 	}
 	return &ObjectValue{typ, values}
 }
 
 func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
-	nameToPos := typ.ParameterInfo().NameToPos()
+	nameToPos := typ.AttributesInfo().NameToPos()
 	top := len(nameToPos)
 	va := make([]PValue, top)
 	for ix := 0; ix < top; ix++ {
@@ -1198,13 +1198,21 @@ func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
 		}
 	})
 	if len(va) > 0 && typ.IsParameterized() {
-		return &ObjectValue{NewObjectTypeExtension(typ, []PValue{hash}), va}
+		params := make([]*HashEntry, 0)
+		typ.typeParameters(true).EachPair(func(k string, v interface{}) {
+			if pv, ok := hash.Get3(k); ok && IsInstance(v.(*typeParameter).typ, pv) {
+				params = append(params, WrapHashEntry2(k, pv))
+			}
+		})
+		if len(params) > 0 {
+			return &ObjectValue{NewObjectTypeExtension(typ, []PValue{WrapHash(params)}), va}
+		}
 	}
 	return &ObjectValue{typ, va}
 }
 
 func (o *ObjectValue) Get(key string) (PValue, bool) {
-	pi := o.typ.ParameterInfo()
+	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
 			return o.values[idx], ok
@@ -1235,14 +1243,19 @@ func (o *ObjectValue) Type() PType {
 }
 
 func (o *ObjectValue) InitHash() KeyedValue {
-	return makeValueHash(o.typ.ParameterInfo(), o.values)
+	return makeValueHash(o.typ.AttributesInfo(), o.values)
 }
 
-func makeValueHash(pi ParameterInfo, values []PValue) *HashValue {
+// Turn a positional argument list into a hash. The hash will exclude all values
+// that are equal to the default value of the corresponding attribute
+func makeValueHash(pi AttributesInfo, values []PValue) *HashValue {
 	posToName := pi.PosToName()
 	entries := make([]*HashEntry, 0, len(posToName))
 	for i, v := range values {
-		entries = append(entries, WrapHashEntry2(posToName[i], v))
+		attr := pi.Attributes()[i]
+		if !(attr.HasValue() && Equals(v, attr.Value())) {
+			entries = append(entries, WrapHashEntry2(attr.Name(), v))
+		}
 	}
 	return WrapHash(entries)
 }
