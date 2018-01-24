@@ -378,6 +378,7 @@ func (e *evaluator) eval_OrExpression(expr *OrExpression, c EvalContext) PValue 
 }
 
 func (e *evaluator) eval_BlockExpression(expr *BlockExpression, c EvalContext) (result PValue) {
+  result = UNDEF
 	for _, statement := range expr.Statements() {
 		result = e.eval(statement, c)
 	}

@@ -76,3 +76,39 @@ func TestMisc(t *testing.T) {
 		t.Fatalf(`First in Variant is not string. Is %T`, first)
 	}
 }
+
+func TestEmpty(t *testing.T) {
+	parser := parser.CreateParser()
+	prog, ex := parser.Parse(`testfile.pp`, ``, false, false)
+
+	if ex != nil {
+		t.Fatalf(ex.Error())
+	}
+
+	checker := validator.NewChecker(validator.STRICT_ERROR)
+	checker.Validate(prog)
+	issues := checker.Issues()
+	if len(issues) > 0 {
+		severity := issue.SEVERITY_IGNORE
+		for _, issue := range issues {
+			t.Log(issue.Error())
+			if issue.Severity() > severity {
+				severity = issue.Severity()
+			}
+		}
+		if severity == issue.SEVERITY_ERROR {
+			t.Fail()
+		}
+	}
+
+	e := NewEvaluator(NewParentedLoader(StaticLoader()), NewStdLogger())
+	e.AddDefinitions(prog)
+	v, err := e.Evaluate(prog, NewScope(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, ok := v.(*UndefValue)
+	if !ok {
+		t.Fatalf(`Eval did not return a undef. It returned a %T`, v)
+	}
+}
