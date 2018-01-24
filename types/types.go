@@ -15,6 +15,7 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"fmt"
 	"sync"
+	"encoding/json"
 )
 
 const (
@@ -371,9 +372,17 @@ func wrap(v interface{}) (pv PValue) {
 		pv = WrapTimestamp(v.(time.Time))
 	case []PValue:
 		pv = WrapArray(v.([]PValue))
+	case map[string]interface{}:
+		pv = WrapHash4(v.(map[string]interface{}))
 	case map[string]PValue:
 		pv = WrapHash3(v.(map[string]PValue))
-
+	case json.Number:
+		if i, err := v.(json.Number).Int64(); err == nil {
+			pv = WrapInteger(i)
+		} else {
+			f, _ := v.(json.Number).Float64()
+			pv = WrapFloat(f)
+		}
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
 		pv = wrapValue(ValueOf(v))
