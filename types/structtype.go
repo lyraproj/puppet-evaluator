@@ -209,7 +209,7 @@ func (t *StructType) IsAssignable(o PType, g Guard) bool {
 					return false
 				}
 			} else {
-				if !GuardedIsAssignable(e1.key, e2.key, g) && GuardedIsAssignable(e1.value, e2.value, g) {
+				if !(GuardedIsAssignable(e1.key, e2.key, g) && GuardedIsAssignable(e1.value, e2.value, g)) {
 					return false
 				}
 				matched++
