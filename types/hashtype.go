@@ -9,6 +9,7 @@ import (
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/hash"
+	"sort"
 )
 
 type (
@@ -335,6 +336,12 @@ func WrapHash3(hash map[string]PValue) *HashValue {
 		hvEntries[i] = WrapHashEntry(WrapString(k), v)
 		i++
 	}
+
+	// map order is undefined (and changes from one run to another) so entries must
+	// be sorted to get a predictable order
+	sort.Slice(hvEntries, func(i, j int) bool {
+		return hvEntries[i].key.String() < hvEntries[j].key.String()
+	})
 	return &HashValue{entries: hvEntries}
 }
 
@@ -346,6 +353,12 @@ func WrapHash4(hash map[string]interface{}) *HashValue {
 		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
 		i++
 	}
+
+	// map order is undefined (and changes from one run to another) so entries must
+	// be sorted to get a predictable order
+	sort.Slice(hvEntries, func(i, j int) bool {
+		return hvEntries[i].key.String() < hvEntries[j].key.String()
+	})
 	return &HashValue{entries: hvEntries}
 }
 
@@ -639,6 +652,9 @@ func (hv *HashValue) ToString2(b Writer, s FormatContext, f Format, delim byte, 
 				if isContainer(v) {
 					v.ToString(b, NewFormatContext2(childrenIndent, s.FormatMap()), g)
 				} else {
+					if v == nil {
+						panic(`not good`)
+					}
 					v.ToString(b, NewFormatContext2(childrenIndent, cf), g)
 				}
 				if idx < last {
