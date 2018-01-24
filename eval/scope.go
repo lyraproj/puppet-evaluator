@@ -8,13 +8,13 @@ import (
 )
 
 type (
-	scope struct {
+	BasicScope struct {
 		scopes []map[string]PValue
 	}
 )
 
 func NewScope() Scope {
-	return &scope{[]map[string]PValue{make(map[string]PValue, 8)}}
+	return &BasicScope{[]map[string]PValue{make(map[string]PValue, 8)}}
 }
 
 func NewScope2(h *HashValue) Scope {
@@ -22,13 +22,13 @@ func NewScope2(h *HashValue) Scope {
 	for _, he := range h.EntriesSlice() {
 		top[he.Key().String()] = he.Value()
 	}
-	return &scope{[]map[string]PValue{top}}
+	return &BasicScope{[]map[string]PValue{top}}
 }
 
 // No key can ever start with '::' or a capital letter
 var groupKey = `::R`
 
-func (e *scope) RxGet(index int) (value PValue, found bool) {
+func (e *BasicScope) RxGet(index int) (value PValue, found bool) {
 	// Variable is in integer form. An attempt is made to find a Regexp result group
 	// in this scope using the special key '::R'. No attempt is made to traverse parent
 	// scopes.
@@ -40,13 +40,13 @@ func (e *scope) RxGet(index int) (value PValue, found bool) {
 	return UNDEF, false
 }
 
-func (e *scope) WithLocalScope(producer ValueProducer) PValue {
+func (e *BasicScope) WithLocalScope(producer ValueProducer) PValue {
 	local := make([]map[string]PValue, len(e.scopes)+1)
 	copy(local, e.scopes)
-	return producer(&scope{append(local, make(map[string]PValue, 8))})
+	return producer(&BasicScope{append(local, make(map[string]PValue, 8))})
 }
 
-func (e *scope) Get(name string) (value PValue, found bool) {
+func (e *BasicScope) Get(name string) (value PValue, found bool) {
 	if strings.HasPrefix(name, `::`) {
 		if value, found = e.scopes[0][name[2:]]; found {
 			return
@@ -62,7 +62,7 @@ func (e *scope) Get(name string) (value PValue, found bool) {
 	return UNDEF, false
 }
 
-func (e *scope) RxSet(variables []string) {
+func (e *BasicScope) RxSet(variables []string) {
 	// Assign the regular expression groups to an array value using the special key
 	// '::R'. This overwrites an previous assignment in this scope
 	varStrings := make([]PValue, len(variables))
@@ -72,7 +72,7 @@ func (e *scope) RxSet(variables []string) {
 	e.scopes[len(e.scopes)-1][groupKey] = WrapArray(varStrings)
 }
 
-func (e *scope) Set(name string, value PValue) bool {
+func (e *BasicScope) Set(name string, value PValue) bool {
 	var current map[string]PValue
 	if strings.HasPrefix(name, `::`) {
 		name = name[2:]
