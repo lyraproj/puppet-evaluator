@@ -52,16 +52,19 @@ Examples('tasks are loaded',
     }
   )),
 
+  Let('tasks_dir', Format('%s/mod/tasks', Get('module_path'))),
+
   Given(Settings('module_path' => Get('module_path'))),
 
   Examples('are loaded',
+
     Example('with no metadata',
       Given(@(SRC)),
         $t = load_task('mod::generic')
         [String($t), String(type($t))]
         |-SRC
       Evaluates_to([
-        Quote(`Task('name' => 'mod::generic', 'executable' => '$module_path/mod/tasks/generic')`),
+        Format(`Task('name' => 'mod::generic', 'executable' => '%s/generic')`, Get('tasks_dir')),
         `Task`
       ])),
 
@@ -69,36 +72,37 @@ Examples('tasks are loaded',
       Given(@(SRC)),
         String(load_task('mod::with_meta'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod::with_meta', 'executable' => '$module_path/mod/tasks/with_meta', 'parameters' => {'font' => {'type' => Optional[String]}, 'message' => {'description' => 'the message', 'sensitive' => false, 'type' => String}})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod::with_meta', 'executable' => '%s/with_meta', 'parameters' => {'font' => {'type' => Optional[String]}, 'message' => {'description' => 'the message', 'sensitive' => false, 'type' => String}})`,
+        Get('tasks_dir')))),
 
     Example('with non-Data parameter',
       Given(@(SRC)),
         String(load_task('mod::non_data'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod::non_data', 'executable' => '$module_path/mod/tasks/non_data', 'parameters' => {'arg' => {'description' => 'the non data param', 'type' => Hash}})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod::non_data', 'executable' => '%s/non_data', 'parameters' => {'arg' => {'description' => 'the non data param', 'type' => Hash}})`,
+        Get('tasks_dir')))),
 
     Example('with no parameters',
       Given(@(SRC)),
         String(load_task('mod::no_params'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod::no_params', 'executable' => '$module_path/mod/tasks/no_params')`))),
+      Evaluates_to(Format(`Task('name' => 'mod::no_params', 'executable' => '%s/no_params')`, Get('tasks_dir')))),
 
     Example('with empty parameters',
       Given(@(SRC)),
         String(load_task('mod::empty_params'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod::empty_params', 'executable' => '$module_path/mod/tasks/empty_params', 'parameters' => {})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod::empty_params', 'executable' => '%s/empty_params', 'parameters' => {})`, Get('tasks_dir')))),
 
     Example('with module name',
       Given(@(SRC)),
         String(load_task('mod'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod', 'executable' => '$module_path/mod/tasks/init', 'parameters' => {'txt' => {'type' => Optional[String]}})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod', 'executable' => '%s/init', 'parameters' => {'txt' => {'type' => Optional[String]}})`, Get('tasks_dir')))),
 
     Example('with adjacent directory for init task',
       Let('module_path', Directory(
@@ -121,8 +125,8 @@ Examples('tasks are loaded',
       Given(@(SRC)),
         String(load_task('mod'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod', 'executable' => '$module_path/mod/tasks/init.sh', 'parameters' => {'txt' => {'type' => String}})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod', 'executable' => '%s/init.sh', 'parameters' => {'txt' => {'type' => String}})`, Get('tasks_dir')))),
 
     Example('with adjacent directory for named task',
       Let('module_path', Directory(
@@ -145,8 +149,8 @@ Examples('tasks are loaded',
       Given(@(SRC)),
         String(load_task('mod::hello'))
         |-SRC
-      Evaluates_to(Quote(
-        `Task('name' => 'mod::hello', 'executable' => '$module_path/mod/tasks/hello.sh', 'parameters' => {'txt' => {'type' => String}})`))),
+      Evaluates_to(Format(
+        `Task('name' => 'mod::hello', 'executable' => '%s/hello.sh', 'parameters' => {'txt' => {'type' => String}})`, Get('tasks_dir')))),
   ),
 
   Examples('fails to load when',
