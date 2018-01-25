@@ -1,0 +1,267 @@
+Examples(`SemVer`,
+  Examples(`parse`,
+      Examples('accepts version with',
+        Examples('zero numbers', [
+          '0.2.3',
+          '1.0.3',
+          '1.2.0',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('prerelease identifiers of zero', [
+          '1.2.3-0',
+          '1.2.3-rc.0',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('prerelease identifiers containing -', [
+          '1.2.3-a-b',
+          '1.2.3-rc.a-b',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('prerelease identifiers starting with -', [
+          '1.2.3--a',
+          '1.2.3-rc.-b',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('non-numeric prerelease identifiers', [
+          '1.2.3-DEADBEEF',
+          '1.2.3-DE.AD.BE.EF',
+          '2.1.0-12-BE-EF',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('non-numeric prerelease identifiers with leading zeroes', [
+          '1.2.3-0xDEADBEEF',
+          '1.2.3-rc.0x10c',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('build identifiers of zero', [
+          '1.2.3+0',
+          '1.2.3+rc.0',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('build identifiers with leading zeroes', [
+          '1.2.3+01',
+          '1.2.3+rc.01.02',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('build identifiers containing -', [
+          '1.2.3+a-b',
+          '1.2.3+rc.a-b',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('build identifiers starting with -', [
+          '1.2.3+-a',
+          '1.2.3+rc.-b',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+
+        Examples('non-numeric build identifiers with leading zeroes', [
+          '1.2.3+0xDEADBEEF',
+          '1.2.3+0rc.0x10c',
+          ].map() |$s| { Example($s, Given("String(SemVer('${s}'))"), Evaluates_to($s)) }),
+      ),
+
+      Examples('rejects version with',
+        Example('too few digits', Given("SemVer('1.2')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))),
+
+        Example('too many digits', Given("SemVer('1.2.3.4')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))),
+
+        Examples('non-integers', [
+          'x.2.3',
+          '1.y.3',
+          '1.2.z',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Examples('negative integers', [
+          '-1.2.3',
+          '1.-2.3',
+          '1.2.-3',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Examples('numbers with leading zeroes', [
+          '01.2.3',
+          '1.02.3',
+          '1.2.03',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Examples('prerelease identifiers with leading zeroes', [
+          '1.2.3-01',
+          '1.2.3-rc.01',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Examples('prerelease identifiers with non-alphanumerics', [
+          '1.2.3-$100',
+          '1.2.3-rc.1@me',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Example('empty prerelease identifier', Given("SemVer('1.2.3-')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))),
+
+        Examples('empty prerelease identifier parts', [
+          '1.2.3-.rc1',
+          '1.2.3-rc1.',
+          '1.2.3-rc..1',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Examples('build identifiers with non-alphanumerics', [
+          '1.2.3+$100',
+          '1.2.3+rc.1@me',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+
+        Example('empty build identifier', Given("SemVer('1.2.3+')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))),
+
+        Examples('empty build identifier parts', [
+          '1.2.3+.rc1',
+          '1.2.3+rc1.',
+          '1.2.3+rc..1',
+          ].map() |$s| { Example($s, Given("SemVer('${s}')"), Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT))) }),
+      ),
+  ),
+
+  Examples('compare equal',
+    Example('two equal instances are equal',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('1.2.3-alpha+x3')`), Evaluates_to(true)),
+    Example('should yield false when the major differs',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('2.2.3-alpha+x3')`), Evaluates_to(false)),
+    Example('should yield false when the minor differs',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('1.3.3-alpha+x3')`), Evaluates_to(false)),
+    Example('should yield false when the patch differs',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('1.2.4-alpha+x3')`), Evaluates_to(false)),
+    Example('should yield false when the prerelease differs',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('1.2.4-beta+x3')`), Evaluates_to(false)),
+    Example('should yield false when the build differs',
+      Given(`SemVer('1.2.3-alpha+x3') == SemVer('1.2.3-alpha+x4')`), Evaluates_to(false)),
+  ),
+
+  Examples('compare magnitude',
+    Example('major is significant',
+      Given(`SemVer('1.2.3-alpha+x3') < SemVer('2.2.3-alpha+x3')`), Evaluates_to(true)),
+    Example('minor is significant',
+      Given(`SemVer('1.2.3-alpha+x3') < SemVer('1.3.3-alpha+x3')`), Evaluates_to(true)),
+    Example('patch is significant',
+      Given(`SemVer('1.2.3-alpha+x3') < SemVer('1.2.4-alpha+x3')`), Evaluates_to(true)),
+
+    Example('prerelease is less than release',
+      Given(`SemVer('1.2.3-alpha') < SemVer('1.2.3')`), Evaluates_to(true)),
+
+    Examples('of prerelease',
+      Example('non-numeric identifiers sort alphabetically',
+        Given(`SemVer('1.0.0-alpha') < SemVer('1.0.0-beta')`), Evaluates_to(true)),
+      Example('numerical identifiers sort numerically',
+        Given(`SemVer('1.0.0-2') < SemVer('1.0.0-11')`), Evaluates_to(true)),
+      Example('numerical identifiers are less than alphabetical ones',
+        Given(`SemVer('1.0.0-1') < SemVer('1.0.0-one')`), Evaluates_to(true)),
+      Example('identifiers are parsed left-to-right',
+        Given(`SemVer('1.0.0-these.parts.are.the-same.but.not.waffles.123') > SemVer('1.0.0-these.parts.are.the-same.but.not.123.waffles')`), Evaluates_to(true)),
+      Example('more identifiers are greater',
+        Given(`SemVer('1.0.0-alpha') < SemVer('1.0.0-alpha.1')`), Evaluates_to(true)),
+    ),
+
+    Examples('build identifiers are insignificant',
+      Example('not different',
+        Given(
+          `SemVer('1.0.0-alpha+SHA1') < SemVer('1.0.0-alpha+MD5')`,
+          `SemVer('1.0.0-alpha+SHA1') > SemVer('1.0.0-alpha+MD5')`,
+        ),
+        Evaluates_to(false)),
+      Example('equal',
+        Given(
+          `SemVer('1.0.0-alpha+SHA1') <= SemVer('1.0.0-alpha+MD5')`,
+          `SemVer('1.0.0-alpha+SHA1') >= SemVer('1.0.0-alpha+MD5')`,
+        ),
+        Evaluates_to(true)),
+    ),
+  ),
+
+  Examples('loose ranges', makeRangeExamples(
+    [ '1.2.3-alpha' ] => {
+      to_str   => '1.2.3-alpha',
+      includes => [ '1.2.3-alpha'  ],
+      excludes => [ '1.2.3-999', '1.2.3-beta' ],
+    },
+    [ '1.2.3' ] => {
+      to_str   => '1.2.3',
+      includes => [ '1.2.3' ],
+      excludes => [ '1.2.2', '1.2.3-alpha', '1.2.4-alpha' ],
+    },
+    [ '1.2', '1.2.x', '1.2.X' ] => {
+      to_str   => '>=1.2.0 <1.3.0',
+      includes => [ '1.2.0', '1.2.999' ],
+      excludes => [ '1.1.999', '1.2.0-alpha', '1.3.0-0' ],
+    },
+    [ '1', '1.x', '1.X' ] => {
+      to_str   => '>=1.0.0 <2.0.0',
+      includes => [ '1.0.0', '1.999.0' ],
+      excludes => [ '0.999.999', '1.0.0-alpha', '2.0.0-0' ],
+    },
+  )),
+
+  Examples('open-ended', makeRangeExamples(
+    [ '>1.2.3', '> 1.2.3' ] => {
+      to_str   => '>1.2.3',
+      includes => [ '999.0.0' ],
+      excludes => [ '1.2.3', '1.2.4-0' ],
+    },
+
+    [ '>1.2.3-alpha', '> 1.2.3-alpha' ] => {
+      to_str   => '>1.2.3-alpha',
+      includes => [ '1.2.3-alpha.0', '1.2.3-alpha0', '999.0.0' ],
+      excludes => [ '1.2.3-alpha' ],
+    },
+
+    [ '>=1.2.3', '>= 1.2.3' ] => {
+      to_str   => '>=1.2.3',
+      includes => [ '999.0.0' ],
+      excludes => [ '1.2.2', '1.2.3-0' ],
+    },
+
+    [ '>=1.2.3-alpha', '>= 1.2.3-alpha' ] => {
+      to_str   => '>=1.2.3-alpha',
+      includes => [ '1.2.3-alpha', '1.2.3-alpha0', '999.0.0' ],
+      excludes => [ '1.2.3-alph', '1.2.4-alpha' ],
+    },
+
+    [ '<1.2.3', '< 1.2.3' ] => {
+      to_str   => '<1.2.3',
+      includes => [ '0.0.0', '1.2.2' ],
+      excludes => [ '0.0.0-0', '1.2.3-0', '2.0.0' ],
+    },
+
+    [ '<1.2.3-alpha', '< 1.2.3-alpha' ] => {
+      to_str   => '<1.2.3-alpha',
+      includes => [ '0.0.0', '1.2.3-alph' ],
+      excludes => [ '0.0.0-0', '1.2.3-alpha', '2.0.0' ],
+    },
+
+    [ '<=1.2.3', '<= 1.2.3' ] => {
+      to_str   => '<=1.2.3',
+      includes => [ '0.0.0', '1.2.3' ],
+      excludes => [ '0.0.0-0', '1.2.3-0' ],
+    },
+
+    [ '<=1.2.3-alpha', '<= 1.2.3-alpha' ] => {
+      to_str   => '<=1.2.3-alpha',
+      includes => [ '0.0.0', '1.2.3-alpha' ],
+      excludes => [ '0.0.0-0', '1.2.3-alpha0', '1.2.3-alpha.0', '1.2.3-alphb' ],
+    },
+  )),
+)
+
+function makeRangeExamples(*$examples) {
+  $examples.map |$ranges, $results| {
+    $ranges.map |$range| {
+      $expr = "SemVer('${range}')"
+      Examples($range,
+        Example('string',
+          Given("String(SemVerRange('${range}'), '%#s')"), Evaluates_to($results[to_str])),
+        Examples('includes',
+          $results[includes].map |$r| {
+            Example($r,
+              Given("SemVer('${r}') =~ SemVerRange('${range}')"), Evaluates_to(true))
+          }),
+        Examples('excludes',
+          $results[excludes].map |$r| {
+            Example($r,
+              Given("SemVer('${r}') !~ SemVerRange('${range}')"), Evaluates_to(true))
+        }),
+      )
+    }
+  }
+}

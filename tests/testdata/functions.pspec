@@ -1,0 +1,91 @@
+
+Examples('call function',
+  Examples('with untyped parameters',
+    Example('with args',
+      Given(Unindent(`
+        function foo($a, $b) {
+          $a + $b
+        }
+        foo(1, 2)
+      `)),
+      Evaluates_to(3)),
+
+    Example('with parameter defaults',
+      Given(Unindent(`
+        function foo($a, $b = 2) {
+          $a + $b
+        }
+        foo(1)
+      `)),
+      Evaluates_to(3)),
+  ),
+
+  Examples('with typed parameters',
+    Example('using matching arguments and defaults',
+      Given(Unindent(`
+        function foo(Integer $a, Integer $b = 2) {
+          $a + $b
+        }
+        foo(1)
+      `)),
+      Evaluates_to(3)),
+
+    Example('using argument with illegal type',
+      Given(Unindent(`
+        function foo(Integer $a) {
+          $a
+        }
+        foo('hello')
+      `)),
+      Evaluates_with(Error(EVAL_ILLEGAL_ARGUMENT_TYPE))),
+
+    Example('using default with illegal type',
+      Given(Unindent(`
+        function foo(Integer $a = undef) {
+          $a
+        }
+        foo()
+      `)),
+      Evaluates_with(Error(EVAL_ARGUMENTS_ERROR))),
+  ),
+
+  Examples('defined in Go',
+    Examples('assert_type',
+      Example('matching type and arg',
+        Given(Unindent(`
+          assert_type(Integer, 3)
+        `)),
+        Evaluates_to(3)),
+
+      Example('using method syntax',
+        Given(Unindent(`
+          Integer.assert_type(3)
+        `)),
+        Evaluates_to(3)),
+
+      Example('incompatible type and block',
+        Given(`assert_type(String, 23) |$t, $v| { "Hey ${v} is hardly a ${t} now, is it?" }`),
+        Evaluates_to("Hey Integer[23, 23] is hardly a String now, is it?")),
+
+      Example('incompatible type and incompatible block',
+        Given(`assert_type(String, 23) |$t| { 0 }`),
+        Evaluates_with(Error(EVAL_ARGUMENTS_ERROR))),
+
+      Example('type as string',
+        Given(`assert_type('Variant[String, Integer]', 23)`),
+        Evaluates_to(23)),
+
+      Example('block but no arguments',
+        Given(`with || { notice('what') }`),
+        Evaluates_with(Notice('what'))),
+      ),
+
+    Examples('each',
+      Example('visits all elements',
+        Given(Unindent(`
+          [1, 2, 3].each |$e| { notice($e) }
+        `)),
+        Evaluates_to([1, 2, 3])),
+    )
+  )
+)

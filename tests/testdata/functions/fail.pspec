@@ -1,0 +1,14 @@
+Examples('the fail function',
+  Example('errors with given argument and correct file/line info',
+    Given(NamedSource('the_file.pp', @(SRC)),
+    #
+    #
+    fail('too bad')
+    |-SRC
+    ),
+    Evaluates_with(Error('too bad at the_file.pp:3:1'))),
+
+  Example('errors with given concatenated and stringified arguments',
+    Given(`fail('the hash', {a => [32]}, 'did not have b')`),
+    Evaluates_with(Error(Contain(`the hash {'a' => [32]} did not have b`)))),
+)

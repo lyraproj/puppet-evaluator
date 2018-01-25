@@ -1,0 +1,61 @@
+
+Examples('regexp group variables',
+  Example('mixed with variables',
+    Given(Unindent(`
+      $rx_result = 'hello' =~ /^[a-z](.*)o$/
+      [$rx_result, $1]
+    `)),
+    Evaluates_to([true, 'ell'])),
+
+  Example('save/restore regexp value',
+    Given(Unindent(`
+      'abc' =~ /^([a-z])(.*)/
+      $f = $1
+      'cdf' =~ /^([a-z])(.*)/
+      [$f, $2]
+    `)),
+    Evaluates_to(['a', 'df'])),
+
+  Example('new regexp overwrite previous group',
+    Given(Unindent(`
+      'abc' =~ /^([a-z])(.*)/
+      'cdf' =~ /^(.*)/
+      $2
+    `)),
+    Evaluates_with(Error(EVAL_UNKNOWN_VARIABLE))),
+)
+
+Examples('named variables',
+  Example('assign and access',
+    Given(`$a = 'a value' notice($a)`), Evaluates_with(Notice('a value'))),
+
+  Example('assign outer scope and access',
+    Given(Unindent(`
+      function tn() {
+        notice($a)
+      }
+      $a = 'a value'
+      tn()`)),
+    Evaluates_with(Notice('a value'))),
+
+  Example('assign outer scope and override',
+    Given(Unindent(`
+      function tn() {
+        $a = 'overridden value'
+        notice($a)
+      }
+      $a = 'a value'
+      tn()
+      notice($a)`)),
+    Evaluates_with(Notice('overridden value', 'a value'))),
+
+  Example('assign outer scope and override with parameter',
+    Given(Unindent(`
+      function tn($a) {
+        notice($a)
+      }
+      $a = 'a value'
+      tn('overridden value')
+      notice($a)`)),
+    Evaluates_with(Notice('overridden value', 'a value')))
+)

@@ -4,11 +4,10 @@ This is an evaluator for the AST produced by the [Puppet Language Parser](/puppe
 
 ## Unit Testing
 
-Unit tests are deliberately very scarse in this project. Tests for virtually everything is written
-in the [Puppet Specification Language](https://docs.google.com/document/d/1VySubOiw8pD99OucVjk0ueyw2xlq4ky4WIWkV6Qoq64)
-and then implemented in the [Puppet PSpec Evaluator](https://github.com/puppetlabs/go-pspec/tree/master/eval_test/testdata). The evaluator for the
-specification language is a specialization of this Puppet evaluator so it's a bit of a chicken and egg
-problem.
+Tests for virtually everything is written in the
+[Puppet Specification Language](https://docs.google.com/document/d/1VySubOiw8pD99OucVjk0ueyw2xlq4ky4WIWkV6Qoq64)
+and can be found under the [tests/testdata](https://github.com/puppetlabs/go-evaluator/tree/master/tests/testdata)
+directory.
 
 ## Implementation status
 

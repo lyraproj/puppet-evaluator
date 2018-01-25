@@ -1,0 +1,37 @@
+Examples('the all function',
+  Examples('should be callable as',
+    Example('all on an array',
+      Given(`[1,2,3].all |$v| { $v > 0 }`),
+      Evaluates_to(true)),
+
+    Example('all on an array with index',
+      Given(`[0,2,4].all |$i, $v| { $v == $i * 2 }`),
+      Evaluates_to(true)),
+
+    Example('all on a hash selecting entries',
+      Given(`{0=>0,1=>2,2=>4}.all |$e| { $e[1] == $e[0]*2 }`),
+      Evaluates_to(true)),
+
+    Example('all on a hash selecting key and value',
+      Given(`{0=>0,1=>2,2=>4}.all |$k,$v| { $v == $k*2 }`),
+      Evaluates_to(true)),
+  ),
+
+  Examples('produces a boolean',
+    Example('true when boolean true is found',
+      Given(`[6,6,6].all |$v| { true }`),
+      Evaluates_to(true)),
+
+    Example('true when boolean truthy is found',
+      Given(`[6,6,6].all |$v| { 42 }`),
+      Evaluates_to(true)),
+
+    Example('false when truthy is not found (all undef)',
+      Given(`[6,6,6].all |$v| { undef }`),
+      Evaluates_to(false)),
+
+    Example('false when truthy is not found (all false)',
+      Given(`[6,6,6].all |$v| { false }`),
+      Evaluates_to(false)),
+  ),
+)
