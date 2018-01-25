@@ -108,13 +108,6 @@ func (t *TypeAliasType) Name() string {
 	return t.name
 }
 
-func (t *TypeAliasType) Parameters() []PValue {
-	if t.name == `UnresolvedAlias` {
-		return EMPTY_VALUES
-	}
-	return []PValue{t.resolvedType}
-}
-
 func (t *TypeAliasType) Resolve(c EvalContext) PType {
 	if t.resolvedType != nil {
 		panic(Sprintf(`Attempt to resolve already resolved type %s`, t.name))

@@ -216,8 +216,12 @@ func (c *context) Scope() Scope {
 	return c.scope
 }
 
-func (c *context) ParseAndValidate(str, filename string, singleExpression bool) Expression {
-	expr, err := CreateParser().Parse(filename, str, false, singleExpression)
+func (c *context) ParseAndValidate(filename, str string, singleExpression bool) Expression {
+	parserOptions := []ParserOption{}
+	if GetSetting(`tasks`, Boolean_FALSE).(*BooleanValue).Bool() {
+		parserOptions = append(parserOptions, PARSER_TASKS_ENABLED)
+	}
+	expr, err := CreateParser(parserOptions...).Parse(filename, str, singleExpression)
 	if err != nil {
 		panic(err)
 	}
@@ -240,7 +244,7 @@ func (c *context) ParseAndValidate(str, filename string, singleExpression bool) 
 }
 
 func (c *context) ParseResolve(str string) PType {
-	return c.ResolveType(c.ParseAndValidate(str, ``, true))
+	return c.ResolveType(c.ParseAndValidate(``, str, true))
 }
 
 func (e *evaluator) AddDefinitions(expr Expression) {
@@ -350,10 +354,16 @@ func (e *evaluator) convertCallError(err interface{}, expr Expression, args []Ex
 func (e *evaluator) define(loader DefiningLoader, d Definition) {
 	var ta interface{}
 	var tn TypedName
-	if fe, ok := d.(*FunctionDefinition); ok {
+	switch d.(type) {
+	case *PlanDefinition:
+		pe := d.(*PlanDefinition)
+		tn = NewTypedName2(PLAN, pe.Name(), loader.NameAuthority())
+		ta = NewPuppetPlan(pe)
+	case *FunctionDefinition:
+		fe := d.(*FunctionDefinition)
 		tn = NewTypedName2(FUNCTION, fe.Name(), loader.NameAuthority())
 		ta = NewPuppetFunction(fe)
-	} else {
+	default:
 		ta, tn = CreateTypeDefinition(d, loader.NameAuthority())
 	}
 	loader.SetEntry(tn, NewLoaderEntry(ta, d.File()))

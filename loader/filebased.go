@@ -95,7 +95,7 @@ func (l *fileBasedLoader) newPlanPath(moduleNameRelative bool) SmartPath {
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
-		instantiator:       InstantiatePuppetTask,
+		instantiator:       InstantiatePuppetPlan,
 	}
 }
 

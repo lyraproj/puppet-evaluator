@@ -42,7 +42,7 @@ type (
 
 		WithScope(scope Scope) EvalContext
 
-		ParseAndValidate(str, filename string, singleExpression bool) Expression
+		ParseAndValidate(filename, content string, singleExpression bool) Expression
 
 		ParseResolve(typeString string) PType
 

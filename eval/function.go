@@ -76,6 +76,10 @@ type (
 		expression *FunctionDefinition
 		parameters []*parameter
 	}
+
+	puppetPlan struct {
+		puppetFunction
+	}
 )
 
 func (l *lambda) Equals(other interface{}, guard Guard) bool {
@@ -158,11 +162,7 @@ func (fb *functionBuilder) Resolve(c EvalContext) Function {
 
 		s := b.String()
 		if len(s) > 0 {
-			p, err := CreateParser().Parse(``, s, false, false)
-			if err != nil {
-				panic(err)
-			}
-			localEval.AddDefinitions(p)
+			localEval.AddDefinitions(c.ParseAndValidate(``, s, false))
 		}
 
 		localEval.ResolveDefinitions(c)
@@ -495,8 +495,13 @@ func (f *puppetFunction) Name() string {
 	return f.expression.Name()
 }
 
+func (f *puppetFunction) String() string {
+	return ToString(f)
+}
+
 func (f *puppetFunction) ToString(bld Writer, format FormatContext, g RDetect) {
-	WriteString(bld, `function`)
+	WriteString(bld, `function `)
+	WriteString(bld, f.Name())
 }
 
 func (f *puppetFunction) Type() PType {
@@ -509,6 +514,19 @@ func (f *puppetFunction) Resolve(c EvalContext) {
 	}
 	f.parameters = resolveParameters(c, f.expression.Parameters())
 	f.signature = NewCallableType(createTupleType(f.parameters), resolveReturnType(c, f.expression.ReturnType()), nil)
+}
+
+func NewPuppetPlan(expr *PlanDefinition) *puppetPlan {
+	return &puppetPlan{puppetFunction{expression: &expr.FunctionDefinition}}
+}
+
+func (p *puppetPlan) ToString(bld Writer, format FormatContext, g RDetect) {
+	WriteString(bld, `plan `)
+	WriteString(bld, p.Name())
+}
+
+func (p *puppetPlan) String() string {
+	return ToString(p)
 }
 
 func createTupleType(params []*parameter) *TupleType {
@@ -547,11 +565,6 @@ func resolveParameters(c EvalContext, eps []Expression) []*parameter {
 		pps[idx] = &parameter{pt, pd}
 	}
 	return pps
-}
-
-func (f *puppetFunction) String() string {
-	// TODO: Return proper format suitable for stack trace entry
-	return f.Name()
 }
 
 func init() {

@@ -69,6 +69,7 @@ const (
 	EVAL_UNABLE_TO_READ_FILE             = `EVAL_UNABLE_TO_READ_FILE`
 	EVAL_UNHANDLED_EXPRESSION            = `EVAL_UNHANDLED_EXPRESSION`
 	EVAL_UNKNOWN_FUNCTION                = `EVAL_UNKNOWN_FUNCTION`
+	EVAL_UNKNOWN_PLAN                    = `EVAL_UNKNOWN_PLAN`
 	EVAL_UNKNOWN_TASK                    = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                = `EVAL_UNKNOWN_VARIABLE`
 	EVAL_UNRESOLVED_TYPE                = `EVAL_UNRESOLVED_TYPE`
@@ -212,6 +213,8 @@ func init() {
 	HardIssue(EVAL_UNHANDLED_EXPRESSION, `Evaluator cannot handle an expression of type %<expression>T`)
 
 	HardIssue(EVAL_UNKNOWN_FUNCTION, `Unknown function: '%{name}'`)
+
+	HardIssue(EVAL_UNKNOWN_PLAN, `Unknown plan: '%{name}'`)
 
 	HardIssue(EVAL_UNKNOWN_TASK, `Task not found: '%{name}'`)
 

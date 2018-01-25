@@ -28,8 +28,6 @@ type (
 	}
 )
 
-var Puppet Pcore
-
 func NewPcore(logger Logger) Pcore {
 	loader := NewParentedLoader(StaticLoader())
 	settings := make(map[string]Setting, 32)
@@ -40,6 +38,7 @@ func NewPcore(logger Logger) Pcore {
 	p.DefineSetting(`environment`, DefaultStringType(), WrapString(`production`))
 	p.DefineSetting(`environmentpath`, DefaultStringType(), nil)
 	p.DefineSetting(`module_path`, DefaultStringType(), nil)
+	p.DefineSetting(`tasks`, DefaultBooleanType(), WrapBoolean(false))
 	Puppet = p
 	return p
 }

@@ -440,7 +440,7 @@ func init() {
 func newType(name, typeDecl string) PType {
 	p := CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)
-	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), false, true)
+	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
 	if err != nil {
 		err = convertReportedIssue(err, fileName, fileLine)
 		panic(err)

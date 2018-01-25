@@ -124,7 +124,7 @@ func (t *CallableType) Equals(o interface{}, g Guard) bool {
 }
 
 func (t *CallableType) Generic() PType {
-	return collectionType_DEFAULT
+	return callableType_DEFAULT
 }
 
 func (t *CallableType) IsAssignable(o PType, g Guard) bool {

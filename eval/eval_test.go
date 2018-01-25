@@ -32,7 +32,7 @@ func TestMisc(t *testing.T) {
 	prog, ex := parser.Parse(`testfile.pp`, `
     type MyType = Variant[String,Integer]
     MyType
-    `, false, false)
+    `, false)
 
 	if ex != nil {
 		t.Fatalf(ex.Error())
@@ -79,7 +79,7 @@ func TestMisc(t *testing.T) {
 
 func TestEmpty(t *testing.T) {
 	parser := parser.CreateParser()
-	prog, ex := parser.Parse(`testfile.pp`, ``, false, false)
+	prog, ex := parser.Parse(`testfile.pp`, ``, false)
 
 	if ex != nil {
 		t.Fatalf(ex.Error())

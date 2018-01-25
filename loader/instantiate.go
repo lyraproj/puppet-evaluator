@@ -14,17 +14,25 @@ import (
 type Instantiator func(loader ContentProvidingLoader, tn TypedName, sources []string)
 
 func InstantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sources []string) {
+	instantiatePuppetFunction(loader, tn, sources)
+}
+
+func InstantiatePuppetPlan(loader ContentProvidingLoader, tn TypedName, sources []string) {
+	instantiatePuppetFunction(loader, tn, sources)
+}
+
+func instantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sources []string) {
 	source := sources[0]
 	content := string(loader.GetContent(source))
 	ctx := CurrentContext()
-	expr := ctx.ParseAndValidate(content, source, false)
+	expr := ctx.ParseAndValidate(source, content, false)
 	name := tn.Name()
-	fd, ok := getDefinition(expr, FUNCTION, name).(*FunctionDefinition)
+	fd, ok := getDefinition(expr, tn.Namespace(), name).(NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: FUNCTION, `name`: name}))
+		panic(ctx.Error(expr, EVAL_NO_DEFINITION, H{`source`: expr.File(), `type`: tn.Namespace(), `name`: name}))
 	}
 	if strings.ToLower(fd.Name()) != strings.ToLower(name) {
-		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, H{`source`: expr.File(), `type`: FUNCTION, `expected`: name, `actual`: fd.Name()}))
+		panic(ctx.Error(expr, EVAL_WRONG_DEFINITION, H{`source`: expr.File(), `type`: tn.Namespace(), `expected`: name, `actual`: fd.Name()}))
 	}
 	e := ctx.Evaluator()
 	e.AddDefinitions(expr)
@@ -34,7 +42,7 @@ func InstantiatePuppetFunction(loader ContentProvidingLoader, tn TypedName, sour
 func InstantiatePuppetType(loader ContentProvidingLoader, tn TypedName, sources []string) {
 	content := string(loader.GetContent(sources[0]))
 	ctx := CurrentContext()
-	expr := ctx.ParseAndValidate(content, sources[0], false)
+	expr := ctx.ParseAndValidate(sources[0], content, false)
 	name := tn.Name()
 	def := getDefinition(expr, TYPE, name)
 	var tdn string
