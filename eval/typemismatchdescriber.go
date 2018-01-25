@@ -571,7 +571,7 @@ func (m *basicSizeMismatch) to() int64 {
 }
 
 func (tm *basicSizeMismatch) text() string {
-	return fmt.Sprintf(`expects size to be #{range_to_s(expected, '0')}, got #{range_to_s(actual, '0')}`,
+	return fmt.Sprintf(`expects size to be %s, got %s`,
 		rangeToS(tm.expectedType.(*IntegerType), `0`),
 		rangeToS(tm.actualType.(*IntegerType), `0`))
 }

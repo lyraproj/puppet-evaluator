@@ -735,6 +735,6 @@ nextChar:
 			}
 			c, ok = rdr.Next()
 		}
-		panic(NewArgumentsError(callerName, fmt.Sprintf(`unterminated %%c`, b)))
+		panic(NewArgumentsError(callerName, fmt.Sprintf(`unterminated %%%c`, b)))
 	}
 }

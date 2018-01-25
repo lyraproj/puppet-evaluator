@@ -28,7 +28,7 @@ type(
 var EMPTY_STRINGHASH = &StringHash{[]*stringEntry{}, map[string]int{}, true}
 
 func (f *frozenError) Error() string {
-	return fmt.Sprint("attempt to add, modify, or delete key '%s' in a frozen StringHash", f.key)
+	return fmt.Sprintf("attempt to add, modify, or delete key '%s' in a frozen StringHash", f.key)
 }
 
 // Returns an empty *StringHash initialized with given capacity

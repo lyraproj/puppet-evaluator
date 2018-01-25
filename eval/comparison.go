@@ -159,7 +159,7 @@ func match(lhs Expression, rhs Expression, operator string, scope Scope, a PValu
 			}
 		} else {
 			panic(Error2(lhs, EVAL_NOT_SEMVER,
-				H{`detail`: fmt.Sprint(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
+				H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
 		}
 		if lv, ok := b.(*SemVerValue); ok {
 			result = lv.Version().Equals(version)
