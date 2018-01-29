@@ -186,6 +186,24 @@ func (sv *StringValue) AddAll(tv IndexedValue) IndexedValue {
 	panic(`Operation not supported`)
 }
 
+func (sv *StringValue) All(predicate Predicate) bool {
+	for _, c := range sv.String() {
+		if !predicate(WrapString(string(c))) {
+			return false
+		}
+	}
+	return true
+}
+
+func (sv *StringValue) Any(predicate Predicate) bool {
+	for _, c := range sv.String() {
+		if predicate(WrapString(string(c))) {
+			return true
+		}
+	}
+	return false
+}
+
 func (sv *StringValue) At(i int) PValue {
 	if i >= 0 && i < len(sv.String()) {
 		return WrapString(sv.String()[i : i+1])
@@ -207,6 +225,32 @@ func (sv *StringValue) Each(consumer Consumer) {
 	for _, c := range sv.String() {
 		consumer(WrapString(string(c)))
 	}
+}
+
+func (sv *StringValue) EachWithIndex(consumer IndexedConsumer) {
+	for i, c := range sv.String() {
+		consumer(WrapString(string(c)), i)
+	}
+}
+
+func (sv *StringValue) Reject(predicate Predicate) IndexedValue {
+	selected := bytes.NewBufferString(``)
+	for _, c := range sv.String() {
+		if !predicate(WrapString(string(c))) {
+			selected.WriteRune(c)
+		}
+	}
+	return WrapString(selected.String())
+}
+
+func (sv *StringValue) Select(predicate Predicate) IndexedValue {
+	selected := bytes.NewBufferString(``)
+	for _, c := range sv.String() {
+		if predicate(WrapString(string(c))) {
+			selected.WriteRune(c)
+		}
+	}
+	return WrapString(selected.String())
 }
 
 func (sv *StringValue) ElementType() PType {
@@ -272,7 +316,7 @@ func (sv *StringValue) Len() int {
 	return int((*StringType)(sv).Size().Min())
 }
 
-func (sv *StringValue) Slice(i int, j int) *StringValue {
+func (sv *StringValue) Slice(i int, j int) IndexedValue {
 	return WrapString(sv.String()[i:j])
 }
 

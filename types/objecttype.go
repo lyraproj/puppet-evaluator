@@ -163,7 +163,7 @@ func argError(e PType, a PValue) errors.InstantiationError {
 }
 
 func typeArg(hash *HashValue, key string, d PType) PType {
-	v := hash.Get2(key, nil)
+	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
@@ -174,7 +174,7 @@ func typeArg(hash *HashValue, key string, d PType) PType {
 }
 
 func hashArg(hash *HashValue, key string) *HashValue {
-	v := hash.Get2(key, nil)
+	v := hash.Get5(key, nil)
 	if v == nil {
 		return _EMPTY_MAP
 	}
@@ -185,7 +185,7 @@ func hashArg(hash *HashValue, key string) *HashValue {
 }
 
 func boolArg(hash *HashValue, key string, d bool) bool {
-	v := hash.Get2(key, nil)
+	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
@@ -196,7 +196,7 @@ func boolArg(hash *HashValue, key string, d bool) bool {
 }
 
 func stringArg(hash *HashValue, key string, d string) string {
-	v := hash.Get2(key, nil)
+	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
@@ -329,7 +329,7 @@ func (a *attribute) initialize(name string, container *objectType, initHash *Has
 		}
 		a.final = true
 	}
-	v := initHash.Get2(KEY_VALUE, nil)
+	v := initHash.Get5(KEY_VALUE, nil)
 	if v != nil {
 		if a.kind == DERIVED || a.kind == GIVEN_OR_DERIVED {
 			panic(Error(EVAL_ILLEGAL_KIND_VALUE_COMBINATION, H{`label`: a.Label(), `kind`: a.kind}))
@@ -703,7 +703,7 @@ func (t *objectType) initFromHash(initHash *HashValue) {
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
 					TYPE_TYPE_PARAMETER, ph)
 				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
-				paramValue = ph.Get2(KEY_VALUE, nil)
+				paramValue = ph.Get5(KEY_VALUE, nil)
 			} else {
 				paramType = AssertInstance(
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
@@ -793,7 +793,7 @@ func (t *objectType) initFromHash(initHash *HashValue) {
 	t.equalityIncludeType = boolArg(initHash, KEY_EQUALITY_INCLUDE_TYPE, true)
 
 	var equality []string
-	eq := initHash.Get2(KEY_EQUALITY, nil)
+	eq := initHash.Get5(KEY_EQUALITY, nil)
 	if es, ok := eq.(*StringValue); ok {
 		equality = []string{es.String()}
 	} else if ea, ok := eq.(*ArrayValue); ok {
@@ -828,7 +828,7 @@ func (t *objectType) initFromHash(initHash *HashValue) {
 	}
 	t.equality = equality
 
-	se, ok := initHash.Get2(KEY_SERIALIZATION, nil).(*ArrayValue)
+	se, ok := initHash.Get5(KEY_SERIALIZATION, nil).(*ArrayValue)
 	if ok {
 		serialization := make([]string, se.Len())
 		var optFound Attribute
@@ -1038,7 +1038,7 @@ func compressedMembersHash(mh *StringHash) *HashValue {
 	mh.EachPair(func(key string, value interface{}) {
 		fh := value.(AnnotatedMember).InitHash()
 		if fh.Len() == 1 {
-			tp := fh.Get2(KEY_TYPE, nil)
+			tp := fh.Get5(KEY_TYPE, nil)
 			if tp != nil {
 				he = append(he, WrapHashEntry2(key, tp))
 				return
@@ -1201,7 +1201,7 @@ func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
 		typ.typeParameters(true).EachPair(func(k string, v interface{}) {
-			if pv, ok := hash.Get3(k); ok && IsInstance(v.(*typeParameter).typ, pv) {
+			if pv, ok := hash.Get4(k); ok && IsInstance(v.(*typeParameter).typ, pv) {
 				params = append(params, WrapHashEntry2(k, pv))
 			}
 		})

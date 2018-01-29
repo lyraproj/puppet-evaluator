@@ -81,7 +81,7 @@ func init() {
 			d.Param(`StringHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hv := args[0].(KeyedValue)
-				return BinaryFromString(hv.Get2(`value`, UNDEF).String(), hv.Get2(`format`, UNDEF).String())
+				return BinaryFromString(hv.Get5(`value`, UNDEF).String(), hv.Get5(`format`, UNDEF).String())
 			})
 		},
 
@@ -103,8 +103,8 @@ func init() {
 			d.Param(`NamedArgs`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				h := args[0].(*HashValue)
-				n := fromConvertible(h.Get2(`from`, UNDEF))
-				a := h.Get2(`abs`, nil)
+				n := fromConvertible(h.Get5(`from`, UNDEF))
+				a := h.Get5(`abs`, nil)
 				if a != nil && a.(*BooleanValue).Bool() {
 					n = n.Abs()
 				}
@@ -175,16 +175,16 @@ func init() {
 			d.Param(`SemVerHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hash := args[0].(*HashValue)
-				major := hash.Get2(`major`, ZERO).(*IntegerValue).Int()
-				minor := hash.Get2(`minor`, ZERO).(*IntegerValue).Int()
-				patch := hash.Get2(`patch`, ZERO).(*IntegerValue).Int()
+				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
+				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
+				patch := hash.Get5(`patch`, ZERO).(*IntegerValue).Int()
 				preRelease := ``
 				build := ``
-				ev := hash.Get2(`prerelease`, nil)
+				ev := hash.Get5(`prerelease`, nil)
 				if ev != nil {
 					preRelease = ev.String()
 				}
-				ev = hash.Get2(`build`, nil)
+				ev = hash.Get5(`build`, nil)
 				if ev != nil {
 					build = ev.String()
 				}
@@ -243,10 +243,10 @@ func init() {
 			d.Param(`SemVerRangeHash`)
 			d.Function(func(c EvalContext, args []PValue) PValue {
 				hash := args[0].(*HashValue)
-				start := hash.Get2(`min`, nil).(*SemVerValue).Version()
+				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
 
 				var end *semver.Version
-				ev := hash.Get2(`max`, nil)
+				ev := hash.Get5(`max`, nil)
 				if ev == nil {
 					end = semver.MAX
 				} else {
@@ -254,7 +254,7 @@ func init() {
 				}
 
 				excludeEnd := false
-				ev = hash.Get2(`excludeMax`, nil)
+				ev = hash.Get5(`excludeMax`, nil)
 				if ev != nil {
 					excludeEnd = ev.(*BooleanValue).Bool()
 				}

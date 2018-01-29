@@ -8,6 +8,7 @@ import (
 const (
 	EVAL_ARGUMENTS_ERROR                = `EVAL_ARGUMENTS_ERROR`
 	EVAL_ATTRIBUTE_HAS_NO_VALUE         = `EVAL_ATTRIBUTE_HAS_NO_VALUE`
+	EVAL_BAD_JSON_PATH                  = `EVAL_BAD_JSON_PATH`
 	EVAL_BOTH_CONSTANT_AND_ATTRIBUTE    = `EVAL_BOTH_CONSTANT_AND_ATTRIBUTE`
 	EVAL_CONSTANT_REQUIRES_VALUE        = `EVAL_CONSTANT_REQUIRES_VALUE`
 	EVAL_CONSTANT_WITH_FINAL            = `EVAL_CONSTANT_WITH_FINAL`
@@ -79,6 +80,8 @@ const (
 
 func init() {
 	HardIssue2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, HF{`expression`: A_an})
+
+	HardIssue(EVAL_BAD_JSON_PATH, `unable to resolve JSON path '${path}'`)
 
 	HardIssue(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, `attribute %{label}[%{key}] is defined as both a constant and an attribute`)
 

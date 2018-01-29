@@ -31,6 +31,10 @@ type (
 		entries      []*HashEntry
 		index        map[HashKey]int
 	}
+
+	MutableHashValue struct {
+		HashValue
+	}
 )
 
 var hashType_EMPTY = &HashType{integerType_ZERO, unitType_DEFAULT, unitType_DEFAULT}
@@ -235,6 +239,14 @@ func (he *HashEntry) AddAll(v IndexedValue) IndexedValue {
 	panic(`Operation not supported`)
 }
 
+func (he *HashEntry) All(predicate Predicate) bool {
+	return predicate(he.key) && predicate(he.value)
+}
+
+func (he *HashEntry) Any(predicate Predicate) bool {
+	return predicate(he.key) || predicate(he.value)
+}
+
 func (he *HashEntry) At(i int) PValue {
 	switch i {
 	case 0:
@@ -263,6 +275,11 @@ func (he *HashEntry) Each(consumer Consumer) {
 	consumer(he.value)
 }
 
+func (he *HashEntry) EachWithIndex(consumer IndexedConsumer) {
+	consumer(he.key, 0)
+	consumer(he.value, 1)
+}
+
 func (he *HashEntry) Elements() []PValue {
 	return []PValue{he.key, he.value}
 }
@@ -274,6 +291,9 @@ func (he *HashEntry) ElementType() PType {
 func (he *HashEntry) Equals(o interface{}, g Guard) bool {
 	if ov, ok := o.(*HashEntry); ok {
 		return he.key.Equals(ov.key, g) && he.value.Equals(ov.value, g)
+	}
+	if iv, ok := o.(*ArrayValue); ok && iv.Len() == 2 {
+		return he.key.Equals(iv.At(0), g) && he.value.Equals(iv.At(1), g)
 	}
 	return false
 }
@@ -298,6 +318,45 @@ func (he *HashEntry) Len() int {
 	return 2
 }
 
+func (he *HashEntry) Select(predicate Predicate) IndexedValue {
+	if predicate(he.key) {
+		if predicate(he.value) {
+			return he
+		}
+		return WrapArray([]PValue{he.key})
+	}
+	if predicate(he.value) {
+		return WrapArray([]PValue{he.value})
+	}
+	return EMPTY_ARRAY
+}
+
+func (he *HashEntry) Slice(i int, j int) IndexedValue {
+	if i > 1 || i >= j {
+		return EMPTY_ARRAY
+	}
+	if i == 1 {
+		return WrapArray([]PValue{he.value})
+	}
+	if j == 1 {
+		return WrapArray([]PValue{he.key})
+	}
+	return he
+}
+
+func (he *HashEntry) Reject(predicate Predicate) IndexedValue {
+	if predicate(he.key) {
+		if predicate(he.value) {
+			return EMPTY_ARRAY
+		}
+		return WrapArray([]PValue{he.value})
+	}
+	if predicate(he.value) {
+		return WrapArray([]PValue{he.key})
+	}
+	return he
+}
+
 func (he *HashEntry) Type() PType {
 	return NewArrayType(commonType(he.key.Type(), he.value.Type()), NewIntegerType(2, 2))
 }
@@ -311,9 +370,7 @@ func (he *HashEntry) String() string {
 }
 
 func (he *HashEntry) ToString(b Writer, s FormatContext, g RDetect) {
-	he.key.ToString(b, s, g)
-	WriteString(b, ` => `)
-	he.value.ToString(b, s, g)
+	WrapArray([]PValue{he.key, he.value}).ToString(b, s, g)
 }
 
 func WrapHash(entries []*HashEntry) *HashValue {
@@ -423,9 +480,45 @@ func (hv *HashValue) AddAll(v IndexedValue) IndexedValue {
 	panic(`Operation not supported`)
 }
 
+func (hv *HashValue) All(predicate Predicate) bool {
+	for _, e := range hv.entries {
+		if !predicate(e) {
+			return false
+		}
+	}
+	return true
+}
+
+func (hv *HashValue) AllPairs(predicate BiPredicate) bool {
+	for _, e := range hv.entries {
+		if !predicate(e.key, e.value) {
+			return false
+		}
+	}
+	return true
+}
+
+func (hv *HashValue) Any(predicate Predicate) bool {
+	for _, e := range hv.entries {
+		if predicate(e) {
+			return true
+		}
+	}
+	return false
+}
+
+func (hv *HashValue) AnyPair(predicate BiPredicate) bool {
+	for _, e := range hv.entries {
+		if predicate(e.key, e.value) {
+			return true
+		}
+	}
+	return false
+}
+
 func (hv *HashValue) At(i int) PValue {
 	if i >= 0 && i < len(hv.entries) {
-		return WrapArray(hv.entries[i].Elements())
+		return hv.entries[i]
 	}
 	return _UNDEF
 }
@@ -471,11 +564,7 @@ func (hv *HashValue) ElementType() PType {
 }
 
 func (hv *HashValue) Entries() IndexedValue {
-	entries := make([]PValue, len(hv.entries))
-	for idx, entry := range hv.entries {
-		entries[idx] = entry
-	}
-	return WrapArray(entries)
+	return hv
 }
 
 func (hv *HashValue) EntriesSlice() []*HashEntry {
@@ -488,9 +577,67 @@ func (hv *HashValue) Each(consumer Consumer) {
 	}
 }
 
+func (hv *HashValue) EachKey(consumer Consumer) {
+	for _, e := range hv.entries {
+		consumer(e.key)
+	}
+}
+
+func (hv *HashValue) Select(predicate Predicate) IndexedValue {
+	selected := make([]*HashEntry, 0)
+	for _, e := range hv.entries {
+		if predicate(e) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapHash(selected)
+}
+
+func (hv *HashValue) SelectPairs(predicate BiPredicate) KeyedValue {
+	selected := make([]*HashEntry, 0)
+	for _, e := range hv.entries {
+		if predicate(e.key, e.value) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapHash(selected)
+}
+
+func (hv *HashValue) Reject(predicate Predicate) IndexedValue {
+	selected := make([]*HashEntry, 0)
+	for _, e := range hv.entries {
+		if !predicate(e) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapHash(selected)
+}
+
+func (hv *HashValue) RejectPairs(predicate BiPredicate) KeyedValue {
+	selected := make([]*HashEntry, 0)
+	for _, e := range hv.entries {
+		if !predicate(e.key, e.value) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapHash(selected)
+}
+
 func (hv *HashValue) EachPair(consumer BiConsumer) {
 	for _, e := range hv.entries {
 		consumer(e.key, e.value)
+	}
+}
+
+func (hv *HashValue) EachValue(consumer Consumer) {
+	for _, e := range hv.entries {
+		consumer(e.value)
+	}
+}
+
+func (hv *HashValue) EachWithIndex(consumer IndexedConsumer) {
+	for i, e := range hv.entries {
+		consumer(e, i)
 	}
 }
 
@@ -511,24 +658,48 @@ func (hv *HashValue) Equals(o interface{}, g Guard) bool {
 }
 
 func (hv *HashValue) Get(key PValue) (PValue, bool) {
-	if pos, ok := hv.valueIndex()[ToKey(key)]; ok {
+	return hv.get(ToKey(key))
+}
+
+func (hv *HashValue) Get2(key PValue, dflt PValue) PValue {
+	return hv.get2(ToKey(key), dflt)
+}
+
+func (hv *HashValue) Get3(key PValue, dflt Producer) PValue {
+	return hv.get3(ToKey(key), dflt)
+}
+
+func (hv *HashValue) Get4(key string) (PValue, bool) {
+	return hv.get(HashKey(key))
+}
+
+func (hv *HashValue) Get5(key string, dflt PValue) PValue {
+	return hv.get2(HashKey(key), dflt)
+}
+
+func (hv *HashValue) Get6(key string, dflt Producer) PValue {
+	return hv.get3(HashKey(key), dflt)
+}
+
+func (hv *HashValue) get(key HashKey) (PValue, bool) {
+	if pos, ok := hv.valueIndex()[key]; ok {
 		return hv.entries[pos].value, true
 	}
 	return _UNDEF, false
 }
 
-func (hv *HashValue) Get2(key string, dflt PValue) PValue {
-	if pos, ok := hv.valueIndex()[HashKey(key)]; ok {
+func (hv *HashValue) get2(key HashKey, dflt PValue) PValue {
+	if pos, ok := hv.valueIndex()[key]; ok {
 		return hv.entries[pos].value
 	}
 	return dflt
 }
 
-func (hv *HashValue) Get3(key string) (PValue, bool) {
-	if pos, ok := hv.valueIndex()[HashKey(key)]; ok {
-		return hv.entries[pos].value, true
+func (hv *HashValue) get3(key HashKey, dflt Producer) PValue {
+	if pos, ok := hv.valueIndex()[key]; ok {
+		return hv.entries[pos].value
 	}
-	return _UNDEF, false
+	return dflt()
 }
 
 func (hv *HashValue) IncludesKey(o PValue) bool {
@@ -567,19 +738,28 @@ func (hv *HashValue) Len() int {
 	return len(hv.entries)
 }
 
-func (hv *HashValue) Merge(o *HashValue) *HashValue {
+func (hv *HashValue) Merge(o KeyedValue) KeyedValue {
+	return WrapHash(hv.mergeEntries(o))
+}
+
+func (hv *HashValue) mergeEntries(o KeyedValue) []*HashEntry {
+	oh := o.(*HashValue)
 	index := hv.valueIndex()
 	selfLen := len(hv.entries)
-	all := make([]*HashEntry, selfLen, selfLen+len(o.entries))
+	all := make([]*HashEntry, selfLen, selfLen+len(oh.entries))
 	copy(all, hv.entries)
-	for _, entry := range o.entries {
+	for _, entry := range oh.entries {
 		if idx, ok := index[ToKey(entry.key)]; ok {
 			all[idx] = entry
 		} else {
 			all = append(all, entry)
 		}
 	}
-	return WrapHash(all)
+	return all
+}
+
+func (hv *HashValue) Slice(i int, j int) IndexedValue {
+	return WrapHash(hv.entries[i:j])
 }
 
 func (hv *HashValue) String() string {
@@ -755,4 +935,17 @@ func (hv *HashValue) valueIndex() map[HashKey]int {
 	}
 	hv.lock.Unlock()
 	return hv.index
+}
+
+// PutAll merges the given hash into this hash (mutates the value). The method
+// is not thread safe
+func (hv *MutableHashValue) PutAll(o *HashValue) {
+	hv.entries = hv.mergeEntries(o)
+	hv.detailedType = nil
+	hv.index = nil
+}
+
+// MergeSelf merges the given hash into this hash (mutates the value)
+func (hv *MutableHashValue) Put(k, v PValue) {
+	hv.PutAll(WrapHash([]*HashEntry{{k, v}}))
 }

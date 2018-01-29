@@ -47,6 +47,8 @@ type (
 		IterableValue
 		Add(PValue) IndexedValue
 		AddAll(IndexedValue) IndexedValue
+		All(predicate Predicate) bool
+		Any(predicate Predicate) bool
 		At(index int) PValue
 		Delete(PValue) IndexedValue
 		DeleteAll(IndexedValue) IndexedValue
@@ -54,7 +56,11 @@ type (
 		// Iterate over each element. This method will not catch break exceptions. If that is
 		// desired, use an Iterator instead.
 		Each(Consumer)
+		EachWithIndex(consumer IndexedConsumer)
 		Elements() []PValue
+		Select(predicate Predicate) IndexedValue
+		Slice(i int, j int) IndexedValue
+		Reject(predicate Predicate) IndexedValue
 	}
 
 	HashKey string
@@ -68,23 +74,37 @@ type (
 	}
 
 	EntryValue interface {
+		PValue
 		Key() PValue
 		Value() PValue
 	}
 
-	KeyedValue interface {
-		SizedValue
-		IterableValue
-		Entries() IndexedValue
 
-		// Iterate over each key/value pair. This method will not catch break exceptions. If that is
-		// desired, use an Iterator instead.
+	// KeyedValue represents a Hash. The iterative methods will not catch break exceptions. If
+	// that is desired, then use an Iterator instead.
+	KeyedValue interface {
+		IndexedValue
+		AllPairs(BiPredicate) bool
+		AnyPair(BiPredicate) bool
+		Entries() IndexedValue
+		EachKey(Consumer)
 		EachPair(BiConsumer)
+		EachValue(Consumer)
+
+		Get(key PValue) (PValue, bool)
+		Get2(key PValue, dflt PValue) PValue
+		Get3(key PValue, dflt Producer) PValue
+		Get4(key string) (PValue, bool)
+		Get5(key string, dflt PValue) PValue
+		Get6(key string, dflt Producer) PValue
 
 		Keys() IndexedValue
+
+		Merge(KeyedValue) KeyedValue
+
 		Values() IndexedValue
-		Get(key PValue) (PValue, bool)
-		Get2(key string, dflt PValue) PValue
+		SelectPairs(BiPredicate) KeyedValue
+		RejectPairs(BiPredicate) KeyedValue
 	}
 
 	NumericValue interface {

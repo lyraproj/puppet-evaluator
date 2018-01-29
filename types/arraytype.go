@@ -274,6 +274,24 @@ func (av *ArrayValue) AddAll(ov IndexedValue) IndexedValue {
 	return WrapArray(el)
 }
 
+func (av *ArrayValue) All(predicate Predicate) bool {
+	for _, e := range av.elements {
+		if !predicate(e) {
+			return false
+		}
+	}
+	return true
+}
+
+func (av *ArrayValue) Any(predicate Predicate) bool {
+	for _, e := range av.elements {
+		if predicate(e) {
+			return true
+		}
+	}
+	return false
+}
+
 func (av *ArrayValue) At(i int) PValue {
 	if i >= 0 && i < len(av.elements) {
 		return av.elements[i]
@@ -321,6 +339,12 @@ func (av *ArrayValue) Each(consumer Consumer) {
 	}
 }
 
+func (av *ArrayValue) EachWithIndex(consumer IndexedConsumer) {
+	for i, e := range av.elements {
+		consumer(e, i)
+	}
+}
+
 func (av *ArrayValue) Elements() []PValue {
 	return av.elements
 }
@@ -338,6 +362,11 @@ func (av *ArrayValue) Equals(o interface{}, g Guard) bool {
 				}
 			}
 			return true
+		}
+	}
+	if len(av.elements) == 2 {
+		if he, ok := o.(*HashEntry); ok {
+			return av.elements[0].Equals(he.key, g) && av.elements[1].Equals(he.value, g)
 		}
 	}
 	return false
@@ -359,7 +388,27 @@ func (av *ArrayValue) Len() int {
 	return len(av.elements)
 }
 
-func (av *ArrayValue) Slice(i int, j int) *ArrayValue {
+func (av *ArrayValue) Reject(predicate Predicate) IndexedValue {
+	selected := make([]PValue, 0)
+	for _, e := range av.elements {
+		if !predicate(e) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapArray(selected)
+}
+
+func (av *ArrayValue) Select(predicate Predicate) IndexedValue {
+	selected := make([]PValue, 0)
+	for _, e := range av.elements {
+		if predicate(e) {
+			selected = append(selected, e)
+		}
+	}
+	return WrapArray(selected)
+}
+
+func (av *ArrayValue) Slice(i int, j int) IndexedValue {
 	return WrapArray(av.elements[i:j])
 }
 

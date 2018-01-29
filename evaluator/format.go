@@ -58,7 +58,7 @@ var NewFormatContext2 func(indentation Indentation, formatMap FormatMap) FormatC
 var NewFormatContext3 func(value PValue, format PValue) (FormatContext, error)
 
 func GetFormat(f FormatMap, t PType) Format {
-	v := f.Entries().Iterator().Find(func(ev PValue) bool {
+	v := f.Iterator().Find(func(ev PValue) bool {
 		entry := ev.(EntryValue)
 		return IsAssignable(entry.Key().(PType), t)
 	})

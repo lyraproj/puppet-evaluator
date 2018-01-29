@@ -298,7 +298,7 @@ func FormatFromHash(h *HashValue) Format {
 	AssertInstance(`String format hash`, TYPE_STRING_FORMAT_HASH, h)
 
 	stringArg := func(key string, required bool) string {
-		v := h.Get2(key, _UNDEF)
+		v := h.Get5(key, _UNDEF)
 		switch v.(type) {
 		case *StringValue:
 			return v.String()
@@ -309,7 +309,7 @@ func FormatFromHash(h *HashValue) Format {
 
 	var cf FormatMap
 	cf = nil
-	if v := h.Get2(`string_formats`, _UNDEF); !Equals(v, _UNDEF) {
+	if v := h.Get5(`string_formats`, _UNDEF); !Equals(v, _UNDEF) {
 		cf = NewFormatMap(v.(*HashValue))
 	}
 	return parseFormat(stringArg(`format`, true), stringArg(`separator`, false), stringArg(`separator2`, false), cf)

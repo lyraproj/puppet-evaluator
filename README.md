@@ -108,6 +108,7 @@ directory.
 * [x] Scalar
 * [x] SemVer
 * [x] SemVerRange
+* [x] Sensitive
 * [x] String
 * [x] Struct
 * [x] Target

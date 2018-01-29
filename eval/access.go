@@ -94,20 +94,23 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 		}
 		return WrapArray(el)
 
-	case *ArrayValue:
+	case IndexedValue:
 		if nArgs == 0 || nArgs > 2 {
 			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
 		}
 		if nArgs == 2 {
 			start := indexArg(0)
+			count := countArg(1, start)
 			if start < 0 {
 				start = 0
 			}
-			count := countArg(1, start)
 			if start == opV.Len() || count == 0 {
+				if _, ok := opV.(*StringValue); ok {
+					return EMPTY_STRING
+				}
 				return EMPTY_ARRAY
 			}
-			return opV.(*ArrayValue).Slice(start, start+count)
+			return opV.(IndexedValue).Slice(start, start+count)
 		}
 		pos := intArg(0)
 		if pos < 0 {
@@ -119,34 +122,7 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 		if pos >= opV.Len() {
 			return UNDEF
 		}
-		return opV.(*ArrayValue).At(pos)
-
-	case *StringValue:
-		if nArgs == 0 || nArgs > 2 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
-		}
-		if nArgs == 2 {
-			start := indexArg(0)
-			count := countArg(1, start)
-			if start < 0 {
-				start = 0
-			}
-			if start == opV.Len() || count == 0 {
-				return EMPTY_STRING
-			}
-			return opV.(*StringValue).Slice(start, start+count)
-		}
-		pos := intArg(0)
-		if pos < 0 {
-			pos = opV.Len() + pos
-			if pos < 0 {
-				return nil
-			}
-		}
-		if pos >= opV.Len() {
-			return nil
-		}
-		return opV.(*StringValue).Slice(pos, pos+1)
+		return opV.(IndexedValue).At(pos)
 
 	default:
 		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, H{`operator`: `[]`, `left`: opV.Type()}))
@@ -192,6 +168,8 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 		tp = NewRuntimeType2(args...)
 	case `semver`:
 		tp = NewSemVerType2(args...)
+	case `sensitive`:
+		tp = NewSensitiveType2(args...)
 	case `string`:
 		tp = NewStringType2(args...)
 	case `struct`:
