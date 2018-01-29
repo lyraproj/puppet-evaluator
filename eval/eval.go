@@ -40,6 +40,7 @@ var coreTypes = map[string]PType{
 	`scalar`:        DefaultScalarType(),
 	`semver`:        DefaultSemVerType(),
 	`semverrange`:   DefaultSemVerRangeType(),
+	`sensitive`:     DefaultSensitiveType(),
 	`string`:        DefaultStringType(),
 	`struct`:        DefaultStructType(),
 	`timespan`:      DefaultTimespanType(),
