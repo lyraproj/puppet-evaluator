@@ -95,6 +95,8 @@ var NewGoFunction2 func(name string, localTypes LocalTypesCreator, creators ...D
 
 var NewGoConstructor func(typeName string, creators ...DispatchCreator)
 
+var MakeGoAllocator func(allocFunc DispatchFunction) Lambda
+
 var NewGoConstructor2 func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator)
 
 var MakeGoConstructor func(typeName string, creators ...DispatchCreator) ResolvableFunction

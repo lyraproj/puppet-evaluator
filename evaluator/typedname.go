@@ -39,6 +39,7 @@ const (
 	TYPE        = Namespace(`type`)
 	FUNCTION    = Namespace(`function`)
 	PLAN        = Namespace(`plan`)
+	ALLOCATOR   = Namespace(`allocator`)
 	CONSTRUCTOR = Namespace(`constructor`)
 	TASK        = Namespace(`task`)
 )

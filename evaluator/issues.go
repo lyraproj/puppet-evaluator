@@ -49,6 +49,7 @@ const (
 	EVAL_NOT_NUMERIC                     = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE          = `EVAL_NOT_PARAMETERIZED_TYPE`
 	EVAL_NOT_SEMVER                      = `EVAL_NOT_SEMVER`
+	EVAL_OBJECT_ALLOCATOR_NOT_FOUND      = `EVAL_OBJECT_ALLOCATOR_NOT_FOUND`
 	EVAL_OBJECT_INHERITS_SELF            = `EVAL_OBJECT_INHERITS_SELF`
 	EVAL_OPERATOR_NOT_APPLICABLE         = `EVAL_OPERATOR_NOT_APPLICABLE`
 	EVAL_OPERATOR_NOT_APPLICABLE_WHEN    = `EVAL_OPERATOR_NOT_APPLICABLE_WHEN`
@@ -67,6 +68,8 @@ const (
 	EVAL_TASK_NOT_JSON_OBJECT            = `EVAL_TASK_NOT_JSON_OBJECT`
 	EVAL_TASK_TOO_MANY_FILES             = `EVAL_TASK_TOO_MANY_FILES`
 	EVAL_TYPE_MISMATCH                   = `EVAL_TYPE_MISMATCH`
+	EVAL_UNABLE_TO_DESERIALIZE_TYPE      = `EVAL_UNABLE_TO_DESERIALIZE_TYPE`
+	EVAL_UNABLE_TO_DESERIALIZE_VALUE     = `EVAL_UNABLE_TO_DESERIALIZE_VALUE`
 	EVAL_UNABLE_TO_READ_FILE             = `EVAL_UNABLE_TO_READ_FILE`
 	EVAL_UNHANDLED_EXPRESSION            = `EVAL_UNHANDLED_EXPRESSION`
 	EVAL_UNKNOWN_FUNCTION                = `EVAL_UNKNOWN_FUNCTION`
@@ -160,6 +163,8 @@ func init() {
 
 	HardIssue(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
 
+	HardIssue(EVAL_OBJECT_ALLOCATOR_NOT_FOUND, `Unable to load the allocator for data type '%{type}'`)
+
 	HardIssue(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 
 	HardIssue(EVAL_NO_DEFINITION, `The code loaded from %{source} does not define the %{type} '%{name}`)
@@ -210,6 +215,10 @@ func init() {
 	HardIssue(EVAL_TASK_TOO_MANY_FILES, `Only one file can exists besides the .json file for task %{name} in directory %{directory}`)
 
 	HardIssue(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
+
+	HardIssue(EVAL_UNABLE_TO_DESERIALIZE_TYPE, `Unable to deserialize a data type from hash %{hash}`)
+
+	HardIssue2(EVAL_UNABLE_TO_DESERIALIZE_VALUE, `Unable to deserialize an instance of %{type} from %{arg_type}`, HF{`arg_type`: A_an})
 
 	HardIssue(EVAL_UNABLE_TO_READ_FILE, `Unable to read file '%{path}': %{detail}`)
 

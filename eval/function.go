@@ -585,6 +585,10 @@ func init() {
 		RegisterGoConstructor(buildFunction(typeName, localTypes, creators))
 	}
 
+	MakeGoAllocator = func(allocFunc DispatchFunction) Lambda {
+		return &goLambda{lambda{NewCallableType(EmptyTupleType(), nil, nil)}, allocFunc}
+	}
+
 	MakeGoConstructor = func(typeName string, creators ...DispatchCreator) ResolvableFunction {
 		return buildFunction(typeName, nil, creators)
 	}

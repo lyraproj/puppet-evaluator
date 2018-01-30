@@ -14,6 +14,7 @@ import (
 )
 
 var coreTypes = map[string]PType{
+	`annotation`:    DefaultAnnotationType(),
 	`any`:           DefaultAnyType(),
 	`array`:         DefaultArrayType(),
 	`binary`:        DefaultBinaryType(),

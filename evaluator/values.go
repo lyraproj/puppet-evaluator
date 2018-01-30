@@ -15,6 +15,12 @@ type (
 		Type() PType
 	}
 
+	ObjectValue interface {
+		PValue
+		Initialize(arguments []PValue)
+		InitFromHash(hash KeyedValue)
+	}
+
 	DetailedTypeValue interface {
 		PValue
 		DetailedType() PType

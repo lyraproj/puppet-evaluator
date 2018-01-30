@@ -14,6 +14,29 @@ import (
 	"sync/atomic"
 )
 
+var Object_Type PType
+
+func init() {
+	Object_Type = newType(`ObjectType`,
+		`AnyType {
+  attributes => {
+    '_pcore_init_hash' => Struct[
+			Optional[name] => Pattern[/\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z/],
+			Optional[parent] => Type,
+			Optional[type_parameters] => Hash[Pattern[/\A[a-z_]\w*\z/], NotUndef],
+			Optional[attributes] => Hash[Pattern[/\A[a-z_]\w*\z/], NotUndef],
+			Optional[constants] => Hash[Pattern[/\A[a-z_]\w*\z/], Any],
+			Optional[functions] => Hash[Pattern[/\A[a-z_]\w*\z/], Callable],
+			Optional[equality] => Variant[Pattern[/\A[a-z_]\w*\z/], Array[Pattern[/\A[a-z_]\w*\z/]]],
+			Optional[equality_includes_type] => Boolean,
+      Optional[checks] => Any,
+      Optional[annotations] => Hash[Type[Annotation], Hash[Pattern[/\A[a-z_]\w*\z/], Any]]
+    ]
+  }
+}`)
+}
+
+
 const (
 	KEY_ANNOTATIONS           = `annotations`
 	KEY_ATTRIBUTES            = `attributes`
@@ -49,6 +72,10 @@ var annotationType_DEFAULT = &objectType{
 	attributes:  EMPTY_STRINGHASH,
 	functions:   EMPTY_STRINGHASH,
 	equality:    nil}
+
+func DefaultAnnotationType() PType {
+	return annotationType_DEFAULT
+}
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
@@ -152,7 +179,7 @@ type (
 		attrInfo            *attributesInfo
 	}
 
-	ObjectValue struct {
+	objectValue struct {
 		typ ObjectType
 		values []PValue
 	}
@@ -162,7 +189,7 @@ func argError(e PType, a PValue) errors.InstantiationError {
 	return errors.NewArgumentsError(``, DescribeMismatch(`assert`, e, a.Type()))
 }
 
-func typeArg(hash *HashValue, key string, d PType) PType {
+func typeArg(hash KeyedValue, key string, d PType) PType {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -173,7 +200,7 @@ func typeArg(hash *HashValue, key string, d PType) PType {
 	panic(argError(DefaultTypeType(), v))
 }
 
-func hashArg(hash *HashValue, key string) *HashValue {
+func hashArg(hash KeyedValue, key string) *HashValue {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return _EMPTY_MAP
@@ -184,7 +211,7 @@ func hashArg(hash *HashValue, key string) *HashValue {
 	panic(argError(DefaultHashType(), v))
 }
 
-func boolArg(hash *HashValue, key string, d bool) bool {
+func boolArg(hash KeyedValue, key string, d bool) bool {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -195,7 +222,7 @@ func boolArg(hash *HashValue, key string, d bool) bool {
 	panic(argError(DefaultBooleanType(), v))
 }
 
-func stringArg(hash *HashValue, key string, d string) string {
+func stringArg(hash KeyedValue, key string, d string) string {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -482,23 +509,41 @@ func DefaultObjectType() *objectType {
 
 var objectId = int64(0)
 
-func NewObjectType(name string, parent PType, initHashExpression Expression) *objectType {
+func AllocObjectType() *objectType {
 	return &objectType{
 		annotatable: annotatable{annotations: _EMPTY_MAP},
-		name: name,
+		name: ``,
 		hashKey:     HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
-		initHashExpression: initHashExpression,
-		parent:      parent,
+		initHashExpression: nil,
+		parent:      nil,
 		parameters:  EMPTY_STRINGHASH,
 		attributes:  EMPTY_STRINGHASH,
 		functions:   EMPTY_STRINGHASH}
 }
 
+func (f *objectType) Initialize(args []PValue) {
+	if len(args) == 1 {
+		if hash, ok := args[0].(KeyedValue); ok {
+			f.InitFromHash(hash)
+			return
+		}
+	}
+	panic(Error(EVAL_FAILURE, H{`message`: `internal error when creating an Object data type`}))
+}
+
+func NewObjectType(name string, parent PType, initHashExpression Expression) *objectType {
+	obj := AllocObjectType()
+	obj.name = name
+	obj.initHashExpression = initHashExpression
+	obj.parent = parent
+	return obj
+}
+
 func NewObjectType2(initHash *HashValue, loader Loader) *objectType {
-	result := &objectType{hashKey: HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1)))}
-	result.initFromHash(initHash)
-	result.loader = loader
-	return result
+	obj := AllocObjectType()
+	obj.InitFromHash(initHash)
+	obj.loader = loader
+	return obj
 }
 
 func (t *objectType) Accept(v Visitor, g Guard) {
@@ -581,7 +626,7 @@ func (t *objectType) ToString(b io.Writer, s FormatContext, g RDetect) {
 }
 
 func (t *objectType) Type() PType {
-	return &TypeType{t}
+	return Object_Type
 }
 
 func (t *objectType) String() string {
@@ -635,7 +680,7 @@ func (t *objectType) Resolve(c EvalContext) PType {
 			initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
 		}
 		t.loader = c.Loader()
-		t.initFromHash(initHash)
+		t.InitFromHash(initHash)
 		if t.name != `` {
 			t.createNewFunction(c)
 		}
@@ -671,7 +716,7 @@ func resolveTypeRefs(c EvalContext, v PValue) PValue {
 	}
 }
 
-func (t *objectType) initFromHash(initHash *HashValue) {
+func (t *objectType) InitFromHash(initHash KeyedValue) {
 	AssertInstance(`object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
 	t.parameters = EMPTY_STRINGHASH
 	t.attributes = EMPTY_STRINGHASH
@@ -864,6 +909,12 @@ func (t *objectType) initFromHash(initHash *HashValue) {
 
 func (o *objectType) createNewFunction(c EvalContext) {
 	pi := o.AttributesInfo()
+	dl := o.loader.(DefiningLoader)
+
+	dl.SetEntry(NewTypedName(ALLOCATOR, o.name), NewLoaderEntry(MakeGoAllocator(func(ctx EvalContext, args []PValue) PValue {
+		return AllocObjectValue(o)
+	}), ``))
+
 	ctor := MakeGoConstructor(o.name,
 		func(d Dispatch) {
 			for i, attr := range pi.Attributes() {
@@ -887,7 +938,7 @@ func (o *objectType) createNewFunction(c EvalContext) {
 				return NewObjectValue2(o, args[0].(*HashValue))
 			})
 		})
-	o.loader.(DefiningLoader).SetEntry(NewTypedName(CONSTRUCTOR, o.name), NewLoaderEntry(ctor.Resolve(c), ``))
+	dl.SetEntry(NewTypedName(CONSTRUCTOR, o.name), NewLoaderEntry(ctor.Resolve(c), ``))
 }
 
 func (o *objectType) AttributesInfo() AttributesInfo {
@@ -917,6 +968,10 @@ func (o *objectType) EachAttribute(includeParent bool, consumer func(attr Attrib
 		o.resolvedParent().EachAttribute(includeParent, consumer)
 	}
 	o.attributes.EachValue(func(a interface{}) { consumer(a.(Attribute))})
+}
+
+func (o *objectType) IsMetaType() bool {
+	return IsAssignable(Any_Type, o)
 }
 
 func (o *objectType) createAttributesInfo() *attributesInfo {
@@ -1178,15 +1233,24 @@ func (t *objectType) collectParameters(includeParent bool, collector *StringHash
 	collector.PutAll(t.parameters)
 }
 
-func NewObjectValue(typ *objectType, values []PValue) *ObjectValue {
-	if len(values) > 0 && typ.IsParameterized() {
-		return NewObjectValue2(typ, makeValueHash(typ.AttributesInfo(), values))
+func AllocObjectValue(typ *objectType) ObjectValue {
+	if typ.IsMetaType() {
+		return AllocObjectType()
 	}
-	fillValueSlice(values, typ.AttributesInfo().Attributes())
-	return &ObjectValue{typ, values}
+	return &objectValue{typ, EMPTY_VALUES}
 }
 
-func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
+func (ov *objectValue) Initialize(values []PValue) {
+	if len(values) > 0 && ov.typ.IsParameterized() {
+		ov.InitFromHash(makeValueHash(ov.typ.AttributesInfo(), values))
+		return
+	}
+	fillValueSlice(values, ov.typ.AttributesInfo().Attributes())
+  ov.values = values
+}
+
+func (ov* objectValue) InitFromHash(hash KeyedValue) {
+	typ := ov.typ.(*objectType)
 	ai := typ.AttributesInfo()
 
 	nameToPos := ai.NameToPos()
@@ -1206,10 +1270,22 @@ func NewObjectValue2(typ *objectType, hash *HashValue) *ObjectValue {
 			}
 		})
 		if len(params) > 0 {
-			return &ObjectValue{NewObjectTypeExtension(typ, []PValue{WrapHash(params)}), va}
+			ov.typ = NewObjectTypeExtension(typ, []PValue{WrapHash(params)})
 		}
 	}
-	return &ObjectValue{typ, va}
+	ov.values = va
+}
+
+func NewObjectValue(typ *objectType, values []PValue) ObjectValue {
+	ov := AllocObjectValue(typ)
+	ov.Initialize(values)
+	return ov
+}
+
+func NewObjectValue2(typ *objectType, hash *HashValue) ObjectValue {
+	ov := AllocObjectValue(typ)
+	ov.InitFromHash(hash)
+	return ov
 }
 
 // Ensure that all entries in the value slice that are nil receive default values from the given attributes
@@ -1225,7 +1301,7 @@ func fillValueSlice(values []PValue, attrs []Attribute) {
 	}
 }
 
-func (o *ObjectValue) Get(key string) (PValue, bool) {
+func (o *objectValue) Get(key string) (PValue, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
@@ -1236,27 +1312,27 @@ func (o *ObjectValue) Get(key string) (PValue, bool) {
 	return nil, false
 }
 
-func (o *ObjectValue) Equals(other interface{}, g Guard) bool {
-	if ov, ok := other.(*ObjectValue); ok {
+func (o *objectValue) Equals(other interface{}, g Guard) bool {
+	if ov, ok := other.(*objectValue); ok {
 		return o.typ.Equals(ov.typ, g) && GuardedEquals(o.values, ov.values, g)
 	}
 	return false
 }
 
-func (o *ObjectValue) String() string {
+func (o *objectValue) String() string {
 	return ToString(o)
 }
 
-func (o *ObjectValue) ToString(b io.Writer, s FormatContext, g RDetect) {
+func (o *objectValue) ToString(b io.Writer, s FormatContext, g RDetect) {
 	io.WriteString(b, o.typ.Name())
 	o.InitHash().(*HashValue).ToString2(b, s, GetFormat(s.FormatMap(), o.typ), '(', g)
 }
 
-func (o *ObjectValue) Type() PType {
+func (o *objectValue) Type() PType {
 	return o.typ
 }
 
-func (o *ObjectValue) InitHash() KeyedValue {
+func (o *objectValue) InitHash() KeyedValue {
 	return makeValueHash(o.typ.AttributesInfo(), o.values)
 }
 
