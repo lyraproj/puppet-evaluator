@@ -25,13 +25,22 @@ type (
 		err io.Writer
 	}
 
-	LogEntry struct {
-		level   LogLevel
-		message string
+	LogEntry interface {
+		Level()   LogLevel
+		Message() string
 	}
 
 	ArrayLogger struct {
-		entries []*LogEntry
+		entries []LogEntry
+	}
+
+	ReportedEntry struct {
+		issue *issue.ReportedIssue
+	}
+
+	TextEntry struct {
+		level LogLevel
+		message string
 	}
 )
 
@@ -44,6 +53,7 @@ const (
 	INFO    = LogLevel(`info`)
 	NOTICE  = LogLevel(`notice`)
 	WARNING = LogLevel(`warning`)
+	IGNORE  = LogLevel(``)
 )
 
 var LOG_LEVELS = []LogLevel{ALERT, CRIT, DEBUG, EMERG, ERR, INFO, NOTICE, WARNING}
@@ -57,38 +67,6 @@ func (l LogLevel) Severity() issue.Severity {
 	default:
 		return issue.SEVERITY_IGNORE
 	}
-}
-
-func Alert(logger Logger, format string, args ...interface{}) {
-	logger.Logf(ALERT, format, args)
-}
-
-func Crit(logger Logger, format string, args ...interface{}) {
-	logger.Logf(CRIT, format, args)
-}
-
-func Debug(logger Logger, format string, args ...interface{}) {
-	logger.Logf(DEBUG, format, args)
-}
-
-func Emerg(logger Logger, format string, args ...interface{}) {
-	logger.Logf(EMERG, format, args)
-}
-
-func Err(logger Logger, format string, args ...interface{}) {
-	logger.Logf(ERR, format, args)
-}
-
-func Info(logger Logger, format string, args ...interface{}) {
-	logger.Logf(INFO, format, args)
-}
-
-func Notice(logger Logger, format string, args ...interface{}) {
-	logger.Logf(NOTICE, format, args)
-}
-
-func Warning(logger Logger, format string, args ...interface{}) {
-	logger.Logf(WARNING, format, args)
 }
 
 func NewStdLogger() Logger {
@@ -123,17 +101,17 @@ func (l *stdlog) LogIssue(issue *issue.ReportedIssue) {
 }
 
 func NewArrayLogger() *ArrayLogger {
-	return &ArrayLogger{make([]*LogEntry, 0, 16)}
+	return &ArrayLogger{make([]LogEntry, 0, 16)}
 }
 
-func (l *ArrayLogger) Entries(level LogLevel) (result []string) {
-	result = make([]string, 0, 8)
+func (l *ArrayLogger) Entries(level LogLevel) []LogEntry {
+	result := make([]LogEntry, 0, 8)
 	for _, entry := range l.entries {
-		if entry.level == level {
-			result = append(result, entry.message)
+		if entry.Level() == level {
+			result = append(result, entry)
 		}
 	}
-	return
+	return result
 }
 
 func (l *ArrayLogger) Log(level LogLevel, args ...PValue) {
@@ -141,22 +119,46 @@ func (l *ArrayLogger) Log(level LogLevel, args ...PValue) {
 	for _, arg := range args {
 		ToString3(arg, w)
 	}
-	l.entries = append(l.entries, &LogEntry{level, w.String()})
+	l.entries = append(l.entries, &TextEntry{level, w.String()})
 }
 
 func (l *ArrayLogger) Logf(level LogLevel, format string, args ...interface{}) {
-	l.entries = append(l.entries, &LogEntry{level, fmt.Sprintf(format, args...)})
+	l.entries = append(l.entries, &TextEntry{level, fmt.Sprintf(format, args...)})
 }
 
 func (l *ArrayLogger) LogIssue(i *issue.ReportedIssue) {
-	var level LogLevel
-	switch i.Severity() {
-	case issue.SEVERITY_ERROR:
-		level = ERR
-	case issue.SEVERITY_WARNING, issue.SEVERITY_DEPRECATION:
-		level = WARNING
-	default:
-		return
+	if i.Severity() != issue.SEVERITY_IGNORE {
+		l.entries = append(l.entries, &ReportedEntry{i})
 	}
-	l.entries = append(l.entries, &LogEntry{level, i.String()})
+}
+
+func (te *TextEntry) Level() LogLevel {
+	return te.level
+}
+
+func (te *TextEntry) Message() string {
+	return te.message
+}
+
+func (re *ReportedEntry) Level() LogLevel {
+	return LogLevelFromSeverity(re.issue.Severity())
+}
+
+func (re *ReportedEntry) Message() string {
+	return re.issue.String()
+}
+
+func (re *ReportedEntry) Issue() *issue.ReportedIssue {
+	return re.issue
+}
+
+func LogLevelFromSeverity(severity issue.Severity) LogLevel {
+	switch severity {
+	case issue.SEVERITY_ERROR:
+		return ERR
+	case issue.SEVERITY_WARNING, issue.SEVERITY_DEPRECATION:
+		return WARNING
+	default:
+		return IGNORE
+	}
 }
