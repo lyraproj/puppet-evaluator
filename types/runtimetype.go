@@ -109,6 +109,10 @@ func (t *RuntimeType) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (t *RuntimeType) Generic() PType {
+	return runtimeType_DEFAULT
+}
+
 func (t *RuntimeType) IsAssignable(o PType, g Guard) bool {
 	if rt, ok := o.(*RuntimeType); ok {
 		if t.goType != nil && rt.goType != nil {
