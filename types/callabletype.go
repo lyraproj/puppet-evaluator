@@ -224,4 +224,4 @@ func (t *CallableType) ToString(b Writer, s FormatContext, g RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-var callableType_DEFAULT = &CallableType{paramsType:nil,blockType:nil,returnType:nil}
+var callableType_DEFAULT = &CallableType{paramsType: nil, blockType: nil, returnType: nil}

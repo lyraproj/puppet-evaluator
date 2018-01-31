@@ -8,13 +8,13 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/semver"
 	. "github.com/puppetlabs/go-evaluator/types"
-	. "github.com/puppetlabs/go-parser/parser"
 	. "github.com/puppetlabs/go-parser/issue"
+	. "github.com/puppetlabs/go-parser/parser"
 )
 
 func init() {
-  PuppetMatch = func(a, b PValue) bool {
-  	return match(nil, nil, `=~`, nil, a, b)
+	PuppetMatch = func(a, b PValue) bool {
+		return match(nil, nil, `=~`, nil, a, b)
 	}
 }
 func (e *evaluator) eval_ComparisonExpression(expr *ComparisonExpression, c EvalContext) PValue {

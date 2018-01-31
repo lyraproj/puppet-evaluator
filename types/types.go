@@ -5,17 +5,17 @@ import (
 	"io"
 	. "reflect"
 
+	"encoding/json"
+	"fmt"
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/semver"
-	"time"
-	"regexp"
-	. "github.com/puppetlabs/go-parser/parser"
-	"runtime"
 	"github.com/puppetlabs/go-parser/issue"
-	"fmt"
+	. "github.com/puppetlabs/go-parser/parser"
+	"regexp"
+	"runtime"
 	"sync"
-	"encoding/json"
+	"time"
 )
 
 const (

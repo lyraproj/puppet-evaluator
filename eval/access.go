@@ -3,8 +3,8 @@ package eval
 import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
-	. "github.com/puppetlabs/go-parser/parser"
 	. "github.com/puppetlabs/go-parser/issue"
+	. "github.com/puppetlabs/go-parser/parser"
 )
 
 func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext) (result PValue) {
@@ -187,7 +187,7 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 	case `variant`:
 		tp = NewVariantType2(args...)
 	case `boolean`:
-    tp = NewBooleanType2(args...)
+		tp = NewBooleanType2(args...)
 	case `any`:
 	case `binary`:
 	case `catalogentry`:

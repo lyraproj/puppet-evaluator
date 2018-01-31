@@ -1,11 +1,11 @@
 package serialization
 
 import (
+	"encoding/json"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
-	"io"
 	"github.com/puppetlabs/go-parser/issue"
-	"encoding/json"
+	"io"
 )
 
 func DataToNative(value PValue) interface{} {

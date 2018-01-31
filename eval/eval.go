@@ -76,7 +76,7 @@ type (
 		loader       Loader
 	}
 
-	systemLocation struct {}
+	systemLocation struct{}
 )
 
 func (systemLocation) File() string {
@@ -99,7 +99,7 @@ func init() {
 	}
 
 	Error = func(issueCode IssueCode, args H) *ReportedIssue {
-    var location Location
+		var location Location
 		c := currentContext
 		if c == nil {
 			location = nil
@@ -300,7 +300,7 @@ func (e *evaluator) Evaluate(expr Expression, scope Scope, loader Loader) (resul
 	if loader == nil {
 		loader = e.loaderForFile(expr.File())
 	}
-	ctx :=  &context{e.self, loader, scope, make([]Location, 0, 64)}
+	ctx := &context{e.self, loader, scope, make([]Location, 0, 64)}
 	ctx.StackPush(expr)
 	e.ResolveDefinitions(ctx)
 	currentContext = ctx
@@ -322,9 +322,9 @@ func (e *evaluator) callFunction(name string, args []PValue, call CallExpression
 }
 
 func (e *evaluator) call(funcType Namespace, name string, args []PValue, call CallExpression, c EvalContext) (result PValue) {
-if c == nil || c.Loader() == nil {
-	panic(`foo`)
-}
+	if c == nil || c.Loader() == nil {
+		panic(`foo`)
+	}
 	tn := NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := Load(c.Loader(), tn)
 	if !ok {
@@ -406,7 +406,7 @@ func (e *evaluator) eval_OrExpression(expr *OrExpression, c EvalContext) PValue 
 }
 
 func (e *evaluator) eval_BlockExpression(expr *BlockExpression, c EvalContext) (result PValue) {
-  result = UNDEF
+	result = UNDEF
 	for _, statement := range expr.Statements() {
 		result = e.eval(statement, c)
 	}

@@ -1,14 +1,14 @@
 package types
 
 import (
-	. "github.com/puppetlabs/go-evaluator/hash"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/hash"
 	"github.com/puppetlabs/go-parser/issue"
 	"io"
 )
 
 type objectTypeExtension struct {
-	baseType *objectType
+	baseType   *objectType
 	parameters *StringHash
 }
 
@@ -25,9 +25,9 @@ func init() {
 }
 
 func NewObjectTypeExtension(baseType ObjectType, initParameters []PValue) *objectTypeExtension {
-  o := &objectTypeExtension{}
-  o.initialize(baseType.(*objectType), initParameters)
-  return o
+	o := &objectTypeExtension{}
+	o.initialize(baseType.(*objectType), initParameters)
+	return o
 }
 
 func (te *objectTypeExtension) Accept(v Visitor, g Guard) {
@@ -45,7 +45,7 @@ func (te *objectTypeExtension) Equals(other interface{}, g Guard) bool {
 }
 
 func (te *objectTypeExtension) Generalize() PType {
-  return te.baseType
+	return te.baseType
 }
 
 func (te *objectTypeExtension) IsAssignable(t PType, g Guard) bool {
@@ -138,16 +138,16 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 				panic(Error(EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !Equals(pv, WrapDefault()) {
-			  byName.Put(pn, checkParam(tp.(*typeParameter), pv))
+				byName.Put(pn, checkParam(tp.(*typeParameter), pv))
 			}
 		})
 	} else {
-    for idx, t := range pvs {
-    	if idx < len(initParameters) {
-    		tp := t.(*typeParameter)
-    		pv := initParameters[idx]
+		for idx, t := range pvs {
+			if idx < len(initParameters) {
+				tp := t.(*typeParameter)
+				pv := initParameters[idx]
 				if !Equals(pv, WrapDefault()) {
-	    		byName.Put(tp.Name(), checkParam(tp, pv))
+					byName.Put(tp.Name(), checkParam(tp, pv))
 				}
 			}
 		}
@@ -177,7 +177,7 @@ func (te *objectTypeExtension) testAssignable(paramValues *StringHash, g Guard) 
 			a := v2.(PValue)
 			b := v1.(PValue)
 			if PuppetMatch(a, b) {
-        return true
+				return true
 			}
 			if at, ok := a.(PType); ok {
 				if bt, ok := b.(PType); ok {

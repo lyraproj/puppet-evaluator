@@ -1,15 +1,15 @@
 package types
 
 import (
-	. "io"
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "io"
 )
 
 var sensitiveType_DEFAULT = &SensitiveType{typ: anyType_DEFAULT}
 
 type (
-	SensitiveType struct{
+	SensitiveType struct {
 		typ PType
 	}
 

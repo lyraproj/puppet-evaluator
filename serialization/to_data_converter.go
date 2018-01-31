@@ -1,24 +1,24 @@
 package serialization
 
 import (
+	"bytes"
+	"fmt"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/issue"
-	"bytes"
-	"fmt"
 	"strings"
 )
 
-type(
+type (
 	ToDataConverter struct {
 		typeByReference bool
-		localReference bool
-		symbolAsString bool
-		richData bool
-		messagePrefix string
-		path []PValue
-		values map[PValue]interface{}
-		recursiveLock map[PValue]bool
+		localReference  bool
+		symbolAsString  bool
+		richData        bool
+		messagePrefix   string
+		path            []PValue
+		values          map[PValue]interface{}
+		recursiveLock   map[PValue]bool
 	}
 )
 
@@ -33,29 +33,29 @@ func NewToDataConverter(options KeyedValue) *ToDataConverter {
 }
 
 func (t *ToDataConverter) Convert(value PValue) PValue {
-  t.path = make([]PValue, 0, 16)
-  t.values = make(map[PValue]interface{}, 63)
-  return t.toData(value)
+	t.path = make([]PValue, 0, 16)
+	t.values = make(map[PValue]interface{}, 63)
+	return t.toData(value)
 }
 
 func toJsonPath(path []PValue) string {
-  s := bytes.NewBufferString(`$`)
-  for _, v := range path {
-  	if v == nil {
-  		s.WriteString(`[null]`)
-	  } else if IsInstance(DefaultScalarType(), v) {
-	  	s.WriteByte('[')
-	  	v.ToString(s, PROGRAM, nil)
-		  s.WriteByte(']')
-	  } else {
-	  	return ``
-	  }
-  }
-  return s.String()
+	s := bytes.NewBufferString(`$`)
+	for _, v := range path {
+		if v == nil {
+			s.WriteString(`[null]`)
+		} else if IsInstance(DefaultScalarType(), v) {
+			s.WriteByte('[')
+			v.ToString(s, PROGRAM, nil)
+			s.WriteByte(']')
+		} else {
+			return ``
+		}
+	}
+	return s.String()
 }
 
-func (t* ToDataConverter) pathToString() string {
-  return fmt.Sprintf(`%s%s`, t.messagePrefix, toJsonPath(t.path)[1:])
+func (t *ToDataConverter) pathToString() string {
+	return fmt.Sprintf(`%s%s`, t.messagePrefix, toJsonPath(t.path)[1:])
 }
 
 func (t *ToDataConverter) toData(value PValue) PValue {
@@ -72,13 +72,20 @@ func (t *ToDataConverter) toData(value PValue) PValue {
 
 	if h, ok := value.(KeyedValue); ok {
 		return t.process(h, func() PValue {
-			if h.AllPairs(func(k, v PValue) bool { if _, ok := k.(*StringValue); ok { return true }; return false }) {
+			if h.AllPairs(func(k, v PValue) bool {
+				if _, ok := k.(*StringValue); ok {
+					return true
+				}
+				return false
+			}) {
 				result := make([]*HashEntry, 0, h.Len())
-				h.EachPair(func(key, elem PValue) { t.with(key, func() PValue {
-					elem = t.toData(elem)
-					result = append(result, WrapHashEntry(key, elem))
-					return elem
-				})})
+				h.EachPair(func(key, elem PValue) {
+					t.with(key, func() PValue {
+						elem = t.toData(elem)
+						result = append(result, WrapHashEntry(key, elem))
+						return elem
+					})
+				})
 				return WrapHash(result)
 			}
 			return t.nonStringKeyedHashToData(h)
@@ -88,11 +95,13 @@ func (t *ToDataConverter) toData(value PValue) PValue {
 	if a, ok := value.(IndexedValue); ok {
 		return t.process(a, func() PValue {
 			result := make([]PValue, 0, a.Len())
-			a.EachWithIndex(func(elem PValue, index int) { t.with(WrapInteger(int64(index)), func() PValue {
-				elem = t.toData(elem)
-				result = append(result, elem)
-				return elem
-			})})
+			a.EachWithIndex(func(elem PValue, index int) {
+				t.with(WrapInteger(int64(index)), func() PValue {
+					elem = t.toData(elem)
+					result = append(result, elem)
+					return elem
+				})
+			})
 			return WrapArray(result)
 		})
 	}
@@ -107,7 +116,7 @@ func (t *ToDataConverter) toData(value PValue) PValue {
 
 func (t *ToDataConverter) withRecursiveGuard(value PValue, producer Producer) PValue {
 	if t.recursiveLock == nil {
-		t.recursiveLock = map[PValue]bool{value:true}
+		t.recursiveLock = map[PValue]bool{value: true}
 	} else {
 		if _, ok := t.recursiveLock[value]; ok {
 			panic(Error(EVAL_SERIALIZATION_ENDLESS_RECURSION, H{`type_name`: value.Type().Name()}))
@@ -150,32 +159,32 @@ func (t *ToDataConverter) unkownToStringWithWarning(value PValue) PValue {
 }
 
 func (t *ToDataConverter) process(value PValue, producer Producer) PValue {
-  if t.localReference {
-  	if ref, ok := t.values[value]; ok {
-  		if hash, ok := ref.(KeyedValue); ok {
-  			return hash
-		  }
-		  jsonRef := toJsonPath(ref.([]PValue))
-		  if jsonRef == `` {
-            // Complex key and hence no way to reference the prior value. The value must therefore be
-            // duplicated which in turn introduces a risk for endless recursion in case of self
-            // referencing structures
-        return t.withRecursiveGuard(value, producer)
-		  }
-	    v :=  WrapHash3(map[string]PValue{PCORE_TYPE_KEY: WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: WrapString(jsonRef)})
-		  t.values[value] = v
-		  return v
-	  }
-    t.values[value] = CopyValues(t.path)
+	if t.localReference {
+		if ref, ok := t.values[value]; ok {
+			if hash, ok := ref.(KeyedValue); ok {
+				return hash
+			}
+			jsonRef := toJsonPath(ref.([]PValue))
+			if jsonRef == `` {
+				// Complex key and hence no way to reference the prior value. The value must therefore be
+				// duplicated which in turn introduces a risk for endless recursion in case of self
+				// referencing structures
+				return t.withRecursiveGuard(value, producer)
+			}
+			v := WrapHash3(map[string]PValue{PCORE_TYPE_KEY: WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: WrapString(jsonRef)})
+			t.values[value] = v
+			return v
+		}
+		t.values[value] = CopyValues(t.path)
 		return producer()
-  }
+	}
 	return t.withRecursiveGuard(value, producer)
 }
 
 func (t *ToDataConverter) with(key PValue, producer Producer) PValue {
 	t.path = append(t.path, key)
 	value := producer()
-	t.path = t.path[0:len(t.path)-1]
+	t.path = t.path[0 : len(t.path)-1]
 	return value
 }
 
@@ -184,13 +193,15 @@ func (t *ToDataConverter) nonStringKeyedHashToData(hash KeyedValue) PValue {
 		return t.toKeyExtendedHash(hash)
 	}
 	result := make([]*HashEntry, 0, hash.Len())
-	hash.EachPair(func(key, elem PValue) { t.with(key, func() PValue {
-		if _, ok := key.(*StringValue); !ok {
-			key = t.unkownToStringWithWarning(key)
-		}
-		result = append(result, WrapHashEntry(key, t.toData(elem)))
-		return UNDEF
-	})})
+	hash.EachPair(func(key, elem PValue) {
+		t.with(key, func() PValue {
+			if _, ok := key.(*StringValue); !ok {
+				key = t.unkownToStringWithWarning(key)
+			}
+			result = append(result, WrapHashEntry(key, t.toData(elem)))
+			return UNDEF
+		})
+	})
 	return WrapHash(result)
 }
 
@@ -228,10 +239,10 @@ func (t *ToDataConverter) pcoreTypeToData(pcoreType PType) PValue {
 }
 
 func (t *ToDataConverter) toKeyExtendedHash(hash KeyedValue) PValue {
-  pairs := make([]PValue, 0, 2 * hash.Len())
-  hash.EachPair(func(key, value PValue) {
-  	key = t.toData(key)
-  	pairs = append(pairs, key, t.with(key, func() PValue { return t.toData(value) }))
-  })
-  return WrapHash3(map[string]PValue{PCORE_TYPE_KEY: WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: WrapArray(pairs)})
+	pairs := make([]PValue, 0, 2*hash.Len())
+	hash.EachPair(func(key, value PValue) {
+		key = t.toData(key)
+		pairs = append(pairs, key, t.with(key, func() PValue { return t.toData(value) }))
+	})
+	return WrapHash3(map[string]PValue{PCORE_TYPE_KEY: WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: WrapArray(pairs)})
 }

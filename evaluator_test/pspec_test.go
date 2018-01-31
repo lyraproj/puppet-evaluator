@@ -1,14 +1,14 @@
 package evaluator
 
 import (
+	"bytes"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
-	"testing"
-	"github.com/puppetlabs/go-pspec/pspec"
-	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-evaluator/serialization"
 	"github.com/puppetlabs/go-evaluator/types"
-	"bytes"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-pspec/pspec"
 	"strings"
+	"testing"
 )
 
 func TestPSpecs(t *testing.T) {
@@ -52,7 +52,7 @@ func init() {
 		func(d Dispatch) {
 			d.Param(`Any`)
 			d.OptionalParam(
-`Struct[
+				`Struct[
   Optional['type_by_reference'] => Boolean,
   Optional['local_reference'] => Boolean,
   Optional['symbol_as_string'] => Boolean,

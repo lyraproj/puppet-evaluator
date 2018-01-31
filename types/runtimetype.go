@@ -87,8 +87,8 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 //
 // To create an Runtime for the interface Foo, pass []Foo{} to this method.
 func NewGoRuntimeType(array interface{}) *RuntimeType {
-	goType :=  reflect.TypeOf(array).Elem()
-	return &RuntimeType{runtime:`go`, name: goType.String(), goType: goType}
+	goType := reflect.TypeOf(array).Elem()
+	return &RuntimeType{runtime: `go`, name: goType.String(), goType: goType}
 }
 
 func (t *RuntimeType) Accept(v Visitor, g Guard) {
@@ -190,7 +190,7 @@ func (t *RuntimeType) Type() PType {
 
 func WrapRuntime(value interface{}) *RuntimeValue {
 	goType := reflect.TypeOf(value)
-	return &RuntimeValue{&RuntimeType{runtime:`go`, name: goType.String(), goType: goType}, value}
+	return &RuntimeValue{&RuntimeType{runtime: `go`, name: goType.String(), goType: goType}, value}
 }
 
 func (rv *RuntimeValue) Equals(o interface{}, g Guard) bool {

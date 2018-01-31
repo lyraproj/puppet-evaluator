@@ -8,16 +8,16 @@ import (
 // Mutable and order preserving hash with string keys and arbitrary values. Used, among other things, by the
 // Object type to store parameters, attributes, and functions
 
-type(
+type (
 	stringEntry struct {
-		key string
+		key   string
 		value interface{}
 	}
 
 	StringHash struct {
 		entries []*stringEntry
-		index map[string]int
-		frozen bool
+		index   map[string]int
+		frozen  bool
 	}
 
 	frozenError struct {
@@ -155,7 +155,7 @@ func (h *StringHash) Delete(key string) (oldValue interface{}) {
 				index[k] = p - 1
 			}
 		}
-		ne := make([]*stringEntry, len(h.entries) - 1)
+		ne := make([]*stringEntry, len(h.entries)-1)
 		for i, e := range h.entries {
 			if i < p {
 				ne[i] = e

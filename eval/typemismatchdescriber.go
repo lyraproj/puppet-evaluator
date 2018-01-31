@@ -5,12 +5,12 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
+	. "github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"math"
 	"reflect"
 	"strconv"
 	"strings"
-	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -157,7 +157,7 @@ func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 		if ot, ok := o.(*typeMismatch); ok {
 			if ev, ok := et.expectedType.(*VariantType); ok {
 				if ov, ok := ot.expectedType.(*VariantType); ok {
-					ts := make([]PType, len(ev.Types()) + len(ov.Types()))
+					ts := make([]PType, len(ev.Types())+len(ov.Types()))
 					ts = append(ts, ev.Types()...)
 					ts = append(ts, ov.Types()...)
 					et.setExpected(NewVariantType(UniqueTypes(ts)))
@@ -166,7 +166,7 @@ func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 				}
 			} else {
 				if ov, ok := ot.expectedType.(*VariantType); ok {
-					ts := make([]PType, len(ev.Types()) + 1)
+					ts := make([]PType, len(ev.Types())+1)
 					ts = append(ts, et.expectedType)
 					ts = append(ts, ov.Types()...)
 					et.setExpected(NewVariantType(UniqueTypes(ts)))

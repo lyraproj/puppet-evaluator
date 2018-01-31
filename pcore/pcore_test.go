@@ -1,8 +1,8 @@
 package pcore
 
 import (
-	"testing"
 	"github.com/puppetlabs/go-evaluator/evaluator"
+	"testing"
 )
 
 func TestPcore(t *testing.T) {
@@ -13,4 +13,3 @@ func TestPcore(t *testing.T) {
 		t.Errorf(`failed to load %s`, `ObjectTypeExtensionType`)
 	}
 }
-

@@ -593,7 +593,7 @@ func init() {
 		return buildFunction(typeName, nil, creators)
 	}
 
-	MakeGoConstructor2 = func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator)  ResolvableFunction {
+	MakeGoConstructor2 = func(typeName string, localTypes LocalTypesCreator, creators ...DispatchCreator) ResolvableFunction {
 		return buildFunction(typeName, localTypes, creators)
 	}
 }

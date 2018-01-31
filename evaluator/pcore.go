@@ -39,8 +39,8 @@ var PCORE_VERSION = semver.NewVersion4(1, 0, 0, ``, ``)
 var Puppet Pcore = nil
 
 func GetSetting(name string, dflt PValue) PValue {
-  if Puppet == nil {
-  	return dflt
-  }
-  return Puppet.Get(name, func() PValue { return dflt })
+	if Puppet == nil {
+		return dflt
+	}
+	return Puppet.Get(name, func() PValue { return dflt })
 }

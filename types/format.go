@@ -11,8 +11,8 @@ import (
 	. "github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/utils"
-	"unicode/utf8"
 	"github.com/puppetlabs/go-parser/issue"
+	"unicode/utf8"
 )
 
 type (
@@ -132,7 +132,6 @@ func newFormatContext(t PType, format Format, indentation Indentation) FormatCon
 func newFormatContext2(indentation Indentation, formatMap FormatMap) FormatContext {
 	return &formatContext{indentation, formatMap}
 }
-
 
 var TYPE_STRING_FORMAT = NewVariantType([]PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
 
@@ -290,7 +289,7 @@ func NewFormatMap2(t PType, tf Format, fm FormatMap) FormatMap {
 	return mergeFormats(fm, FormatMap(WrapHash([]*HashEntry{{t, tf}})))
 }
 
-var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement {
+var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement{
 	NewStructElement2(`format`, DefaultStringType()),
 	NewStructElement(NewOptionalType3(`separator`), DefaultStringType()),
 	NewStructElement(NewOptionalType3(`separator2`), DefaultStringType()),

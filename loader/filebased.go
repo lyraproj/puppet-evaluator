@@ -5,12 +5,12 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/utils"
+	. "github.com/puppetlabs/go-parser/issue"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/puppetlabs/go-evaluator/utils"
-	. "github.com/puppetlabs/go-parser/issue"
 )
 
 type (

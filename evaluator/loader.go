@@ -60,4 +60,3 @@ var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
 var RegisterGoFunction func(function ResolvableFunction)
 var RegisterGoConstructor func(function ResolvableFunction)
 var RegisterResolvableType func(rt ResolvableType)
-

@@ -26,7 +26,7 @@ type (
 	}
 
 	LogEntry interface {
-		Level()   LogLevel
+		Level() LogLevel
 		Message() string
 	}
 
@@ -39,7 +39,7 @@ type (
 	}
 
 	TextEntry struct {
-		level LogLevel
+		level   LogLevel
 		message string
 	}
 )

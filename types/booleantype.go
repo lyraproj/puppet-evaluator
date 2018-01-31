@@ -3,8 +3,8 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
 	"github.com/puppetlabs/go-evaluator/errors"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
 )
 
 var Boolean_FALSE = &BooleanValue{0}

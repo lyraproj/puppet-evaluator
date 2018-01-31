@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	"strings"
 	"github.com/puppetlabs/go-parser/parser"
+	"strings"
 )
 
 type (
@@ -86,7 +86,7 @@ func (t *typedName) Equals(other interface{}, g Guard) bool {
 
 func (t *typedName) Name() string {
 	cn := t.compoundName
-	return cn[strings.LastIndex(cn,`/`) + 1:]
+	return cn[strings.LastIndex(cn, `/`)+1:]
 }
 
 func (t *typedName) IsQualified() bool {

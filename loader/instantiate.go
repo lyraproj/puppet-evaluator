@@ -1,14 +1,14 @@
 package loader
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
-	. "github.com/puppetlabs/go-parser/parser"
-	"strings"
-	. "github.com/puppetlabs/go-parser/issue"
-	"path/filepath"
-	"encoding/json"
-	"github.com/puppetlabs/go-evaluator/types"
 	"bytes"
+	"encoding/json"
+	. "github.com/puppetlabs/go-evaluator/evaluator"
+	"github.com/puppetlabs/go-evaluator/types"
+	. "github.com/puppetlabs/go-parser/issue"
+	. "github.com/puppetlabs/go-parser/parser"
+	"path/filepath"
+	"strings"
 )
 
 type Instantiator func(loader ContentProvidingLoader, tn TypedName, sources []string)
@@ -90,19 +90,19 @@ func InstantiatePuppetTask(loader ContentProvidingLoader, tn TypedName, sources 
 }
 
 func createTask(ctx EvalContext, loader ContentProvidingLoader, name, taskSource, metadata string) PValue {
-  if metadata == `` {
-  	return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
-  }
-  jsonText := loader.GetContent(metadata)
-  var parsedValue interface{}
-  d := json.NewDecoder(bytes.NewReader(jsonText))
-  d.UseNumber()
-  if err := d.Decode(&parsedValue); err != nil {
-  	panic(Error(EVAL_TASK_BAD_JSON, H{`path`: metadata, `detail`: err}))
-  }
-  if jo, ok := parsedValue.(map[string]interface{}); ok {
-  	return createTaskFromHash(ctx, name, taskSource, jo)
-  }
+	if metadata == `` {
+		return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
+	}
+	jsonText := loader.GetContent(metadata)
+	var parsedValue interface{}
+	d := json.NewDecoder(bytes.NewReader(jsonText))
+	d.UseNumber()
+	if err := d.Decode(&parsedValue); err != nil {
+		panic(Error(EVAL_TASK_BAD_JSON, H{`path`: metadata, `detail`: err}))
+	}
+	if jo, ok := parsedValue.(map[string]interface{}); ok {
+		return createTaskFromHash(ctx, name, taskSource, jo)
+	}
 	panic(Error(EVAL_TASK_NOT_JSON_OBJECT, H{`path`: metadata}))
 }
 
@@ -111,28 +111,28 @@ func createTaskFromHash(ctx EvalContext, name, taskSource string, hash map[strin
 	arguments[`name`] = types.WrapString(name)
 	arguments[`executable`] = types.WrapString(taskSource)
 	for key, value := range hash {
-    if key == `parameters` || key == `output` {
-	    if params, ok := value.(map[string]interface{}); ok {
-	    	for _, param := range params {
-	    		if paramHash, ok := param.(map[string]interface{}); ok {
-				    if t, ok := paramHash[`type`]; ok {
-				    	if s, ok := t.(string); ok {
-						    paramHash[`type`] = ctx.ParseResolve(s)
-					    }
-				    } else {
-					    paramHash[`type`] = types.DefaultDataType()
-				    }
-			    }
-		    }
-	    }
-    }
-    arguments[key] = value
+		if key == `parameters` || key == `output` {
+			if params, ok := value.(map[string]interface{}); ok {
+				for _, param := range params {
+					if paramHash, ok := param.(map[string]interface{}); ok {
+						if t, ok := paramHash[`type`]; ok {
+							if s, ok := t.(string); ok {
+								paramHash[`type`] = ctx.ParseResolve(s)
+							}
+						} else {
+							paramHash[`type`] = types.DefaultDataType()
+						}
+					}
+				}
+			}
+		}
+		arguments[key] = value
 	}
 
 	if taskCtor, ok := Load(ctx.Loader(), NewTypedName(CONSTRUCTOR, `Task`)); ok {
 		return taskCtor.(Function).Call(ctx, nil, types.WrapHash4(arguments))
 	}
-  panic(Error(EVAL_TASK_INITIALIZER_NOT_FOUND, NO_ARGS))
+	panic(Error(EVAL_TASK_INITIALIZER_NOT_FOUND, NO_ARGS))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains

@@ -4,21 +4,21 @@ import (
 	. "github.com/puppetlabs/go-evaluator/evaluator"
 	. "github.com/puppetlabs/go-evaluator/hash"
 	. "github.com/puppetlabs/go-evaluator/types"
-	. "github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/issue"
+	. "github.com/puppetlabs/go-parser/parser"
 )
 
 type (
 	richDataFunc func(hash KeyedValue, typeValue PValue) PValue
 
 	FromDataConverter struct {
-		root builder
-		current builder
-		key PValue
+		root            builder
+		current         builder
+		key             PValue
 		allowUnresolved bool
-		loader DefiningLoader
-		richDataFuncs map[string]richDataFunc
-		defaultFunc richDataFunc
+		loader          DefiningLoader
+		richDataFuncs   map[string]richDataFunc
+		defaultFunc     richDataFunc
 	}
 
 	builder interface {
@@ -32,13 +32,13 @@ type (
 	}
 
 	hbEntry struct {
-		key PValue
+		key   PValue
 		value builder
 	}
 
 	hashBuilder struct {
-    values *StringHash
-    resolved PValue
+		values   *StringHash
+		resolved PValue
 	}
 
 	objectHashBuilder struct {
@@ -48,7 +48,7 @@ type (
 
 	arrayBuilder struct {
 		// *StringHash, []interface{}, or interface{}
-		values []builder
+		values   []builder
 		resolved PValue
 	}
 )
@@ -83,7 +83,7 @@ func (b *hashBuilder) resolve() PValue {
 			hbe := value.(*hbEntry)
 			es = append(es, WrapHashEntry(hbe.key, hbe.value.resolve()))
 		})
-		b.resolved =  WrapHash(es)
+		b.resolved = WrapHash(es)
 	}
 	return b.resolved
 }
@@ -112,7 +112,7 @@ func (b *arrayBuilder) resolve() PValue {
 		for i, v := range b.values {
 			es[i] = v.resolve()
 		}
-		b.resolved =  WrapArray(es)
+		b.resolved = WrapArray(es)
 	}
 	return b.resolved
 }
@@ -130,7 +130,7 @@ func NewFromDataConverter(loader DefiningLoader, options KeyedValue) *FromDataCo
 	f := &FromDataConverter{}
 	f.loader = loader
 	f.allowUnresolved = options.Get5(`allow_unresolved`, Boolean_FALSE).(*BooleanValue).Bool()
-	f.richDataFuncs = map[string]richDataFunc {
+	f.richDataFuncs = map[string]richDataFunc{
 		PCORE_TYPE_HASH: func(hash KeyedValue, typeValue PValue) PValue {
 			value := hash.Get5(PCORE_VALUE_KEY, EMPTY_ARRAY).(IndexedValue)
 			return f.buildHash(func() {
@@ -269,23 +269,23 @@ func resolveJsonPath(lhs builder, path string) (PValue, bool) {
 }
 
 func (f *FromDataConverter) Convert(value PValue) PValue {
-  if hash, ok := value.(*HashValue); ok {
-  	if pcoreType, ok := hash.Get4(PCORE_TYPE_KEY); ok {
-  		key := pcoreType.String()
-  		rdFunc, ok := f.richDataFuncs[key]
-  		if !ok {
-  			rdFunc = f.defaultFunc
-		  }
-  		return rdFunc(hash, pcoreType)
-	  }
-	  return f.buildHash(func() { hash.EachPair(func(k, v PValue) { f.with(k, func() { f.Convert(v) }) }) })
-  }
-  if array, ok := value.(*ArrayValue); ok {
-  	return f.buildArray(func() {
-  		array.EachWithIndex (func(v PValue, i int) { f.with(WrapInteger(int64(i)), func() { f.Convert(v) }) })
-  	})
-  }
-  return f.build(&valueBuilder{value}, nil)
+	if hash, ok := value.(*HashValue); ok {
+		if pcoreType, ok := hash.Get4(PCORE_TYPE_KEY); ok {
+			key := pcoreType.String()
+			rdFunc, ok := f.richDataFuncs[key]
+			if !ok {
+				rdFunc = f.defaultFunc
+			}
+			return rdFunc(hash, pcoreType)
+		}
+		return f.buildHash(func() { hash.EachPair(func(k, v PValue) { f.with(k, func() { f.Convert(v) }) }) })
+	}
+	if array, ok := value.(*ArrayValue); ok {
+		return f.buildArray(func() {
+			array.EachWithIndex(func(v PValue, i int) { f.with(WrapInteger(int64(i)), func() { f.Convert(v) }) })
+		})
+	}
+	return f.build(&valueBuilder{value}, nil)
 }
 
 func (f *FromDataConverter) buildHash(actor Actor) PValue {
@@ -311,10 +311,10 @@ func (f *FromDataConverter) build(vx builder, actor Actor) PValue {
 }
 
 func (f *FromDataConverter) with(key PValue, actor Actor) {
-  parentKey := f.key
-  f.key = key
-  actor()
-  f.key = parentKey
+	parentKey := f.key
+	f.key = key
+	actor()
+	f.key = parentKey
 }
 
 func (f *FromDataConverter) withValue(value builder, actor Actor) builder {
