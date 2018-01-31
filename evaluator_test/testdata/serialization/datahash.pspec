@@ -49,6 +49,40 @@ Examples('ToDataConverter',
   ),
 )
 
+Examples('Converting rich data to JSON',
+  Example('converts Error',
+    Given(`data_to_json(to_data(Error('bad things happened', 'puppetlabs/error'), rich_data => true))`),
+    Evaluates_to(@(JSON))),
+      {"__pcore_type__":"Error","kind":"puppetlabs/error","message":"bad things happened"}
+      |JSON
+
+  Example('indents',
+    Given(`data_to_json(to_data(Error('bad things happened', 'puppetlabs/error'), rich_data => true), indent => '  ')`),
+    Evaluates_to(@(JSON))),
+      {
+        "__pcore_type__": "Error",
+        "kind": "puppetlabs/error",
+        "message": "bad things happened"
+      }
+      |JSON
+
+  Example('prefixes',
+    Given(`data_to_json(to_data(Error('bad things happened', 'puppetlabs/error'), rich_data => true), prefix => '  ', indent => '  ')`),
+    Evaluates_to(@(JSON))),
+      {
+          "__pcore_type__": "Error",
+          "kind": "puppetlabs/error",
+          "message": "bad things happened"
+        }
+      |JSON
+)
+
+Examples('Converting JSON to rich data',
+  Example('converts Error',
+    Given(`from_data(json_to_data('{"__pcore_type__":"Error","kind":"puppetlabs/error","message":"bad things happened"}'))`),
+    Evaluates_to(::Error('bad things happened', 'puppetlabs/error'))),
+)
+
 Examples('FromDataConverter',
   Example('converts SemVer hash to SemVer',
     Given(`from_data('__pcore_type__' => 'SemVer', '__pcore_value__' => '1.2.3')`),

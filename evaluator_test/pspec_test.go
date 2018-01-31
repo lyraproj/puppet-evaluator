@@ -7,6 +7,8 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-evaluator/serialization"
 	"github.com/puppetlabs/go-evaluator/types"
+	"bytes"
+	"strings"
 )
 
 func TestPSpecs(t *testing.T) {
@@ -79,6 +81,33 @@ func init() {
 					options = args[1].(KeyedValue)
 				}
 				return serialization.NewFromDataConverter(c.Loader().(DefiningLoader), options).Convert(args[0])
+			})
+		})
+
+	NewGoFunction(`data_to_json`,
+		func(d Dispatch) {
+			d.Param(`Data`)
+			d.OptionalParam(
+				`Struct[
+					Optional['prefix'] => String,
+					Optional['indent'] => String
+				]`)
+			d.Function(func(c EvalContext, args []PValue) PValue {
+				options := EMPTY_MAP
+				if len(args) > 1 {
+					options = args[1].(KeyedValue)
+				}
+				out := bytes.NewBufferString(``)
+				serialization.DataToJson(args[0], out, options)
+				return types.WrapString(out.String())
+			})
+		})
+
+	NewGoFunction(`json_to_data`,
+		func(d Dispatch) {
+			d.Param(`String`)
+			d.Function(func(c EvalContext, args []PValue) PValue {
+				return serialization.JsonToData(``, strings.NewReader(args[0].String()))
 			})
 		})
 }
