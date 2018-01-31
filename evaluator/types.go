@@ -50,7 +50,7 @@ type (
 	}
 
 	TypeWithCallableMembers interface {
-		// Returns an attribute reader or other function and true, or nil and false if no such member exists
+		// Member returns an attribute reader or other function and true, or nil and false if no such member exists
 		Member(name string) (CallableMember, bool)
 	}
 
@@ -85,13 +85,13 @@ type (
 		AnnotatedMember
 		Kind() AttributeKind
 
-		// return true if a value has been defined for this attribute.
+		// HasValue returns true if a value has been defined for this attribute.
 		HasValue() bool
 
-		// return true if the given value equals the default value for this attribute
+		// Default returns true if the given value equals the default value for this attribute
 		Default(value PValue) bool
 
-		// Returns the value of this attribute, or raises an error if no value has been defined.
+		// Value returns the value of this attribute, or raises an error if no value has been defined.
 		Value() PValue
 	}
 
@@ -134,7 +134,7 @@ type (
 		ContainedType() PType
 	}
 
-	// Implemented by all parameterized types that have type parameters
+	// Generalizable implemented by all parameterized types that have type parameters
 	Generalizable interface {
 		ParameterizedType
 		Generic() PType
@@ -143,7 +143,7 @@ type (
 
 var IsInstance func(puppetType PType, value PValue) bool
 
-// isAssignable answers if t is assignable to this type
+// IsAssignable answers if t is assignable to this type
 var IsAssignable func(puppetType PType, other PType) bool
 
 var Generalize func(t PType) PType

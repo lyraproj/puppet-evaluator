@@ -80,10 +80,10 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 	return NewRuntimeType(runtimeName.String(), name.String(), pattern)
 }
 
-// Creates a Go runtime by extracting the element type of the given slice or array. The
-// reason the argument must be a slice or array as opposed to an element, is that there is
-// no way to create elements of an interface but an empty array with an interface element type
-// is possible.
+// NewGoRuntimeType creates a Go runtime by extracting the element type of the given slice or array.
+// The reason the argument must be a slice or array as opposed to an element is that there is
+// no way to create elements of an interface. An empty array with an interface element type
+// is however possible.
 //
 // To create an Runtime for the interface Foo, pass []Foo{} to this method.
 func NewGoRuntimeType(array interface{}) *RuntimeType {

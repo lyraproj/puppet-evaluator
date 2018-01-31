@@ -27,11 +27,11 @@ type (
 
 		Evaluator() Evaluator
 
-		// Creates a ReportedIssue with the given issue code, location, and arguments
+		// Error creates a ReportedIssue with the given issue code, location, and arguments
 		// Typical use is to panic with the returned value
 		Error(location Location, issueCode IssueCode, args H) *ReportedIssue
 
-		// Creates a ReportedIssue with the EVAL_FAILURE issue code, location from stack top,
+		// Fail creates a ReportedIssue with the EVAL_FAILURE issue code, location from stack top,
 		// and the given message
 		// Typical use is to panic with the returned value
 		Fail(message string) *ReportedIssue
@@ -66,14 +66,14 @@ type (
 
 var CurrentContext func() EvalContext
 
-// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Error creates a ReportedIssue with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error func(issueCode IssueCode, args H) *ReportedIssue
 
-// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Error2 creates a ReportedIssue with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error2 func(location Location, issueCode IssueCode, args H) *ReportedIssue
 
-// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Warning creates a ReportedIssue with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
 var Warning func(issueCode IssueCode, args H) *ReportedIssue

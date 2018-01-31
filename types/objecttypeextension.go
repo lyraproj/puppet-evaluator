@@ -76,7 +76,7 @@ func (te *objectTypeExtension) Name() string {
 
 func (te *objectTypeExtension) Parameters() []PValue {
 	pts := te.baseType.typeParameters(true)
-	n := pts.Size()
+	n := pts.Len()
 	if n > 2 {
 		return []PValue{WrapHash5(te.parameters)}
 	}
@@ -121,14 +121,14 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 	}
 
 	if namedArgs {
-		namedArgs = pts.Size() >= 1 && !IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
 	checkParam := func(tp *typeParameter, v PValue) PValue {
 		return AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
 	}
 
-	byName := NewStringHash(pts.Size())
+	byName := NewStringHash(pts.Len())
 	if namedArgs {
 		hash := initParameters[0].(*HashValue)
 		hash.EachPair(func(k, pv PValue) {
@@ -158,8 +158,8 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 	te.parameters = byName
 }
 
-func (o *objectTypeExtension) AttributesInfo() AttributesInfo {
-	return o.baseType.AttributesInfo()
+func (te *objectTypeExtension) AttributesInfo() AttributesInfo {
+	return te.baseType.AttributesInfo()
 }
 
 // Checks that the given `paramValues` hash contains all keys present in the `parameters` of

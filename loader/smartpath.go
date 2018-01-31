@@ -107,7 +107,7 @@ func (p *smartPath) PreferredOrigin(origins []string) string {
 	return origins[0]
 }
 
-var dropExtension = regexp.MustCompile(`\.[^\/]*\z`)
+var dropExtension = regexp.MustCompile(`\.[^\\/]*\z`)
 
 func (p *smartPath) TypedName(nameAuthority URI, relativePath string) TypedName {
 	parts := strings.Split(relativePath, `/`)

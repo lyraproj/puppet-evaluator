@@ -70,7 +70,6 @@ var QUALIFIER = `(?:-(` + PARTS + `))?(?:\+(` + PARTS + `))?`
 
 var PARTIAL = XR + `(?:\.` + XR + `(?:\.` + XR + QUALIFIER + `)?)?`
 
-// The ~> isn`t in the spec but allowed
 var SIMPLE = `([<>=~^]|<=|>=|~>|~=)?(?:` + PARTIAL + `)`
 var SIMPLE_PATTERN = MustCompile(`\A` + SIMPLE + `\z`)
 

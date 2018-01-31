@@ -59,7 +59,7 @@ type (
 		Delete(PValue) IndexedValue
 		DeleteAll(IndexedValue) IndexedValue
 
-		// Iterate over each element. This method will not catch break exceptions. If that is
+		// Each iterates over each element. This method will not catch break exceptions. If that is
 		// desired, use an Iterator instead.
 		Each(Consumer)
 		EachWithIndex(consumer IndexedConsumer)

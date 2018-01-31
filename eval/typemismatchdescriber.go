@@ -356,9 +356,9 @@ func (m *unresolvedTypeReference) text() string {
 	return fmt.Sprintf(`references an unresolved type '%s'`, m.key)
 }
 
-func (m *basicEAMismatch) equals(other mismatch) bool {
-	if om, ok := other.(*basicEAMismatch); ok && pathEquals(m.vpath, other.path()) {
-		return m.expectedType == om.expectedType && m.actualType == om.actualType
+func (ea *basicEAMismatch) equals(other mismatch) bool {
+	if om, ok := other.(*basicEAMismatch); ok && pathEquals(ea.vpath, other.path()) {
+		return ea.expectedType == om.expectedType && ea.actualType == om.actualType
 	}
 	return false
 }

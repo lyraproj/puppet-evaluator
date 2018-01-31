@@ -120,7 +120,6 @@ var delimiterPairs = map[byte][2]byte{
 
 var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
 
-//TODO
 var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
 
 var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)))
@@ -619,7 +618,7 @@ func (r *stringReader) Next() (rune, bool) {
 	return c, true
 }
 
-// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
+// PuppetSprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
 func PuppetSprintf(s string, args ...PValue) string {
 	buf := bytes.NewBufferString(``)
@@ -627,14 +626,12 @@ func PuppetSprintf(s string, args ...PValue) string {
 	return buf.String()
 }
 
-// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
+// PuppetFprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
 func PuppetFprintf(buf io.Writer, s string, args ...PValue) {
 	fprintf(buf, `fprintf`, s, args...)
 }
 
-// Like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
-// and using Puppet StringFormatter for evaluating formatting specifications
 func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 	// Transform the map into a slice of values and a map that maps a key to the position
 	// of its value in the slice.

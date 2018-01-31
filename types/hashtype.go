@@ -385,7 +385,7 @@ func WrapHash2(entries []PValue) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// This wrap variant does not preserve order since order is undefined in a Go map
+// WrapHash3 does not preserve order since order is undefined in a Go map
 func WrapHash3(hash map[string]PValue) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
@@ -402,7 +402,7 @@ func WrapHash3(hash map[string]PValue) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// This wrap variant does not preserve order since order is undefined in a Go map
+// WrapHash4 does not preserve order since order is undefined in a Go map
 func WrapHash4(hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
@@ -419,9 +419,8 @@ func WrapHash4(hash map[string]interface{}) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// This wrap variant does not preserve order since order is undefined in a Go map
 func WrapHash5(hash *hash.StringHash) *HashValue {
-	hvEntries := make([]*HashEntry, hash.Size())
+	hvEntries := make([]*HashEntry, hash.Len())
 	i := 0
 	hash.EachPair(func(k string, v interface{}) {
 		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
@@ -945,7 +944,7 @@ func (hv *HashValue) valueIndex() map[HashKey]int {
 	return hv.index
 }
 
-// PutAll merges the given hash into this hash (mutates the value). The method
+// PutAll merges the given hash into this hash (mutates the hash). The method
 // is not thread safe
 func (hv *MutableHashValue) PutAll(o *HashValue) {
 	hv.entries = hv.mergeEntries(o)
@@ -953,7 +952,7 @@ func (hv *MutableHashValue) PutAll(o *HashValue) {
 	hv.index = nil
 }
 
-// MergeSelf merges the given hash into this hash (mutates the value)
-func (hv *MutableHashValue) Put(k, v PValue) {
-	hv.PutAll(WrapHash([]*HashEntry{{k, v}}))
+// Put adds or replaces the given key/value association in this hash
+func (hv *MutableHashValue) Put(key, value PValue) {
+	hv.PutAll(WrapHash([]*HashEntry{{key, value}}))
 }

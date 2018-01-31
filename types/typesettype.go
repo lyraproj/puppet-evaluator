@@ -51,38 +51,38 @@ func (t *TypeSetType) Default() PType {
 	return typeSetType_DEFAULT
 }
 
-func (a *TypeSetType) Equals(other interface{}, guard Guard) bool {
+func (t *TypeSetType) Equals(other interface{}, guard Guard) bool {
 	panic("implement me")
 }
 
-func (a *TypeSetType) String() string {
+func (t *TypeSetType) String() string {
 	panic("implement me")
 }
 
-func (a *TypeSetType) ToString(bld io.Writer, format FormatContext, g RDetect) {
+func (t *TypeSetType) ToString(bld io.Writer, format FormatContext, g RDetect) {
 	panic("implement me")
 }
 
-func (a *TypeSetType) Type() PType {
+func (t *TypeSetType) Type() PType {
 	panic("implement me")
 }
 
-func (a *TypeSetType) IsInstance(o PValue, g Guard) bool {
+func (t *TypeSetType) IsInstance(o PValue, g Guard) bool {
 	panic("implement me")
 }
 
-func (a *TypeSetType) IsAssignable(t PType, g Guard) bool {
+func (t *TypeSetType) IsAssignable(ot PType, g Guard) bool {
 	panic("implement me")
 }
 
-func (a *TypeSetType) Annotations() *HashValue {
-	return a.annotations
+func (t *TypeSetType) Annotations() *HashValue {
+	return t.annotations
 }
 
-func (a *TypeSetType) Name() string {
-	return a.name
+func (t *TypeSetType) Name() string {
+	return t.name
 }
 
-func (a *TypeSetType) Resolve(loader Loader) {
+func (t *TypeSetType) Resolve(loader Loader) {
 	panic("implement me")
 }

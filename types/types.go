@@ -115,7 +115,7 @@ func UniqueTypes(types []PType) []PType {
 	return result
 }
 
-// Convert a slice of values that implement the PValue interface to []PValue. The
+// ValueSlice convert a slice of values that implement the PValue interface to []PValue. The
 // method will panic if the given argument is not a slice or array, or if not all
 // elements implement the PValue interface
 func ValueSlice(slice interface{}) []PValue {

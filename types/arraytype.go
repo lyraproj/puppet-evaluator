@@ -349,8 +349,8 @@ func (av *ArrayValue) Elements() []PValue {
 	return av.elements
 }
 
-func (t *ArrayValue) ElementType() PType {
-	return t.Type().(*ArrayType).ElementType()
+func (av *ArrayValue) ElementType() PType {
+	return av.Type().(*ArrayType).ElementType()
 }
 
 func (av *ArrayValue) Equals(o interface{}, g Guard) bool {

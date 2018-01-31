@@ -29,7 +29,7 @@ func (g Guard) Seen(a, b interface{}) bool {
 	return false
 }
 
-// Convert a slice of values that implement the Equality interface to []Equality. The
+// EqSlice converts a slice of values that implement the Equality interface to []Equality. The
 // method will panic if the given argument is not a slice or array, or if not all
 // elements implement the Equality interface
 func EqSlice(slice interface{}) []Equality {

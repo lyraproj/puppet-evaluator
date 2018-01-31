@@ -22,7 +22,7 @@ type (
 	TimestampValue TimestampType
 )
 
-// Unit(sec, nsec) adds an offset of 62135596800 seconds to sec that
+// MAX_UNIX_SECS is an offset of 62135596800 seconds to sec that
 // represents the number of seconds from 1970-01-01:00:00:00 UTC. This offset
 // must be retracted from the MaxInt64 value in order for it to end up
 // as that value internally.

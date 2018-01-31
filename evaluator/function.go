@@ -76,10 +76,10 @@ type (
 		// block is required, optional, or invalid
 		BlockType() PType
 
-		// Will typically return the string "block"
+		// BlockName will typically return the string "block"
 		BlockName() string
 
-		// Returns the names of the parameters. Will return the strings "1", "2", etc.
+		// ParameterNames returns the names of the parameters. Will return the strings "1", "2", etc.
 		// for unnamed parameters.
 		ParameterNames() []string
 	}

@@ -78,7 +78,7 @@ func (b *hashBuilder) put(key PValue, value builder) {
 
 func (b *hashBuilder) resolve() PValue {
 	if b.resolved == nil {
-		es := make([]*HashEntry, 0, b.values.Size())
+		es := make([]*HashEntry, 0, b.values.Len())
 		b.values.EachPair(func(key string, value interface{}) {
 			hbe := value.(*hbEntry)
 			es = append(es, WrapHashEntry(hbe.key, hbe.value.resolve()))

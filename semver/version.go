@@ -65,7 +65,7 @@ func NewVersion3(major, minor, patch int, preRelease string, build string) (vers
 	return &Version{major, minor, patch, ps, bs}, nil
 }
 
-// Like NewVersion3 but panics rather than returning an error. Primarilly intended to be used internally
+// NewVersion4 is like NewVersion3 but panics rather than returning an error. Primarilly intended to be used internally
 // by the VersionRange parser which in turn recovers the panic and returns error
 func NewVersion4(major, minor, patch int, preRelease string, build string) *Version {
 	if major < 0 || minor < 0 || patch < 0 {

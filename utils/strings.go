@@ -22,7 +22,7 @@ func AllStrings(strings []string, predicate func(str string) bool) bool {
 	return true
 }
 
-// Returns true if strings contains str
+// ContainsString returns true if strings contains str
 func ContainsString(strings []string, str string) bool {
 	if str != `` {
 		for _, v := range strings {
@@ -34,7 +34,7 @@ func ContainsString(strings []string, str string) bool {
 	return false
 }
 
-// Returns true if strings contains all entries in other
+// ContainsAllStrings returns true if strings contains all entries in other
 func ContainsAllStrings(strings []string, other []string) bool {
 	for _, str := range other {
 		if !ContainsString(strings, str) {
@@ -44,7 +44,7 @@ func ContainsAllStrings(strings []string, other []string) bool {
 	return true
 }
 
-// Returns true if the string represents a base 10 integer
+// IsDecimalInteger returns true if the string represents a base 10 integer
 func IsDecimalInteger(s string) bool {
 	if len(s) > 0 {
 		for _, c := range s {
@@ -57,7 +57,7 @@ func IsDecimalInteger(s string) bool {
 	return false
 }
 
-// Returns true if at least one of the regexps matches str
+// MatchesString returns true if at least one of the regexps matches str
 func MatchesString(regexps []*regexp.Regexp, str string) bool {
 	if str != `` {
 		for _, v := range regexps {
@@ -69,7 +69,7 @@ func MatchesString(regexps []*regexp.Regexp, str string) bool {
 	return false
 }
 
-// Returns true if all strings are matched by at least one of the regexps
+// MatchesAllStrings returns true if all strings are matched by at least one of the regexps
 func MatchesAllStrings(regexps []*regexp.Regexp, strings []string) bool {
 	for _, str := range strings {
 		if !MatchesString(regexps, str) {
@@ -79,7 +79,7 @@ func MatchesAllStrings(regexps []*regexp.Regexp, strings []string) bool {
 	return true
 }
 
-// Creates a new slice where all duplicate strings in the given slice have been removed. Order is retained
+// Unique creates a new slice where all duplicate strings in the given slice have been removed. Order is retained
 func Unique(strings []string) []string {
 	top := len(strings)
 	if top < 2 {

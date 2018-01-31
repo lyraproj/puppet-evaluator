@@ -519,10 +519,10 @@ func AllocObjectType() *objectType {
 		functions:          EMPTY_STRINGHASH}
 }
 
-func (f *objectType) Initialize(args []PValue) {
+func (t *objectType) Initialize(args []PValue) {
 	if len(args) == 1 {
 		if hash, ok := args[0].(KeyedValue); ok {
-			f.InitFromHash(hash)
+			t.InitFromHash(hash)
 			return
 		}
 	}
@@ -797,7 +797,7 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 	}
 
 	if !attrSpecs.IsEmpty() {
-		attributes := NewStringHash(attrSpecs.Size())
+		attributes := NewStringHash(attrSpecs.Len())
 		attrSpecs.EachPair(func(key string, ifv interface{}) {
 			value := ifv.(PValue)
 			attrSpec, ok := value.(*HashValue)
@@ -916,15 +916,15 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 	t.attrInfo = t.createAttributesInfo()
 }
 
-func (o *objectType) createNewFunction(c EvalContext) {
-	pi := o.AttributesInfo()
-	dl := o.loader.(DefiningLoader)
+func (t *objectType) createNewFunction(c EvalContext) {
+	pi := t.AttributesInfo()
+	dl := t.loader.(DefiningLoader)
 
-	dl.SetEntry(NewTypedName(ALLOCATOR, o.name), NewLoaderEntry(MakeGoAllocator(func(ctx EvalContext, args []PValue) PValue {
-		return AllocObjectValue(o)
+	dl.SetEntry(NewTypedName(ALLOCATOR, t.name), NewLoaderEntry(MakeGoAllocator(func(ctx EvalContext, args []PValue) PValue {
+		return AllocObjectValue(t)
 	}), ``))
 
-	ctor := MakeGoConstructor(o.name,
+	ctor := MakeGoConstructor(t.name,
 		func(d Dispatch) {
 			for i, attr := range pi.Attributes() {
 				switch attr.Kind() {
@@ -938,25 +938,25 @@ func (o *objectType) createNewFunction(c EvalContext) {
 				}
 			}
 			d.Function(func(c EvalContext, args []PValue) PValue {
-				return NewObjectValue(o, args)
+				return NewObjectValue(t, args)
 			})
 		},
 		func(d Dispatch) {
-			d.Param2(o.createInitType())
+			d.Param2(t.createInitType())
 			d.Function(func(c EvalContext, args []PValue) PValue {
-				return NewObjectValue2(o, args[0].(*HashValue))
+				return NewObjectValue2(t, args[0].(*HashValue))
 			})
 		})
-	dl.SetEntry(NewTypedName(CONSTRUCTOR, o.name), NewLoaderEntry(ctor.Resolve(c), ``))
+	dl.SetEntry(NewTypedName(CONSTRUCTOR, t.name), NewLoaderEntry(ctor.Resolve(c), ``))
 }
 
-func (o *objectType) AttributesInfo() AttributesInfo {
-	return o.attrInfo
+func (t *objectType) AttributesInfo() AttributesInfo {
+	return t.attrInfo
 }
 
-func (o *objectType) createInitType() *StructType {
+func (t *objectType) createInitType() *StructType {
 	elements := make([]*StructElement, 0)
-	o.EachAttribute(true, func(attr Attribute) {
+	t.EachAttribute(true, func(attr Attribute) {
 		switch attr.Kind() {
 		case CONSTANT, DERIVED:
 		default:
@@ -972,23 +972,23 @@ func (o *objectType) createInitType() *StructType {
 	return NewStructType(elements)
 }
 
-func (o *objectType) EachAttribute(includeParent bool, consumer func(attr Attribute)) {
-	if includeParent && o.parent != nil {
-		o.resolvedParent().EachAttribute(includeParent, consumer)
+func (t *objectType) EachAttribute(includeParent bool, consumer func(attr Attribute)) {
+	if includeParent && t.parent != nil {
+		t.resolvedParent().EachAttribute(includeParent, consumer)
 	}
-	o.attributes.EachValue(func(a interface{}) { consumer(a.(Attribute)) })
+	t.attributes.EachValue(func(a interface{}) { consumer(a.(Attribute)) })
 }
 
-func (o *objectType) IsMetaType() bool {
-	return IsAssignable(Any_Type, o)
+func (t *objectType) IsMetaType() bool {
+	return IsAssignable(Any_Type, t)
 }
 
-func (o *objectType) createAttributesInfo() *attributesInfo {
+func (t *objectType) createAttributesInfo() *attributesInfo {
 	attrs := make([]Attribute, 0)
 	nonOptSize := 0
-	if o.serialization == nil {
+	if t.serialization == nil {
 		optAttrs := make([]Attribute, 0)
-		o.EachAttribute(true, func(attr Attribute) {
+		t.EachAttribute(true, func(attr Attribute) {
 			switch attr.Kind() {
 			case CONSTANT, DERIVED:
 			default:
@@ -1003,8 +1003,8 @@ func (o *objectType) createAttributesInfo() *attributesInfo {
 		attrs = append(attrs, optAttrs...)
 	} else {
 		atMap := NewStringHash(15)
-		o.collectAttributes(true, atMap)
-		for _, key := range o.serialization {
+		t.collectAttributes(true, atMap)
+		for _, key := range t.serialization {
 			attr := atMap.Get(key, nil).(Attribute)
 			if attr.HasValue() {
 				nonOptSize++
@@ -1012,7 +1012,7 @@ func (o *objectType) createAttributesInfo() *attributesInfo {
 			attrs = append(attrs, attr)
 		}
 	}
-	return NewParamInfo(attrs, nonOptSize, o.EqualityAttributes().Keys())
+	return NewParamInfo(attrs, nonOptSize, t.EqualityAttributes().Keys())
 }
 
 func NewParamInfo(attributes []Attribute, requiredCount int, equality []string) *attributesInfo {
@@ -1098,7 +1098,7 @@ func (t *objectType) Parameters2(includeName bool) []PValue {
 }
 
 func compressedMembersHash(mh *StringHash) *HashValue {
-	he := make([]*HashEntry, 0, mh.Size())
+	he := make([]*HashEntry, 0, mh.Len())
 	mh.EachPair(func(key string, value interface{}) {
 		fh := value.(AnnotatedMember).InitHash()
 		if fh.Len() == 1 {

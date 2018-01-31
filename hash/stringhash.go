@@ -31,12 +31,12 @@ func (f *frozenError) Error() string {
 	return fmt.Sprintf("attempt to add, modify, or delete key '%s' in a frozen StringHash", f.key)
 }
 
-// Returns an empty *StringHash initialized with given capacity
+// NewStringHash returns an empty *StringHash initialized with given capacity
 func NewStringHash(capacity int) *StringHash {
 	return &StringHash{make([]*stringEntry, 0, capacity), make(map[string]int, capacity), false}
 }
 
-// Returns a shallow copy of this hash, i.e. each key and value is not cloned
+// Copy returns a shallow copy of this hash, i.e. each key and value is not cloned
 func (h *StringHash) Copy() *StringHash {
 	entries := make([]*stringEntry, len(h.entries))
 	for i, e := range h.entries {
@@ -49,14 +49,14 @@ func (h *StringHash) Copy() *StringHash {
 	return &StringHash{entries, index, false}
 }
 
-// Call the given consumer function once for each key in this hash
+// EachKey calls the given consumer function once for each key in this hash
 func (h *StringHash) EachKey(consumer func(key string)) {
 	for _, e := range h.entries {
 		consumer(e.key)
 	}
 }
 
-// Call the given function once for each key/value pair in this hash. Return
+// AllPair calls the given function once for each key/value pair in this hash. Return
 // true if all invcations returned true. False otherwise.
 // The method returns true if the hash i empty.
 func (h *StringHash) AllPair(f func(key string, value interface{}) bool) bool {
@@ -68,7 +68,7 @@ func (h *StringHash) AllPair(f func(key string, value interface{}) bool) bool {
 	return true
 }
 
-// Call the given function once for each key/value pair in this hash. Return
+// AnyPair calls the given function once for each key/value pair in this hash. Return
 // true when an invcation returns true. False otherwise.
 // The method returns false if the hash i empty.
 func (h *StringHash) AnyPair(f func(key string, value interface{}) bool) bool {
@@ -80,21 +80,21 @@ func (h *StringHash) AnyPair(f func(key string, value interface{}) bool) bool {
 	return false
 }
 
-// Call the given consumer function once for each key/value pair in this hash
+// EachPair calls the given consumer function once for each key/value pair in this hash
 func (h *StringHash) EachPair(consumer func(key string, value interface{})) {
 	for _, e := range h.entries {
 		consumer(e.key, e.value)
 	}
 }
 
-// Call the given consumer function once for each value in this hash
+// EachValue calls the given consumer function once for each value in this hash
 func (h *StringHash) EachValue(consumer func(value interface{})) {
 	for _, e := range h.entries {
 		consumer(e.value)
 	}
 }
 
-// Compares two hashes for equality. Hashes are considered equal if the have
+// Equals compares two hashes for equality. Hashes are considered equal if the have
 // the same size and contains the same key/value associations irrespective of order
 func (h *StringHash) Equals(other interface{}, g evaluator.Guard) bool {
 	oh, ok := other.(*StringHash)
@@ -111,12 +111,12 @@ func (h *StringHash) Equals(other interface{}, g evaluator.Guard) bool {
 	return true
 }
 
-// Prevents further changes to the hash
+// Freeze prevents further changes to the hash
 func (h *StringHash) Freeze() {
 	h.frozen = true
 }
 
-// Returns a value from the hash or the given default if no value was found
+// Get returns a value from the hash or the given default if no value was found
 func (h *StringHash) Get(key string, dflt interface{}) interface{} {
 	if p, ok := h.index[key]; ok {
 		return h.entries[p].value
@@ -124,7 +124,7 @@ func (h *StringHash) Get(key string, dflt interface{}) interface{} {
 	return dflt
 }
 
-// Returns a value from the hash or the value returned by given default function if no value was found
+// Get2 returns a value from the hash or the value returned by given default function if no value was found
 func (h *StringHash) Get2(key string, dflt func() interface{}) interface{} {
 	if p, ok := h.index[key]; ok {
 		return h.entries[p].value
@@ -132,7 +132,7 @@ func (h *StringHash) Get2(key string, dflt func() interface{}) interface{} {
 	return dflt()
 }
 
-// Returns a value from the hash or nil together with a boolean to indicate if the key was present or not
+// Get3 returns a value from the hash or nil together with a boolean to indicate if the key was present or not
 func (h *StringHash) Get3(key string) (interface{}, bool) {
 	if p, ok := h.index[key]; ok {
 		return h.entries[p].value, true
@@ -140,7 +140,7 @@ func (h *StringHash) Get3(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Deletes the entry for the given key from the hash. Returns the old value or nil if not found
+// Delete the entry for the given key from the hash. Returns the old value or nil if not found
 func (h *StringHash) Delete(key string) (oldValue interface{}) {
 	if h.frozen {
 		panic(frozenError{key})
@@ -168,18 +168,18 @@ func (h *StringHash) Delete(key string) (oldValue interface{}) {
 	return
 }
 
-// Returns true if the hash contains the given key
+// Includes returns true if the hash contains the given key
 func (h *StringHash) Includes(key string) bool {
 	_, ok := h.index[key]
 	return ok
 }
 
-// Returns true if the hash has no entries
+// IsEmpty returns true if the hash has no entries
 func (h *StringHash) IsEmpty() bool {
 	return len(h.entries) == 0
 }
 
-// Returns the keys of the hash in the order that they were first entered
+// Keys returns the keys of the hash in the order that they were first entered
 func (h *StringHash) Keys() []string {
 	keys := make([]string, len(h.entries))
 	for i, e := range h.entries {
@@ -195,7 +195,7 @@ func (h *StringHash) Merge(other *StringHash) (merged *StringHash) {
 	return
 }
 
-// Add a new key/value association to the hash or replace the value of an existing association
+// Put adds a new key/value association to the hash or replace the value of an existing association
 func (h *StringHash) Put(key string, value interface{}) (oldValue interface{}) {
 	if h.frozen {
 		panic(frozenError{key})
@@ -212,19 +212,19 @@ func (h *StringHash) Put(key string, value interface{}) (oldValue interface{}) {
 	return
 }
 
-// Merge this hash with the other hash giving the other precedence. A new hash is returned
+// PutAll merges this hash with the other hash giving the other precedence. A new hash is returned
 func (h *StringHash) PutAll(other *StringHash) {
 	for _, e := range other.entries {
 		h.Put(e.key, e.value)
 	}
 }
 
-// Returns the number of entries in the hash
-func (h *StringHash) Size() int {
+// Len returns the number of entries in the hash
+func (h *StringHash) Len() int {
 	return len(h.entries)
 }
 
-// Returns the values of the hash in the order that their respective keys were first entered
+// Values returns the values of the hash in the order that their respective keys were first entered
 func (h *StringHash) Values() []interface{} {
 	values := make([]interface{}, len(h.entries))
 	for i, e := range h.entries {
