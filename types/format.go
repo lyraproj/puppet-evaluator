@@ -109,13 +109,13 @@ var DEFAULT_FORMATS = FormatMap(WrapHash([]*HashEntry{
 
 var delimiters = []byte{'[', '{', '(', '<', '|'}
 var delimiterPairs = map[byte][2]byte{
-	'[': [2]byte{'[', ']'},
-	'{': [2]byte{'{', '}'},
-	'(': [2]byte{'(', ')'},
-	'<': [2]byte{'<', '>'},
-	'|': [2]byte{'|', '|'},
-	' ': [2]byte{0, 0},
-	0:   [2]byte{'[', ']'},
+	'[': {'[', ']'},
+	'{': {'{', '}'},
+	'(': {'(', ')'},
+	'<': {'<', '>'},
+	'|': {'|', '|'},
+	' ': {0, 0},
+	0:   {'[', ']'},
 }
 
 var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
@@ -287,7 +287,7 @@ func NewFormatMap(h *HashValue) FormatMap {
 }
 
 func NewFormatMap2(t PType, tf Format, fm FormatMap) FormatMap {
-	return mergeFormats(fm, FormatMap(WrapHash([]*HashEntry{&HashEntry{t, tf}})))
+	return mergeFormats(fm, FormatMap(WrapHash([]*HashEntry{{t, tf}})))
 }
 
 var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement {

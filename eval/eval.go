@@ -235,7 +235,7 @@ func (c *context) Scope() Scope {
 }
 
 func (c *context) ParseAndValidate(filename, str string, singleExpression bool) Expression {
-	parserOptions := []ParserOption{}
+	var parserOptions []ParserOption
 	if GetSetting(`tasks`, Boolean_FALSE).(*BooleanValue).Bool() {
 		parserOptions = append(parserOptions, PARSER_TASKS_ENABLED)
 	}

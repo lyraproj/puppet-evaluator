@@ -79,7 +79,7 @@ type (
 	countMismatch     struct{ basicSizeMismatch }
 )
 
-var NO_MISMATCH = []mismatch{}
+var NO_MISMATCH []mismatch
 
 const (
 	subject    = pathType(``)

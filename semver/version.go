@@ -24,7 +24,7 @@ type (
 	}
 )
 
-var vMIN_PRERELEASE = []interface{}{}
+var vMIN_PRERELEASE []interface{}
 
 var vPR_PART = `(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-]+[0-9A-Za-z-]*)`
 var vPR_PARTS = vPR_PART + `(?:\.` + vPR_PART + `)*`

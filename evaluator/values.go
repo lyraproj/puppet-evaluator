@@ -124,7 +124,7 @@ type (
 var EMPTY_ARRAY IndexedValue
 var EMPTY_MAP KeyedValue
 var EMPTY_STRING PValue
-var EMPTY_VALUES = []PValue{}
+var EMPTY_VALUES []PValue
 var UNDEF PValue
 
 var CommonType func(a PType, b PType) PType

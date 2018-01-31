@@ -1173,7 +1173,7 @@ func (t *objectType) initHash(includeName bool) map[string]PValue {
 		}
 		h[KEY_EQUALITY] = WrapArray(ev)
 	}
-	if(t.serialization != nil) {
+	if t.serialization != nil {
 		sv := make([]PValue, len(t.serialization))
 		for i, s := range t.serialization {
 			sv[i] = WrapString(s)
