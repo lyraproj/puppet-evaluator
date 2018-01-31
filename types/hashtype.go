@@ -457,6 +457,14 @@ func WrapHashFromArray(a *ArrayValue) *HashValue {
 	}
 }
 
+func SingletonHash(key, value PValue) *HashValue {
+	return &HashValue{entries: []*HashEntry{WrapHashEntry(key, value)}}
+}
+
+func SingletonHash2(key string, value PValue) *HashValue {
+	return &HashValue{entries: []*HashEntry{WrapHashEntry2(key, value)}}
+}
+
 func (hv *HashValue) Add(v PValue) IndexedValue {
 	switch v.(type) {
 	case *HashEntry:
@@ -573,7 +581,7 @@ func (hv *HashValue) EntriesSlice() []*HashEntry {
 
 func (hv *HashValue) Each(consumer Consumer) {
 	for _, e := range hv.entries {
-		consumer(WrapArray(e.Elements()))
+		consumer(e)
 	}
 }
 
