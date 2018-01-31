@@ -633,8 +633,15 @@ func (t *objectType) String() string {
 	return ToString2(t, EXPANDED)
 }
 
-func (t *objectType) InitHash(includeName bool) *HashValue {
-	return WrapHash3(t.initHash(includeName))
+func (t *objectType) Get(key string)  (value PValue, ok bool) {
+	if key == `_pcore_init_hash` {
+		return t.InitHash(), true
+	}
+	return nil, false
+}
+
+func (t *objectType) InitHash() KeyedValue {
+	return WrapHash3(t.initHash(true))
 }
 
 func (t *objectType) IsInstance(o PValue, g Guard) bool {
@@ -1085,7 +1092,7 @@ func (t *objectType) Parameters() []PValue {
 }
 
 func (t *objectType) Parameters2(includeName bool) []PValue {
-	return []PValue{t.InitHash(includeName)}
+	return []PValue{WrapHash3(t.initHash(includeName))}
 }
 
 func compressedMembersHash(mh *StringHash) *HashValue {
