@@ -1,0 +1,72 @@
+Examples('ToDataConverter',
+  Examples('with rich_data == false',
+    Example('converts SemVer to String with warning',
+      Given(`to_data(SemVer('1.2.3'), message_prefix => 'x', rich_data => false)`),
+      Evaluates_to('1.2.3'),
+      Evaluates_with(Warning(Issue(EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, 'klass' => 'SemVer', 'value' => '1.2.3')))),
+
+    Example('silently converts Symbol to String if symbol_as_string is true',
+      Given(`to_data(to_symbol('sym'), message_prefix => 'x', rich_data => false, symbol_as_string => true)`),
+      Evaluates_to('sym'),
+      Evaluates_ok()),
+
+    Example('converts Symbol to String with warning if symbol_as_string is false',
+      Given(`to_data(to_symbol('sym'), message_prefix => 'x', rich_data => false, symbol_as_string => false)`),
+      Evaluates_to('sym'),
+      Evaluates_with(Warning(Issue(EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, 'klass' => 'Symbol', 'value' => 'sym')))),
+  ),
+
+  Examples('with rich_data == true',
+    Example('converts SemVer to rich data hash',
+      Given(`to_data(SemVer('1.2.3'), message_prefix => 'x', rich_data => true)`),
+      Evaluates_to('__pcore_type__' => 'SemVer', '__pcore_value__' => '1.2.3'),
+      Evaluates_ok()),
+
+    Example('converts SemVerRange to rich data hash',
+      Given(`to_data(SemVerRange('>=1.2.3'), message_prefix => 'x', rich_data => true)`),
+      Evaluates_to('__pcore_type__' => 'SemVerRange', '__pcore_value__' => '>=1.2.3'),
+      Evaluates_ok()),
+
+    Example('converts Sensitive with SemVer to rich data hash',
+      Given(`to_data(Sensitive(SemVer('1.2.3')), message_prefix => 'x', rich_data => true)`),
+      Evaluates_to('__pcore_type__' => 'Sensitive', '__pcore_value__' => { '__pcore_type__' => 'SemVer', '__pcore_value__' => '1.2.3'}),
+      Evaluates_ok()),
+
+    Example('silently converts Symbol to String if symbol_as_string is true',
+      Given(`to_data(to_symbol('sym'), message_prefix => 'x', rich_data => true, symbol_as_string => true)`),
+      Evaluates_to('sym'),
+      Evaluates_ok()),
+
+    Example('converts Symbol to rich data hash if symbol_as_string is false',
+      Given(`to_data(to_symbol('sym'), message_prefix => 'x', rich_data => true, symbol_as_string => false)`),
+      Evaluates_to('__pcore_type__' => 'Symbol', '__pcore_value__' => 'sym'),
+      Evaluates_ok()),
+
+    Example('converts Error to rich data hash',
+      Given(`to_data(Error('bad things happened', 'puppetlabs/error'), message_prefix => 'x', rich_data => true, symbol_as_string => false)`),
+      Evaluates_to('__pcore_type__' => 'Error', 'message' => 'bad things happened', 'kind' => 'puppetlabs/error'),
+      Evaluates_ok()),
+  ),
+)
+
+Examples('FromDataConverter',
+  Example('converts SemVer hash to SemVer',
+    Given(`from_data('__pcore_type__' => 'SemVer', '__pcore_value__' => '1.2.3')`),
+    Evaluates_to(SemVer('1.2.3'))),
+
+  Example('converts SemVerRange hash to SemVerRange',
+    Given(`from_data('__pcore_type__' => 'SemVerRange', '__pcore_value__' => '>=1.2.3')`),
+    Evaluates_to(SemVerRange('>=1.2.3'))),
+
+  Example('converts Symbol hash to Symbol',
+    Given(`from_data('__pcore_type__' => 'Symbol', '__pcore_value__' => 'sym')`),
+    Evaluates_to(to_symbol('sym'))),
+
+  Example('converts Sensitive hash to Sensitive',
+    Given(`from_data('__pcore_type__' => 'Sensitive', '__pcore_value__' => 238) =~ Sensitive`),
+    Evaluates_to(true)),
+
+  Example('converts Error hash to Error',
+    Given(`from_data('__pcore_type__' => 'Error', 'message' => 'bad things happened', 'kind' => 'puppetlabs/error')`),
+    Evaluates_to(::Error('bad things happened', 'puppetlabs/error'))),
+)
