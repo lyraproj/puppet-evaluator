@@ -263,6 +263,14 @@ func init() {
 		},
 	)
 
+	NewGoConstructor(`Sensitive`,
+		func(d Dispatch) {
+			d.Param(`Any`)
+			d.Function(func(c EvalContext, args []PValue) PValue {
+				return WrapSensitive(args[0])
+			})
+		})
+
 	NewGoConstructor2(`String`,
 		func(t LocalTypes) {
 			t.Type2(`Format`, NewPatternType([]*RegexpType{NewRegexpTypeR(FORMAT_PATTERN)}))
