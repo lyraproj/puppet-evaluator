@@ -467,7 +467,7 @@ func anyAssignable(es []PType, a PType) bool {
 
 func alwaysFullyDetailed(es []PType, a PType) bool {
 	for _, e := range es {
-		if reflect.TypeOf(e) == reflect.TypeOf(a) {
+		if Equals(Generalize(e), Generalize(a)) {
 			return true
 		}
 		if _, ok := e.(*TypeAliasType); ok {
