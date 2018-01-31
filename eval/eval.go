@@ -112,6 +112,22 @@ func init() {
 	Error2 = func(location Location, issueCode IssueCode, args H) *ReportedIssue {
 		return NewReportedIssue(issueCode, SEVERITY_ERROR, args, location)
 	}
+
+	Warning = func(issueCode IssueCode, args H) *ReportedIssue {
+		var location Location
+		var logger Logger
+		c := currentContext
+		if c == nil {
+			location = nil
+			logger = NewStdLogger()
+		} else {
+			location = c.StackTop()
+			logger = currentContext.Logger()
+		}
+		ri := NewReportedIssue(issueCode, SEVERITY_WARNING, args, location)
+		logger.LogIssue(ri)
+		return ri
+	}
 }
 
 func NewEvalContext(eval Evaluator, loader Loader, scope Scope, stack []Location) EvalContext {

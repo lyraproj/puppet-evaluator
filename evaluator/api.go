@@ -73,3 +73,7 @@ var Error func(issueCode IssueCode, args H) *ReportedIssue
 // Creates a ReportedIssue with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error2 func(location Location, issueCode IssueCode, args H) *ReportedIssue
+
+// Creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// and logs it on the currently active logger
+var Warning func(issueCode IssueCode, args H) *ReportedIssue
