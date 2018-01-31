@@ -17,7 +17,7 @@ type (
 		key PValue
 		allowUnresolved bool
 		loader DefiningLoader
-		richDataFuncs map[RichDataKey]richDataFunc
+		richDataFuncs map[string]richDataFunc
 		defaultFunc richDataFunc
 	}
 
@@ -126,22 +126,23 @@ func (b *objectHashBuilder) resolve() PValue {
 	return b.resolved
 }
 
-func (f *FromDataConverter) initialize(loader DefiningLoader, allowUnresolved bool) {
+func NewFromDataConverter(loader DefiningLoader, options KeyedValue) *FromDataConverter {
+	f := &FromDataConverter{}
 	f.loader = loader
-	f.allowUnresolved = allowUnresolved
-	f.richDataFuncs = map[RichDataKey]richDataFunc {
+	f.allowUnresolved = options.Get5(`allow_unresolved`, Boolean_FALSE).(*BooleanValue).Bool()
+	f.richDataFuncs = map[string]richDataFunc {
 		PCORE_TYPE_HASH: func(hash KeyedValue, typeValue PValue) PValue {
-			value := hash.Get5(string(PCORE_VALUE_KEY), EMPTY_ARRAY).(IndexedValue)
+			value := hash.Get5(PCORE_VALUE_KEY, EMPTY_ARRAY).(IndexedValue)
 			return f.buildHash(func() {
 				top := value.Len()
 				idx := 0
 				for idx < top {
 					key := f.withoutValue(func() PValue {
-						return f.convert(value.At(idx))
+						return f.Convert(value.At(idx))
 					})
 					idx++
 					f.with(key, func() {
-						f.convert(value.At(idx))
+						f.Convert(value.At(idx))
 					})
 					idx++
 				}
@@ -149,7 +150,7 @@ func (f *FromDataConverter) initialize(loader DefiningLoader, allowUnresolved bo
 		},
 
 		PCORE_TYPE_SENSITIVE: func(hash KeyedValue, typeValue PValue) PValue {
-			return f.build(&valueBuilder{WrapSensitive(f.convert(hash.Get5(string(PCORE_VALUE_KEY), UNDEF)))}, nil)
+			return f.build(&valueBuilder{WrapSensitive(f.Convert(hash.Get5(PCORE_VALUE_KEY, UNDEF)))}, nil)
 		},
 
 		PCORE_TYPE_DEFAULT: func(hash KeyedValue, typeValue PValue) PValue {
@@ -157,11 +158,11 @@ func (f *FromDataConverter) initialize(loader DefiningLoader, allowUnresolved bo
 		},
 
 		PCORE_TYPE_SYMBOL: func(hash KeyedValue, typeValue PValue) PValue {
-			return f.build(&valueBuilder{WrapRuntime(Symbol(hash.Get5(string(PCORE_VALUE_KEY), EMPTY_STRING).String()))}, nil)
+			return f.build(&valueBuilder{WrapRuntime(Symbol(hash.Get5(PCORE_VALUE_KEY, EMPTY_STRING).String()))}, nil)
 		},
 
 		PCORE_LOCAL_REF_SYMBOL: func(hash KeyedValue, typeValue PValue) PValue {
-			path := hash.Get5(string(PCORE_VALUE_KEY), EMPTY_STRING).String()
+			path := hash.Get5(PCORE_VALUE_KEY, EMPTY_STRING).String()
 			if resolved, ok := resolveJsonPath(f.root, path); ok {
 				return f.build(&valueBuilder{resolved}, nil)
 			}
@@ -169,16 +170,16 @@ func (f *FromDataConverter) initialize(loader DefiningLoader, allowUnresolved bo
 		},
 	}
 	f.defaultFunc = func(hash KeyedValue, typeValue PValue) PValue {
-		value := hash.Get6(string(PCORE_VALUE_KEY), func() PValue {
+		value := hash.Get6(PCORE_VALUE_KEY, func() PValue {
 			return hash.RejectPairs(func(k, v PValue) bool {
 				if s, ok := k.(*StringValue); ok {
-					return s.String() == string(PCORE_TYPE_KEY)
+					return s.String() == PCORE_TYPE_KEY
 				}
 				return false
 			})
 		})
 		if typeHash, ok := typeValue.(*HashValue); ok {
-			typ := f.withoutValue(func() PValue { return f.convert(typeHash) })
+			typ := f.withoutValue(func() PValue { return f.Convert(typeHash) })
 			if typ, ok := typeValue.(*HashValue); ok {
 				if !f.allowUnresolved {
 					panic(Error(EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
@@ -196,6 +197,7 @@ func (f *FromDataConverter) initialize(loader DefiningLoader, allowUnresolved bo
 		}
 		return f.pcoreTypeHashToValue(typ.(PType), value)
 	}
+	return f
 }
 
 func parseKeyword(lexer Lexer) (PValue, bool) {
@@ -266,17 +268,21 @@ func resolveJsonPath(lhs builder, path string) (PValue, bool) {
 	}
 }
 
-func (f *FromDataConverter) convert(value PValue) PValue {
+func (f *FromDataConverter) Convert(value PValue) PValue {
   if hash, ok := value.(*HashValue); ok {
-  	if pcoreType, ok := hash.Get4(string(PCORE_TYPE_KEY)); ok {
-  		key := RichDataKey(pcoreType.String())
-  		return f.richDataFuncs[key](hash, pcoreType)
+  	if pcoreType, ok := hash.Get4(PCORE_TYPE_KEY); ok {
+  		key := pcoreType.String()
+  		rdFunc, ok := f.richDataFuncs[key]
+  		if !ok {
+  			rdFunc = f.defaultFunc
+		  }
+  		return rdFunc(hash, pcoreType)
 	  }
-	  return f.buildHash(func() { hash.EachPair(func(k, v PValue) { f.with(k, func() { f.convert(v) }) }) })
+	  return f.buildHash(func() { hash.EachPair(func(k, v PValue) { f.with(k, func() { f.Convert(v) }) }) })
   }
   if array, ok := value.(*ArrayValue); ok {
   	return f.buildArray(func() {
-  		array.EachWithIndex (func(v PValue, i int) { f.with(WrapInteger(int64(i)), func() { f.convert(v) }) })
+  		array.EachWithIndex (func(v PValue, i int) { f.with(WrapInteger(int64(i)), func() { f.Convert(v) }) })
   	})
   }
   return f.build(&valueBuilder{value}, nil)
@@ -332,21 +338,31 @@ func (f *FromDataConverter) withoutValue(producer Producer) PValue {
 
 func (f *FromDataConverter) pcoreTypeHashToValue(typ PType, value PValue) PValue {
 	if hash, ok := value.(*HashValue); ok {
-		return f.buildObject(f.allocate(typ), func() {
-			hash.EachPair(func(key, elem PValue) { f.with(key, func() { f.convert(elem) }) })
-		})
+		if ov, ok := f.allocate(typ); ok {
+			return f.buildObject(ov, func() {
+				hash.EachPair(func(key, elem PValue) { f.with(key, func() { f.Convert(elem) }) })
+			})
+		}
+		return f.create(typ, f.buildHash(func() {
+			hash.EachPair(func(key, elem PValue) { f.with(key, func() { f.Convert(elem) }) })
+		}))
 	}
 	if str, ok := value.(*StringValue); ok {
-		obj := f.allocate(typ)
-		obj.Initialize([]PValue{str})
-		return str
+		return f.create(typ, str)
 	}
 	panic(Error(EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
 }
 
-func (f *FromDataConverter) allocate(typ PType) ObjectValue {
+func (f *FromDataConverter) allocate(typ PType) (ObjectValue, bool) {
 	if allocator, ok := Load(f.loader, NewTypedName(ALLOCATOR, typ.Name())); ok {
-		return allocator.(Lambda).Call(nil, nil).(ObjectValue)
+		return allocator.(Lambda).Call(nil, nil).(ObjectValue), true
 	}
-	panic(Error(EVAL_OBJECT_ALLOCATOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
+	return nil, false
+}
+
+func (f *FromDataConverter) create(typ PType, arg PValue) PValue {
+	if ctor, ok := Load(f.loader, NewTypedName(CONSTRUCTOR, typ.Name())); ok {
+		return ctor.(Function).Call(CurrentContext(), nil, arg)
+	}
+	panic(Error(EVAL_CTOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
 }
