@@ -74,7 +74,8 @@ func (f *format) Type() PType {
 	return WrapRuntime(f).Type()
 }
 
-var DEFAULT_CONTAINER_FORMATS = FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), simpleFormat('p'))}))
+var DEFAULT_PROGRAM_FORMAT = simpleFormat('p')
+var DEFAULT_CONTAINER_FORMATS = FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT)}))
 
 var DEFAULT_ANY_FORMAT = simpleFormat('s')
 
@@ -97,7 +98,7 @@ var DEFAULT_INDENTATION = newIndentation(false, 0)
 
 var DEFAULT_FORMATS = FormatMap(WrapHash([]*HashEntry{
 	WrapHashEntry(DefaultObjectType(), DEFAULT_OBJECT_FORMAT),
-	WrapHashEntry(DefaultTypeType(), simpleFormat('p')),
+	WrapHashEntry(DefaultTypeType(), DEFAULT_OBJECT_FORMAT),
 	WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
 	WrapHashEntry(DefaultNumericType(), simpleFormat('d')),
 	WrapHashEntry(DefaultArrayType(), DEFAULT_ARRAY_FORMAT),
@@ -121,6 +122,8 @@ var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
 
 //TODO
 var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
+
+var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)))
 
 func newFormatContext(t PType, format Format, indentation Indentation) FormatContext {
 	return &formatContext{indentation, WrapHash([]*HashEntry{WrapHashEntry(t, format)})}
