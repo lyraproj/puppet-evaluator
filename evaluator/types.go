@@ -37,6 +37,10 @@ type (
 		Parameters() []PValue
 	}
 
+	SerializeAsString interface {
+		SerializationString() string
+	}
+
 	Annotatable interface {
 		Annotations() KeyedValue
 	}

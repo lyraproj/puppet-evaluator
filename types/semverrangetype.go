@@ -71,6 +71,10 @@ func (bv *SemVerRangeValue) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (bv *SemVerRangeValue) SerializationString() string {
+	return bv.String()
+}
+
 func (bv *SemVerRangeValue) String() string {
 	return ToString2(bv, NONE)
 }

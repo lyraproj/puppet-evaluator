@@ -185,6 +185,10 @@ func (tv *TimestampValue) Int() int64 {
 	return tv.min.Unix()
 }
 
+func (tv *TimestampValue) SerializationString() string {
+	return tv.String()
+}
+
 func (tv *TimestampValue) String() string {
 	return fmt.Sprintf(`%d`, tv.Int())
 }

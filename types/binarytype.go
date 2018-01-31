@@ -111,6 +111,10 @@ func (bv *BinaryValue) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (bv *BinaryValue) SerializationString() string {
+	return base64.StdEncoding.Strict().EncodeToString(bv.bytes)
+}
+
 func (bv *BinaryValue) String() string {
 	return ToString2(bv, NONE)
 }

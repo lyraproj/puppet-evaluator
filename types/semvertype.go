@@ -127,6 +127,10 @@ func (v *SemVerValue) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (v *SemVerValue) SerializationString() string {
+	return v.String()
+}
+
 func (v *SemVerValue) String() string {
 	return v.Version().String()
 }

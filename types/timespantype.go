@@ -168,6 +168,10 @@ func (tv *TimespanValue) Int() int64 {
 	return int64(tv.min) / 1000000000
 }
 
+func (tv *TimespanValue) SerializationString() string {
+	return tv.String()
+}
+
 func (tv *TimespanValue) String() string {
 	return fmt.Sprintf(`%d`, tv.Int())
 }
