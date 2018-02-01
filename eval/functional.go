@@ -1,4 +1,4 @@
-package evaluator
+package eval
 
 type (
 	Actor func()

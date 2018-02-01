@@ -3,7 +3,7 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-parser/parser"
 )
 

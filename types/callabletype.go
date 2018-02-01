@@ -3,7 +3,7 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	"strconv"
 )
 
@@ -54,7 +54,7 @@ func NewCallableType3(args IndexedValue) *CallableType {
 		}
 	}
 
-	last := args.At(argc-1)
+	last := args.At(argc - 1)
 	block, ok = last.(*CallableType)
 	if !ok {
 		block = nil

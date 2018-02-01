@@ -3,8 +3,8 @@ package pcore
 import (
 	"fmt"
 	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
 	_ "github.com/puppetlabs/go-evaluator/functions"
+	. "github.com/puppetlabs/go-evaluator/impl"
 	. "github.com/puppetlabs/go-evaluator/types"
 	"io/ioutil"
 	"path/filepath"

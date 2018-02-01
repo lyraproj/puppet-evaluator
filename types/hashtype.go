@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
 	"sort"
 )

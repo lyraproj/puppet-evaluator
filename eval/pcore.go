@@ -1,4 +1,4 @@
-package evaluator
+package eval
 
 import "github.com/puppetlabs/go-evaluator/semver"
 

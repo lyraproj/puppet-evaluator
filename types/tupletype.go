@@ -4,7 +4,7 @@ import (
 	. "io"
 	"math"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 type TupleType struct {
@@ -58,7 +58,7 @@ func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
 	var ok bool
 	var min int64
 
-	last := args.At(argc-1)
+	last := args.At(argc - 1)
 	max := int64(-1)
 	if _, ok = last.(*DefaultValue); ok {
 		max = math.MaxInt64
@@ -70,7 +70,7 @@ func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
 			rng = NewIntegerType(min, math.MaxInt64)
 			argc = 0
 		} else {
-			if min, ok = toInt(args.At(argc-2)); ok {
+			if min, ok = toInt(args.At(argc - 2)); ok {
 				rng = NewIntegerType(min, max)
 				argc -= 2
 			} else {

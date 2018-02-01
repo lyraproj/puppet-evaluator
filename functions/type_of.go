@@ -1,7 +1,7 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 func typeOf(c EvalContext, v PValue, i string) PType {

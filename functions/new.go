@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
 	. "github.com/puppetlabs/go-evaluator/types"
 )

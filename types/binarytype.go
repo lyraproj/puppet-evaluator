@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 var binaryType_DEFAULT = &BinaryType{}

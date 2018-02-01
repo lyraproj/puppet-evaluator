@@ -2,7 +2,7 @@ package functions
 
 import (
 	"bytes"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {

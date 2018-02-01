@@ -1,7 +1,7 @@
 package loader
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	"path/filepath"
 	"regexp"
 	"strings"

@@ -1,6 +1,6 @@
 package loader
 
-import . "github.com/puppetlabs/go-evaluator/evaluator"
+import . "github.com/puppetlabs/go-evaluator/eval"
 
 type dependencyLoader struct {
 	basicLoader

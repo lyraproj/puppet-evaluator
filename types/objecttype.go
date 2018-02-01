@@ -6,7 +6,7 @@ import (
 
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-evaluator/hash"
 	. "github.com/puppetlabs/go-parser/issue"
 	. "github.com/puppetlabs/go-parser/parser"

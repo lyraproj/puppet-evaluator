@@ -1,4 +1,4 @@
-package evaluator
+package eval
 
 import "regexp"
 

@@ -1,7 +1,7 @@
 package types
 
 import (
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 var _EMPTY_ARRAY = WrapArray([]PValue{})

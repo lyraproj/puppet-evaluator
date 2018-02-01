@@ -1,8 +1,8 @@
-package eval
+package impl
 
 import (
 	"fmt"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
 	. "github.com/puppetlabs/go-parser/issue"

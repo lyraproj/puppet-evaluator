@@ -10,7 +10,7 @@ import (
 	"bytes"
 
 	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-evaluator/utils"
 )
 
@@ -316,13 +316,15 @@ func (av *ArrayValue) At(i int) PValue {
 
 func (av *ArrayValue) Delete(ov PValue) IndexedValue {
 	return av.Reject(func(elem PValue) bool {
-		return elem.Equals(ov, nil) } )
+		return elem.Equals(ov, nil)
+	})
 }
 
 func (av *ArrayValue) DeleteAll(ov IndexedValue) IndexedValue {
 	return av.Reject(func(elem PValue) bool {
 		return ov.Any(func(oe PValue) bool {
-			return elem.Equals(oe, nil) } )
+			return elem.Equals(oe, nil)
+		})
 	})
 }
 
@@ -347,13 +349,13 @@ func (av *ArrayValue) EachWithIndex(consumer IndexedConsumer) {
 
 func (av *ArrayValue) EachSlice(n int, consumer SliceConsumer) {
 	top := len(av.elements)
-  for i := 0; i < top; i += n {
+	for i := 0; i < top; i += n {
 		e := i + n
 		if e > top {
 			e = top
 		}
 		consumer(WrapArray(av.elements[i:e]))
-  }
+	}
 }
 
 func (av *ArrayValue) ElementType() PType {

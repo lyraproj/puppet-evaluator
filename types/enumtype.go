@@ -3,7 +3,7 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	. "github.com/puppetlabs/go-evaluator/utils"
 )
 
@@ -20,7 +20,7 @@ func NewEnumType(enums []string) *EnumType {
 }
 
 func NewEnumType2(args ...PValue) *EnumType {
-  return NewEnumType3(WrapArray(args))
+	return NewEnumType3(WrapArray(args))
 }
 
 func NewEnumType3(args IndexedValue) *EnumType {

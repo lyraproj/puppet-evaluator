@@ -1,4 +1,4 @@
-package eval
+package impl
 
 type IdentitySet map[interface{}]bool
 

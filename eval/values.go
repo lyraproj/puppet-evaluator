@@ -1,4 +1,4 @@
-package evaluator
+package eval
 
 import (
 	"bytes"
@@ -47,7 +47,6 @@ type (
 		PValue
 		DynamicValue() Iterator
 	}
-
 
 	// IndexedValue represents an Array. The iterative methods will not catch break exceptions. If
 	//	// that is desired, then use an Iterator instead.

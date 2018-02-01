@@ -3,7 +3,7 @@ package types
 import (
 	. "io"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 )
 
 type VariantType struct {
@@ -28,7 +28,6 @@ func NewVariantType(types []PType) PType {
 func NewVariantType2(args ...PValue) PType {
 	return NewVariantType3(WrapArray(args))
 }
-
 
 func NewVariantType3(args IndexedValue) PType {
 	var variants []PType

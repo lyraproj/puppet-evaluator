@@ -1,11 +1,11 @@
-package eval
+package impl
 
 import (
 	"fmt"
 	"regexp"
 	"strings"
 
-	. "github.com/puppetlabs/go-evaluator/evaluator"
+	. "github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
 	. "github.com/puppetlabs/go-evaluator/types"
 	. "github.com/puppetlabs/go-parser/issue"
