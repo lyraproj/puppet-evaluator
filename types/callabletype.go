@@ -22,7 +22,11 @@ func NewCallableType(paramsType *TupleType, returnType PType, blockType PType) *
 }
 
 func NewCallableType2(args ...PValue) *CallableType {
-	argc := len(args)
+	return NewCallableType3(WrapArray(args))
+}
+
+func NewCallableType3(args IndexedValue) *CallableType {
+	argc := args.Len()
 	if argc == 0 {
 		return DefaultCallableType()
 	}
@@ -36,21 +40,21 @@ func NewCallableType2(args ...PValue) *CallableType {
 	if argc == 2 {
 		// check for [[params, block], return]
 		var iv IndexedValue
-		if iv, ok = args[0].(IndexedValue); ok {
+		if iv, ok = args.At(0).(IndexedValue); ok {
 			argc = iv.Len()
 			if argc < 0 || argc > 2 {
-				panic(NewIllegalArgumentType2(`Callable[]`, 0, `Tuple[Type[Tuple], Type[CallableType, 1, 2]]]`, args[0]))
+				panic(NewIllegalArgumentType2(`Callable[]`, 0, `Tuple[Type[Tuple], Type[CallableType, 1, 2]]]`, args.At(0)))
 			}
 
-			if rt, ok = args[1].(PType); !ok {
-				panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args[1]))
+			if rt, ok = args.At(1).(PType); !ok {
+				panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))
 			}
 
-			args = iv.Elements()
+			args = iv
 		}
 	}
 
-	last := args[argc-1]
+	last := args.At(argc-1)
 	block, ok = last.(*CallableType)
 	if !ok {
 		block = nil
@@ -63,11 +67,12 @@ func NewCallableType2(args ...PValue) *CallableType {
 	}
 	if ok {
 		argc--
-		args = args[0:argc]
-		last = args[argc-1]
+		args = args.Slice(0, argc)
+		last = args.At(argc)
 	}
 	return NewCallableType(tupleFromArgs(true, args), rt, block)
 }
+
 func (t *CallableType) BlockType() PType {
 	if t.blockType == nil {
 		return nil // Return untyped nil
@@ -75,7 +80,7 @@ func (t *CallableType) BlockType() PType {
 	return t.blockType
 }
 
-func (t *CallableType) CallableWith(args []PValue, block Lambda) bool {
+func (t *CallableType) CallableWith(args IndexedValue, block Lambda) bool {
 	if block != nil {
 		cb := t.blockType
 		switch cb.(type) {

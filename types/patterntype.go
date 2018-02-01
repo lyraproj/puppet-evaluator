@@ -20,18 +20,23 @@ func NewPatternType(regexps []*RegexpType) *PatternType {
 }
 
 func NewPatternType2(regexps ...PValue) *PatternType {
-	cnt := len(regexps)
+	return NewPatternType3(WrapArray(regexps))
+}
+
+func NewPatternType3(regexps IndexedValue) *PatternType {
+
+	cnt := regexps.Len()
 	switch cnt {
 	case 0:
 		return DefaultPatternType()
 	case 1:
-		if iv, ok := regexps[0].(IndexedValue); ok {
-			return NewPatternType2(iv.Elements()...)
+		if iv, ok := regexps.At(0).(IndexedValue); ok {
+			return NewPatternType3(iv)
 		}
 	}
 
 	rs := make([]*RegexpType, cnt)
-	for idx, arg := range regexps {
+	regexps.EachWithIndex(func(arg PValue, idx int) {
 		switch arg.(type) {
 		case *RegexpType:
 			rs[idx] = arg.(*RegexpType)
@@ -42,7 +47,7 @@ func NewPatternType2(regexps ...PValue) *PatternType {
 		default:
 			panic(NewIllegalArgumentType2(`Pattern[]`, idx, `Type[Regexp], Regexp, or String`, arg))
 		}
-	}
+	})
 	return NewPatternType(rs)
 }
 

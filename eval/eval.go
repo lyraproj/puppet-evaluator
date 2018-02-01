@@ -665,15 +665,15 @@ func (e *evaluator) eval_UnfoldExpression(expr *UnfoldExpression, c EvalContext)
 	candidate := e.eval(expr.Expr(), c)
 	switch candidate.(type) {
 	case *UndefValue:
-		return WrapArray([]PValue{UNDEF})
+		return SingletonArray(UNDEF)
 	case *ArrayValue:
 		return candidate
 	case *HashValue:
-		return WrapArray(candidate.(*HashValue).Elements())
+		return WrapArray3(candidate.(*HashValue))
 	case IteratorValue:
 		return candidate.(IteratorValue).DynamicValue().AsArray()
 	default:
-		return WrapArray([]PValue{candidate})
+		return SingletonArray(candidate)
 	}
 }
 
@@ -809,7 +809,7 @@ func (e *evaluator) unfold(array []Expression, c EvalContext, initial ...PValue)
 			ev := e.eval(u.Expr(), c)
 			switch ev.(type) {
 			case *ArrayValue:
-				result = append(result, ev.(*ArrayValue).Elements()...)
+				result = ev.(*ArrayValue).AppendTo(result)
 			default:
 				result = append(result, ev)
 			}

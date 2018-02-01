@@ -19,9 +19,7 @@ func NewScope() Scope {
 
 func NewScope2(h *HashValue) Scope {
 	top := make(map[string]PValue, h.Len())
-	for _, he := range h.EntriesSlice() {
-		top[he.Key().String()] = he.Value()
-	}
+	h.EachPair(func(k, v PValue) { top[k.String()] = v })
 	return &BasicScope{[]map[string]PValue{top}}
 }
 

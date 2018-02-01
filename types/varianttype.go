@@ -26,26 +26,31 @@ func NewVariantType(types []PType) PType {
 }
 
 func NewVariantType2(args ...PValue) PType {
+	return NewVariantType3(WrapArray(args))
+}
+
+
+func NewVariantType3(args IndexedValue) PType {
 	var variants []PType
 	var failIdx int
 
-	switch len(args) {
+	switch args.Len() {
 	case 0:
 		return DefaultVariantType()
 	case 1:
-		first := args[0]
+		first := args.At(0)
 		switch first.(type) {
 		case PType:
 			return first.(PType)
 		case *ArrayValue:
-			return NewVariantType2(first.(*ArrayValue).Elements()...)
+			return NewVariantType3(first.(*ArrayValue))
 		default:
-			panic(NewIllegalArgumentType2(`Variant[]`, 0, `Type or Array[Type]`, args[0]))
+			panic(NewIllegalArgumentType2(`Variant[]`, 0, `Type or Array[Type]`, args.At(0)))
 		}
 	default:
-		variants, failIdx = toTypes(args...)
+		variants, failIdx = toTypes(args)
 		if failIdx >= 0 {
-			panic(NewIllegalArgumentType2(`Variant[]`, failIdx, `Type`, args[failIdx]))
+			panic(NewIllegalArgumentType2(`Variant[]`, failIdx, `Type`, args.At(failIdx)))
 		}
 	}
 	return &VariantType{variants}

@@ -7,6 +7,8 @@ type (
 
 	IndexedConsumer func(value PValue, index int)
 
+	SliceConsumer func(value IndexedValue)
+
 	Mapper func(value PValue) PValue
 
 	Predicate func(value PValue) bool

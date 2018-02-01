@@ -171,13 +171,10 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 		return Any2(higherKeys, func(hk PValue) bool {
 			return !hk.Equals(le.Key(), nil) && IsAssignable(hk.(PType), le.Key().(PType))
 		})
-	}).Elements())
+	}))
 
 	merged := make([]*HashEntry, 0, 8)
-	allKeys := make([]PValue, normLower.Len(), normLower.Len()+higher.Len())
-	copy(allKeys, normLower.Keys().Elements())
-	allKeys = append(allKeys, higherKeys.Elements()...)
-	for _, k := range UniqueValues(allKeys) {
+	normLower.Keys().AddAll(higherKeys).Unique().Each(func(k PValue) {
 		if low, ok := normLower.Get(k); ok {
 			if high, ok := higher.Get(k); ok {
 				merged = append(merged, WrapHashEntry(k, merge(low.(Format), high.(Format))))
@@ -189,7 +186,7 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 				merged = append(merged, WrapHashEntry(k, high))
 			}
 		}
-	}
+	})
 
 	sort.Slice(merged, func(ax, bx int) bool {
 		a := merged[ax].Key().(PType)
@@ -270,9 +267,9 @@ var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType
 
 func NewFormatMap(h *HashValue) FormatMap {
 	AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
-	entries := h.EntriesSlice()
-	result := make([]*HashEntry, len(entries))
-	for idx, entry := range entries {
+	result := make([]*HashEntry, h.Len())
+	h.EachWithIndex(func(elem PValue, idx int) {
+		entry := elem.(*HashEntry)
 		pt := entry.Key().(PType)
 		v := entry.Value()
 		if s, ok := v.(*StringValue); ok {
@@ -280,7 +277,7 @@ func NewFormatMap(h *HashValue) FormatMap {
 		} else {
 			result[idx] = WrapHashEntry(pt, FormatFromHash(v.(*HashValue)))
 		}
-	}
+	})
 	return FormatMap(WrapHash(result))
 }
 

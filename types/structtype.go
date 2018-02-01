@@ -77,15 +77,14 @@ func NewStructType2(args ...PValue) *StructType {
 		}
 		top := hash.Len()
 		elems := make([]*StructElement, top)
-		for idx, key := range hash.Keys().Elements() {
-			var vt PType
-			v, _ := hash.Get(key)
-			if vt, ok = v.(PType); ok {
-				elems[idx] = NewStructElement(key, vt)
-				continue
+		hash.EachWithIndex(func(v PValue, idx int) {
+			e := v.(*HashEntry)
+			vt, ok := e.Value().(PType)
+			if !ok {
+				panic(NewIllegalArgumentType2(`StructElement`, 1, `Type`, v))
 			}
-			panic(NewIllegalArgumentType2(`StructElement`, 1, `Type`, v))
-		}
+			elems[idx] = NewStructElement(e.Key(), vt)
+		})
 		return NewStructType(elems)
 	default:
 		panic(NewIllegalArgumentCount(`Struct`, `0 - 1`, len(args)))

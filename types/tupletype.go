@@ -41,11 +41,15 @@ func NewTupleType(types []PType, size *IntegerType) *TupleType {
 }
 
 func NewTupleType2(args ...PValue) *TupleType {
+	return tupleFromArgs(false, WrapArray(args))
+}
+
+func NewTupleType3(args IndexedValue) *TupleType {
 	return tupleFromArgs(false, args)
 }
 
-func tupleFromArgs(callable bool, args []PValue) *TupleType {
-	argc := int64(len(args))
+func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
+	argc := args.Len()
 	if argc == 0 {
 		return tupleType_DEFAULT
 	}
@@ -54,7 +58,7 @@ func tupleFromArgs(callable bool, args []PValue) *TupleType {
 	var ok bool
 	var min int64
 
-	last := args[argc-1]
+	last := args.At(argc-1)
 	max := int64(-1)
 	if _, ok = last.(*DefaultValue); ok {
 		max = math.MaxInt64
@@ -66,7 +70,7 @@ func tupleFromArgs(callable bool, args []PValue) *TupleType {
 			rng = NewIntegerType(min, math.MaxInt64)
 			argc = 0
 		} else {
-			if min, ok = toInt(args[argc-2]); ok {
+			if min, ok = toInt(args.At(argc-2)); ok {
 				rng = NewIntegerType(min, max)
 				argc -= 2
 			} else {
@@ -77,7 +81,7 @@ func tupleFromArgs(callable bool, args []PValue) *TupleType {
 		givenOrActualRng = rng
 	} else {
 		rng = nil
-		givenOrActualRng = NewIntegerType(argc, argc)
+		givenOrActualRng = NewIntegerType(int64(argc), int64(argc))
 	}
 
 	if argc == 0 {
@@ -98,18 +102,18 @@ func tupleFromArgs(callable bool, args []PValue) *TupleType {
 	failIdx := -1
 	if argc == 1 {
 		// One arg can be either array of types or a type
-		tupleTypes, failIdx = toTypes(args[0])
+		tupleTypes, failIdx = toTypes(args.Slice(0, 1))
 		ok = failIdx < 0
 	}
 
 	if !ok {
-		tupleTypes, failIdx = toTypes(args[0:argc]...)
+		tupleTypes, failIdx = toTypes(args.Slice(0, argc))
 		if failIdx >= 0 {
 			name := `Tuple[]`
 			if callable {
 				name = `Callable[]`
 			}
-			panic(NewIllegalArgumentType2(name, failIdx, `Type`, args[failIdx]))
+			panic(NewIllegalArgumentType2(name, failIdx, `Type`, args.At(failIdx)))
 		}
 	}
 	return &TupleType{rng, givenOrActualRng, tupleTypes}
@@ -206,13 +210,13 @@ func (t *TupleType) IsAssignable(o PType, g Guard) bool {
 
 func (t *TupleType) IsInstance(v PValue, g Guard) bool {
 	if iv, ok := v.(*ArrayValue); ok {
-		return t.IsInstance2(iv.Elements(), g)
+		return t.IsInstance2(iv, g)
 	}
 	return false
 }
 
-func (t *TupleType) IsInstance2(vs []PValue, g Guard) bool {
-	osz := len(vs)
+func (t *TupleType) IsInstance2(vs IndexedValue, g Guard) bool {
+	osz := vs.Len()
 	if !t.givenOrActualSize.IsInstance3(osz) {
 		return false
 	}
@@ -224,7 +228,7 @@ func (t *TupleType) IsInstance2(vs []PValue, g Guard) bool {
 
 	tdx := 0
 	for idx := 0; idx < osz; idx++ {
-		if !GuardedIsInstance(t.types[tdx], vs[idx], g) {
+		if !GuardedIsInstance(t.types[tdx], vs.At(idx), g) {
 			return false
 		}
 		if tdx < last {

@@ -48,6 +48,9 @@ type (
 		DynamicValue() Iterator
 	}
 
+
+	// IndexedValue represents an Array. The iterative methods will not catch break exceptions. If
+	//	// that is desired, then use an Iterator instead.
 	IndexedValue interface {
 		SizedValue
 		IterableValue
@@ -55,18 +58,19 @@ type (
 		AddAll(IndexedValue) IndexedValue
 		All(predicate Predicate) bool
 		Any(predicate Predicate) bool
+		AppendTo(slice []PValue) []PValue
 		At(index int) PValue
 		Delete(PValue) IndexedValue
 		DeleteAll(IndexedValue) IndexedValue
-
-		// Each iterates over each element. This method will not catch break exceptions. If that is
-		// desired, use an Iterator instead.
 		Each(Consumer)
+		EachSlice(int, SliceConsumer)
 		EachWithIndex(consumer IndexedConsumer)
-		Elements() []PValue
+		Find(predicate Predicate) (PValue, bool)
+		Map(mapper Mapper) IndexedValue
 		Select(predicate Predicate) IndexedValue
 		Slice(i int, j int) IndexedValue
 		Reject(predicate Predicate) IndexedValue
+		Unique() IndexedValue
 	}
 
 	HashKey string

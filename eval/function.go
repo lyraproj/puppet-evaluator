@@ -306,7 +306,7 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 
 func (f *goFunction) Call(c EvalContext, block Lambda, args ...PValue) (result PValue) {
 	for _, d := range f.dispatchers {
-		if d.Signature().CallableWith(args, block) {
+		if d.Signature().CallableWith(WrapArray(args), block) {
 			result = d.Call(c, block, args...)
 			return
 		}

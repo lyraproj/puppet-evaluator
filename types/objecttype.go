@@ -235,9 +235,9 @@ func stringArg(hash KeyedValue, key string, d string) string {
 // Visit the keys of an annotations map. All keys are known to be types
 func visitAnnotations(a *HashValue, v Visitor, g Guard) {
 	if a != nil {
-		for _, e := range a.EntriesSlice() {
-			e.key.(PType).Accept(v, g)
-		}
+		a.EachKey(func(key PValue) {
+			key.(PType).Accept(v, g)
+		})
 	}
 }
 
@@ -744,11 +744,11 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 	typeParameters := hashArg(initHash, KEY_TYPE_PARAMETERS)
 	if !typeParameters.IsEmpty() {
 		parameters := NewStringHash(typeParameters.Len())
-		for _, he := range typeParameters.EntriesSlice() {
-			key := he.Key().String()
+		typeParameters.EachPair(func(k, v PValue) {
+			key := k.String()
 			var paramType PType
 			var paramValue PValue
-			if ph, ok := he.value.(*HashValue); ok {
+			if ph, ok := v.(*HashValue); ok {
 				AssertInstance(
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
 					TYPE_TYPE_PARAMETER, ph)
@@ -757,7 +757,7 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 			} else {
 				paramType = AssertInstance(
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
-					DefaultTypeType(), he.value).(PType)
+					DefaultTypeType(), v).(PType)
 				paramValue = nil
 			}
 			if _, ok := paramType.(*OptionalType); !ok {
@@ -768,7 +768,7 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 				KEY_VALUE: paramValue}))
 			assertOverride(param, parentTypeParams)
 			parameters.Put(key, param)
-		}
+		})
 		parameters.Freeze()
 		t.parameters = parameters
 	}
@@ -776,24 +776,24 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 	constants := hashArg(initHash, KEY_CONSTANTS)
 	attributes := hashArg(initHash, KEY_ATTRIBUTES)
 	attrSpecs := NewStringHash(constants.Len() + attributes.Len())
-	for _, ae := range attributes.EntriesSlice() {
-		attrSpecs.Put(ae.Key().String(), ae.Value())
-	}
+	attributes.EachPair(func(k, v PValue) {
+		attrSpecs.Put(k.String(), v)
+	})
 
 	if !constants.IsEmpty() {
-		for _, he := range constants.EntriesSlice() {
-			key := he.Key().String()
+		constants.EachPair(func(k, v PValue) {
+			key := k.String()
 			if attrSpecs.Includes(key) {
 				panic(Error(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, H{`label`: t.Label(), `key`: key}))
 			}
-			value := he.Value().(PValue)
+			value := v.(PValue)
 			attrSpec := H{
 				KEY_TYPE:  Generalize(value.Type()),
 				KEY_VALUE: value,
 				KEY_KIND:  CONSTANT}
 			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
 			attrSpecs.Put(key, WrapHash4(attrSpec))
-		}
+		})
 	}
 
 	if !attrSpecs.IsEmpty() {
@@ -884,7 +884,7 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 	if ok {
 		serialization := make([]string, se.Len())
 		var optFound Attribute
-		for i, elem := range se.elements {
+		se.EachWithIndex(func(elem PValue, i int) {
 			attrName := elem.String()
 			var attr Attribute
 			ok := false
@@ -910,7 +910,7 @@ func (t *objectType) InitFromHash(initHash KeyedValue) {
 				panic(Error(EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, H{`label`: t.Label(), `required`: attr.Label(), `optional`: optFound.Label()}))
 			}
 			serialization[i] = attrName
-		}
+		})
 		t.serialization = serialization
 	}
 	t.attrInfo = t.createAttributesInfo()

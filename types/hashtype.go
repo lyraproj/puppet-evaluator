@@ -247,6 +247,10 @@ func (he *HashEntry) Any(predicate Predicate) bool {
 	return predicate(he.key) || predicate(he.value)
 }
 
+func (he *HashEntry) AppendTo(slice []PValue) []PValue {
+	return append(slice, he.key, he.value)
+}
+
 func (he *HashEntry) At(i int) PValue {
 	switch i {
 	case 0:
@@ -275,13 +279,18 @@ func (he *HashEntry) Each(consumer Consumer) {
 	consumer(he.value)
 }
 
+func (he *HashEntry) EachSlice(n int, consumer SliceConsumer) {
+	if n == 1 {
+		consumer(SingletonArray(he.key))
+		consumer(SingletonArray(he.value))
+	} else if n >= 2 {
+		consumer(he)
+	}
+}
+
 func (he *HashEntry) EachWithIndex(consumer IndexedConsumer) {
 	consumer(he.key, 0)
 	consumer(he.value, 1)
-}
-
-func (he *HashEntry) Elements() []PValue {
-	return []PValue{he.key, he.value}
 }
 
 func (he *HashEntry) ElementType() PType {
@@ -296,6 +305,16 @@ func (he *HashEntry) Equals(o interface{}, g Guard) bool {
 		return he.key.Equals(iv.At(0), g) && he.value.Equals(iv.At(1), g)
 	}
 	return false
+}
+
+func (he *HashEntry) Find(predicate Predicate) (PValue, bool) {
+	if predicate(he.key) {
+		return he.key, true
+	}
+	if predicate(he.value) {
+		return he.value, true
+	}
+	return nil, false
 }
 
 func (he *HashEntry) IsEmpty() bool {
@@ -318,15 +337,19 @@ func (he *HashEntry) Len() int {
 	return 2
 }
 
+func (he *HashEntry) Map(mapper Mapper) IndexedValue {
+	return WrapArray([]PValue{mapper(he.key), mapper(he.value)})
+}
+
 func (he *HashEntry) Select(predicate Predicate) IndexedValue {
 	if predicate(he.key) {
 		if predicate(he.value) {
 			return he
 		}
-		return WrapArray([]PValue{he.key})
+		return SingletonArray(he.key)
 	}
 	if predicate(he.value) {
-		return WrapArray([]PValue{he.value})
+		return SingletonArray(he.value)
 	}
 	return EMPTY_ARRAY
 }
@@ -336,10 +359,10 @@ func (he *HashEntry) Slice(i int, j int) IndexedValue {
 		return EMPTY_ARRAY
 	}
 	if i == 1 {
-		return WrapArray([]PValue{he.value})
+		return SingletonArray(he.value)
 	}
 	if j == 1 {
-		return WrapArray([]PValue{he.key})
+		return SingletonArray(he.key)
 	}
 	return he
 }
@@ -349,16 +372,23 @@ func (he *HashEntry) Reject(predicate Predicate) IndexedValue {
 		if predicate(he.value) {
 			return EMPTY_ARRAY
 		}
-		return WrapArray([]PValue{he.value})
+		return SingletonArray(he.value)
 	}
 	if predicate(he.value) {
-		return WrapArray([]PValue{he.key})
+		return SingletonArray(he.key)
 	}
 	return he
 }
 
 func (he *HashEntry) Type() PType {
 	return NewArrayType(commonType(he.key.Type(), he.value.Type()), NewIntegerType(2, 2))
+}
+
+func (he *HashEntry) Unique() IndexedValue {
+	if he.key.Equals(he.value, nil) {
+		return SingletonArray(he.key)
+	}
+	return he
 }
 
 func (he *HashEntry) Value() PValue {
@@ -377,11 +407,11 @@ func WrapHash(entries []*HashEntry) *HashValue {
 	return &HashValue{entries: entries}
 }
 
-func WrapHash2(entries []PValue) *HashValue {
-	hvEntries := make([]*HashEntry, len(entries))
-	for idx, entry := range entries {
+func WrapHash2(entries IndexedValue) *HashValue {
+	hvEntries := make([]*HashEntry, entries.Len())
+	entries.EachWithIndex(func(entry PValue, idx int) {
 		hvEntries[idx] = entry.(*HashEntry)
-	}
+	})
 	return &HashValue{entries: hvEntries}
 }
 
@@ -435,23 +465,24 @@ func WrapHashFromArray(a *ArrayValue) *HashValue {
 	case *ArrayType:
 		// Array of arrays. Assume that each nested array is [key, value]
 		entries := make([]*HashEntry, top)
-		for idx, pair := range a.Elements() {
-			pairArr := pair.(*ArrayValue)
+		a.EachWithIndex(func(pair PValue, idx int) {
+			pairArr := pair.(IndexedValue)
 			if pairArr.Len() != 2 {
 				panic(NewArgumentsError(`Hash`, fmt.Sprintf(`hash entry array must have 2 elements, got %d`, pairArr.Len())))
 			}
 			entries[idx] = WrapHashEntry(pairArr.At(0), pairArr.At(1))
-		}
+		})
 		return WrapHash(entries)
 	default:
 		if (top % 2) != 0 {
 			panic(NewArgumentsError(`Hash`, `odd number of arguments in Array`))
 		}
 		entries := make([]*HashEntry, top/2)
-		elems := a.Elements()
-		for idx := 0; idx < top; idx += 2 {
-			entries[idx/2] = WrapHashEntry(elems[idx], elems[idx+1])
-		}
+		idx := 0
+		a.EachSlice(2, func(slice IndexedValue) {
+			entries[idx] = WrapHashEntry(slice.At(0), slice.At(1))
+			idx++
+		})
 		return WrapHash(entries)
 	}
 }
@@ -523,6 +554,13 @@ func (hv *HashValue) AnyPair(predicate BiPredicate) bool {
 	return false
 }
 
+func (hv *HashValue) AppendTo(slice []PValue) []PValue {
+	for _, e := range hv.entries {
+		slice = append(slice, e)
+	}
+	return slice
+}
+
 func (hv *HashValue) At(i int) PValue {
 	if i >= 0 && i < len(hv.entries) {
 		return hv.entries[i]
@@ -540,11 +578,11 @@ func (hv *HashValue) Delete(key PValue) IndexedValue {
 func (hv *HashValue) DeleteAll(keys IndexedValue) IndexedValue {
 	entries := hv.entries
 	valueIndex := hv.valueIndex()
-	for _, key := range keys.Elements() {
+	keys.Each(func(key PValue) {
 		if idx, ok := valueIndex[ToKey(key)]; ok {
 			entries = append(hv.entries[:idx], hv.entries[idx+1:]...)
 		}
-	}
+	})
 	if len(hv.entries) == len(entries) {
 		return hv
 	}
@@ -558,14 +596,6 @@ func (hv *HashValue) DetailedType() PType {
 	return t
 }
 
-func (hv *HashValue) Elements() []PValue {
-	elements := make([]PValue, len(hv.entries))
-	for idx, entry := range hv.entries {
-		elements[idx] = WrapArray(entry.Elements())
-	}
-	return elements
-}
-
 func (hv *HashValue) ElementType() PType {
 	return hv.Type().(*HashType).EntryType()
 }
@@ -574,13 +604,20 @@ func (hv *HashValue) Entries() IndexedValue {
 	return hv
 }
 
-func (hv *HashValue) EntriesSlice() []*HashEntry {
-	return hv.entries
-}
-
 func (hv *HashValue) Each(consumer Consumer) {
 	for _, e := range hv.entries {
 		consumer(e)
+	}
+}
+
+func (hv *HashValue) EachSlice(n int, consumer SliceConsumer) {
+	top := len(hv.entries)
+	for i := 0; i < top; i += n {
+		e := i + n
+		if e > top {
+			e = top
+		}
+		consumer(WrapArray(ValueSlice(hv.entries[i:e])))
 	}
 }
 
@@ -588,6 +625,23 @@ func (hv *HashValue) EachKey(consumer Consumer) {
 	for _, e := range hv.entries {
 		consumer(e.key)
 	}
+}
+
+func (hv *HashValue) Find(predicate Predicate) (PValue, bool) {
+	for _, e := range hv.entries {
+		if predicate(e) {
+			return e, true
+		}
+	}
+	return nil, false
+}
+
+func (hv *HashValue) Map(mapper Mapper) IndexedValue {
+	mapped := make([]PValue, len(hv.entries))
+	for i, e := range hv.entries {
+		mapped[i] = mapper(e)
+	}
+	return WrapArray(mapped)
 }
 
 func (hv *HashValue) Select(predicate Predicate) IndexedValue {
@@ -780,7 +834,7 @@ func (hv *HashValue) ToString(b Writer, s FormatContext, g RDetect) {
 func (hv *HashValue) ToString2(b Writer, s FormatContext, f Format, delim byte, g RDetect) {
 	switch f.FormatChar() {
 	case 'a':
-		WrapArray(hv.Elements()).ToString(b, s, g)
+		WrapArray3(hv).ToString(b, s, g)
 		return
 	case 'h', 's', 'p':
 		indent := s.Indentation()
@@ -867,6 +921,11 @@ func (hv *HashValue) Type() PType {
 	t := hv.prtvReducedType()
 	hv.lock.Unlock()
 	return t
+}
+
+// Unique on a HashValue will always return self since the keys of a hash are unique
+func (hv *HashValue) Unique() IndexedValue {
+	return hv
 }
 
 func (hv *HashValue) Values() IndexedValue {

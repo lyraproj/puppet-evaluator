@@ -243,6 +243,10 @@ func (t *ArrayType) ToString(b Writer, s FormatContext, g RDetect) {
 var arrayType_DEFAULT = &ArrayType{integerType_POSITIVE, anyType_DEFAULT}
 var arrayType_EMPTY = &ArrayType{integerType_ZERO, unitType_DEFAULT}
 
+func SingletonArray(element PValue) *ArrayValue {
+	return &ArrayValue{elements: []PValue{element}}
+}
+
 func WrapArray(elements []PValue) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
@@ -253,6 +257,13 @@ func WrapArray2(elements []interface{}) *ArrayValue {
 		els[i] = wrap(e)
 	}
 	return &ArrayValue{elements: els}
+}
+
+func WrapArray3(iv IndexedValue) *ArrayValue {
+	if ar, ok := iv.(*ArrayValue); ok {
+		return ar
+	}
+	return WrapArray(iv.AppendTo(make([]PValue, 0, iv.Len())))
 }
 
 func (av *ArrayValue) Add(ov PValue) IndexedValue {
@@ -292,6 +303,10 @@ func (av *ArrayValue) Any(predicate Predicate) bool {
 	return false
 }
 
+func (av *ArrayValue) AppendTo(slice []PValue) []PValue {
+	return append(slice, av.elements...)
+}
+
 func (av *ArrayValue) At(i int) PValue {
 	if i >= 0 && i < len(av.elements) {
 		return av.elements[i]
@@ -300,30 +315,15 @@ func (av *ArrayValue) At(i int) PValue {
 }
 
 func (av *ArrayValue) Delete(ov PValue) IndexedValue {
-	result := make([]PValue, 0, len(av.elements))
-	for _, elem := range av.elements {
-		if elem.Equals(ov, nil) {
-			continue
-		}
-		result = append(result, elem)
-	}
-	return WrapArray(result)
+	return av.Reject(func(elem PValue) bool {
+		return elem.Equals(ov, nil) } )
 }
 
 func (av *ArrayValue) DeleteAll(ov IndexedValue) IndexedValue {
-	result := make([]PValue, 0, len(av.elements))
-	ovEls := ov.Elements()
-	oLen := len(ovEls)
-outer:
-	for _, elem := range av.elements {
-		for idx := 0; idx < oLen; idx++ {
-			if elem.Equals(ovEls[idx], nil) {
-				continue outer
-			}
-		}
-		result = append(result, elem)
-	}
-	return WrapArray(result)
+	return av.Reject(func(elem PValue) bool {
+		return ov.Any(func(oe PValue) bool {
+			return elem.Equals(oe, nil) } )
+	})
 }
 
 func (av *ArrayValue) DetailedType() PType {
@@ -345,8 +345,15 @@ func (av *ArrayValue) EachWithIndex(consumer IndexedConsumer) {
 	}
 }
 
-func (av *ArrayValue) Elements() []PValue {
-	return av.elements
+func (av *ArrayValue) EachSlice(n int, consumer SliceConsumer) {
+	top := len(av.elements)
+  for i := 0; i < top; i += n {
+		e := i + n
+		if e > top {
+			e = top
+		}
+		consumer(WrapArray(av.elements[i:e]))
+  }
 }
 
 func (av *ArrayValue) ElementType() PType {
@@ -372,6 +379,15 @@ func (av *ArrayValue) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
+func (av *ArrayValue) Find(predicate Predicate) (PValue, bool) {
+	for _, e := range av.elements {
+		if predicate(e) {
+			return e, true
+		}
+	}
+	return nil, false
+}
+
 func (av *ArrayValue) IsEmpty() bool {
 	return len(av.elements) == 0
 }
@@ -386,6 +402,14 @@ func (av *ArrayValue) Iterator() Iterator {
 
 func (av *ArrayValue) Len() int {
 	return len(av.elements)
+}
+
+func (av *ArrayValue) Map(mapper Mapper) IndexedValue {
+	mapped := make([]PValue, len(av.elements))
+	for i, e := range av.elements {
+		mapped[i] = mapper(e)
+	}
+	return WrapArray(mapped)
 }
 
 func (av *ArrayValue) Reject(predicate Predicate) IndexedValue {
@@ -501,6 +525,27 @@ func (av *ArrayValue) ToString2(b Writer, s FormatContext, f Format, delim byte,
 	if delims[1] != 0 {
 		b.Write(delims[1:])
 	}
+}
+
+func (av *ArrayValue) Unique() IndexedValue {
+	top := len(av.elements)
+	if top < 2 {
+		return av
+	}
+
+	result := make([]PValue, 0, top)
+	exists := make(map[HashKey]bool, top)
+	for _, v := range av.elements {
+		key := ToKey(v)
+		if !exists[key] {
+			exists[key] = true
+			result = append(result, v)
+		}
+	}
+	if len(result) == len(av.elements) {
+		return av
+	}
+	return WrapArray(result)
 }
 
 func childToString(child PValue, indent Indentation, parentCtx FormatContext, cf FormatMap, g RDetect) string {

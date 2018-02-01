@@ -20,30 +20,34 @@ func NewEnumType(enums []string) *EnumType {
 }
 
 func NewEnumType2(args ...PValue) *EnumType {
-	if len(args) == 0 {
+  return NewEnumType3(WrapArray(args))
+}
+
+func NewEnumType3(args IndexedValue) *EnumType {
+	if args.Len() == 0 {
 		return DefaultEnumType()
 	}
 	var enums []string
-	top := len(args)
+	top := args.Len()
 	if top == 1 {
-		first := args[0]
+		first := args.At(0)
 		switch first.(type) {
 		case *StringValue:
 			enums = []string{first.String()}
 		case *ArrayValue:
-			return NewEnumType2(first.(*ArrayValue).Elements()...)
+			return NewEnumType3(first.(*ArrayValue))
 		default:
-			panic(NewIllegalArgumentType2(`Enum[]`, 0, `String or Array[String]`, args[0]))
+			panic(NewIllegalArgumentType2(`Enum[]`, 0, `String or Array[String]`, args.At(0)))
 		}
 	} else {
 		enums = make([]string, top)
-		for idx, arg := range args {
+		args.EachWithIndex(func(arg PValue, idx int) {
 			str, ok := arg.(*StringValue)
 			if !ok {
 				panic(NewIllegalArgumentType2(`Enum[]`, idx, `String`, arg))
 			}
 			enums[idx] = str.String()
-		}
+		})
 	}
 	return NewEnumType(enums)
 }

@@ -19,27 +19,27 @@ func (e *evaluator) assign(expr *AssignmentExpression, scope Scope, lv PValue, r
 		return rv
 	}
 
-	names := lv.(*ArrayValue).Elements()
+	names := lv.(*ArrayValue)
 	switch rv.(type) {
 	case *HashValue:
 		h := rv.(*HashValue)
-		r := make([]PValue, len(names))
-		for idx, name := range names {
+		r := make([]PValue, names.Len())
+		names.EachWithIndex(func(name PValue, idx int) {
 			v, ok := h.Get(name)
 			if !ok {
 				panic(e.evalError(EVAL_MISSING_MULTI_ASSIGNMENT_KEY, expr, H{`name`: name.String()}))
 			}
 			r[idx] = e.assign(expr, scope, name, v)
-		}
+		})
 		return WrapArray(r)
 	case *ArrayValue:
-		values := rv.(*ArrayValue).Elements()
-		if len(names) != len(values) {
-			panic(e.evalError(EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, expr, H{`expected`: len(names), `actual`: len(values)}))
+		values := rv.(*ArrayValue)
+		if names.Len() != values.Len() {
+			panic(e.evalError(EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, expr, H{`expected`: names.Len(), `actual`: values.Len()}))
 		}
-		for idx, name := range names {
-			e.assign(expr, scope, name, values[idx])
-		}
+		names.EachWithIndex(func(name PValue, idx int) {
+			e.assign(expr, scope, name, values.At(idx))
+		})
 		return rv
 	default:
 		panic(e.evalError(EVAL_ILLEGAL_ASSIGNMENT, expr.Lhs(), H{`value`: expr.Lhs()}))

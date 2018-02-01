@@ -35,32 +35,24 @@ func init() {
 		case *ArrayValue:
 			if rhs, ok := b.(*ArrayValue); ok {
 				lhs := a.(*ArrayValue)
-				lhsElements := lhs.Elements()
-				rhsElements := rhs.Elements()
-				if len(lhsElements) == len(rhsElements) {
-					for idx, el := range lhsElements {
-						if !PuppetEquals(el, rhsElements[idx]) {
-							return false
-						}
-					}
-					return true
+				if lhs.Len() == rhs.Len() {
+					idx := 0
+					return lhs.All(func(el PValue) bool {
+						eq := PuppetEquals(el, rhs.At(idx))
+						idx++
+						return eq
+					})
 				}
 			}
 			return false
 		case *HashValue:
 			if rhs, ok := b.(*HashValue); ok {
 				lhs := a.(*HashValue)
-				lhsEntries := lhs.EntriesSlice()
-				rhsEntries := rhs.EntriesSlice()
-				if len(lhsEntries) == len(rhsEntries) {
-					for _, entry := range lhsEntries {
-						var rhsValue PValue
-						rhsValue, ok = rhs.Get(entry.Key())
-						if !(ok && PuppetEquals(entry.Value(), rhsValue)) {
-							return false
-						}
-					}
-					return true
+				if lhs.Len() == rhs.Len() {
+					return lhs.AllPairs(func(key, value PValue) bool {
+						rhsValue, ok := rhs.Get(key)
+						return ok && PuppetEquals(value, rhsValue)
+					})
 				}
 			}
 			return false

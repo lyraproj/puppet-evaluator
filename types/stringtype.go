@@ -171,19 +171,15 @@ func (sv *StringValue) Add(v PValue) IndexedValue {
 var ONE_CHAR_STRING_TYPE = NewStringType(NewIntegerType(1, 1), ``)
 
 func (sv *StringValue) AddAll(tv IndexedValue) IndexedValue {
-	if a, ok := tv.(*ArrayValue); ok {
-		s := bytes.NewBufferString(sv.String())
-		for _, e := range a.elements {
-			var ev *StringValue
-			if ev, ok = e.(*StringValue); ok {
-				WriteString(s, ev.String())
-				continue
-			}
+	s := bytes.NewBufferString(sv.String())
+	tv.Each(func(e PValue) {
+		ev, ok := e.(*StringValue)
+		if !ok {
 			panic(fmt.Sprintf(`No auto conversion from %s to String`, e.Type().String()))
 		}
-		return WrapString(s.String())
-	}
-	panic(`Operation not supported`)
+		WriteString(s, ev.String())
+	})
+	return WrapString(s.String())
 }
 
 func (sv *StringValue) All(predicate Predicate) bool {
@@ -204,11 +200,28 @@ func (sv *StringValue) Any(predicate Predicate) bool {
 	return false
 }
 
+func (sv *StringValue) AppendTo(slice []PValue) []PValue {
+	for _, c := range sv.String() {
+		slice = append(slice, WrapString(string(c)))
+	}
+	return slice
+}
+
 func (sv *StringValue) At(i int) PValue {
 	if i >= 0 && i < len(sv.String()) {
 		return WrapString(sv.String()[i : i+1])
 	}
 	return _UNDEF
+}
+
+func (sv *StringValue) Find(predicate Predicate) (PValue, bool) {
+	for _, c := range sv.String() {
+		e := WrapString(string(c))
+		if predicate(e) {
+			return e, true
+		}
+	}
+	return nil, false
 }
 
 func (sv *StringValue) Elements() []PValue {
@@ -227,10 +240,31 @@ func (sv *StringValue) Each(consumer Consumer) {
 	}
 }
 
+func (sv *StringValue) EachSlice(n int, consumer SliceConsumer) {
+	s := sv.String()
+	top := len(s)
+	for i := 0; i < top; i += n {
+		e := i + n
+		if e > top {
+			e = top
+		}
+		consumer(WrapString(s[i:e]))
+	}
+}
+
 func (sv *StringValue) EachWithIndex(consumer IndexedConsumer) {
 	for i, c := range sv.String() {
 		consumer(WrapString(string(c)), i)
 	}
+}
+
+func (sv *StringValue) Map(mapper Mapper) IndexedValue {
+	s := sv.String()
+	mapped := make([]PValue, len(s))
+	for i, c := range s {
+		mapped[i] = mapper(WrapString(string(c)))
+	}
+	return WrapArray(mapped)
 }
 
 func (sv *StringValue) Reject(predicate Predicate) IndexedValue {
@@ -330,4 +364,25 @@ func (sv *StringValue) ToKey() HashKey {
 
 func (sv *StringValue) Type() PType {
 	return (*StringType)(sv)
+}
+
+func (sv *StringValue) Unique() IndexedValue {
+	s := sv.String()
+	top := len(s)
+	if top < 2 {
+		return sv
+	}
+
+	result := bytes.NewBufferString(``)
+	exists := make(map[rune]bool, top)
+	for _, c := range s {
+		if !exists[c] {
+			exists[c] = true
+			result.WriteRune(c)
+		}
+	}
+	if result.Len() == len(s) {
+		return sv
+	}
+	return WrapString(result.String())
 }

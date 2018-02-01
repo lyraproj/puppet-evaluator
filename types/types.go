@@ -193,22 +193,24 @@ func alterTypes(types []PType, function alterFunc) []PType {
 	return al
 }
 
-func toTypes(types ...PValue) ([]PType, int) {
-	top := len(types)
+func toTypes(types IndexedValue) ([]PType, int) {
+	top := types.Len()
 	if top == 1 {
-		if a, ok := types[0].(IndexedValue); ok {
-			return toTypes(a.Elements()...)
+		if a, ok := types.At(0).(IndexedValue); ok {
+			return toTypes(a)
 		}
 	}
-	result := make([]PType, top)
-	for idx, t := range types {
+	result := make([]PType, 0, top)
+	if types.All(func(t PValue) bool {
 		if pt, ok := t.(PType); ok {
-			result[idx] = pt
-			continue
+			result = append(result, pt)
+			return true
 		}
-		return nil, idx
+		return false
+	}) {
+		return result, -1
 	}
-	return result, -1
+	return nil, len(result)
 }
 
 func DefaultDataType() *TypeAliasType {
