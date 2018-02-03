@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	. "regexp"
+	"regexp"
 	"strconv"
 )
 
@@ -71,15 +71,15 @@ var QUALIFIER = `(?:-(` + PARTS + `))?(?:\+(` + PARTS + `))?`
 var PARTIAL = XR + `(?:\.` + XR + `(?:\.` + XR + QUALIFIER + `)?)?`
 
 var SIMPLE = `([<>=~^]|<=|>=|~>|~=)?(?:` + PARTIAL + `)`
-var SIMPLE_PATTERN = MustCompile(`\A` + SIMPLE + `\z`)
+var SIMPLE_PATTERN = regexp.MustCompile(`\A` + SIMPLE + `\z`)
 
-var OR_SPLIT = MustCompile(`\s*\|\|\s*`)
-var SIMPLE_SPLIT = MustCompile(`\s+`)
+var OR_SPLIT = regexp.MustCompile(`\s*\|\|\s*`)
+var SIMPLE_SPLIT = regexp.MustCompile(`\s+`)
 
-var OP_WS_PATTERN = MustCompile(`([><=~^])(?:\s+|\s*v)`)
+var OP_WS_PATTERN = regexp.MustCompile(`([><=~^])(?:\s+|\s*v)`)
 
 var HYPHEN = `(?:` + PARTIAL + `)\s+-\s+(?:` + PARTIAL + `)`
-var HYPHEN_PATTERN = MustCompile(`\A` + HYPHEN + `\z`)
+var HYPHEN_PATTERN = regexp.MustCompile(`\A` + HYPHEN + `\z`)
 
 var _HIGHEST_LB = &gtRange{simpleRange{*MAX}}
 var _LOWEST_LB = &gtEqRange{simpleRange{*MIN}}

@@ -1,60 +1,60 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func mapIterator(c EvalContext, arg IterableValue, block Lambda) PValue {
-	return arg.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue { return block.Call(c, nil, v) })
+func mapIterator(c eval.EvalContext, arg eval.IterableValue, block eval.Lambda) eval.PValue {
+	return arg.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue { return block.Call(c, nil, v) })
 }
 
-func mapIndexIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
+func mapIndexIterator(c eval.EvalContext, iter eval.IterableValue, block eval.Lambda) eval.PValue {
 	index := int64(-1)
-	return iter.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue {
+	return iter.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue {
 		index++
-		return block.Call(c, nil, WrapInteger(index), v)
+		return block.Call(c, nil, types.WrapInteger(index), v)
 	})
 }
 
-func mapHashIterator(c EvalContext, iter IterableValue, block Lambda) PValue {
-	return iter.Iterator().Map(block.Signature().ReturnType(), func(v PValue) PValue {
-		vi := v.(IndexedValue)
+func mapHashIterator(c eval.EvalContext, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+	return iter.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue {
+		vi := v.(eval.IndexedValue)
 		return block.Call(c, nil, vi.At(0), vi.At(1))
 	})
 }
 
 func init() {
-	NewGoFunction(`map`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`map`,
+		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapIterator(c, args[0].(*HashValue), block)
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+				return mapIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapHashIterator(c, args[0].(*HashValue), block)
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+				return mapHashIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				return mapIterator(c, args[0].(IterableValue), block)
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+				return mapIterator(c, args[0].(eval.IterableValue), block)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				iter := args[0].(IterableValue)
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+				iter := args[0].(eval.IterableValue)
 				if iter.IsHashStyle() {
 					return mapHashIterator(c, iter, block)
 				}

@@ -3,12 +3,10 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	. "io"
+	"io"
 	"regexp"
-
-	"unicode/utf8"
-
 	"strings"
+	"unicode/utf8"
 
 	"github.com/puppetlabs/go-parser/parser"
 )
@@ -103,14 +101,14 @@ func CapitalizeSegment(segment string) string {
 	return b.String()
 }
 
-func capitalizeSegment(b Writer, segment string) {
+func capitalizeSegment(b io.Writer, segment string) {
 	_, s := utf8.DecodeRuneInString(segment)
 	if s > 0 {
 		if s == len(segment) {
-			WriteString(b, strings.ToUpper(segment))
+			io.WriteString(b, strings.ToUpper(segment))
 		} else {
-			WriteString(b, strings.ToUpper(segment[:s]))
-			WriteString(b, strings.ToLower(segment[s:]))
+			io.WriteString(b, strings.ToUpper(segment[:s]))
+			io.WriteString(b, strings.ToLower(segment[s:]))
 		}
 	}
 }
@@ -124,7 +122,7 @@ func CapitalizeSegments(segment string) string {
 		b := bytes.NewBufferString(``)
 		capitalizeSegment(b, segments[0])
 		for idx := 1; idx < top; idx++ {
-			WriteString(b, `::`)
+			io.WriteString(b, `::`)
 			capitalizeSegment(b, segments[idx])
 		}
 		return b.String()
@@ -132,20 +130,20 @@ func CapitalizeSegments(segment string) string {
 	return ``
 }
 
-func RegexpQuote(b Writer, str string) {
+func RegexpQuote(b io.Writer, str string) {
 	WriteByte(b, '/')
 	for _, c := range str {
 		switch c {
 		case '\t':
-			WriteString(b, `\t`)
+			io.WriteString(b, `\t`)
 		case '\n':
-			WriteString(b, `\n`)
+			io.WriteString(b, `\n`)
 		case '\r':
-			WriteString(b, `\r`)
+			io.WriteString(b, `\r`)
 		case '/':
-			WriteString(b, `\/`)
+			io.WriteString(b, `\/`)
 		case '\\':
-			WriteString(b, `\\`)
+			io.WriteString(b, `\\`)
 		default:
 			if c < 0x20 {
 				fmt.Fprintf(b, `\u{%X}`, c)
@@ -157,7 +155,7 @@ func RegexpQuote(b Writer, str string) {
 	WriteByte(b, '/')
 }
 
-func PuppetQuote(w Writer, str string) {
+func PuppetQuote(w io.Writer, str string) {
 	r := parser.NewStringReader(str)
 	b, ok := w.(*bytes.Buffer)
 	if !ok {
@@ -186,7 +184,7 @@ func PuppetQuote(w Writer, str string) {
 
 		switch c {
 		case '\'':
-			WriteString(b, `\'`)
+			io.WriteString(b, `\'`)
 		case '\\':
 			escaped = true
 		default:
@@ -199,22 +197,22 @@ func PuppetQuote(w Writer, str string) {
 	WriteByte(b, '\'')
 }
 
-func puppetDoubleQuote(r parser.StringReader, b Writer) {
+func puppetDoubleQuote(r parser.StringReader, b io.Writer) {
 	WriteByte(b, '"')
 	for c, _ := r.Next(); c != 0; c, _ = r.Next() {
 		switch c {
 		case '\t':
-			WriteString(b, `\t`)
+			io.WriteString(b, `\t`)
 		case '\n':
-			WriteString(b, `\n`)
+			io.WriteString(b, `\n`)
 		case '\r':
-			WriteString(b, `\r`)
+			io.WriteString(b, `\r`)
 		case '"':
-			WriteString(b, `\"`)
+			io.WriteString(b, `\"`)
 		case '\\':
-			WriteString(b, `\\`)
+			io.WriteString(b, `\\`)
 		case '$':
-			WriteString(b, `\$`)
+			io.WriteString(b, `\$`)
 		default:
 			if c < 0x20 {
 				fmt.Fprintf(b, `\u{%X}`, c)
@@ -226,11 +224,11 @@ func puppetDoubleQuote(r parser.StringReader, b Writer) {
 	WriteByte(b, '"')
 }
 
-func WriteByte(b Writer, v byte) {
+func WriteByte(b io.Writer, v byte) {
 	b.Write([]byte{v})
 }
 
-func WriteRune(b Writer, v rune) {
+func WriteRune(b io.Writer, v rune) {
 	if v < utf8.RuneSelf {
 		WriteByte(b, byte(v))
 	} else {

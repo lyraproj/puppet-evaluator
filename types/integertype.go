@@ -2,13 +2,13 @@ package types
 
 import (
 	"bytes"
-	. "fmt"
-	. "io"
-	. "math"
+	"fmt"
+	"io"
+	"math"
 	"strconv"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type (
@@ -21,8 +21,8 @@ type (
 	IntegerValue IntegerType
 )
 
-var integerType_DEFAULT = &IntegerType{MinInt64, MaxInt64}
-var integerType_POSITIVE = &IntegerType{0, MaxInt64}
+var integerType_DEFAULT = &IntegerType{math.MinInt64, math.MaxInt64}
+var integerType_POSITIVE = &IntegerType{0, math.MaxInt64}
 var integerType_ZERO = &IntegerType{0, 0}
 var integerType_ONE = &IntegerType{1, 1}
 var ZERO = (*IntegerValue)(integerType_ZERO)
@@ -36,12 +36,12 @@ func PositiveIntegerType() *IntegerType {
 }
 
 func NewIntegerType(min int64, max int64) *IntegerType {
-	if min == MinInt64 {
-		if max == MaxInt64 {
+	if min == math.MinInt64 {
+		if max == math.MaxInt64 {
 			return DefaultIntegerType()
 		}
 	} else if min == 0 {
-		if max == MaxInt64 {
+		if max == math.MaxInt64 {
 			return PositiveIntegerType()
 		} else if max == 0 {
 			return integerType_ZERO
@@ -50,12 +50,12 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 		return integerType_ONE
 	}
 	if min > max {
-		panic(NewArgumentsError(`Integer[]`, `min is not allowed to be greater than max`))
+		panic(errors.NewArgumentsError(`Integer[]`, `min is not allowed to be greater than max`))
 	}
 	return &IntegerType{min, max}
 }
 
-func NewIntegerType2(limits ...PValue) *IntegerType {
+func NewIntegerType2(limits ...eval.PValue) *IntegerType {
 	argc := len(limits)
 	if argc == 0 {
 		return integerType_DEFAULT
@@ -65,54 +65,54 @@ func NewIntegerType2(limits ...PValue) *IntegerType {
 		if _, ok = limits[0].(*DefaultValue); !ok {
 			panic(NewIllegalArgumentType2(`Integer[]`, 0, `Integer`, limits[0]))
 		}
-		min = MinInt64
+		min = math.MinInt64
 	}
 
 	var max int64
 	switch len(limits) {
 	case 1:
-		max = MaxInt64
+		max = math.MaxInt64
 	case 2:
 		max, ok = toInt(limits[1])
 		if !ok {
 			if _, ok = limits[1].(*DefaultValue); !ok {
 				panic(NewIllegalArgumentType2(`Integer[]`, 1, `Integer`, limits[1]))
 			}
-			max = MaxInt64
+			max = math.MaxInt64
 		}
 	default:
-		panic(NewIllegalArgumentCount(`Integer[]`, `0 - 2`, len(limits)))
+		panic(errors.NewIllegalArgumentCount(`Integer[]`, `0 - 2`, len(limits)))
 	}
 	return NewIntegerType(min, max)
 }
 
-func (t *IntegerType) Default() PType {
+func (t *IntegerType) Default() eval.PType {
 	return integerType_DEFAULT
 }
 
-func (t *IntegerType) Accept(v Visitor, g Guard) {
+func (t *IntegerType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *IntegerType) Equals(o interface{}, g Guard) bool {
+func (t *IntegerType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*IntegerType); ok {
 		return t.min == ot.min && t.max == ot.max
 	}
 	return false
 }
 
-func (t *IntegerType) Generic() PType {
+func (t *IntegerType) Generic() eval.PType {
 	return integerType_DEFAULT
 }
 
-func (t *IntegerType) IsAssignable(o PType, g Guard) bool {
+func (t *IntegerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if it, ok := o.(*IntegerType); ok {
 		return t.min <= it.min && t.max >= it.max
 	}
 	return false
 }
 
-func (t *IntegerType) IsInstance(o PValue, g Guard) bool {
+func (t *IntegerType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if n, ok := toInt(o); ok {
 		return t.IsInstance2(n)
 	}
@@ -128,7 +128,7 @@ func (t *IntegerType) IsInstance3(n int) bool {
 }
 
 func (t *IntegerType) IsUnbounded() bool {
-	return t.min == MinInt64 && t.max == MaxInt64
+	return t.min == math.MinInt64 && t.max == math.MaxInt64
 }
 
 func (t *IntegerType) Min() int64 {
@@ -143,23 +143,23 @@ func (t *IntegerType) Name() string {
 	return `Integer`
 }
 
-func (t *IntegerType) Parameters() []PValue {
-	if t.min == MinInt64 {
-		if t.max == MaxInt64 {
-			return EMPTY_VALUES
+func (t *IntegerType) Parameters() []eval.PValue {
+	if t.min == math.MinInt64 {
+		if t.max == math.MaxInt64 {
+			return eval.EMPTY_VALUES
 		}
-		return []PValue{WrapDefault(), WrapInteger(t.max)}
+		return []eval.PValue{WrapDefault(), WrapInteger(t.max)}
 	}
-	if t.max == MaxInt64 {
-		return []PValue{WrapInteger(t.min)}
+	if t.max == math.MaxInt64 {
+		return []eval.PValue{WrapInteger(t.min)}
 	}
-	return []PValue{WrapInteger(t.min), WrapInteger(t.max)}
+	return []eval.PValue{WrapInteger(t.min), WrapInteger(t.max)}
 }
 
-func (t *IntegerType) SizeParameters() []PValue {
-	params := make([]PValue, 2)
+func (t *IntegerType) SizeParameters() []eval.PValue {
+	params := make([]eval.PValue, 2)
 	params[0] = WrapInteger(t.min)
-	if t.max == MaxInt64 {
+	if t.max == math.MaxInt64 {
 		params[1] = WrapDefault()
 	} else {
 		params[1] = WrapInteger(t.max)
@@ -168,14 +168,14 @@ func (t *IntegerType) SizeParameters() []PValue {
 }
 
 func (t *IntegerType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *IntegerType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *IntegerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *IntegerType) Type() PType {
+func (t *IntegerType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -183,14 +183,14 @@ func WrapInteger(val int64) *IntegerValue {
 	return (*IntegerValue)(NewIntegerType(val, val))
 }
 
-func (iv *IntegerValue) Abs() NumericValue {
+func (iv *IntegerValue) Abs() eval.NumericValue {
 	if iv.Int() < 0 {
 		return WrapInteger(-iv.Int())
 	}
 	return iv
 }
 
-func (iv *IntegerValue) Equals(o interface{}, g Guard) bool {
+func (iv *IntegerValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*IntegerValue); ok {
 		return iv.Int() == ov.Int()
 	}
@@ -206,7 +206,7 @@ func (iv *IntegerValue) Int() int64 {
 }
 
 func (iv *IntegerValue) String() string {
-	return Sprintf(`%d`, iv.Int())
+	return fmt.Sprintf(`%d`, iv.Int())
 }
 
 func (iv *IntegerValue) ToKey(b *bytes.Buffer) {
@@ -223,11 +223,11 @@ func (iv *IntegerValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(byte(n))
 }
 
-func (iv *IntegerValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), iv.Type())
+func (iv *IntegerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), iv.Type())
 	switch f.FormatChar() {
 	case 'x', 'X', 'o', 'd':
-		Fprintf(b, f.OrigFormat(), iv.Int())
+		fmt.Fprintf(b, f.OrigFormat(), iv.Int())
 	case 'p', 'b', 'B':
 		longVal := iv.Int()
 		intString := strconv.FormatInt(longVal, integerRadix(f.FormatChar()))
@@ -256,7 +256,7 @@ func (iv *IntegerValue) ToString(b Writer, s FormatContext, g RDetect) {
 			b.Write([]byte{' '})
 		}
 
-		WriteString(b, pfx)
+		io.WriteString(b, pfx)
 		if zeroPad > 0 {
 			padChar := []byte{'0'}
 			if f.FormatChar() == 'p' {
@@ -266,9 +266,9 @@ func (iv *IntegerValue) ToString(b Writer, s FormatContext, g RDetect) {
 				b.Write(padChar)
 			}
 		}
-		WriteString(b, intString)
+		io.WriteString(b, intString)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(iv.Float()).ToString(b, NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		WrapFloat(iv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 'c':
 		bld := bytes.NewBufferString(``)
 		bld.WriteRune(rune(iv.Int()))
@@ -317,6 +317,6 @@ func integerPrefixRadix(c byte) string {
 	}
 }
 
-func (iv *IntegerValue) Type() PType {
+func (iv *IntegerValue) Type() eval.PType {
 	return (*IntegerType)(iv)
 }

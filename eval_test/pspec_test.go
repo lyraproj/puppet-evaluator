@@ -2,13 +2,14 @@ package eval
 
 import (
 	"bytes"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"strings"
+	"testing"
+
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/serialization"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-pspec/pspec"
-	"strings"
-	"testing"
 )
 
 func TestPSpecs(t *testing.T) {
@@ -16,40 +17,40 @@ func TestPSpecs(t *testing.T) {
 }
 
 func init() {
-	NewGoFunction(`load_plan`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`load_plan`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				planName := args[0].String()
-				if plan, ok := Load(c.Loader(), NewTypedName(PLAN, planName)); ok {
-					return WrapUnknown(plan)
+				if plan, ok := eval.Load(c.Loader(), eval.NewTypedName(eval.PLAN, planName)); ok {
+					return eval.WrapUnknown(plan)
 				}
-				panic(Error(EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
+				panic(eval.Error(eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
 			})
 		})
 
-	NewGoFunction(`load_task`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`load_task`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				taskName := args[0].String()
-				if task, ok := Load(c.Loader(), NewTypedName(TASK, taskName)); ok {
-					return task.(PValue)
+				if task, ok := eval.Load(c.Loader(), eval.NewTypedName(eval.TASK, taskName)); ok {
+					return task.(eval.PValue)
 				}
-				panic(Error(EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
+				panic(eval.Error(eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
 			})
 		})
 
-	NewGoFunction(`to_symbol`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`to_symbol`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				return types.WrapRuntime(serialization.Symbol(args[0].String()))
 			})
 		})
 
-	NewGoFunction(`to_data`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`to_data`,
+		func(d eval.Dispatch) {
 			d.Param(`Any`)
 			d.OptionalParam(
 				`Struct[
@@ -59,43 +60,43 @@ func init() {
   Optional['rich_data'] => Boolean,
   Optional['message_prefix'] => String
 ]`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				options := EMPTY_MAP
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				options := eval.EMPTY_MAP
 				if len(args) > 1 {
-					options = args[1].(KeyedValue)
+					options = args[1].(eval.KeyedValue)
 				}
 				return serialization.NewToDataConverter(options).Convert(args[0])
 			})
 		})
 
-	NewGoFunction(`from_data`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`from_data`,
+		func(d eval.Dispatch) {
 			d.Param(`Data`)
 			d.OptionalParam(
 				`Struct[
 					Optional['allow_unresolved'] => Boolean
 				]`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				options := EMPTY_MAP
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				options := eval.EMPTY_MAP
 				if len(args) > 1 {
-					options = args[1].(KeyedValue)
+					options = args[1].(eval.KeyedValue)
 				}
-				return serialization.NewFromDataConverter(c.Loader().(DefiningLoader), options).Convert(args[0])
+				return serialization.NewFromDataConverter(c.Loader().(eval.DefiningLoader), options).Convert(args[0])
 			})
 		})
 
-	NewGoFunction(`data_to_json`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`data_to_json`,
+		func(d eval.Dispatch) {
 			d.Param(`Data`)
 			d.OptionalParam(
 				`Struct[
 					Optional['prefix'] => String,
 					Optional['indent'] => String
 				]`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				options := EMPTY_MAP
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				options := eval.EMPTY_MAP
 				if len(args) > 1 {
-					options = args[1].(KeyedValue)
+					options = args[1].(eval.KeyedValue)
 				}
 				out := bytes.NewBufferString(``)
 				serialization.DataToJson(args[0], out, options)
@@ -103,10 +104,10 @@ func init() {
 			})
 		})
 
-	NewGoFunction(`json_to_data`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`json_to_data`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				return serialization.JsonToData(``, strings.NewReader(args[0].String()))
 			})
 		})

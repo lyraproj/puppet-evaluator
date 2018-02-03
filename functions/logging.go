@@ -1,17 +1,17 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {
-	for _, level := range LOG_LEVELS {
-		NewGoFunction(string(level),
-			func(d Dispatch) {
+	for _, level := range eval.LOG_LEVELS {
+		eval.NewGoFunction(string(level),
+			func(d eval.Dispatch) {
 				d.RepeatedParam(`Any`)
-				d.Function(func(c EvalContext, args []PValue) PValue {
-					c.Logger().Log(LogLevel(d.Name()), args...)
-					return UNDEF
+				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+					c.Logger().Log(eval.LogLevel(d.Name()), args...)
+					return eval.UNDEF
 				})
 			})
 	}

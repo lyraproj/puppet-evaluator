@@ -1,15 +1,15 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {
-	NewGoFunction(`with`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`with`,
+		func(d eval.Dispatch) {
 			d.RepeatedParam(`Any`)
 			d.Block(`Callable`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return block.Call(c, nil, args...)
 			})
 		},

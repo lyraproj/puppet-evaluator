@@ -1,10 +1,10 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 type EnumType struct {
@@ -19,11 +19,11 @@ func NewEnumType(enums []string) *EnumType {
 	return &EnumType{enums}
 }
 
-func NewEnumType2(args ...PValue) *EnumType {
+func NewEnumType2(args ...eval.PValue) *EnumType {
 	return NewEnumType3(WrapArray(args))
 }
 
-func NewEnumType3(args IndexedValue) *EnumType {
+func NewEnumType3(args eval.IndexedValue) *EnumType {
 	if args.Len() == 0 {
 		return DefaultEnumType()
 	}
@@ -41,7 +41,7 @@ func NewEnumType3(args IndexedValue) *EnumType {
 		}
 	} else {
 		enums = make([]string, top)
-		args.EachWithIndex(func(arg PValue, idx int) {
+		args.EachWithIndex(func(arg eval.PValue, idx int) {
 			str, ok := arg.(*StringValue)
 			if !ok {
 				panic(NewIllegalArgumentType2(`Enum[]`, idx, `String`, arg))
@@ -52,26 +52,26 @@ func NewEnumType3(args IndexedValue) *EnumType {
 	return NewEnumType(enums)
 }
 
-func (t *EnumType) Accept(v Visitor, g Guard) {
+func (t *EnumType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *EnumType) Default() PType {
+func (t *EnumType) Default() eval.PType {
 	return enumType_DEFAULT
 }
 
-func (t *EnumType) Equals(o interface{}, g Guard) bool {
+func (t *EnumType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*EnumType); ok {
-		return len(t.values) == len(ot.values) && ContainsAllStrings(t.values, ot.values)
+		return len(t.values) == len(ot.values) && utils.ContainsAllStrings(t.values, ot.values)
 	}
 	return false
 }
 
-func (t *EnumType) Generic() PType {
+func (t *EnumType) Generic() eval.PType {
 	return enumType_DEFAULT
 }
 
-func (t *EnumType) IsAssignable(o PType, g Guard) bool {
+func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if len(t.values) == 0 {
 		switch o.(type) {
 		case *StringType, *EnumType, *PatternType:
@@ -81,19 +81,19 @@ func (t *EnumType) IsAssignable(o PType, g Guard) bool {
 	}
 
 	if st, ok := o.(*StringType); ok {
-		return ContainsString(t.values, st.value)
+		return utils.ContainsString(t.values, st.value)
 	}
 
 	if en, ok := o.(*EnumType); ok {
 		oEnums := en.values
-		return len(oEnums) > 0 && ContainsAllStrings(t.values, oEnums)
+		return len(oEnums) > 0 && utils.ContainsAllStrings(t.values, oEnums)
 	}
 	return false
 }
 
-func (t *EnumType) IsInstance(o PValue, g Guard) bool {
+func (t *EnumType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
-	return ok && (len(t.values) == 0 || ContainsString(t.values, str.String()))
+	return ok && (len(t.values) == 0 || utils.ContainsString(t.values, str.String()))
 }
 
 func (t *EnumType) Name() string {
@@ -101,26 +101,26 @@ func (t *EnumType) Name() string {
 }
 
 func (t *EnumType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *EnumType) Parameters() []PValue {
+func (t *EnumType) Parameters() []eval.PValue {
 	top := len(t.values)
 	if top == 0 {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
-	v := make([]PValue, top)
+	v := make([]eval.PValue, top)
 	for idx, e := range t.values {
 		v[idx] = WrapString(e)
 	}
 	return v
 }
 
-func (t *EnumType) ToString(b Writer, f FormatContext, g RDetect) {
+func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, f, g)
 }
 
-func (t *EnumType) Type() PType {
+func (t *EnumType) Type() eval.PType {
 	return &TypeType{t}
 }
 

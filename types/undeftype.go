@@ -1,9 +1,9 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type (
@@ -19,21 +19,21 @@ func DefaultUndefType() *UndefType {
 	return undefType_DEFAULT
 }
 
-func (t *UndefType) Accept(v Visitor, g Guard) {
+func (t *UndefType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *UndefType) Equals(o interface{}, g Guard) bool {
+func (t *UndefType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*UndefType)
 	return ok
 }
 
-func (t *UndefType) IsAssignable(o PType, g Guard) bool {
+func (t *UndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	_, ok := o.(*UndefType)
 	return ok
 }
 
-func (t *UndefType) IsInstance(o PValue, g Guard) bool {
+func (t *UndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return o == _UNDEF
 }
 
@@ -45,11 +45,11 @@ func (t *UndefType) String() string {
 	return `Undef`
 }
 
-func (t *UndefType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *UndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *UndefType) Type() PType {
+func (t *UndefType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -57,7 +57,7 @@ func WrapUndef() *UndefValue {
 	return &UndefValue{}
 }
 
-func (uv *UndefValue) Equals(o interface{}, g Guard) bool {
+func (uv *UndefValue) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*UndefValue)
 	return ok
 }
@@ -66,14 +66,14 @@ func (uv *UndefValue) String() string {
 	return `undef`
 }
 
-func (uv *UndefValue) ToKey() HashKey {
-	return HashKey([]byte{1, HK_UNDEF})
+func (uv *UndefValue) ToKey() eval.HashKey {
+	return eval.HashKey([]byte{1, HK_UNDEF})
 }
 
-func (uv *UndefValue) ToString(b Writer, s FormatContext, g RDetect) {
-	WriteString(b, `undef`)
+func (uv *UndefValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	io.WriteString(b, `undef`)
 }
 
-func (uv *UndefValue) Type() PType {
+func (uv *UndefValue) Type() eval.PType {
 	return DefaultUndefType()
 }

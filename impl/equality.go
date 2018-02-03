@@ -3,8 +3,8 @@ package impl
 import (
 	"strings"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
 // PuppetEquals is like Equals but:
@@ -12,52 +12,52 @@ import (
 //   string comparisons are case insensitive
 //
 func init() {
-	PuppetEquals = func(a PValue, b PValue) bool {
+	eval.PuppetEquals = func(a eval.PValue, b eval.PValue) bool {
 		switch a.(type) {
-		case *StringValue:
-			bs, ok := b.(*StringValue)
-			return ok && strings.ToLower(a.(*StringValue).String()) == strings.ToLower(bs.String())
-		case *IntegerValue:
-			lhs := a.(*IntegerValue).Int()
+		case *types.StringValue:
+			bs, ok := b.(*types.StringValue)
+			return ok && strings.ToLower(a.(*types.StringValue).String()) == strings.ToLower(bs.String())
+		case *types.IntegerValue:
+			lhs := a.(*types.IntegerValue).Int()
 			switch b.(type) {
-			case *IntegerValue:
-				return lhs == b.(*IntegerValue).Int()
-			case NumericValue:
-				return float64(lhs) == b.(NumericValue).Float()
+			case *types.IntegerValue:
+				return lhs == b.(*types.IntegerValue).Int()
+			case eval.NumericValue:
+				return float64(lhs) == b.(eval.NumericValue).Float()
 			}
 			return false
-		case *FloatValue:
-			lhs := a.(*FloatValue).Float()
-			if rhv, ok := b.(NumericValue); ok {
+		case *types.FloatValue:
+			lhs := a.(*types.FloatValue).Float()
+			if rhv, ok := b.(eval.NumericValue); ok {
 				return lhs == rhv.Float()
 			}
 			return false
-		case *ArrayValue:
-			if rhs, ok := b.(*ArrayValue); ok {
-				lhs := a.(*ArrayValue)
+		case *types.ArrayValue:
+			if rhs, ok := b.(*types.ArrayValue); ok {
+				lhs := a.(*types.ArrayValue)
 				if lhs.Len() == rhs.Len() {
 					idx := 0
-					return lhs.All(func(el PValue) bool {
-						eq := PuppetEquals(el, rhs.At(idx))
+					return lhs.All(func(el eval.PValue) bool {
+						eq := eval.PuppetEquals(el, rhs.At(idx))
 						idx++
 						return eq
 					})
 				}
 			}
 			return false
-		case *HashValue:
-			if rhs, ok := b.(*HashValue); ok {
-				lhs := a.(*HashValue)
+		case *types.HashValue:
+			if rhs, ok := b.(*types.HashValue); ok {
+				lhs := a.(*types.HashValue)
 				if lhs.Len() == rhs.Len() {
-					return lhs.AllPairs(func(key, value PValue) bool {
+					return lhs.AllPairs(func(key, value eval.PValue) bool {
 						rhsValue, ok := rhs.Get(key)
-						return ok && PuppetEquals(value, rhsValue)
+						return ok && eval.PuppetEquals(value, rhsValue)
 					})
 				}
 			}
 			return false
 		default:
-			return Equals(a, b)
+			return eval.Equals(a, b)
 		}
 	}
 }

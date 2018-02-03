@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
 type (
@@ -16,57 +16,57 @@ type (
 
 	basicLoader struct {
 		lock         sync.RWMutex
-		namedEntries map[string]Entry
+		namedEntries map[string]eval.Entry
 	}
 
 	parentedLoader struct {
 		basicLoader
-		parent Loader
+		parent eval.Loader
 	}
 )
 
-var staticLoader = &basicLoader{namedEntries: make(map[string]Entry, 64)}
-var resolvableConstructors = make([]ResolvableFunction, 0, 16)
-var resolvableFunctions = make([]ResolvableFunction, 0, 16)
+var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
+var resolvableConstructors = make([]eval.ResolvableFunction, 0, 16)
+var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
 func init() {
-	StaticLoader = func() Loader {
+	eval.StaticLoader = func() eval.Loader {
 		return staticLoader
 	}
 
-	NewParentedLoader = func(parent Loader) DefiningLoader {
-		return &parentedLoader{basicLoader{namedEntries: make(map[string]Entry, 64)}, parent}
+	eval.NewParentedLoader = func(parent eval.Loader) eval.DefiningLoader {
+		return &parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}
 	}
 
-	RegisterGoFunction = func(function ResolvableFunction) {
+	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
 		resolvableFunctionsLock.Lock()
 		resolvableFunctions = append(resolvableFunctions, function)
 		resolvableFunctionsLock.Unlock()
 	}
 
-	RegisterGoConstructor = func(function ResolvableFunction) {
+	eval.RegisterGoConstructor = func(function eval.ResolvableFunction) {
 		resolvableFunctionsLock.Lock()
 		resolvableConstructors = append(resolvableConstructors, function)
 		resolvableFunctionsLock.Unlock()
 	}
 
-	NewLoaderEntry = func(value interface{}, origin string) Entry {
+	eval.NewLoaderEntry = func(value interface{}, origin string) eval.Entry {
 		return &loaderEntry{value, origin}
 	}
 
-	Load = load
+	eval.Load = load
 }
 
-func popDeclaredGoFunctions() (funcs []ResolvableFunction, ctors []ResolvableFunction) {
+func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction, ctors []eval.ResolvableFunction) {
 	resolvableFunctionsLock.Lock()
 	funcs = resolvableFunctions
 	if len(funcs) > 0 {
-		resolvableFunctions = make([]ResolvableFunction, 0, 16)
+		resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 	}
 	ctors = resolvableConstructors
 	if len(ctors) > 0 {
-		resolvableConstructors = make([]ResolvableFunction, 0, 16)
+		resolvableConstructors = make([]eval.ResolvableFunction, 0, 16)
 	}
 	resolvableFunctionsLock.Unlock()
 	return
@@ -80,10 +80,10 @@ func (e *loaderEntry) Value() interface{} {
 	return e.value
 }
 
-func (l *basicLoader) ResolveResolvables(c EvalContext) {
-	types := PopDeclaredTypes()
+func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
+	types := types.PopDeclaredTypes()
 	for _, t := range types {
-		l.SetEntry(NewTypedName(TYPE, t.Name()), &loaderEntry{t, ``})
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), &loaderEntry{t, ``})
 	}
 
 	for _, t := range types {
@@ -92,20 +92,20 @@ func (l *basicLoader) ResolveResolvables(c EvalContext) {
 
 	funcs, ctors := popDeclaredGoFunctions()
 	for _, rf := range funcs {
-		l.SetEntry(NewTypedName(FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
+		l.SetEntry(eval.NewTypedName(eval.FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
 	}
 	for _, ct := range ctors {
-		l.SetEntry(NewTypedName(CONSTRUCTOR, ct.Name()), &loaderEntry{ct.Resolve(c), ``})
+		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, ct.Name()), &loaderEntry{ct.Resolve(c), ``})
 	}
 }
 
-func load(l Loader, name TypedName) (interface{}, bool) {
+func load(l eval.Loader, name eval.TypedName) (interface{}, bool) {
 	if name.NameAuthority() != l.NameAuthority() {
 		return nil, false
 	}
 	entry := l.LoadEntry(name)
 	if entry == nil {
-		if dl, ok := l.(DefiningLoader); ok {
+		if dl, ok := l.(eval.DefiningLoader); ok {
 			dl.SetEntry(name, &loaderEntry{nil, ``})
 		}
 		return nil, false
@@ -116,18 +116,18 @@ func load(l Loader, name TypedName) (interface{}, bool) {
 	return entry.Value(), true
 }
 
-func (l *basicLoader) LoadEntry(name TypedName) Entry {
+func (l *basicLoader) LoadEntry(name eval.TypedName) eval.Entry {
 	return l.GetEntry(name)
 }
 
-func (l *basicLoader) GetEntry(name TypedName) Entry {
+func (l *basicLoader) GetEntry(name eval.TypedName) eval.Entry {
 	l.lock.RLock()
 	v := l.namedEntries[name.MapKey()]
 	l.lock.RUnlock()
 	return v
 }
 
-func (l *basicLoader) SetEntry(name TypedName, entry Entry) Entry {
+func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
 	l.lock.Lock()
 	_, ok := l.namedEntries[name.MapKey()]
 	if ok {
@@ -139,11 +139,11 @@ func (l *basicLoader) SetEntry(name TypedName, entry Entry) Entry {
 	return entry
 }
 
-func (l *basicLoader) NameAuthority() URI {
-	return RUNTIME_NAME_AUTHORITY
+func (l *basicLoader) NameAuthority() eval.URI {
+	return eval.RUNTIME_NAME_AUTHORITY
 }
 
-func (l *parentedLoader) LoadEntry(name TypedName) Entry {
+func (l *parentedLoader) LoadEntry(name eval.TypedName) eval.Entry {
 	entry := l.parent.LoadEntry(name)
 	if entry == nil || entry.Value() == nil {
 		entry = l.basicLoader.LoadEntry(name)
@@ -151,6 +151,6 @@ func (l *parentedLoader) LoadEntry(name TypedName) Entry {
 	return entry
 }
 
-func (l *parentedLoader) NameAuthority() URI {
+func (l *parentedLoader) NameAuthority() eval.URI {
 	return l.parent.NameAuthority()
 }

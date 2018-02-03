@@ -1,22 +1,21 @@
 package types
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
-	"fmt"
-
-	. "github.com/puppetlabs/go-evaluator/eval"
-	"regexp"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func TestUnique(t *testing.T) {
 	x := WrapString(`hello`)
 	y := WrapInteger(32)
-	UniqueValues([]PValue{x, y})
+	UniqueValues([]eval.PValue{x, y})
 
 	z := WrapString(`hello`)
 	svec := []*StringValue{x, z}
-	UniqueValues([]PValue{svec[0], svec[1]})
+	UniqueValues([]eval.PValue{svec[0], svec[1]})
 }
 
 func TestFloat(t *testing.T) {
@@ -40,13 +39,12 @@ func TestCallable(t *testing.T) {
 }
 
 func TestTuple(t *testing.T) {
-	tuple := tupleFromArgs(false, []PValue{DefaultStringType(), DefaultIntegerType()})
+	tuple := tupleFromArgs(false, []eval.PValue{DefaultStringType(), DefaultIntegerType()})
 	t.Log(tuple.String())
-
 }
 
 func TestWrapAliasedString(t *testing.T) {
-	v := wrap(FUNCTION)
+	v := wrap(eval.FUNCTION)
 	s, ok := v.(*StringValue)
 	if !(ok && s.String() == `function`) {
 		t.Errorf("Namespace got wrapped as %T %s", v, v.String())
@@ -68,11 +66,11 @@ func TestWrapMapOfInterface(t *testing.T) {
 		WrapHashEntry2(`fee`, WrapString(`hello`)),
 		WrapHashEntry2(`fum`, WrapHash([]*HashEntry{
 			WrapHashEntry2(`x`, WrapString(`1`)),
-			WrapHashEntry2(`y`, WrapArray([]PValue{
+			WrapHashEntry2(`y`, WrapArray([]eval.PValue{
 				WrapInteger(1), WrapInteger(2), WrapInteger(3)})),
 			WrapHashEntry2(`z`, WrapRegexp(`^[a-z]+$`))}))})
 
-	if !Equals(e, a) {
+	if !eval.Equals(e, a) {
 		t.Errorf(`Expected '%s', got '%s'`, e, a)
 	}
 }

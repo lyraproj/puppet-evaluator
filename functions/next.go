@@ -1,20 +1,20 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {
-	NewGoFunction(`next`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`next`,
+		func(d eval.Dispatch) {
 			d.OptionalParam(`Any`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				arg := UNDEF
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				arg := eval.UNDEF
 				if len(args) > 0 {
 					arg = args[0]
 				}
-				panic(NewNextIteration(c.StackTop(), arg))
+				panic(errors.NewNextIteration(c.StackTop(), arg))
 			})
 		},
 	)

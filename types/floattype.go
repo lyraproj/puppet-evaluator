@@ -1,16 +1,14 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
-	. "io"
-	. "math"
-
+	"io"
+	"math"
 	"strings"
 
-	"bytes"
-
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type (
@@ -23,23 +21,23 @@ type (
 	FloatValue FloatType
 )
 
-var floatType_DEFAULT = &FloatType{-MaxFloat64, MaxFloat64}
+var floatType_DEFAULT = &FloatType{-math.MaxFloat64, math.MaxFloat64}
 
 func DefaultFloatType() *FloatType {
 	return floatType_DEFAULT
 }
 
 func NewFloatType(min float64, max float64) *FloatType {
-	if min == -MaxFloat64 && max == MaxFloat64 {
+	if min == -math.MaxFloat64 && max == math.MaxFloat64 {
 		return DefaultFloatType()
 	}
 	if min > max {
-		panic(NewArgumentsError(`Float[]`, `min is not allowed to be greater than max`))
+		panic(errors.NewArgumentsError(`Float[]`, `min is not allowed to be greater than max`))
 	}
 	return &FloatType{min, max}
 }
 
-func NewFloatType2(limits ...PValue) *FloatType {
+func NewFloatType2(limits ...eval.PValue) *FloatType {
 	argc := len(limits)
 	if argc == 0 {
 		return floatType_DEFAULT
@@ -49,53 +47,53 @@ func NewFloatType2(limits ...PValue) *FloatType {
 		if _, ok = limits[0].(*DefaultValue); !ok {
 			panic(NewIllegalArgumentType2(`Float[]`, 0, `Float`, limits[0]))
 		}
-		min = -MaxFloat64
+		min = -math.MaxFloat64
 	}
 
 	var max float64
 	switch argc {
 	case 1:
-		max = MaxFloat64
+		max = math.MaxFloat64
 	case 2:
 		if max, ok = toFloat(limits[1]); !ok {
 			if _, ok = limits[1].(*DefaultValue); !ok {
 				panic(NewIllegalArgumentType2(`Float[]`, 1, `Float`, limits[1]))
 			}
-			max = MaxFloat64
+			max = math.MaxFloat64
 		}
 	default:
-		panic(NewIllegalArgumentCount(`Float`, `0 - 2`, len(limits)))
+		panic(errors.NewIllegalArgumentCount(`Float`, `0 - 2`, len(limits)))
 	}
 	return NewFloatType(min, max)
 }
 
-func (t *FloatType) Accept(v Visitor, g Guard) {
+func (t *FloatType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *FloatType) Default() PType {
+func (t *FloatType) Default() eval.PType {
 	return floatType_DEFAULT
 }
 
-func (t *FloatType) Equals(o interface{}, g Guard) bool {
+func (t *FloatType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*FloatType); ok {
 		return t.min == ot.min && t.max == ot.max
 	}
 	return false
 }
 
-func (t *FloatType) Generic() PType {
+func (t *FloatType) Generic() eval.PType {
 	return floatType_DEFAULT
 }
 
-func (t *FloatType) IsAssignable(o PType, g Guard) bool {
+func (t *FloatType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if ft, ok := o.(*FloatType); ok {
 		return t.min <= ft.min && t.max >= ft.max
 	}
 	return false
 }
 
-func (t *FloatType) IsInstance(o PValue, g Guard) bool {
+func (t *FloatType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if n, ok := toFloat(o); ok {
 		return t.min <= n && n <= t.max
 	}
@@ -114,32 +112,32 @@ func (t *FloatType) Name() string {
 	return `Float`
 }
 
-func (t *FloatType) Parameters() []PValue {
-	if t.min == -MaxFloat64 {
-		if t.max == MaxFloat64 {
-			return EMPTY_VALUES
+func (t *FloatType) Parameters() []eval.PValue {
+	if t.min == -math.MaxFloat64 {
+		if t.max == math.MaxFloat64 {
+			return eval.EMPTY_VALUES
 		}
-		return []PValue{WrapDefault(), WrapFloat(t.max)}
+		return []eval.PValue{WrapDefault(), WrapFloat(t.max)}
 	}
-	if t.max == MaxFloat64 {
-		return []PValue{WrapFloat(t.min)}
+	if t.max == math.MaxFloat64 {
+		return []eval.PValue{WrapFloat(t.min)}
 	}
-	return []PValue{WrapFloat(t.min), WrapFloat(t.max)}
+	return []eval.PValue{WrapFloat(t.min), WrapFloat(t.max)}
 }
 
 func (t *FloatType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
 func (t *FloatType) IsUnbounded() bool {
-	return t.min == -MaxFloat64 && t.max == MaxFloat64
+	return t.min == -math.MaxFloat64 && t.max == math.MaxFloat64
 }
 
-func (t *FloatType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *FloatType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *FloatType) Type() PType {
+func (t *FloatType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -147,14 +145,14 @@ func WrapFloat(val float64) *FloatValue {
 	return (*FloatValue)(NewFloatType(val, val))
 }
 
-func (fv *FloatValue) Abs() NumericValue {
+func (fv *FloatValue) Abs() eval.NumericValue {
 	if fv.Float() < 0 {
 		return WrapFloat(-fv.Float())
 	}
 	return fv
 }
 
-func (fv *FloatValue) Equals(o interface{}, g Guard) bool {
+func (fv *FloatValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*FloatValue); ok {
 		return fv.Float() == ov.Float()
 	}
@@ -174,7 +172,7 @@ func (fv *FloatValue) String() string {
 }
 
 func (fv *FloatValue) ToKey(b *bytes.Buffer) {
-	n := Float64bits(fv.Float())
+	n := math.Float64bits(fv.Float())
 	b.WriteByte(1)
 	b.WriteByte(HK_FLOAT)
 	b.WriteByte(byte(n >> 56))
@@ -190,17 +188,17 @@ func (fv *FloatValue) ToKey(b *bytes.Buffer) {
 var DEFAULT_P_FORMAT = newFormat(`%g`)
 var DEFAULT_S_FORMAT = newFormat(`%#g`)
 
-func (fv *FloatValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), fv.Type())
+func (fv *FloatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), fv.Type())
 	switch f.FormatChar() {
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(fv.Int()).ToString(b, NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		WrapInteger(fv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'p':
 		f.ApplyStringFlags(b, floatGFormat(DEFAULT_P_FORMAT, fv.Float()), false)
 	case 'e', 'E', 'f':
 		fmt.Fprintf(b, f.OrigFormat(), fv.Float())
 	case 'g', 'G':
-		WriteString(b, floatGFormat(f, fv.Float()))
+		io.WriteString(b, floatGFormat(f, fv.Float()))
 	case 's':
 		f.ApplyStringFlags(b, floatGFormat(DEFAULT_S_FORMAT, fv.Float()), f.IsAlt())
 	case 'a', 'A':
@@ -211,7 +209,7 @@ func (fv *FloatValue) ToString(b Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func floatGFormat(f Format, value float64) string {
+func floatGFormat(f eval.Format, value float64) string {
 	str := fmt.Sprintf(f.WithoutWidth().OrigFormat(), value)
 	sc := byte('e')
 	if f.FormatChar() == 'G' {
@@ -281,6 +279,6 @@ func floatGFormat(f Format, value float64) string {
 	return b.String()
 }
 
-func (fv *FloatValue) Type() PType {
+func (fv *FloatValue) Type() eval.PType {
 	return (*FloatType)(fv)
 }

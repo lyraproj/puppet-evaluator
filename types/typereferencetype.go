@@ -1,10 +1,10 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-parser/issue"
 )
 
@@ -20,7 +20,7 @@ func NewTypeReferenceType(typeString string) *TypeReferenceType {
 	return &TypeReferenceType{typeString}
 }
 
-func NewTypeReferenceType2(args ...PValue) *TypeReferenceType {
+func NewTypeReferenceType2(args ...eval.PValue) *TypeReferenceType {
 	switch len(args) {
 	case 0:
 		return DefaultTypeReferenceType()
@@ -30,31 +30,31 @@ func NewTypeReferenceType2(args ...PValue) *TypeReferenceType {
 		}
 		panic(NewIllegalArgumentType2(`TypeReference[]`, 0, `String`, args[0]))
 	default:
-		panic(NewIllegalArgumentCount(`TypeReference[]`, `0 - 1`, len(args)))
+		panic(errors.NewIllegalArgumentCount(`TypeReference[]`, `0 - 1`, len(args)))
 	}
 }
 
-func (t *TypeReferenceType) Accept(v Visitor, g Guard) {
+func (t *TypeReferenceType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *TypeReferenceType) Default() PType {
+func (t *TypeReferenceType) Default() eval.PType {
 	return typeReferenceType_DEFAULT
 }
 
-func (t *TypeReferenceType) Equals(o interface{}, g Guard) bool {
+func (t *TypeReferenceType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*TypeReferenceType); ok {
 		return t.typeString == ot.typeString
 	}
 	return false
 }
 
-func (t *TypeReferenceType) IsAssignable(o PType, g Guard) bool {
+func (t *TypeReferenceType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	tr, ok := o.(*TypeReferenceType)
 	return ok && t.typeString == tr.typeString
 }
 
-func (t *TypeReferenceType) IsInstance(o PValue, g Guard) bool {
+func (t *TypeReferenceType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return false
 }
 
@@ -63,32 +63,32 @@ func (t *TypeReferenceType) Name() string {
 }
 
 func (t *TypeReferenceType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *TypeReferenceType) Parameters() []PValue {
+func (t *TypeReferenceType) Parameters() []eval.PValue {
 	if *t == *typeReferenceType_DEFAULT {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
-	return []PValue{WrapString(t.typeString)}
+	return []eval.PValue{WrapString(t.typeString)}
 }
 
-func (t *TypeReferenceType) Resolve(c EvalContext) PType {
+func (t *TypeReferenceType) Resolve(c eval.EvalContext) eval.PType {
 	r := c.ParseResolve(t.typeString)
-	if rt, ok := r.(ResolvableType); ok {
+	if rt, ok := r.(eval.ResolvableType); ok {
 		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {
-			panic(Error(EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
+			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
 		}
 		r = rt.Resolve(c)
 	}
 	return r
 }
 
-func (t *TypeReferenceType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *TypeReferenceType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *TypeReferenceType) Type() PType {
+func (t *TypeReferenceType) Type() eval.PType {
 	return &TypeType{t}
 }
 

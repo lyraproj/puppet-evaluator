@@ -1,10 +1,10 @@
 package types
 
 import (
-	. "io"
+	"io"
 
 	"github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 var Boolean_FALSE = &BooleanValue{0}
@@ -33,7 +33,7 @@ func NewBooleanType(value bool) *BooleanType {
 	return &BooleanType{n}
 }
 
-func NewBooleanType2(args ...PValue) *BooleanType {
+func NewBooleanType2(args ...eval.PValue) *BooleanType {
 	switch len(args) {
 	case 0:
 		return DefaultBooleanType()
@@ -47,19 +47,19 @@ func NewBooleanType2(args ...PValue) *BooleanType {
 	}
 }
 
-func (t *BooleanType) Accept(v Visitor, g Guard) {
+func (t *BooleanType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *BooleanType) Default() PType {
+func (t *BooleanType) Default() eval.PType {
 	return booleanType_DEFAULT
 }
 
-func (t *BooleanType) Generic() PType {
+func (t *BooleanType) Generic() eval.PType {
 	return booleanType_DEFAULT
 }
 
-func (t *BooleanType) Equals(o interface{}, g Guard) bool {
+func (t *BooleanType) Equals(o interface{}, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanType); ok {
 		return t.value == bo.value
 	}
@@ -74,32 +74,32 @@ func (t *BooleanType) String() string {
 	return `Boolean`
 }
 
-func (t *BooleanType) IsAssignable(o PType, g Guard) bool {
+func (t *BooleanType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanType); ok {
 		return t.value == -1 || t.value == bo.value
 	}
 	return false
 }
 
-func (t *BooleanType) IsInstance(o PValue, g Guard) bool {
+func (t *BooleanType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanValue); ok {
 		return t.value == -1 || t.value == bo.value
 	}
 	return false
 }
 
-func (t *BooleanType) Parameters() []PValue {
+func (t *BooleanType) Parameters() []eval.PValue {
 	if t.value == -1 {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
-	return []PValue{&BooleanValue{t.value}}
+	return []eval.PValue{&BooleanValue{t.value}}
 }
 
-func (t *BooleanType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *BooleanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *BooleanType) Type() PType {
+func (t *BooleanType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -114,7 +114,7 @@ func (bv *BooleanValue) Bool() bool {
 	return bv.value == 1
 }
 
-func (bv *BooleanValue) Equals(o interface{}, g Guard) bool {
+func (bv *BooleanValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*BooleanValue); ok {
 		return bv.value == ov.value
 	}
@@ -128,8 +128,8 @@ func (bv *BooleanValue) String() string {
 	return `false`
 }
 
-func (bv *BooleanValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), bv.Type())
+func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), bv.Type())
 	switch f.FormatChar() {
 	case 't':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `true`, `false`), false)
@@ -140,9 +140,9 @@ func (bv *BooleanValue) ToString(b Writer, s FormatContext, g RDetect) {
 	case 'Y':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `Yes`, `No`), false)
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(bv.intVal()).ToString(b, NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		WrapInteger(bv.intVal()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(bv.floatVal()).ToString(b, NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		WrapFloat(bv.floatVal()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':
 		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), f.IsAlt())
 	default:
@@ -169,13 +169,13 @@ func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
 	return str
 }
 
-func (bv *BooleanValue) ToKey() HashKey {
+func (bv *BooleanValue) ToKey() eval.HashKey {
 	if bv.value == 1 {
-		return HashKey([]byte{1, HK_BOOLEAN, 1})
+		return eval.HashKey([]byte{1, HK_BOOLEAN, 1})
 	}
-	return HashKey([]byte{1, HK_BOOLEAN, 0})
+	return eval.HashKey([]byte{1, HK_BOOLEAN, 0})
 }
 
-func (bv *BooleanValue) Type() PType {
+func (bv *BooleanValue) Type() eval.PType {
 	return DefaultBooleanType()
 }

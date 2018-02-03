@@ -1,15 +1,15 @@
 package types
 
 import (
-	. "math"
+	"math"
 	"reflect"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 // CommonType returns a type that both a and b are assignable to
-func commonType(a PType, b PType) PType {
+func commonType(a eval.PType, b eval.PType) eval.PType {
 	if isAssignable(a, b) {
 		return a
 	}
@@ -24,7 +24,7 @@ func commonType(a PType, b PType) PType {
 		case *StringType:
 			str := b.(*StringType).value
 			if str != `` {
-				return NewEnumType(Unique(append(a.(*EnumType).values, str)))
+				return NewEnumType(utils.Unique(append(a.(*EnumType).values, str)))
 			}
 		}
 	case *StringType:
@@ -43,12 +43,12 @@ func commonType(a PType, b PType) PType {
 			return NewArrayType(commonType(aa.typ, ba.typ), commonType(aa.size, ba.size).(*IntegerType))
 
 		case *EnumType:
-			return NewEnumType(Unique(append(a.(*EnumType).values, b.(*EnumType).values...)))
+			return NewEnumType(utils.Unique(append(a.(*EnumType).values, b.(*EnumType).values...)))
 
 		case *FloatType:
 			af := a.(*FloatType)
 			bf := b.(*FloatType)
-			return NewFloatType(Min(af.min, bf.min), Max(af.max, bf.max))
+			return NewFloatType(math.Min(af.min, bf.min), math.Max(af.max, bf.max))
 
 		case *IntegerType:
 			ai := a.(*IntegerType)
@@ -134,26 +134,26 @@ func commonType(a PType, b PType) PType {
 	return anyType_DEFAULT
 }
 
-func isCommonNumeric(a PType, b PType) bool {
+func isCommonNumeric(a eval.PType, b eval.PType) bool {
 	return isAssignable(numericType_DEFAULT, a) && isAssignable(numericType_DEFAULT, b)
 }
 
-func isCommonScalarData(a PType, b PType) bool {
+func isCommonScalarData(a eval.PType, b eval.PType) bool {
 	return isAssignable(scalarDataType_DEFAULT, a) && isAssignable(scalarDataType_DEFAULT, b)
 }
 
-func isCommonScalar(a PType, b PType) bool {
+func isCommonScalar(a eval.PType, b eval.PType) bool {
 	return isAssignable(scalarType_DEFAULT, a) && isAssignable(scalarType_DEFAULT, b)
 }
 
-func isCommonData(a PType, b PType) bool {
+func isCommonData(a eval.PType, b eval.PType) bool {
 	return isAssignable(dataType_DEFAULT, a) && isAssignable(dataType_DEFAULT, b)
 }
 
-func isCommonRichData(a PType, b PType) bool {
+func isCommonRichData(a eval.PType, b eval.PType) bool {
 	return isAssignable(richDataType_DEFAULT, a) && isAssignable(richDataType_DEFAULT, b)
 }
 
 func init() {
-	CommonType = commonType
+	eval.CommonType = commonType
 }

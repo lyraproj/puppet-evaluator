@@ -2,20 +2,21 @@ package loader
 
 import (
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-evaluator/utils"
-	. "github.com/puppetlabs/go-parser/issue"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
 	ContentProvidingLoader interface {
-		Loader
+		eval.Loader
 
 		GetContent(path string) []byte
 	}
@@ -24,28 +25,28 @@ type (
 		parentedLoader
 		path            string
 		moduleName      string
-		initPlanName    TypedName
-		initTaskName    TypedName
-		initTypeSetName TypedName
-		paths           map[Namespace][]SmartPath
+		initPlanName    eval.TypedName
+		initTaskName    eval.TypedName
+		initTypeSetName eval.TypedName
+		paths           map[eval.Namespace][]SmartPath
 		index           map[string][]string
 	}
 )
 
 func init() {
-	NewFilebasedLoader = newFileBasedLoader
+	eval.NewFilebasedLoader = newFileBasedLoader
 }
 
-func newFileBasedLoader(parent Loader, path, moduleName string, loadables ...PathType) ModuleLoader {
-	paths := make(map[Namespace][]SmartPath, len(loadables))
+func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables ...eval.PathType) eval.ModuleLoader {
+	paths := make(map[eval.Namespace][]SmartPath, len(loadables))
 	loader := &fileBasedLoader{
 		parentedLoader: parentedLoader{
-			basicLoader: basicLoader{namedEntries: make(map[string]Entry, 64)},
+			basicLoader: basicLoader{namedEntries: make(map[string]eval.Entry, 64)},
 			parent:      parent},
 		path:            path,
-		initPlanName:    NewTypedName2(PLAN, `init`, parent.NameAuthority()),
-		initTaskName:    NewTypedName2(TASK, `init`, parent.NameAuthority()),
-		initTypeSetName: NewTypedName2(TYPE, `init_typeset`, parent.NameAuthority()),
+		initPlanName:    eval.NewTypedName2(eval.PLAN, `init`, parent.NameAuthority()),
+		initTaskName:    eval.NewTypedName2(eval.TASK, `init`, parent.NameAuthority()),
+		initTypeSetName: eval.NewTypedName2(eval.TYPE, `init_typeset`, parent.NameAuthority()),
 		moduleName:      moduleName,
 		paths:           paths}
 
@@ -60,15 +61,15 @@ func newFileBasedLoader(parent Loader, path, moduleName string, loadables ...Pat
 	return loader
 }
 
-func (l *fileBasedLoader) newSmartPath(pathType PathType, moduleNameRelative bool) SmartPath {
+func (l *fileBasedLoader) newSmartPath(pathType eval.PathType, moduleNameRelative bool) SmartPath {
 	switch pathType {
-	case PUPPET_FUNCTION_PATH:
+	case eval.PUPPET_FUNCTION_PATH:
 		return l.newPuppetFunctionPath(moduleNameRelative)
-	case PUPPET_DATA_TYPE_PATH:
+	case eval.PUPPET_DATA_TYPE_PATH:
 		return l.newPuppetTypePath(moduleNameRelative)
-	case PLAN_PATH:
+	case eval.PLAN_PATH:
 		return l.newPlanPath(moduleNameRelative)
-	case TASK_PATH:
+	case eval.TASK_PATH:
 		return l.newTaskPath(moduleNameRelative)
 	default:
 		panic(errors.NewIllegalArgument(`newSmartPath`, 1, fmt.Sprintf(`Unknown path type '%s'`, pathType)))
@@ -79,7 +80,7 @@ func (l *fileBasedLoader) newPuppetFunctionPath(moduleNameRelative bool) SmartPa
 	return &smartPath{
 		relativePath:       `functions`,
 		loader:             l,
-		namespace:          FUNCTION,
+		namespace:          eval.FUNCTION,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -91,7 +92,7 @@ func (l *fileBasedLoader) newPlanPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `plans`,
 		loader:             l,
-		namespace:          PLAN,
+		namespace:          eval.PLAN,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -103,7 +104,7 @@ func (l *fileBasedLoader) newPuppetTypePath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `types`,
 		loader:             l,
-		namespace:          TYPE,
+		namespace:          eval.TYPE,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -115,7 +116,7 @@ func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `tasks`,
 		loader:             l,
-		namespace:          TASK,
+		namespace:          eval.TASK,
 		extension:          ``,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          true,
@@ -123,7 +124,7 @@ func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	}
 }
 
-func (l *fileBasedLoader) LoadEntry(name TypedName) Entry {
+func (l *fileBasedLoader) LoadEntry(name eval.TypedName) eval.Entry {
 	entry := l.parentedLoader.LoadEntry(name)
 	if entry == nil {
 		entry = l.find(name)
@@ -143,7 +144,7 @@ func (l *fileBasedLoader) isGlobal() bool {
 	return l.moduleName == `` || l.moduleName == `environment`
 }
 
-func (l *fileBasedLoader) find(name TypedName) Entry {
+func (l *fileBasedLoader) find(name eval.TypedName) eval.Entry {
 	if name.IsQualified() {
 		// The name is in a name space.
 		if l.moduleName != name.NameParts()[0] {
@@ -152,16 +153,16 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 			// ok since such a "module" cannot have namespaced content).
 			return nil
 		}
-		if name.Namespace() == TASK && len(name.NameParts()) > 2 {
+		if name.Namespace() == eval.TASK && len(name.NameParts()) > 2 {
 			// Subdirectories beneath the tasks directory are currently not recognized
 			return nil
 		}
 	} else {
 		// The name is in the global name space.
 		switch name.Namespace() {
-		case FUNCTION:
+		case eval.FUNCTION:
 			// Can be defined in module using a global name. No action required
-		case PLAN:
+		case eval.PLAN:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.NameParts()[0] {
@@ -176,7 +177,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 				}
 				return l.instantiate(smartPath, name, origins)
 			}
-		case TASK:
+		case eval.TASK:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.NameParts()[0] {
@@ -191,7 +192,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 				}
 				return l.instantiate(smartPath, name, origins)
 			}
-		case TYPE:
+		case eval.TYPE:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.NameParts()[0] {
@@ -211,7 +212,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 						return entry
 					}
 				}
-				panic(Error(EVAL_NOT_EXPECTED_TYPESET, H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
+				panic(eval.Error(eval.EVAL_NOT_EXPECTED_TYPESET, issue.H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
 			}
 		default:
 			return nil
@@ -223,7 +224,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 		return l.instantiate(smartPath, name, origins)
 	}
 
-	if !(name.Namespace() == TYPE && name.IsQualified()) {
+	if !(name.Namespace() == eval.TYPE && name.IsQualified()) {
 		return nil
 	}
 
@@ -248,7 +249,7 @@ func (l *fileBasedLoader) find(name TypedName) Entry {
 	return nil
 }
 
-func (l *fileBasedLoader) findExistingPath(name TypedName) (origins []string, smartPath SmartPath) {
+func (l *fileBasedLoader) findExistingPath(name eval.TypedName) (origins []string, smartPath SmartPath) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -270,7 +271,7 @@ func (l *fileBasedLoader) ensureIndexed(sp SmartPath) {
 	}
 }
 
-func (l *fileBasedLoader) instantiate(smartPath SmartPath, name TypedName, origins []string) Entry {
+func (l *fileBasedLoader) instantiate(smartPath SmartPath, name eval.TypedName, origins []string) eval.Entry {
 	smartPath.Instantiator()(l, name, origins)
 	return l.GetEntry(name)
 }
@@ -278,7 +279,7 @@ func (l *fileBasedLoader) instantiate(smartPath SmartPath, name TypedName, origi
 func (l *fileBasedLoader) GetContent(path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(Error(EVAL_UNABLE_TO_READ_FILE, H{`path`: path, `detail`: err.Error()}))
+		panic(eval.Error(eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))
 	}
 	return content
 }

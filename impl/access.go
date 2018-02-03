@@ -1,41 +1,41 @@
 package impl
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
-	. "github.com/puppetlabs/go-parser/issue"
-	. "github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext) (result PValue) {
+func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.EvalContext) (result eval.PValue) {
 	op := expr.Operand()
 	keys := expr.Keys()
 	nArgs := len(keys)
-	args := make([]PValue, nArgs)
+	args := make([]eval.PValue, nArgs)
 	for idx, key := range keys {
 		args[idx] = e.eval(key, c)
 	}
 
-	if qr, ok := op.(*QualifiedReference); ok {
+	if qr, ok := op.(*parser.QualifiedReference); ok {
 		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 
 	lhs := e.eval(op, c)
 
-	var opV SizedValue
-	if sv, ok := lhs.(SizedValue); ok {
+	var opV eval.SizedValue
+	if sv, ok := lhs.(eval.SizedValue); ok {
 		opV = sv
 	} else {
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, H{`operator`: `[]`, `left`: lhs.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
 	}
 
 	intArg := func(index int) int {
 		key := args[index]
-		if arg, ok := ToInt(key); ok {
+		if arg, ok := eval.ToInt(key); ok {
 			return int(arg)
 		}
-		panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_TYPE, keys[index],
-			H{`expression`: opV.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
+		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, keys[index],
+			issue.H{`expression`: opV.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
 	indexArg := func(argIndex int) int {
@@ -72,31 +72,31 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 	}
 
 	switch opV.(type) {
-	case *HashValue:
+	case *types.HashValue:
 		if opV.Len() == 0 {
-			return UNDEF
+			return eval.UNDEF
 		}
-		hv := opV.(*HashValue)
+		hv := opV.(*types.HashValue)
 		if nArgs == 0 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `at least one`, `actual`: nArgs}))
+			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: opV.Type(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
 				return v
 			}
-			return UNDEF
+			return eval.UNDEF
 		}
-		el := make([]PValue, 0, nArgs)
+		el := make([]eval.PValue, 0, nArgs)
 		for _, key := range args {
 			if v, ok := hv.Get(key); ok {
 				el = append(el, v)
 			}
 		}
-		return WrapArray(el)
+		return types.WrapArray(el)
 
-	case IndexedValue:
+	case eval.IndexedValue:
 		if nArgs == 0 || nArgs > 2 {
-			panic(e.evalError(EVAL_ILLEGAL_ARGUMENT_COUNT, expr, H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
+			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
 		}
 		if nArgs == 2 {
 			start := indexArg(0)
@@ -105,31 +105,31 @@ func (e *evaluator) eval_AccessExpression(expr *AccessExpression, c EvalContext)
 				start = 0
 			}
 			if start == opV.Len() || count == 0 {
-				if _, ok := opV.(*StringValue); ok {
-					return EMPTY_STRING
+				if _, ok := opV.(*types.StringValue); ok {
+					return eval.EMPTY_STRING
 				}
-				return EMPTY_ARRAY
+				return eval.EMPTY_ARRAY
 			}
-			return opV.(IndexedValue).Slice(start, start+count)
+			return opV.(eval.IndexedValue).Slice(start, start+count)
 		}
 		pos := intArg(0)
 		if pos < 0 {
 			pos = opV.Len() + pos
 			if pos < 0 {
-				return UNDEF
+				return eval.UNDEF
 			}
 		}
 		if pos >= opV.Len() {
-			return UNDEF
+			return eval.UNDEF
 		}
-		return opV.(IndexedValue).At(pos)
+		return opV.(eval.IndexedValue).At(pos)
 
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, op, H{`operator`: `[]`, `left`: opV.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: opV.Type()}))
 	}
 }
 
-func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, args []PValue, expr *AccessExpression, c EvalContext) (tp PType) {
+func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.PValue, expr *parser.AccessExpression, c eval.EvalContext) (tp eval.PType) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {
@@ -139,55 +139,55 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 
 	switch dcName {
 	case `array`:
-		tp = NewArrayType2(args...)
+		tp = types.NewArrayType2(args...)
 	case `callable`:
-		tp = NewCallableType2(args...)
+		tp = types.NewCallableType2(args...)
 	case `collection`:
-		tp = NewCollectionType2(args...)
+		tp = types.NewCollectionType2(args...)
 	case `enum`:
-		tp = NewEnumType2(args...)
+		tp = types.NewEnumType2(args...)
 	case `float`:
-		tp = NewFloatType2(args...)
+		tp = types.NewFloatType2(args...)
 	case `hash`:
-		tp = NewHashType2(args...)
+		tp = types.NewHashType2(args...)
 	case `integer`:
-		tp = NewIntegerType2(args...)
+		tp = types.NewIntegerType2(args...)
 	case `iterable`:
-		tp = NewIterableType2(args...)
+		tp = types.NewIterableType2(args...)
 	case `iterator`:
-		tp = NewIteratorType2(args...)
+		tp = types.NewIteratorType2(args...)
 	case `notundef`:
-		tp = NewNotUndefType2(args...)
+		tp = types.NewNotUndefType2(args...)
 	case `optional`:
-		tp = NewOptionalType2(args...)
+		tp = types.NewOptionalType2(args...)
 	case `pattern`:
-		tp = NewPatternType2(args...)
+		tp = types.NewPatternType2(args...)
 	case `regexp`:
-		tp = NewRegexpType2(args...)
+		tp = types.NewRegexpType2(args...)
 	case `runtime`:
-		tp = NewRuntimeType2(args...)
+		tp = types.NewRuntimeType2(args...)
 	case `semver`:
-		tp = NewSemVerType2(args...)
+		tp = types.NewSemVerType2(args...)
 	case `sensitive`:
-		tp = NewSensitiveType2(args...)
+		tp = types.NewSensitiveType2(args...)
 	case `string`:
-		tp = NewStringType2(args...)
+		tp = types.NewStringType2(args...)
 	case `struct`:
-		tp = NewStructType2(args...)
+		tp = types.NewStructType2(args...)
 	case `timespan`:
-		tp = NewTimespanType2(args...)
+		tp = types.NewTimespanType2(args...)
 	case `timestamp`:
-		tp = NewTimestampType2(args...)
+		tp = types.NewTimestampType2(args...)
 	case `tuple`:
-		tp = NewTupleType2(args...)
+		tp = types.NewTupleType2(args...)
 	case `type`:
-		tp = NewTypeType2(args...)
+		tp = types.NewTypeType2(args...)
 	case `typereference`:
-		tp = NewTypeReferenceType2(args...)
+		tp = types.NewTypeReferenceType2(args...)
 	case `variant`:
-		tp = NewVariantType2(args...)
+		tp = types.NewVariantType2(args...)
 	case `boolean`:
-		tp = NewBooleanType2(args...)
+		tp = types.NewBooleanType2(args...)
 	case `any`:
 	case `binary`:
 	case `catalogentry`:
@@ -199,13 +199,13 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *QualifiedReference, arg
 	case `typealias`:
 	case `undef`:
 	case `unit`:
-		panic(e.evalError(EVAL_NOT_PARAMETERIZED_TYPE, expr, H{`type`: expr}))
+		panic(e.evalError(eval.EVAL_NOT_PARAMETERIZED_TYPE, expr, issue.H{`type`: expr}))
 	default:
 		oe := e.eval(qr, c)
-		if oo, ok := oe.(ObjectType); ok && oo.IsParameterized() {
-			tp = NewObjectTypeExtension(oo, args)
+		if oo, ok := oe.(eval.ObjectType); ok && oo.IsParameterized() {
+			tp = types.NewObjectTypeExtension(oo, args)
 		} else {
-			tp = NewTypeReferenceType(expr.String())
+			tp = types.NewTypeReferenceType(expr.String())
 		}
 	}
 	return

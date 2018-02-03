@@ -2,20 +2,20 @@ package types
 
 import (
 	"bytes"
-	"io"
-	. "reflect"
-
 	"encoding/json"
 	"fmt"
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
-	"github.com/puppetlabs/go-parser/issue"
-	. "github.com/puppetlabs/go-parser/parser"
+	"io"
+	"reflect"
 	"regexp"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 const (
@@ -37,42 +37,42 @@ const (
 )
 
 // isInstance answers if value is an instance of the given puppeType
-func isInstance(puppetType PType, value PValue) bool {
+func isInstance(puppetType eval.PType, value eval.PValue) bool {
 	return GuardedIsInstance(puppetType, value, nil)
 }
 
 // isAssignable answers if t is assignable to this type
-func isAssignable(puppetType PType, other PType) bool {
+func isAssignable(puppetType eval.PType, other eval.PType) bool {
 	return GuardedIsAssignable(puppetType, other, nil)
 }
 
-func generalize(a PType) PType {
-	if g, ok := a.(Generalizable); ok {
+func generalize(a eval.PType) eval.PType {
+	if g, ok := a.(eval.Generalizable); ok {
 		return g.Generic()
 	}
-	if g, ok := a.(ParameterizedType); ok {
+	if g, ok := a.(eval.ParameterizedType); ok {
 		return g.Default()
 	}
 	return a
 }
 
-func defaultFor(t PType) PType {
-	if g, ok := t.(ParameterizedType); ok {
+func defaultFor(t eval.PType) eval.PType {
+	if g, ok := t.(eval.ParameterizedType); ok {
 		return g.Default()
 	}
 	return t
 }
 
-func normalize(t PType) PType {
+func normalize(t eval.PType) eval.PType {
 	// TODO: Implement for ParameterizedType
 	return t
 }
 
-func GuardedIsInstance(a PType, v PValue, g Guard) bool {
+func GuardedIsInstance(a eval.PType, v eval.PValue, g eval.Guard) bool {
 	return a.IsInstance(v, g)
 }
 
-func GuardedIsAssignable(a PType, b PType, g Guard) bool {
+func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {
 	switch b.(type) {
 	case nil:
 		return false
@@ -97,16 +97,16 @@ func GuardedIsAssignable(a PType, b PType, g Guard) bool {
 	return a.IsAssignable(b, g)
 }
 
-func UniqueTypes(types []PType) []PType {
+func UniqueTypes(types []eval.PType) []eval.PType {
 	top := len(types)
 	if top < 2 {
 		return types
 	}
 
-	result := make([]PType, 0, top)
-	exists := make(map[HashKey]bool, top)
+	result := make([]eval.PType, 0, top)
+	exists := make(map[eval.HashKey]bool, top)
 	for _, t := range types {
-		key := ToKey(t)
+		key := eval.ToKey(t)
 		if !exists[key] {
 			exists[key] = true
 			result = append(result, t)
@@ -115,29 +115,29 @@ func UniqueTypes(types []PType) []PType {
 	return result
 }
 
-// ValueSlice convert a slice of values that implement the PValue interface to []PValue. The
+// ValueSlice convert a slice of values that implement the eval.PValue interface to []eval.PValue. The
 // method will panic if the given argument is not a slice or array, or if not all
-// elements implement the PValue interface
-func ValueSlice(slice interface{}) []PValue {
-	sv := ValueOf(slice)
+// elements implement the eval.PValue interface
+func ValueSlice(slice interface{}) []eval.PValue {
+	sv := reflect.ValueOf(slice)
 	top := sv.Len()
-	result := make([]PValue, top)
+	result := make([]eval.PValue, top)
 	for idx := 0; idx < top; idx++ {
-		result[idx] = sv.Index(idx).Interface().(PValue)
+		result[idx] = sv.Index(idx).Interface().(eval.PValue)
 	}
 	return result
 }
 
-func UniqueValues(values []PValue) []PValue {
+func UniqueValues(values []eval.PValue) []eval.PValue {
 	top := len(values)
 	if top < 2 {
 		return values
 	}
 
-	result := make([]PValue, 0, top)
-	exists := make(map[HashKey]bool, top)
+	result := make([]eval.PValue, 0, top)
+	exists := make(map[eval.HashKey]bool, top)
 	for _, v := range values {
-		key := ToKey(v)
+		key := eval.ToKey(v)
 		if !exists[key] {
 			exists[key] = true
 			result = append(result, v)
@@ -146,12 +146,12 @@ func UniqueValues(values []PValue) []PValue {
 	return result
 }
 
-func NewIllegalArgumentType2(name string, index int, expected string, actual PValue) InstantiationError {
-	return NewIllegalArgumentType(name, index, expected, DetailedValueType(actual).String())
+func NewIllegalArgumentType2(name string, index int, expected string, actual eval.PValue) errors.InstantiationError {
+	return errors.NewIllegalArgumentType(name, index, expected, eval.DetailedValueType(actual).String())
 }
 
-func TypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), t.Type())
+func TypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), t.Type())
 	switch f.FormatChar() {
 	case 's', 'p':
 		quoted := f.IsAlt() && f.FormatChar() == 's'
@@ -167,7 +167,7 @@ func TypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
+func basicTypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	io.WriteString(b, t.Name())
 	if s != EXPANDED {
 		switch t.(type) {
@@ -175,7 +175,7 @@ func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 			return
 		}
 	}
-	if pt, ok := t.(ParameterizedType); ok {
+	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
 			WrapArray(params).ToString(b, s, g)
@@ -183,26 +183,26 @@ func basicTypeToString(t PType, b io.Writer, s FormatContext, g RDetect) {
 	}
 }
 
-type alterFunc func(t PType) PType
+type alterFunc func(t eval.PType) eval.PType
 
-func alterTypes(types []PType, function alterFunc) []PType {
-	al := make([]PType, len(types))
+func alterTypes(types []eval.PType, function alterFunc) []eval.PType {
+	al := make([]eval.PType, len(types))
 	for idx, t := range types {
 		al[idx] = function(t)
 	}
 	return al
 }
 
-func toTypes(types IndexedValue) ([]PType, int) {
+func toTypes(types eval.IndexedValue) ([]eval.PType, int) {
 	top := types.Len()
 	if top == 1 {
-		if a, ok := types.At(0).(IndexedValue); ok {
+		if a, ok := types.At(0).(eval.IndexedValue); ok {
 			return toTypes(a)
 		}
 	}
-	result := make([]PType, 0, top)
-	if types.All(func(t PValue) bool {
-		if pt, ok := t.(PType); ok {
+	result := make([]eval.PType, 0, top)
+	if types.All(func(t eval.PValue) bool {
+		if pt, ok := t.(eval.PType); ok {
 			result = append(result, pt)
 			return true
 		}
@@ -221,16 +221,16 @@ func DefaultRichDataType() *TypeAliasType {
 	return richDataType_DEFAULT
 }
 
-func NilAs(dflt, t PType) PType {
+func NilAs(dflt, t eval.PType) eval.PType {
 	if t == nil {
 		t = dflt
 	}
 	return t
 }
 
-func CopyAppend(types []PType, t PType) []PType {
+func CopyAppend(types []eval.PType, t eval.PType) []eval.PType {
 	top := len(types)
-	tc := make([]PType, top+1, top+1)
+	tc := make([]eval.PType, top+1, top+1)
 	copy(tc, types)
 	tc[top] = t
 	return tc
@@ -238,15 +238,15 @@ func CopyAppend(types []PType, t PType) []PType {
 
 var dataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`Data`}}
 var dataHashType_DEFAULT = &HashType{integerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
-var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]PType{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
+var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]eval.PType{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
 
-var richKeyType_DEFAULT = &VariantType{[]PType{stringType_DEFAULT, numericType_DEFAULT}}
+var richKeyType_DEFAULT = &VariantType{[]eval.PType{stringType_DEFAULT, numericType_DEFAULT}}
 var richDataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`RichData`}}
 var richDataHashType_DEFAULT = &HashType{integerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
-	[]PType{scalarType_DEFAULT, binaryType_DEFAULT, defaultType_DEFAULT, typeType_DEFAULT, undefType_DEFAULT, richDataArrayType_DEFAULT, richDataHashType_DEFAULT}}, nil}
+	[]eval.PType{scalarType_DEFAULT, binaryType_DEFAULT, defaultType_DEFAULT, typeType_DEFAULT, undefType_DEFAULT, richDataArrayType_DEFAULT, richDataHashType_DEFAULT}}, nil}
 
-var resolvableTypes = make([]ResolvableType, 0, 16)
+var resolvableTypes = make([]eval.ResolvableType, 0, 16)
 var resolvableTypesLock sync.Mutex
 
 func init() {
@@ -256,44 +256,44 @@ func init() {
 	richDataArrayType_DEFAULT.typ = richDataType_DEFAULT
 	richDataHashType_DEFAULT.valueType = richDataType_DEFAULT
 
-	DefaultFor = defaultFor
-	Generalize = generalize
-	Normalize = normalize
-	IsAssignable = isAssignable
-	IsInstance = isInstance
+	eval.DefaultFor = defaultFor
+	eval.Generalize = generalize
+	eval.Normalize = normalize
+	eval.IsAssignable = isAssignable
+	eval.IsInstance = isInstance
 
-	DetailedValueType = func(value PValue) PType {
-		if dt, ok := value.(DetailedTypeValue); ok {
+	eval.DetailedValueType = func(value eval.PValue) eval.PType {
+		if dt, ok := value.(eval.DetailedTypeValue); ok {
 			return dt.DetailedType()
 		}
 		return value.Type()
 	}
 
-	GenericType = func(t PType) PType {
-		if g, ok := t.(Generalizable); ok {
+	eval.GenericType = func(t eval.PType) eval.PType {
+		if g, ok := t.(eval.Generalizable); ok {
 			return g.Generic()
 		}
 		return t
 	}
 
-	GenericValueType = func(value PValue) PType {
-		return GenericType(value.Type())
+	eval.GenericValueType = func(value eval.PValue) eval.PType {
+		return eval.GenericType(value.Type())
 	}
 
-	ToArray = func(elements []PValue) IndexedValue {
+	eval.ToArray = func(elements []eval.PValue) eval.IndexedValue {
 		return WrapArray(elements)
 	}
 
-	ToKey = func(value PValue) HashKey {
-		if hk, ok := value.(HashKeyValue); ok {
+	eval.ToKey = func(value eval.PValue) eval.HashKey {
+		if hk, ok := value.(eval.HashKeyValue); ok {
 			return hk.ToKey()
 		}
 		b := bytes.NewBuffer([]byte{})
 		appendKey(b, value)
-		return HashKey(b.String())
+		return eval.HashKey(b.String())
 	}
 
-	IsTruthy = func(tv PValue) bool {
+	eval.IsTruthy = func(tv eval.PValue) bool {
 		switch tv.(type) {
 		case *UndefValue:
 			return false
@@ -304,52 +304,52 @@ func init() {
 		}
 	}
 
-	RegisterResolvableType = registerResolvableType
+	eval.RegisterResolvableType = registerResolvableType
 
-	WrapUnknown = wrap
+	eval.WrapUnknown = wrap
 }
 
-func PopDeclaredTypes() (types []ResolvableType) {
+func PopDeclaredTypes() (types []eval.ResolvableType) {
 	resolvableTypesLock.Lock()
 	types = resolvableTypes
 	if len(types) > 0 {
-		resolvableTypes = make([]ResolvableType, 0, 16)
+		resolvableTypes = make([]eval.ResolvableType, 0, 16)
 	}
 	resolvableTypesLock.Unlock()
 	return
 }
 
-func registerResolvableType(tp ResolvableType) {
+func registerResolvableType(tp eval.ResolvableType) {
 	resolvableTypesLock.Lock()
 	resolvableTypes = append(resolvableTypes, tp)
 	resolvableTypesLock.Unlock()
 }
 
-func appendKey(b *bytes.Buffer, v PValue) {
-	if hk, ok := v.(StreamHashKeyValue); ok {
+func appendKey(b *bytes.Buffer, v eval.PValue) {
+	if hk, ok := v.(eval.StreamHashKeyValue); ok {
 		hk.ToKey(b)
-	} else if pt, ok := v.(PType); ok {
+	} else if pt, ok := v.(eval.PType); ok {
 		b.WriteByte(1)
 		b.WriteByte(HK_TYPE)
 		b.Write([]byte(pt.Name()))
-		if ppt, ok := pt.(ParameterizedType); ok {
+		if ppt, ok := pt.(eval.ParameterizedType); ok {
 			for _, p := range ppt.Parameters() {
 				appendKey(b, p)
 			}
 		}
-	} else if hk, ok := v.(HashKeyValue); ok {
+	} else if hk, ok := v.(eval.HashKeyValue); ok {
 		b.Write([]byte(hk.ToKey()))
 	} else {
 		panic(NewIllegalArgumentType2(`ToKey`, 0, `value used as hash key`, v))
 	}
 }
 
-func wrap(v interface{}) (pv PValue) {
+func wrap(v interface{}) (pv eval.PValue) {
 	switch v.(type) {
 	case nil:
 		pv = _UNDEF
-	case PValue:
-		pv = v.(PValue)
+	case eval.PValue:
+		pv = v.(eval.PValue)
 	case string:
 		pv = WrapString(v.(string))
 	case int64:
@@ -372,12 +372,12 @@ func wrap(v interface{}) (pv PValue) {
 		pv = WrapTimespan(v.(time.Duration))
 	case time.Time:
 		pv = WrapTimestamp(v.(time.Time))
-	case []PValue:
-		pv = WrapArray(v.([]PValue))
+	case []eval.PValue:
+		pv = WrapArray(v.([]eval.PValue))
 	case map[string]interface{}:
 		pv = WrapHash4(v.(map[string]interface{}))
-	case map[string]PValue:
-		pv = WrapHash3(v.(map[string]PValue))
+	case map[string]eval.PValue:
+		pv = WrapHash3(v.(map[string]eval.PValue))
 	case json.Number:
 		if i, err := v.(json.Number).Int64(); err == nil {
 			pv = WrapInteger(i)
@@ -387,31 +387,31 @@ func wrap(v interface{}) (pv PValue) {
 		}
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
-		pv = wrapValue(ValueOf(v))
+		pv = wrapValue(reflect.ValueOf(v))
 	}
 	return pv
 }
 
-func wrapValue(vr Value) (pv PValue) {
+func wrapValue(vr reflect.Value) (pv eval.PValue) {
 	switch vr.Kind() {
-	case String:
+	case reflect.String:
 		pv = WrapString(vr.String())
-	case Int64, Int32, Int16, Int8:
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 		pv = WrapInteger(vr.Int())
-	case Uint, Uint64, Uint32, Uint16, Uint8:
+	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
 		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
-	case Bool:
+	case reflect.Bool:
 		pv = WrapBoolean(vr.Bool())
-	case Float64, Float32:
+	case reflect.Float64, reflect.Float32:
 		pv = WrapFloat(vr.Float())
-	case Slice, Array:
+	case reflect.Slice, reflect.Array:
 		top := vr.Len()
-		els := make([]PValue, top)
+		els := make([]eval.PValue, top)
 		for i := 0; i < top; i++ {
 			els[i] = wrap(interfaceOrNil(vr.Index(i)))
 		}
 		pv = WrapArray(els)
-	case Map:
+	case reflect.Map:
 		keys := vr.MapKeys()
 		els := make([]*HashEntry, len(keys))
 		for i, k := range keys {
@@ -428,7 +428,7 @@ func wrapValue(vr Value) (pv PValue) {
 	return pv
 }
 
-func interfaceOrNil(vr Value) interface{} {
+func interfaceOrNil(vr reflect.Value) interface{} {
 	if vr.CanInterface() {
 		return vr.Interface()
 	}
@@ -436,51 +436,51 @@ func interfaceOrNil(vr Value) interface{} {
 }
 
 func init() {
-	NewType = newType
+	eval.NewType = newType
 }
 
-func newType(name, typeDecl string) PType {
-	p := CreateParser()
+func newType(name, typeDecl string) eval.PType {
+	p := parser.CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)
 	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
 	if err != nil {
-		err = convertReportedIssue(err, fileName, fileLine)
+		err = convertReported(err, fileName, fileLine)
 		panic(err)
 	}
 
-	if ta, ok := expr.(*TypeAlias); ok {
-		rt, _ := CreateTypeDefinition(ta, RUNTIME_NAME_AUTHORITY)
-		registerResolvableType(rt.(ResolvableType))
-		return rt.(PType)
+	if ta, ok := expr.(*parser.TypeAlias); ok {
+		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
+		registerResolvableType(rt.(eval.ResolvableType))
+		return rt.(eval.PType)
 	}
-	panic(convertReportedIssue(Error2(expr, EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: TYPE, `name`: name}), fileName, fileLine))
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }
 
-func convertReportedIssue(err error, fileName string, lineOffset int) error {
-	if ri, ok := err.(*issue.ReportedIssue); ok {
+func convertReported(err error, fileName string, lineOffset int) error {
+	if ri, ok := err.(*issue.Reported); ok {
 		return ri.OffsetByLocation(issue.NewLocation(fileName, lineOffset, 0))
 	}
 	return err
 }
 
-func CreateTypeDefinition(d Definition, na URI) (interface{}, TypedName) {
+func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.TypedName) {
 	switch d.(type) {
-	case *TypeAlias:
-		taExpr := d.(*TypeAlias)
+	case *parser.TypeAlias:
+		taExpr := d.(*parser.TypeAlias)
 		name := taExpr.Name()
 		body := taExpr.Type()
-		tn := NewTypedName2(TYPE, name, na)
-		var ta PType
+		tn := eval.NewTypedName2(eval.TYPE, name, na)
+		var ta eval.PType
 		switch body.(type) {
-		case *QualifiedReference:
+		case *parser.QualifiedReference:
 			ta = NewTypeAliasType(name, body, nil)
-		case *AccessExpression:
+		case *parser.AccessExpression:
 			ta = nil
-			ae := body.(*AccessExpression)
+			ae := body.(*parser.AccessExpression)
 			if len(ae.Keys()) == 1 {
 				arg := ae.Keys()[0]
-				if hash, ok := arg.(*LiteralHash); ok {
-					if lq, ok := ae.Operand().(*QualifiedReference); ok {
+				if hash, ok := arg.(*parser.LiteralHash); ok {
+					if lq, ok := ae.Operand().(*parser.QualifiedReference); ok {
 						if lq.Name() == `Object` || lq.Name() == `TypeSet` {
 							ta = createMetaType(name, lq.Name(), hash)
 						}
@@ -490,19 +490,19 @@ func CreateTypeDefinition(d Definition, na URI) (interface{}, TypedName) {
 			if ta == nil {
 				ta = NewTypeAliasType(name, body, nil)
 			}
-		case *LiteralHash:
-			ta = createMetaType(name, ``, body.(*LiteralHash))
-		case *LiteralList:
-			ll := body.(*LiteralList)
+		case *parser.LiteralHash:
+			ta = createMetaType(name, ``, body.(*parser.LiteralHash))
+		case *parser.LiteralList:
+			ll := body.(*parser.LiteralList)
 			if len(ll.Elements()) == 1 {
-				if hash, ok := ll.Elements()[0].(*LiteralHash); ok {
+				if hash, ok := ll.Elements()[0].(*parser.LiteralHash); ok {
 					ta = createMetaType(name, ``, hash)
 				}
 			}
-		case *KeyedEntry:
-			ke := body.(*KeyedEntry)
-			if pn, ok := ke.Key().(*QualifiedReference); ok {
-				if hash, ok := ke.Value().(*LiteralHash); ok {
+		case *parser.KeyedEntry:
+			ke := body.(*parser.KeyedEntry)
+			if pn, ok := ke.Key().(*parser.QualifiedReference); ok {
+				if hash, ok := ke.Value().(*parser.LiteralHash); ok {
 					ta = createMetaType(name, pn.Name(), hash)
 				}
 			}
@@ -517,7 +517,7 @@ func CreateTypeDefinition(d Definition, na URI) (interface{}, TypedName) {
 	}
 }
 
-func createMetaType(name string, parentName string, hash *LiteralHash) PType {
+func createMetaType(name string, parentName string, hash *parser.LiteralHash) eval.PType {
 	if parentName == `` || parentName == `Object` {
 		return NewObjectType(name, nil, hash)
 	} // TODO else if lq.Name() == `TypeSet`

@@ -4,120 +4,120 @@ import (
 	"fmt"
 	"strconv"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
-	. "github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func callNew(c EvalContext, name string, args []PValue, block Lambda) PValue {
+func callNew(c eval.EvalContext, name string, args []eval.PValue, block eval.Lambda) eval.PValue {
 	// Always make an attempt to load the named type
 	// TODO: This should be a properly checked load but it currently isn't because some receivers in the PSpec
 	// evaluator are not proper types yet.
-	Load(c.Loader(), NewTypedName(TYPE, name))
+	eval.Load(c.Loader(), eval.NewTypedName(eval.TYPE, name))
 
-	tn := NewTypedName(CONSTRUCTOR, name)
-	if ctor, ok := Load(c.Loader(), tn); ok {
-		r := ctor.(Function).Call(c, nil, args...)
+	tn := eval.NewTypedName(eval.CONSTRUCTOR, name)
+	if ctor, ok := eval.Load(c.Loader(), tn); ok {
+		r := ctor.(eval.Function).Call(c, nil, args...)
 		if block != nil {
 			r = block.Call(c, nil, r)
 		}
 		return r
 	}
-	panic(NewArgumentsError(`new`, fmt.Sprintf(`Creation of new instance of type '%s' is not supported`, name)))
+	panic(errors.NewArgumentsError(`new`, fmt.Sprintf(`Creation of new instance of type '%s' is not supported`, name)))
 }
 
 func init() {
-	NewGoFunction(`new`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`new`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable[1,1]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return callNew(c, args[0].String(), args[1:], block)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Type`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable[1,1]`)
-			d.Function2(func(c EvalContext, args []PValue, block Lambda) PValue {
-				pt := args[0].(PType)
+			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+				pt := args[0].(eval.PType)
 				return assertType(c, pt, callNew(c, pt.Name(), args[1:], block), nil)
 			})
 		},
 	)
 
-	NewGoConstructor2(`Binary`,
-		func(t LocalTypes) {
+	eval.NewGoConstructor2(`Binary`,
+		func(t eval.LocalTypes) {
 			t.Type(`ByteInteger`, `Integer[0,255]`)
 			t.Type(`Base64Format`, `Enum['%b', '%u', '%B', '%s', '%r']`)
 			t.Type(`StringHash`, `Struct[value => String, format => Optional[Base64Format]]`)
 			t.Type(`ArrayHash`, `Struct[value => Array[ByteInteger]]`)
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.OptionalParam(`Base64Format`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				str := args[0].String()
 				f := `%B`
 				if len(args) > 1 {
 					f = args[1].String()
 				}
-				return BinaryFromString(str, f)
+				return types.BinaryFromString(str, f)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Array[ByteInteger]`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				return BinaryFromArray(args[0].(IndexedValue))
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return types.BinaryFromArray(args[0].(eval.IndexedValue))
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`StringHash`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				hv := args[0].(KeyedValue)
-				return BinaryFromString(hv.Get5(`value`, UNDEF).String(), hv.Get5(`format`, UNDEF).String())
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hv := args[0].(eval.KeyedValue)
+				return types.BinaryFromString(hv.Get5(`value`, eval.UNDEF).String(), hv.Get5(`format`, eval.UNDEF).String())
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`ArrayHash`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				return BinaryFromArray(args[0].(IndexedValue))
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return types.BinaryFromArray(args[0].(eval.IndexedValue))
 			})
 		},
 	)
 
-	NewGoConstructor2(`Numeric`,
-		func(t LocalTypes) {
+	eval.NewGoConstructor2(`Numeric`,
+		func(t eval.LocalTypes) {
 			t.Type(`Convertible`, `Variant[Undef, Integer, Float, Boolean, String, Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[from => Convertible, Optional[abs] => Boolean]`)
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				h := args[0].(*HashValue)
-				n := fromConvertible(h.Get5(`from`, UNDEF))
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				h := args[0].(*types.HashValue)
+				n := fromConvertible(h.Get5(`from`, eval.UNDEF))
 				a := h.Get5(`abs`, nil)
-				if a != nil && a.(*BooleanValue).Bool() {
+				if a != nil && a.(*types.BooleanValue).Bool() {
 					n = n.Abs()
 				}
 				return n
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				n := fromConvertible(args[0])
-				if len(args) > 1 && args[1].(*BooleanValue).Bool() {
+				if len(args) > 1 && args[1].(*types.BooleanValue).Bool() {
 					n = n.Abs()
 				}
 				return n
@@ -125,36 +125,36 @@ func init() {
 		},
 	)
 
-	NewGoConstructor2(`SemVer`,
-		func(t LocalTypes) {
+	eval.NewGoConstructor2(`SemVer`,
+		func(t eval.LocalTypes) {
 			t.Type(`PositiveInteger`, `Integer[0,default]`)
 			t.Type(`SemVerQualifier`, `Pattern[/\A(?<part>[0-9A-Za-z-]+)(?:\.\g<part>)*\Z/]`)
 			t.Type(`SemVerString`, `String[1]`)
 			t.Type(`SemVerHash`, `Struct[major=>PositiveInteger,minor=>PositiveInteger,patch=>PositiveInteger,Optional[prerelease]=>SemVerQualifier,Optional[build]=>SemVerQualifier]`)
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`SemVerString`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				v, err := semver.ParseVersion(args[0].String())
 				if err != nil {
-					panic(NewIllegalArgument(`SemVer`, 0, err.Error()))
+					panic(errors.NewIllegalArgument(`SemVer`, 0, err.Error()))
 				}
-				return WrapSemVer(v)
+				return types.WrapSemVer(v)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`PositiveInteger`)
 			d.Param(`PositiveInteger`)
 			d.Param(`PositiveInteger`)
 			d.OptionalParam(`SemVerQualifier`)
 			d.OptionalParam(`SemVerQualifier`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				argc := len(args)
-				major := args[0].(*IntegerValue).Int()
-				minor := args[1].(*IntegerValue).Int()
-				patch := args[2].(*IntegerValue).Int()
+				major := args[0].(*types.IntegerValue).Int()
+				minor := args[1].(*types.IntegerValue).Int()
+				patch := args[2].(*types.IntegerValue).Int()
 				preRelease := ``
 				build := ``
 				if argc > 3 {
@@ -165,19 +165,19 @@ func init() {
 				}
 				v, err := semver.NewVersion3(int(major), int(minor), int(patch), preRelease, build)
 				if err != nil {
-					panic(NewArgumentsError(`SemVer`, err.Error()))
+					panic(errors.NewArgumentsError(`SemVer`, err.Error()))
 				}
-				return WrapSemVer(v)
+				return types.WrapSemVer(v)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`SemVerHash`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				hash := args[0].(*HashValue)
-				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
-				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
-				patch := hash.Get5(`patch`, ZERO).(*IntegerValue).Int()
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hash := args[0].(*types.HashValue)
+				major := hash.Get5(`major`, types.ZERO).(*types.IntegerValue).Int()
+				minor := hash.Get5(`minor`, types.ZERO).(*types.IntegerValue).Int()
+				patch := hash.Get5(`patch`, types.ZERO).(*types.IntegerValue).Int()
 				preRelease := ``
 				build := ``
 				ev := hash.Get5(`prerelease`, nil)
@@ -190,90 +190,90 @@ func init() {
 				}
 				v, err := semver.NewVersion3(int(major), int(minor), int(patch), preRelease, build)
 				if err != nil {
-					panic(NewArgumentsError(`SemVer`, err.Error()))
+					panic(errors.NewArgumentsError(`SemVer`, err.Error()))
 				}
-				return WrapSemVer(v)
+				return types.WrapSemVer(v)
 			})
 		},
 	)
 
-	NewGoConstructor2(`SemVerRange`,
-		func(t LocalTypes) {
+	eval.NewGoConstructor2(`SemVerRange`,
+		func(t eval.LocalTypes) {
 			t.Type(`SemVerRangeString`, `String[1]`)
 			t.Type(`SemVerRangeHash`, `Struct[min=>Variant[Default,SemVer],Optional[max]=>Variant[Default,SemVer],Optional[exclude_max]=>Boolean]`)
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeString`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				v, err := semver.ParseVersionRange(args[0].String())
 				if err != nil {
-					panic(NewIllegalArgument(`SemVerRange`, 0, err.Error()))
+					panic(errors.NewIllegalArgument(`SemVerRange`, 0, err.Error()))
 				}
-				return WrapSemVerRange(v)
+				return types.WrapSemVerRange(v)
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Variant[Default,SemVer]`)
 			d.Param(`Variant[Default,SemVer]`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				var start *semver.Version
-				if _, ok := args[0].(*DefaultValue); ok {
+				if _, ok := args[0].(*types.DefaultValue); ok {
 					start = semver.MIN
 				} else {
-					start = args[0].(*SemVerValue).Version()
+					start = args[0].(*types.SemVerValue).Version()
 				}
 				var end *semver.Version
-				if _, ok := args[1].(*DefaultValue); ok {
+				if _, ok := args[1].(*types.DefaultValue); ok {
 					end = semver.MAX
 				} else {
-					end = args[1].(*SemVerValue).Version()
+					end = args[1].(*types.SemVerValue).Version()
 				}
 				excludeEnd := false
 				if len(args) > 2 {
-					excludeEnd = args[2].(*BooleanValue).Bool()
+					excludeEnd = args[2].(*types.BooleanValue).Bool()
 				}
-				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
+				return types.WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
 			})
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeHash`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				hash := args[0].(*HashValue)
-				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hash := args[0].(*types.HashValue)
+				start := hash.Get5(`min`, nil).(*types.SemVerValue).Version()
 
 				var end *semver.Version
 				ev := hash.Get5(`max`, nil)
 				if ev == nil {
 					end = semver.MAX
 				} else {
-					end = ev.(*SemVerValue).Version()
+					end = ev.(*types.SemVerValue).Version()
 				}
 
 				excludeEnd := false
 				ev = hash.Get5(`excludeMax`, nil)
 				if ev != nil {
-					excludeEnd = ev.(*BooleanValue).Bool()
+					excludeEnd = ev.(*types.BooleanValue).Bool()
 				}
-				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
+				return types.WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
 			})
 		},
 	)
 
-	NewGoConstructor(`Sensitive`,
-		func(d Dispatch) {
+	eval.NewGoConstructor(`Sensitive`,
+		func(d eval.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				return WrapSensitive(args[0])
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return types.WrapSensitive(args[0])
 			})
 		})
 
-	NewGoConstructor2(`String`,
-		func(t LocalTypes) {
-			t.Type2(`Format`, NewPatternType([]*RegexpType{NewRegexpTypeR(FORMAT_PATTERN)}))
+	eval.NewGoConstructor2(`String`,
+		func(t eval.LocalTypes) {
+			t.Type2(`Format`, types.NewPatternType([]*types.RegexpType{types.NewRegexpTypeR(eval.FORMAT_PATTERN)}))
 			t.Type(`ContainerFormat`, `Struct[{
           Optional[format]         => Format,
           Optional[separator]      => String,
@@ -284,81 +284,81 @@ func init() {
 			t.Type(`Formats`, `Variant[Default, String[1], TypeMap]`)
 		},
 
-		func(d Dispatch) {
+		func(d eval.Dispatch) {
 			d.Param(`Any`)
 			d.OptionalParam(`Formats`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				fmt := NONE
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				fmt := types.NONE
 				if len(args) > 1 {
 					var err error
-					fmt, err = NewFormatContext3(args[0], args[1])
+					fmt, err = eval.NewFormatContext3(args[0], args[1])
 					if err != nil {
-						panic(NewIllegalArgument(`String`, 1, err.Error()))
+						panic(errors.NewIllegalArgument(`String`, 1, err.Error()))
 					}
 				}
 
 				// Convert errors on first argument to argument errors
 				defer func() {
 					if r := recover(); r != nil {
-						if ge, ok := r.(GenericError); ok {
-							panic(NewIllegalArgument(`String`, 0, ge.Error()))
+						if ge, ok := r.(errors.GenericError); ok {
+							panic(errors.NewIllegalArgument(`String`, 0, ge.Error()))
 						}
 						panic(r)
 					}
 				}()
-				return WrapString(ToString2(args[0], fmt))
+				return types.WrapString(eval.ToString2(args[0], fmt))
 			})
 		},
 	)
 
-	NewGoConstructor(`Unit`,
-		func(d Dispatch) {
+	eval.NewGoConstructor(`Unit`,
+		func(d eval.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				return args[0]
 			})
 		},
 	)
 
-	NewGoConstructor(`Type`,
-		func(d Dispatch) {
+	eval.NewGoConstructor(`Type`,
+		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				return c.ParseType(args[0])
 			})
 		},
 	)
 }
 
-func fromConvertible(c PValue) NumericValue {
+func fromConvertible(c eval.PValue) eval.NumericValue {
 	switch c.(type) {
-	case *UndefValue:
+	case *types.UndefValue:
 		panic(`undefined_value`)
-	case NumericValue:
-		return c.(NumericValue)
-	case *TimestampValue:
-		return WrapFloat(c.(*TimestampValue).Float())
-	case *TimespanValue:
-		return WrapFloat(c.(*TimespanValue).Float())
-	case *BooleanValue:
-		b := c.(*BooleanValue).Bool()
+	case eval.NumericValue:
+		return c.(eval.NumericValue)
+	case *types.TimestampValue:
+		return types.WrapFloat(c.(*types.TimestampValue).Float())
+	case *types.TimespanValue:
+		return types.WrapFloat(c.(*types.TimespanValue).Float())
+	case *types.BooleanValue:
+		b := c.(*types.BooleanValue).Bool()
 		if b {
-			return WrapInteger(1)
+			return types.WrapInteger(1)
 		}
-		return WrapInteger(0)
-	case *StringValue:
+		return types.WrapInteger(0)
+	case *types.StringValue:
 		s := c.String()
 		if i, err := strconv.ParseInt(s, 0, 64); err == nil {
-			return WrapInteger(i)
+			return types.WrapInteger(i)
 		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
-			return WrapFloat(f)
+			return types.WrapFloat(f)
 		}
 		if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {
 			if i, err := strconv.ParseInt(s[2:], 2, 64); err == nil {
-				return WrapInteger(i)
+				return types.WrapInteger(i)
 			}
 		}
 	}
-	panic(NewArgumentsError(`Numeric`, fmt.Sprintf(`Value of type %s cannot be converted to an Number`, c.Type().String())))
+	panic(errors.NewArgumentsError(`Numeric`, fmt.Sprintf(`Value of type %s cannot be converted to an Number`, c.Type().String())))
 }

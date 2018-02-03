@@ -1,18 +1,18 @@
 package types
 
 import (
-	. "io"
+	"io"
 	"sync"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type (
 	StructElement struct {
 		name  string
-		key   PType
-		value PType
+		key   eval.PType
+		value eval.PType
 	}
 
 	StructType struct {
@@ -22,11 +22,11 @@ type (
 	}
 )
 
-func NewStructElement(key PValue, value PType) *StructElement {
+func NewStructElement(key eval.PValue, value eval.PType) *StructElement {
 
 	var (
 		name    string
-		keyType PType
+		keyType eval.PType
 	)
 
 	switch key.(type) {
@@ -51,7 +51,7 @@ func NewStructElement(key PValue, value PType) *StructElement {
 	return &StructElement{name, keyType, value}
 }
 
-func NewStructElement2(key string, value PType) *StructElement {
+func NewStructElement2(key string, value eval.PType) *StructElement {
 	return NewStructElement(WrapString(key), value)
 }
 
@@ -66,20 +66,20 @@ func NewStructType(elements []*StructElement) *StructType {
 	return &StructType{elements: elements}
 }
 
-func NewStructType2(args ...PValue) *StructType {
+func NewStructType2(args ...eval.PValue) *StructType {
 	switch len(args) {
 	case 0:
 		return DefaultStructType()
 	case 1:
-		hash, ok := args[0].(KeyedValue)
+		hash, ok := args[0].(eval.KeyedValue)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Struct[]`, 0, `Hash[Variant[String[1], Optional[String[1]]], Type]`, args[0]))
 		}
 		top := hash.Len()
 		elems := make([]*StructElement, top)
-		hash.EachWithIndex(func(v PValue, idx int) {
+		hash.EachWithIndex(func(v eval.PValue, idx int) {
 			e := v.(*HashEntry)
-			vt, ok := e.Value().(PType)
+			vt, ok := e.Value().(eval.PType)
 			if !ok {
 				panic(NewIllegalArgumentType2(`StructElement`, 1, `Type`, v))
 			}
@@ -87,27 +87,27 @@ func NewStructType2(args ...PValue) *StructType {
 		})
 		return NewStructType(elems)
 	default:
-		panic(NewIllegalArgumentCount(`Struct`, `0 - 1`, len(args)))
+		panic(errors.NewIllegalArgumentCount(`Struct`, `0 - 1`, len(args)))
 	}
 }
 
-func (s *StructElement) Accept(v Visitor, g Guard) {
+func (s *StructElement) Accept(v eval.Visitor, g eval.Guard) {
 	s.key.Accept(v, g)
 	s.value.Accept(v, g)
 }
 
-func (s *StructElement) ActualKeyType() PType {
+func (s *StructElement) ActualKeyType() eval.PType {
 	if ot, ok := s.key.(*OptionalType); ok {
 		return ot.typ
 	}
 	return s.key
 }
 
-func (s *StructElement) Equals(o *StructElement, g Guard) bool {
+func (s *StructElement) Equals(o *StructElement, g eval.Guard) bool {
 	return s.key.Equals(o.key, g) && s.value.Equals(o.value, g)
 }
 
-func (s *StructElement) Key() PType {
+func (s *StructElement) Key() eval.PType {
 	return s.key
 }
 
@@ -120,11 +120,11 @@ func (s *StructElement) Optional() bool {
 	return ok
 }
 
-func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
+func (s *StructElement) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
 	optionalValue := isAssignable(s.value, undefType_DEFAULT)
 	if _, ok := s.key.(*OptionalType); ok {
 		if optionalValue {
-			WriteString(bld, s.name)
+			io.WriteString(bld, s.name)
 		} else {
 			s.key.ToString(bld, format, g)
 		}
@@ -132,29 +132,29 @@ func (s *StructElement) ToString(bld Writer, format FormatContext, g RDetect) {
 		if optionalValue {
 			NewNotUndefType(s.key).ToString(bld, format, g)
 		} else {
-			WriteString(bld, s.name)
+			io.WriteString(bld, s.name)
 		}
 	}
-	WriteString(bld, ` => `)
+	io.WriteString(bld, ` => `)
 	s.value.ToString(bld, format, g)
 }
 
-func (s *StructElement) Value() PType {
+func (s *StructElement) Value() eval.PType {
 	return s.value
 }
 
-func (t *StructType) Accept(v Visitor, g Guard) {
+func (t *StructType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	for _, element := range t.elements {
 		element.Accept(v, g)
 	}
 }
 
-func (t *StructType) Default() PType {
+func (t *StructType) Default() eval.PType {
 	return structType_DEFAULT
 }
 
-func (t *StructType) Equals(o interface{}, g Guard) bool {
+func (t *StructType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*StructType); ok && len(t.elements) == len(ot.elements) {
 		for idx, element := range t.elements {
 			if !element.Equals(ot.elements[idx], g) {
@@ -166,10 +166,10 @@ func (t *StructType) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
-func (t *StructType) Generic() PType {
+func (t *StructType) Generic() eval.PType {
 	al := make([]*StructElement, len(t.elements))
 	for idx, e := range t.elements {
-		al[idx] = &StructElement{e.name, GenericType(e.key), GenericType(e.value)}
+		al[idx] = &StructElement{e.name, eval.GenericType(e.key), eval.GenericType(e.value)}
 	}
 	return NewStructType(al)
 }
@@ -195,7 +195,7 @@ func (t *StructType) HashedMembersCloned() map[string]*StructElement {
 	return hashedMembers
 }
 
-func (t *StructType) IsAssignable(o PType, g Guard) bool {
+func (t *StructType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *StructType:
 		st := o.(*StructType)
@@ -235,7 +235,7 @@ func (t *StructType) IsAssignable(o PType, g Guard) bool {
 	}
 }
 
-func (t *StructType) IsInstance(o PValue, g Guard) bool {
+func (t *StructType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	ov, ok := o.(*HashValue)
 	if !ok {
 		return false
@@ -262,15 +262,15 @@ func (t *StructType) Name() string {
 	return `Struct`
 }
 
-func (t *StructType) Parameters() []PValue {
+func (t *StructType) Parameters() []eval.PValue {
 	top := len(t.elements)
 	if top == 0 {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
 	entries := make([]*HashEntry, top)
 	for idx, s := range t.elements {
 		optionalValue := isAssignable(s.value, undefType_DEFAULT)
-		var key PValue
+		var key eval.PValue
 		if _, ok := s.key.(*OptionalType); ok {
 			if optionalValue {
 				key = WrapString(s.name)
@@ -286,7 +286,7 @@ func (t *StructType) Parameters() []PValue {
 		}
 		entries[idx] = WrapHashEntry(key, s.value)
 	}
-	return []PValue{WrapHash(entries)}
+	return []eval.PValue{WrapHash(entries)}
 }
 
 func (t *StructType) Size() *IntegerType {
@@ -300,14 +300,14 @@ func (t *StructType) Size() *IntegerType {
 }
 
 func (t *StructType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *StructType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *StructType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *StructType) Type() PType {
+func (t *StructType) Type() eval.PType {
 	return &TypeType{t}
 }
 
