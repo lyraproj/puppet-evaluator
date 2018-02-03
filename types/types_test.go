@@ -39,7 +39,7 @@ func TestCallable(t *testing.T) {
 }
 
 func TestTuple(t *testing.T) {
-	tuple := tupleFromArgs(false, []eval.PValue{DefaultStringType(), DefaultIntegerType()})
+	tuple := NewTupleType([]eval.PType{DefaultStringType(), DefaultIntegerType()}, nil)
 	t.Log(tuple.String())
 }
 
