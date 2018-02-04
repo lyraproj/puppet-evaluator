@@ -11,6 +11,22 @@ type OptionalType struct {
 	typ eval.PType
 }
 
+var Optional_Type eval.ObjectType
+
+func init() {
+	Optional_Type = newObjectType(`Pcore::OptionalType`,
+		`Pcore::AnyType {
+	attributes => {
+		type => {
+			type => Optional[Type],
+			value => Any
+		},
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewOptionalType2(args...)
+		})
+}
+
 func DefaultOptionalType() *OptionalType {
 	return optionalType_DEFAULT
 }
@@ -67,12 +83,24 @@ func (t *OptionalType) Generic() eval.PType {
 	return NewOptionalType(eval.GenericType(t.typ))
 }
 
+func (t *OptionalType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `type`:
+		return t.typ, true
+	}
+	return nil, false
+}
+
 func (t *OptionalType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return GuardedIsAssignable(o, undefType_DEFAULT, g) || GuardedIsAssignable(t.typ, o, g)
 }
 
 func (t *OptionalType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return o == _UNDEF || GuardedIsInstance(t.typ, o, g)
+}
+
+func (t *OptionalType) MetaType() eval.ObjectType {
+	return Optional_Type
 }
 
 func (t *OptionalType) Name() string {

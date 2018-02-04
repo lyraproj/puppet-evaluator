@@ -150,21 +150,21 @@ func NewFromDataConverter(loader eval.DefiningLoader, options eval.KeyedValue) *
 		},
 
 		PCORE_TYPE_SENSITIVE: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
-			return f.build(&valueBuilder{types.WrapSensitive(f.Convert(hash.Get5(PCORE_VALUE_KEY, eval.UNDEF)))}, nil)
+			return f.buildValue(types.WrapSensitive(f.Convert(hash.Get5(PCORE_VALUE_KEY, eval.UNDEF))))
 		},
 
 		PCORE_TYPE_DEFAULT: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
-			return f.build(&valueBuilder{types.WrapDefault()}, nil)
+			return f.buildValue(types.WrapDefault())
 		},
 
 		PCORE_TYPE_SYMBOL: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
-			return f.build(&valueBuilder{types.WrapRuntime(Symbol(hash.Get5(PCORE_VALUE_KEY, eval.EMPTY_STRING).String()))}, nil)
+			return f.buildValue(types.WrapRuntime(Symbol(hash.Get5(PCORE_VALUE_KEY, eval.EMPTY_STRING).String())))
 		},
 
 		PCORE_LOCAL_REF_SYMBOL: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
 			path := hash.Get5(PCORE_VALUE_KEY, eval.EMPTY_STRING).String()
 			if resolved, ok := resolveJsonPath(f.root, path); ok {
-				return f.build(&valueBuilder{resolved}, nil)
+				return f.buildValue(resolved)
 			}
 			panic(eval.Error(eval.EVAL_BAD_JSON_PATH, issue.H{path: path}))
 		},
@@ -285,11 +285,11 @@ func (f *FromDataConverter) Convert(value eval.PValue) eval.PValue {
 			array.EachWithIndex(func(v eval.PValue, i int) { f.with(types.WrapInteger(int64(i)), func() { f.Convert(v) }) })
 		})
 	}
-	return f.build(&valueBuilder{value}, nil)
+	return f.buildValue(value)
 }
 
-func (f *FromDataConverter) buildHash(actor eval.Actor) eval.PValue {
-	return f.build(&hashBuilder{hash.NewStringHash(31), nil}, actor)
+func (f *FromDataConverter) buildHash(actor eval.Actor) *types.HashValue {
+	return f.build(&hashBuilder{hash.NewStringHash(31), nil}, actor).(*types.HashValue)
 }
 
 func (f *FromDataConverter) buildObject(object eval.ObjectValue, actor eval.Actor) eval.PValue {
@@ -298,6 +298,10 @@ func (f *FromDataConverter) buildObject(object eval.ObjectValue, actor eval.Acto
 
 func (f *FromDataConverter) buildArray(actor eval.Actor) eval.PValue {
 	return f.build(&arrayBuilder{make([]builder, 0, 32), nil}, actor)
+}
+
+func (f *FromDataConverter) buildValue(value eval.PValue) eval.PValue {
+	return f.build(&valueBuilder{value}, nil)
 }
 
 func (f *FromDataConverter) build(vx builder, actor eval.Actor) eval.PValue {
@@ -343,12 +347,19 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.PType, value eval.PVal
 				hash.EachPair(func(key, elem eval.PValue) { f.with(key, func() { f.Convert(elem) }) })
 			})
 		}
-		return f.create(typ, f.buildHash(func() {
+		hash = f.buildHash(func() {
 			hash.EachPair(func(key, elem eval.PValue) { f.with(key, func() { f.Convert(elem) }) })
-		}))
+		})
+		if ot, ok := typ.(eval.ObjectType); ok {
+			if ot.HasHashConstructor() {
+				return f.buildValue(f.create(typ, hash))
+			}
+			return f.buildValue(f.create(typ, ot.AttributesInfo().PositionalFromHash(hash)...))
+		}
+		return f.buildValue(f.create(typ, hash))
 	}
 	if str, ok := value.(*types.StringValue); ok {
-		return f.create(typ, str)
+		return f.buildValue(f.create(typ, str))
 	}
 	panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
 }
@@ -360,9 +371,9 @@ func (f *FromDataConverter) allocate(typ eval.PType) (eval.ObjectValue, bool) {
 	return nil, false
 }
 
-func (f *FromDataConverter) create(typ eval.PType, arg eval.PValue) eval.PValue {
+func (f *FromDataConverter) create(typ eval.PType, args ...eval.PValue) eval.PValue {
 	if ctor, ok := eval.Load(f.loader, eval.NewTypedName(eval.CONSTRUCTOR, typ.Name())); ok {
-		return ctor.(eval.Function).Call(eval.CurrentContext(), nil, arg)
+		return ctor.(eval.Function).Call(eval.CurrentContext(), nil, args...)
 	}
 	panic(eval.Error(eval.EVAL_CTOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
 }

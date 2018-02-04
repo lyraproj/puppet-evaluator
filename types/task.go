@@ -1,7 +1,7 @@
 package types
 
 func init() {
-	newType(`Task`, `{
+	newObjectType(`Task`, `{
     attributes => {
       # Fully qualified name of the task
       name => { type => Pattern[/\A[a-z][a-z0-9_]*(?:::[a-z][a-z0-9_]*)*\z/] },

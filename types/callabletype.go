@@ -13,6 +13,30 @@ type CallableType struct {
 	blockType  eval.PType // Callable or Optional[Callable]
 }
 
+var Callable_Type eval.ObjectType
+
+func init() {
+	Callable_Type = newObjectType(`Pcore::CallableType`,
+`Pcore::AnyType {
+  attributes => {
+    param_types => {
+      type => Optional[Type[Tuple]],
+      value => undef
+    },
+    block_type => {
+      type => Optional[Type[Callable]],
+      value => undef
+    },
+    return_type => {
+      type => Optional[Type],
+      value => undef
+    }
+  }
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewCallableType2(args...)
+		})
+}
+
 func DefaultCallableType() *CallableType {
 	return callableType_DEFAULT
 }
@@ -132,6 +156,28 @@ func (t *CallableType) Generic() eval.PType {
 	return callableType_DEFAULT
 }
 
+func (t *CallableType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `param_types`:
+		if t.paramsType == nil {
+			return eval.UNDEF, true
+		}
+		return t.paramsType, true
+	case `return_type`:
+		if t.returnType == nil {
+			return eval.UNDEF, true
+		}
+		return t.returnType, true
+	case `block_type`:
+		if t.blockType == nil {
+			return eval.UNDEF, true
+		}
+		return t.blockType, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *CallableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	oc, ok := o.(*CallableType)
 	if !ok {
@@ -171,6 +217,10 @@ func (t *CallableType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	}
 	// TODO: Maybe check Go func using reflection
 	return false
+}
+
+func (t *CallableType) MetaType() eval.ObjectType {
+	return Callable_Type
 }
 
 func (t *CallableType) Name() string {

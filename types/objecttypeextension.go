@@ -13,11 +13,11 @@ type objectTypeExtension struct {
 	parameters *hash.StringHash
 }
 
-var ObjectTypeExtension_Type eval.PType
+var ObjectTypeExtension_Type eval.ObjectType
 
 func init() {
-	ObjectTypeExtension_Type = newType(`ObjectTypeExtensionType`,
-		`AnyType {
+	ObjectTypeExtension_Type = newObjectType(`Pcore::ObjectTypeExtensionType`,
+		`Pcore::AnyType {
 			attributes => {
 				base_type => Type,
 				init_parameters => Array
@@ -49,6 +49,10 @@ func (te *objectTypeExtension) Generalize() eval.PType {
 	return te.baseType
 }
 
+func (te *objectTypeExtension) HasHashConstructor() bool {
+	return te.baseType.HasHashConstructor()
+}
+
 func (te *objectTypeExtension) IsAssignable(t eval.PType, g eval.Guard) bool {
 	if ote, ok := t.(*objectTypeExtension); ok {
 		return te.baseType.IsAssignable(ote.baseType, g) && te.testAssignable(ote.parameters, g)
@@ -69,6 +73,10 @@ func (te *objectTypeExtension) IsInstance(v eval.PValue, g eval.Guard) bool {
 
 func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
 	return te.baseType.Member(name)
+}
+
+func (t *objectTypeExtension) MetaType() eval.ObjectType {
+	return ObjectTypeExtension_Type
 }
 
 func (te *objectTypeExtension) Name() string {
@@ -106,7 +114,7 @@ func (te *objectTypeExtension) ToString(bld io.Writer, format eval.FormatContext
 }
 
 func (te *objectTypeExtension) Type() eval.PType {
-	return ObjectTypeExtension_Type
+	return &TypeType{te}
 }
 
 func (te *objectTypeExtension) initialize(baseType *objectType, initParameters []eval.PValue) {

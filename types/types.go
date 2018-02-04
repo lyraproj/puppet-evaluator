@@ -36,6 +36,19 @@ const (
 	HK_VERSION_RANGE = byte('R')
 )
 
+type objectTypeAndCtor struct {
+  typ eval.ObjectType
+  ctor eval.DispatchFunction
+}
+
+func (rt *objectTypeAndCtor) Type() eval.ObjectType {
+	return rt.typ
+}
+
+func (rt *objectTypeAndCtor) Creator() eval.DispatchFunction {
+	return rt.ctor
+}
+
 // isInstance answers if value is an instance of the given puppeType
 func isInstance(puppetType eval.PType, value eval.PValue) bool {
 	return GuardedIsInstance(puppetType, value, nil)
@@ -436,10 +449,10 @@ func interfaceOrNil(vr reflect.Value) interface{} {
 }
 
 func init() {
-	eval.NewType = newType
+	eval.NewObjectType = newObjectType
 }
 
-func newType(name, typeDecl string) eval.PType {
+func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
 	p := parser.CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)
 	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
@@ -450,8 +463,10 @@ func newType(name, typeDecl string) eval.PType {
 
 	if ta, ok := expr.(*parser.TypeAlias); ok {
 		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
-		registerResolvableType(rt.(eval.ResolvableType))
-		return rt.(eval.PType)
+		ot := rt.(*objectType)
+		ot.setCreators(creators...)
+		registerResolvableType(ot)
+		return ot
 	}
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }

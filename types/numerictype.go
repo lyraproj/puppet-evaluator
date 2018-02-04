@@ -8,6 +8,14 @@ import (
 
 type NumericType struct{}
 
+var Numeric_Type eval.ObjectType
+
+func init() {
+	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultNumericType()
+	})
+}
+
 func DefaultNumericType() *NumericType {
 	return numericType_DEFAULT
 }
@@ -37,6 +45,10 @@ func (t *NumericType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	default:
 		return false
 	}
+}
+
+func (t *NumericType) MetaType() eval.ObjectType {
+	return Numeric_Type
 }
 
 func (t *NumericType) Name() string {

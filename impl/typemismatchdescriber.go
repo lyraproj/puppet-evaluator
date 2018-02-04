@@ -612,7 +612,7 @@ func (tm *countMismatch) text() string {
 		suffix = ``
 	}
 
-	return fmt.Sprintf(`expects %s argument%s, got %s}`,
+	return fmt.Sprintf(`expects %s argument%s, got %s`,
 		rangeToS(ei, `no`), suffix,
 		rangeToS(tm.actualType.(*types.IntegerType), `none`))
 }

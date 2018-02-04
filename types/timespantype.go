@@ -21,7 +21,24 @@ type (
 	TimespanValue TimespanType
 )
 
-var timespanType_DEFAULT = &TimespanType{time.Duration(math.MinInt64), time.Duration(math.MaxInt64)}
+var TIMESPAN_MIN = time.Duration(math.MinInt64)
+var TIMESPAN_MAX = time.Duration(math.MaxInt64)
+
+var timespanType_DEFAULT = &TimespanType{TIMESPAN_MIN, TIMESPAN_MAX}
+
+var Timespan_Type eval.ObjectType
+
+func init() {
+	Timespan_Type = newObjectType(`Pcore::TimespanType`,
+		`Pcore::ScalarType{
+	attributes => {
+		from => { type => Optional[Timespan], value => undef },
+		to => { type => Optional[Timespan], value => undef }
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewTimespanType2(args...)
+		})
+}
 
 func DurationFromHash(value *HashValue) (time.Duration, bool) {
 	// TODO
@@ -68,9 +85,9 @@ func NewTimespanType2(args ...eval.PValue) *TimespanType {
 			t, ok = time.Duration(arg.(*FloatValue).Float()*1000000000.0), true
 		case *DefaultValue:
 			if argNo == 0 {
-				t, ok = time.Duration(math.MinInt64), true
+				t, ok = TIMESPAN_MIN, true
 			} else {
-				t, ok = time.Duration(math.MaxInt64), true
+				t, ok = TIMESPAN_MAX, true
 			}
 		default:
 			t, ok = time.Duration(0), false
@@ -85,7 +102,7 @@ func NewTimespanType2(args ...eval.PValue) *TimespanType {
 	if argc == 2 {
 		return &TimespanType{min, convertArg(args, 1)}
 	} else {
-		return &TimespanType{min, time.Duration(math.MaxInt64)}
+		return &TimespanType{min, TIMESPAN_MAX}
 	}
 }
 
@@ -102,6 +119,29 @@ func (t *TimespanType) Equals(other interface{}, guard eval.Guard) bool {
 		return t.min == ot.min && t.max == ot.max
 	}
 	return false
+}
+
+func (t *TimespanType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `from`:
+		v := eval.UNDEF
+		if t.min != TIMESPAN_MIN {
+			v = WrapTimespan(t.min)
+		}
+		return v, true
+	case `to`:
+		v := eval.UNDEF
+		if t.max != TIMESPAN_MAX {
+			v = WrapTimespan(t.max)
+		}
+		return v, true
+	default:
+		return nil, false
+	}
+}
+
+func (t *TimespanType) MetaType() eval.ObjectType {
+	return Timespan_Type
 }
 
 func (t *TimespanType) Parameters() []eval.PValue {

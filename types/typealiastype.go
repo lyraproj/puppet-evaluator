@@ -16,6 +16,23 @@ type TypeAliasType struct {
 	loader         eval.Loader
 }
 
+var TypeAlias_Type eval.ObjectType
+
+func init() {
+	TypeAlias_Type = newObjectType(`Pcore::TypeAlias`,
+		`Pcore::AnyType {
+	attributes => {
+		name => String[1],
+		resolved_type => {
+			type => Optional[Type],
+			value => undef
+		}
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewTypeAliasType2(args...)
+		})
+}
+
 func DefaultTypeAliasType() *TypeAliasType {
 	return typeAliasType_DEFAULT
 }
@@ -80,6 +97,17 @@ func (t *TypeAliasType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (t *TypeAliasType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `name`:
+		return WrapString(t.name), true
+	case `resolved_type`:
+		return t.resolvedType, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *TypeAliasType) Loader() eval.Loader {
 	return t.loader
 }
@@ -102,6 +130,10 @@ func (t *TypeAliasType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return true
 	}
 	return GuardedIsInstance(t.ResolvedType(), o, g)
+}
+
+func (t *TypeAliasType) MetaType() eval.ObjectType {
+	return TypeAlias_Type
 }
 
 func (t *TypeAliasType) Name() string {

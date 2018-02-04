@@ -8,10 +8,12 @@ import (
 
 type AnyType struct{}
 
-var Any_Type eval.PType
+var Any_Type eval.ObjectType
 
 func init() {
-	Any_Type = newType(`AnyType`, `{}`)
+	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultAnyType()
+	})
 }
 
 func DefaultAnyType() *AnyType {
@@ -35,6 +37,10 @@ func (t *AnyType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	return true
 }
 
+func (t *AnyType) MetaType() eval.ObjectType {
+	return Any_Type
+}
+
 func (t *AnyType) Name() string {
 	return `Any`
 }
@@ -48,7 +54,7 @@ func (t *AnyType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 }
 
 func (t *AnyType) Type() eval.PType {
-	return Any_Type
+	return &TypeType{t}
 }
 
 var anyType_DEFAULT = &AnyType{}

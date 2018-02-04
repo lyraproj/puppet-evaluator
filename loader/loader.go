@@ -87,7 +87,7 @@ func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
 	}
 
 	for _, t := range types {
-		t.Resolve(c)
+		t.(eval.ResolvableType).Resolve(c)
 	}
 
 	funcs, ctors := popDeclaredGoFunctions()
@@ -129,8 +129,7 @@ func (l *basicLoader) GetEntry(name eval.TypedName) eval.Entry {
 
 func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
 	l.lock.Lock()
-	_, ok := l.namedEntries[name.MapKey()]
-	if ok {
+	if old, ok := l.namedEntries[name.MapKey()]; ok && old.Value() != nil {
 		l.lock.Unlock()
 		panic(fmt.Sprintf(`Attempt to redefine %s`, name.String()))
 	}

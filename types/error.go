@@ -1,7 +1,7 @@
 package types
 
 func init() {
-	newType(`Error`, `{
+	newObjectType(`Error`, `{
 	type_parameters => {
 	  kind => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]],
 	  issue_code => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]]

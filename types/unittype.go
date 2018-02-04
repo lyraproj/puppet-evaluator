@@ -8,6 +8,14 @@ import (
 
 type UnitType struct{}
 
+var Unit_Type eval.ObjectType
+
+func init() {
+	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultUnitType()
+	})
+}
+
 func DefaultUnitType() *UnitType {
 	return unitType_DEFAULT
 }
@@ -27,6 +35,10 @@ func (t *UnitType) IsAssignable(o eval.PType, g eval.Guard) (ok bool) {
 
 func (t *UnitType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return true
+}
+
+func (t *UnitType) MetaType() eval.ObjectType {
+	return Unit_Type
 }
 
 func (t *UnitType) Name() string {

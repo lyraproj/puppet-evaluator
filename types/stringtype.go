@@ -25,6 +25,22 @@ type (
 var stringType_DEFAULT = &StringType{integerType_POSITIVE, ``}
 var stringType_NOT_EMPTY = &StringType{NewIntegerType(1, math.MaxInt64), ``}
 
+var String_Type eval.ObjectType
+
+func init() {
+	String_Type = newObjectType(`Pcore::StringType`,
+		`Pcore::ScalarDataType {
+	attributes => {
+		size_type_or_value => {
+			type => Variant[Undef,String,Type[Integer]],
+			value => undef
+		},
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewStringType2(args...)
+		})
+}
+
 func DefaultStringType() *StringType {
 	return stringType_DEFAULT
 }
@@ -92,6 +108,17 @@ func (t *StringType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (t *StringType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `size_type_or_value`:
+		if t.value == `` {
+			return t.size, true
+		}
+		return WrapString(t.value), true
+	}
+	return nil, false
+}
+
 func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if st, ok := o.(*StringType); ok {
 		if t.value == `` {
@@ -124,6 +151,10 @@ func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
 func (t *StringType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && t.size.IsInstance3(len(str.String())) && (t.value == `` || t.value == str.String())
+}
+
+func (t *StringType) MetaType() eval.ObjectType {
+	return String_Type
 }
 
 func (t *StringType) Name() string {

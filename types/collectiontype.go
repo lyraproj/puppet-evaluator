@@ -12,14 +12,16 @@ type CollectionType struct {
 	size *IntegerType
 }
 
-var Collection_Type eval.PType
+var Collection_Type eval.ObjectType
 
 func init() {
-	Collection_Type = newType(`CollectionType`, `AnyType {
+	Collection_Type = newObjectType(`Pcore::CollectionType`, `Pcore::AnyType {
   attributes => {
-    'size_type' => { type => Optional[Integer], value => undef }
+    'size_type' => { type => Type[Integer], value => Integer[0] }
   }
-}`)
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return NewCollectionType2(args...)
+	})
 }
 
 func DefaultCollectionType() *CollectionType {
@@ -94,6 +96,18 @@ func (t *CollectionType) Generic() eval.PType {
 	return collectionType_DEFAULT
 }
 
+func (t *CollectionType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `size_type`:
+		if t.size == nil {
+			return eval.UNDEF, true
+		}
+		return t.size, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	var osz *IntegerType
 	switch o.(type) {
@@ -116,6 +130,10 @@ func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
 
 func (t *CollectionType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
+}
+
+func (t *CollectionType) MetaType() eval.ObjectType {
+	return Collection_Type
 }
 
 func (t *CollectionType) Name() string {
@@ -142,7 +160,7 @@ func (t *CollectionType) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 }
 
 func (t *CollectionType) Type() eval.PType {
-	return Collection_Type
+	return &TypeType{t}
 }
 
 var collectionType_DEFAULT = &CollectionType{integerType_POSITIVE}

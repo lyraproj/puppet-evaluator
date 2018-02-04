@@ -22,6 +22,31 @@ type (
 	}
 )
 
+var Struct_Element eval.PType
+
+var Struct_Type eval.ObjectType
+
+func init() {
+	Struct_Element = newObjectType(`Pcore::StructElement`,
+		`{
+	attributes => {
+		key_type => Type,
+    value_type => Type
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewStructElement(args[0], args[1].(eval.PType))
+		})
+
+	Struct_Type = newObjectType(`Pcore::StructType`,
+		`Pcore::AnyType {
+	attributes => {
+		elements => Array[Pcore::StructElement]
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewStructType2(args[0].(*ArrayValue).AppendTo([]eval.PValue{})...)
+		})
+}
+
 func NewStructElement(key eval.PValue, value eval.PType) *StructElement {
 
 	var (
@@ -37,6 +62,10 @@ func NewStructElement(key eval.PValue, value eval.PType) *StructElement {
 			keyType = NewOptionalType(keyType)
 		}
 		name = v.String()
+	case *StringType:
+		strType := key.(*StringType)
+		name = strType.value
+		keyType = strType
 	case *OptionalType:
 		optType := key.(*OptionalType)
 		if strType, ok := optType.typ.(*StringType); ok {
@@ -46,7 +75,7 @@ func NewStructElement(key eval.PValue, value eval.PType) *StructElement {
 	}
 
 	if keyType == nil || name == `` {
-		panic(NewIllegalArgumentType2(`StructElement`, 0, `Variant[String[1], Optional[String[1]]]`, key))
+		panic(NewIllegalArgumentType2(`StructElement`, 0, `Variant[String[1], Type[String[1]], , Type[Optional[String[1]]]]`, key))
 	}
 	return &StructElement{name, keyType, value}
 }
@@ -103,8 +132,19 @@ func (s *StructElement) ActualKeyType() eval.PType {
 	return s.key
 }
 
-func (s *StructElement) Equals(o *StructElement, g eval.Guard) bool {
-	return s.key.Equals(o.key, g) && s.value.Equals(o.value, g)
+func (s *StructElement) Equals(o interface{}, g eval.Guard) bool {
+	if ose, ok := o.(*StructElement); ok {
+		return s.key.Equals(ose.key, g) && s.value.Equals(ose.value, g)
+	}
+	return false
+}
+
+func (s *StructElement) String() string {
+	return eval.ToString(s)
+}
+
+func (s *StructElement) Type() eval.PType {
+	return Struct_Element
 }
 
 func (s *StructElement) Key() eval.PType {
@@ -176,6 +216,18 @@ func (t *StructType) Generic() eval.PType {
 
 func (t *StructType) Elements() []*StructElement {
 	return t.elements
+}
+
+func (t *StructType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `elements`:
+		els := make([]eval.PValue, len(t.elements))
+		for i, e := range t.elements {
+			els[i] = e
+		}
+		return WrapArray(els), true
+	}
+	return nil, false
 }
 
 func (t *StructType) HashedMembers() map[string]*StructElement {
@@ -256,6 +308,10 @@ func (t *StructType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		}
 	}
 	return matched == ov.Len()
+}
+
+func (t *StructType) MetaType() eval.ObjectType {
+	return Struct_Type
 }
 
 func (t *StructType) Name() string {

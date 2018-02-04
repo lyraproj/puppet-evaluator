@@ -23,6 +23,20 @@ type (
 
 var floatType_DEFAULT = &FloatType{-math.MaxFloat64, math.MaxFloat64}
 
+var Float_Type eval.ObjectType
+
+func init() {
+	Float_Type = newObjectType(`Pcore::FloatType`,
+		`Pcore::NumericType {
+  attributes => {
+    from => { type => Optional[Float], value => undef },
+    to => { type => Optional[Float], value => undef }
+  }
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewFloatType2(args...)
+		})
+}
+
 func DefaultFloatType() *FloatType {
 	return floatType_DEFAULT
 }
@@ -86,6 +100,25 @@ func (t *FloatType) Generic() eval.PType {
 	return floatType_DEFAULT
 }
 
+func (t *FloatType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `from`:
+		v := eval.UNDEF
+		if t.min != -math.MaxFloat64 {
+			v = WrapFloat(t.min)
+		}
+		return v, true
+	case `to`:
+		v := eval.UNDEF
+		if t.max != math.MaxFloat64 {
+			v = WrapFloat(t.max)
+		}
+		return v, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *FloatType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if ft, ok := o.(*FloatType); ok {
 		return t.min <= ft.min && t.max >= ft.max
@@ -98,6 +131,10 @@ func (t *FloatType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return t.min <= n && n <= t.max
 	}
 	return false
+}
+
+func (t *FloatType) MetaType() eval.ObjectType {
+	return Float_Type
 }
 
 func (t *FloatType) Min() float64 {

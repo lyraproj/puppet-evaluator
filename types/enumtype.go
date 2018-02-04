@@ -5,18 +5,48 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"strings"
 )
 
 type EnumType struct {
+	caseInsensitive bool
 	values []string
+}
+
+var Enum_Type eval.ObjectType
+
+func init() {
+	Enum_Type = newObjectType(`Pcore::EnumType`,
+`Pcore::ScalarDataType {
+	attributes => {
+		values => Array[String[1]],
+		case_insensitive => {
+			type => Boolean,
+			value => false
+		}
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	    enumArgs := args[0].(eval.IndexedValue).AppendTo([]eval.PValue{})
+			return NewEnumType2(append(enumArgs, args[1:]...)...)
+		})
 }
 
 func DefaultEnumType() *EnumType {
 	return enumType_DEFAULT
 }
 
-func NewEnumType(enums []string) *EnumType {
-	return &EnumType{enums}
+func NewEnumType(enums []string, caseInsensitive bool) *EnumType {
+	if caseInsensitive {
+		top := len(enums)
+		if top > 0 {
+			lce := make([]string, top)
+			for i, v := range enums {
+				lce[i] = strings.ToLower(v)
+			}
+			enums = lce
+		}
+	}
+	return &EnumType{caseInsensitive, enums}
 }
 
 func NewEnumType2(args ...eval.PValue) *EnumType {
@@ -29,6 +59,7 @@ func NewEnumType3(args eval.IndexedValue) *EnumType {
 	}
 	var enums []string
 	top := args.Len()
+	caseInsensitive := false
 	if top == 1 {
 		first := args.At(0)
 		switch first.(type) {
@@ -44,12 +75,16 @@ func NewEnumType3(args eval.IndexedValue) *EnumType {
 		args.EachWithIndex(func(arg eval.PValue, idx int) {
 			str, ok := arg.(*StringValue)
 			if !ok {
+				if ci, ok := arg.(*BooleanValue); ok && idx == top - 1 {
+					caseInsensitive = ci.Bool()
+					return
+				}
 				panic(NewIllegalArgumentType2(`Enum[]`, idx, `String`, arg))
 			}
 			enums[idx] = str.String()
 		})
 	}
-	return NewEnumType(enums)
+	return NewEnumType(enums, caseInsensitive)
 }
 
 func (t *EnumType) Accept(v eval.Visitor, g eval.Guard) {
@@ -62,13 +97,24 @@ func (t *EnumType) Default() eval.PType {
 
 func (t *EnumType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*EnumType); ok {
-		return len(t.values) == len(ot.values) && utils.ContainsAllStrings(t.values, ot.values)
+		return t.caseInsensitive == ot.caseInsensitive && len(t.values) == len(ot.values) && utils.ContainsAllStrings(t.values, ot.values)
 	}
 	return false
 }
 
 func (t *EnumType) Generic() eval.PType {
 	return enumType_DEFAULT
+}
+
+func (t *EnumType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `values`:
+		return WrapArray(t.pvalues()), true
+	case `case_insensitive`:
+		return WrapBoolean(t.caseInsensitive), true
+	default:
+		return nil, false
+	}
 }
 
 func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
@@ -81,19 +127,43 @@ func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 
 	if st, ok := o.(*StringType); ok {
-		return utils.ContainsString(t.values, st.value)
+		return eval.IsInstance(t, WrapString(st.value))
 	}
 
 	if en, ok := o.(*EnumType); ok {
 		oEnums := en.values
-		return len(oEnums) > 0 && utils.ContainsAllStrings(t.values, oEnums)
+		if len(oEnums) > 0 && (t.caseInsensitive || !en.caseInsensitive) {
+			for _, v := range en.values {
+				if !eval.IsInstance(t, WrapString(v)) {
+					return false
+				}
+			}
+			return true
+		}
 	}
 	return false
 }
 
 func (t *EnumType) IsInstance(o eval.PValue, g eval.Guard) bool {
-	str, ok := o.(*StringValue)
-	return ok && (len(t.values) == 0 || utils.ContainsString(t.values, str.String()))
+	if str, ok := o.(*StringValue); ok {
+		if len(t.values) == 0 {
+			return true
+		}
+		s := str.String()
+		if t.caseInsensitive {
+			s = strings.ToLower(s)
+		}
+		for _, v := range t.values {
+			if v == s {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (t *EnumType) MetaType() eval.ObjectType {
+	return Enum_Type
 }
 
 func (t *EnumType) Name() string {
@@ -105,6 +175,22 @@ func (t *EnumType) String() string {
 }
 
 func (t *EnumType) Parameters() []eval.PValue {
+	result := t.pvalues()
+	if t.caseInsensitive {
+		result = append(result, Boolean_TRUE)
+	}
+	return result
+}
+
+func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
+	TypeToString(t, b, f, g)
+}
+
+func (t *EnumType) Type() eval.PType {
+	return &TypeType{t}
+}
+
+func (t *EnumType) pvalues() []eval.PValue {
 	top := len(t.values)
 	if top == 0 {
 		return eval.EMPTY_VALUES
@@ -116,12 +202,4 @@ func (t *EnumType) Parameters() []eval.PValue {
 	return v
 }
 
-func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
-	TypeToString(t, b, f, g)
-}
-
-func (t *EnumType) Type() eval.PType {
-	return &TypeType{t}
-}
-
-var enumType_DEFAULT = &EnumType{[]string{}}
+var enumType_DEFAULT = &EnumType{false, []string{}}

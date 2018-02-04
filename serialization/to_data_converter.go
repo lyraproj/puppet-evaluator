@@ -215,7 +215,17 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 		}
 		return t.unkownToStringWithWarning(value)
 	}
-	pcoreTv := t.pcoreTypeToData(value.Type())
+
+	var vt eval.PType
+	if tp, ok := value.(eval.PType); ok {
+		// The Type of Type X is a Type[X]. To create instances of X we need the MetaType (the Object
+		// describing the type X)
+		vt = tp.MetaType()
+	} else {
+		vt = value.Type()
+	}
+
+	pcoreTv := t.pcoreTypeToData(vt)
 	if ss, ok := value.(eval.SerializeAsString); ok {
 		return types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: pcoreTv, PCORE_VALUE_KEY: types.WrapString(ss.SerializationString())})
 	}
@@ -225,6 +235,33 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 		entries := make([]*types.HashEntry, 0, ih.Len())
 		entries = append(entries, types.WrapHashEntry2(PCORE_TYPE_KEY, pcoreTv))
 		ih.Each(func(v eval.PValue) { entries = append(entries, v.(*types.HashEntry)) })
+		return types.WrapHash(entries)
+	}
+
+	if ot, ok := vt.(eval.ObjectType); ok {
+		ai := ot.AttributesInfo()
+		attrs := ai.Attributes()
+		args := make([]eval.PValue, len(attrs))
+		for i, a := range attrs {
+			args[i] = a.Get(value)
+		}
+
+		for i := len(args) - 1; i >= ai.RequiredCount(); i-- {
+			if !attrs[i].Default(args[i]) {
+				break
+			}
+			args = args[:i]
+		}
+		entries := make([]*types.HashEntry, 0, len(attrs) + 1)
+		entries = append(entries, types.WrapHashEntry2(PCORE_TYPE_KEY, pcoreTv))
+		for i, a := range args {
+			key := types.WrapString(attrs[i].Name())
+			t.with(key, func() eval.PValue {
+				a = t.toData(a)
+				entries = append(entries, types.WrapHashEntry(key, a))
+				return a
+			})
+		}
 		return types.WrapHash(entries)
 	}
 

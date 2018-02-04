@@ -40,6 +40,26 @@ type (
 var hashType_EMPTY = &HashType{integerType_ZERO, unitType_DEFAULT, unitType_DEFAULT}
 var hashType_DEFAULT = &HashType{integerType_POSITIVE, anyType_DEFAULT, anyType_DEFAULT}
 
+var Hash_Type eval.ObjectType
+
+func init() {
+	Hash_Type = newObjectType(`Pcore::HashType`,
+`Pcore::CollectionType {
+	attributes => {
+		key_type => {
+			type => Optional[Type],
+			value => Any
+		},
+		value_type => {
+			type => Optional[Type],
+			value => Any
+		},
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewHashType2(args...)
+		})
+}
+
 func DefaultHashType() *HashType {
 	return hashType_DEFAULT
 }
@@ -143,6 +163,18 @@ func (t *HashType) Generic() eval.PType {
 	return NewHashType(eval.GenericType(t.keyType), eval.GenericType(t.valueType), nil)
 }
 
+func (t *HashType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `key_type`:
+		return t.keyType, true
+	case `value_type`:
+		return t.valueType, true
+	case `size_type`:
+		return t.size, true
+	}
+	return nil, false
+}
+
 func (t *HashType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *HashType:
@@ -181,6 +213,10 @@ func (t *HashType) IsInstance(o eval.PValue, g eval.Guard) bool {
 
 func (t *HashType) KeyType() eval.PType {
 	return t.keyType
+}
+
+func (t *HashType) MetaType() eval.ObjectType {
+	return Hash_Type
 }
 
 func (t *HashType) Name() string {

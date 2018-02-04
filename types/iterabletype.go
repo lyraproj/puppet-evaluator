@@ -11,6 +11,22 @@ type IterableType struct {
 	typ eval.PType
 }
 
+var Iterable_Type eval.ObjectType
+
+func init() {
+	Iterable_Type = newObjectType(`Pcore::IterableType`,
+		`Pcore::AnyType {
+			attributes => {
+				type => {
+					type => Optional[Type],
+					value => Any
+				},
+			}
+		}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewIterableType2(args...)
+		})
+}
+
 func DefaultIterableType() *IterableType {
 	return iterableType_DEFAULT
 }
@@ -57,6 +73,14 @@ func (t *IterableType) Generic() eval.PType {
 	return NewIterableType(eval.GenericType(t.typ))
 }
 
+func (t *IterableType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `type`:
+		return t.typ, true
+	}
+	return nil, false
+}
+
 func (t *IterableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	var et eval.PType
 	switch o.(type) {
@@ -81,6 +105,10 @@ func (t *IterableType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return GuardedIsAssignable(t.typ, iv.ElementType(), g)
 	}
 	return false
+}
+
+func (t *IterableType) MetaType() eval.ObjectType {
+	return Iterable_Type
 }
 
 func (t *IterableType) Name() string {

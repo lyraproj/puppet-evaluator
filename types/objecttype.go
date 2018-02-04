@@ -14,11 +14,11 @@ import (
 	"github.com/puppetlabs/go-parser/validator"
 )
 
-var Object_Type eval.PType
+var Object_Type eval.ObjectType
 
 func init() {
-	Object_Type = newType(`ObjectType`,
-		`AnyType {
+	Object_Type = newObjectType(`Pcore::ObjectType`,
+		`Pcore::AnyType {
   attributes => {
     '_pcore_init_hash' => Struct[
 			Optional[name] => Pattern[/\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z/],
@@ -33,7 +33,12 @@ func init() {
       Optional[annotations] => Hash[Type[Annotation], Hash[Pattern[/\A[a-z_]\w*\z/], Any]]
     ]
   }
-}`)
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewObjectType2(args[0].(*HashValue), ctx.Loader())
+		},
+		func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewObjectType2(args[0].(*HashValue), ctx.Loader())
+		})
 }
 
 const (
@@ -76,7 +81,7 @@ func DefaultAnnotationType() eval.PType {
 	return annotationType_DEFAULT
 }
 
-var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)})
+var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
 
 var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
@@ -167,6 +172,7 @@ type (
 		hashKey             eval.HashKey
 		name                string
 		parent              eval.PType
+		creators            []eval.DispatchFunction
 		parameters          *hash.StringHash // map doesn't preserve order
 		attributes          *hash.StringHash
 		functions           *hash.StringHash
@@ -247,7 +253,7 @@ func (a *annotatable) initialize(initHash *HashValue) {
 
 func (a *annotatable) initHash() map[string]eval.PValue {
 	h := make(map[string]eval.PValue, 5)
-	if a.annotations != nil {
+	if a.annotations.Len() > 0 {
 		h[KEY_ANNOTATIONS] = a.annotations
 	}
 	return h
@@ -369,15 +375,13 @@ func (a *attribute) initialize(name string, container *objectType, initHash *Has
 		if a.kind == CONSTANT {
 			panic(eval.Error(eval.EVAL_CONSTANT_REQUIRES_VALUE, issue.H{`label`: a.Label()}))
 		}
-		a.value = _UNDEF // Not to be confused with nil or :default
+		a.value = nil // Not to be confused with undef
 	}
 }
 
 func (a *attribute) Call(c eval.EvalContext, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
 	if block == nil && len(args) == 0 {
-		if v, ok := a.container.GetValue(a.name, receiver); ok {
-			return v
-		}
+		return a.Get(receiver)
 	}
 	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
 		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(args...), block)}))
@@ -419,6 +423,13 @@ func (a *attribute) Value() eval.PValue {
 
 func (a *attribute) FeatureType() string {
 	return `attribute`
+}
+
+func (a *attribute) Get(instance eval.PValue) eval.PValue {
+	if v, ok := a.container.GetValue(a.name, instance); ok {
+		return v
+	}
+	panic(eval.Error(eval.EVAL_NO_ATTRIBUTE_READER, issue.H{`label`: a.Label()}))
 }
 
 func (a *attribute) Label() string {
@@ -538,6 +549,9 @@ func NewObjectType(name string, parent eval.PType, initHashExpression parser.Exp
 }
 
 func NewObjectType2(initHash *HashValue, loader eval.Loader) *objectType {
+	if initHash.IsEmpty() {
+		return DefaultObjectType()
+	}
 	obj := AllocObjectType()
 	obj.InitFromHash(initHash)
 	obj.loader = loader
@@ -575,17 +589,27 @@ func (t *objectType) Equals(other interface{}, guard eval.Guard) bool {
 		return t == ot
 	}
 
-	return t.name == ot.name && t.loader.NameAuthority() == ot.loader.NameAuthority()
+	if t.name == ot.name {
+		if t.loader == nil {
+			return ot.loader == nil
+		}
+		return ot.loader != nil && t.loader.NameAuthority() == ot.loader.NameAuthority()
+	}
+	return false
 }
 
 func (t *objectType) GetValue(key string, o eval.PValue) (value eval.PValue, ok bool) {
-	if pu, ok := o.(eval.PuppetObject); ok {
+	if pu, ok := o.(eval.ReadableObject); ok {
 		return pu.Get(key)
 	}
 
 	// TODO: Perhaps use other ways of extracting attributes with reflection
 	// in case native types must be described by Object
 	return nil, false
+}
+
+func (t *objectType) MetaType() eval.ObjectType {
+	return Object_Type
 }
 
 func (t *objectType) Name() string {
@@ -600,8 +624,8 @@ func (t *objectType) Label() string {
 }
 
 func (t *objectType) Member(name string) (eval.CallableMember, bool) {
-	mbr := t.attributes.Get(name, func(k string) interface{} {
-		return t.functions.Get(name, func(k string) interface{} {
+	mbr := t.attributes.Get2(name, func() interface{} {
+		return t.functions.Get2(name, func() interface{} {
 			if t.parent == nil {
 				return nil
 			}
@@ -624,7 +648,7 @@ func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 }
 
 func (t *objectType) Type() eval.PType {
-	return Object_Type
+	return &TypeType{t}
 }
 
 func (t *objectType) String() string {
@@ -728,7 +752,9 @@ func (t *objectType) InitFromHash(initHash eval.KeyedValue) {
 	t.functions = hash.EMPTY_STRINGHASH
 	t.name = stringArg(initHash, KEY_NAME, t.name)
 
-	t.parent = typeArg(initHash, KEY_PARENT, nil)
+	if t.parent == nil {
+		t.parent = typeArg(initHash, KEY_PARENT, nil)
+	}
 
 	parentMembers := hash.EMPTY_STRINGHASH
 	parentTypeParams := hash.EMPTY_STRINGHASH
@@ -916,42 +942,83 @@ func (t *objectType) InitFromHash(initHash eval.KeyedValue) {
 	t.attrInfo = t.createAttributesInfo()
 }
 
+func (t *objectType) HasHashConstructor() bool {
+	return t.creators == nil || len(t.creators) == 2
+}
+
 func (t *objectType) createNewFunction(c eval.EvalContext) {
 	pi := t.AttributesInfo()
 	dl := t.loader.(eval.DefiningLoader)
 
-	dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
-		return AllocObjectValue(t)
-	}), ``))
+	var ctor eval.Function
 
-	ctor := eval.MakeGoConstructor(t.name,
-		func(d eval.Dispatch) {
-			for i, attr := range pi.Attributes() {
-				switch attr.Kind() {
-				case CONSTANT, DERIVED:
-				default:
-					if i >= pi.RequiredCount() {
-						d.OptionalParam2(attr.Type())
-					} else {
-						d.Param2(attr.Type())
-					}
+	var functions []eval.DispatchFunction
+	if t.creators != nil {
+		functions = t.creators
+	} else {
+		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return AllocObjectValue(t)
+		}), ``))
+
+		functions = []eval.DispatchFunction{
+			// Positional argument creator
+			func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return NewObjectValue(t, args)
+			},
+			// Named argument creator
+			func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return NewObjectValue2(t, args[0].(*HashValue))
+			}}
+	}
+
+	creators := []eval.DispatchCreator{}
+	creators = append(creators, func(d eval.Dispatch) {
+		for i, attr := range pi.Attributes() {
+			switch attr.Kind() {
+			case CONSTANT, DERIVED:
+			default:
+				if i >= pi.RequiredCount() {
+					d.OptionalParam2(attr.Type())
+				} else {
+					d.Param2(attr.Type())
 				}
 			}
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				return NewObjectValue(t, args)
-			})
-		},
-		func(d eval.Dispatch) {
+		}
+		d.Function(functions[0])
+	})
+
+	if len(functions) > 1 {
+		creators = append(creators, func(d eval.Dispatch) {
 			d.Param2(t.createInitType())
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				return NewObjectValue2(t, args[0].(*HashValue))
-			})
+			d.Function(functions[1])
 		})
-	dl.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.name), eval.NewLoaderEntry(ctor.Resolve(c), ``))
+	}
+
+	ctor = eval.MakeGoConstructor(t.name, creators...).Resolve(c)
+	dl.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.name), eval.NewLoaderEntry(ctor, ``))
 }
 
 func (t *objectType) AttributesInfo() eval.AttributesInfo {
 	return t.attrInfo
+}
+
+// setCreators takes one or two arguments. The first function is for positional arguments, the second
+// for named arguments (expects exactly one argument which is a Hash.
+func (t *objectType) setCreators(creators ...eval.DispatchFunction) {
+	t.creators = creators
+}
+
+func (t *objectType) positionalInitSignature() eval.Signature {
+  ai := t.AttributesInfo()
+  argTypes := make([]eval.PType, len(ai.Attributes()))
+	for i, attr := range ai.Attributes() {
+		argTypes[i] = attr.Type()
+	}
+	return NewCallableType(NewTupleType(argTypes, NewIntegerType(int64(ai.RequiredCount()), int64(len(argTypes)))), t, nil)
+}
+
+func (t *objectType) namedInitSignature() eval.Signature {
+	return NewCallableType(NewTupleType([]eval.PType{t.createInitType()}, NewIntegerType(1, 1)), t, nil)
 }
 
 func (t *objectType) createInitType() *StructType {
@@ -1031,24 +1098,44 @@ func NewParamInfo(attributes []eval.Attribute, requiredCount int, equality []str
 	return &attributesInfo{attributes: attributes, nameToPos: nameToPos, posToName: posToName, equalityAttributeIndexes: ei, requiredCount: requiredCount}
 }
 
-func (pi *attributesInfo) NameToPos() map[string]int {
-	return pi.nameToPos
+func (ai *attributesInfo) NameToPos() map[string]int {
+	return ai.nameToPos
 }
 
-func (pi *attributesInfo) PosToName() map[int]string {
-	return pi.posToName
+func (ai *attributesInfo) PosToName() map[int]string {
+	return ai.posToName
 }
 
 func (pi *attributesInfo) Attributes() []eval.Attribute {
 	return pi.attributes
 }
 
-func (pi *attributesInfo) EqualityAttributeIndex() []int {
-	return pi.equalityAttributeIndexes
+func (ai *attributesInfo) EqualityAttributeIndex() []int {
+	return ai.equalityAttributeIndexes
 }
 
-func (pi *attributesInfo) RequiredCount() int {
-	return pi.requiredCount
+func (ai *attributesInfo) RequiredCount() int {
+	return ai.requiredCount
+}
+
+func (ai *attributesInfo) PositionalFromHash(hash eval.KeyedValue) []eval.PValue {
+	nameToPos := ai.NameToPos()
+	va := make([]eval.PValue, len(nameToPos))
+
+	hash.EachPair(func(k eval.PValue, v eval.PValue) {
+		if ix, ok := nameToPos[k.String()]; ok {
+			va[ix] = v
+		}
+	})
+	attrs := ai.Attributes()
+	fillValueSlice(va, attrs)
+	for i := len(va) - 1; i >= ai.RequiredCount(); i-- {
+		if !attrs[i].Default(va[i]) {
+			break
+		}
+		va = va[:i]
+	}
+	return va
 }
 
 func (t *objectType) EqualityAttributes() *hash.StringHash {
@@ -1137,7 +1224,7 @@ func (t *objectType) findEqualityDefiner(attrName string) *objectType {
 
 func (t *objectType) initHash(includeName bool) map[string]eval.PValue {
 	h := t.annotatable.initHash()
-	if includeName && t.name != `` {
+	if includeName && t.name != `` && t.name != `Object` {
 		h[KEY_NAME] = WrapString(t.name)
 	}
 	if t.parent != nil {
@@ -1260,17 +1347,7 @@ func (ov *objectValue) Initialize(values []eval.PValue) {
 
 func (ov *objectValue) InitFromHash(hash eval.KeyedValue) {
 	typ := ov.typ.(*objectType)
-	ai := typ.AttributesInfo()
-
-	nameToPos := ai.NameToPos()
-	va := make([]eval.PValue, len(nameToPos))
-
-	hash.EachPair(func(k eval.PValue, v eval.PValue) {
-		if ix, ok := nameToPos[k.String()]; ok {
-			va[ix] = v
-		}
-	})
-	fillValueSlice(va, ai.Attributes())
+	va := typ.AttributesInfo().PositionalFromHash(hash)
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
 		typ.typeParameters(true).EachPair(func(k string, v interface{}) {

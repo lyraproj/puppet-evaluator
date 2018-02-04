@@ -26,6 +26,22 @@ type (
 var regexpType_DEFAULT_PATTERN = `.*`
 var regexpType_DEFAULT = &RegexpType{pattern: regexp.MustCompile(regexpType_DEFAULT_PATTERN), patternString: regexpType_DEFAULT_PATTERN}
 
+var Regexp_Type eval.ObjectType
+
+func init() {
+	Regexp_Type = newObjectType(`Pcore::RegexpType`,
+		`Pcore::ScalarType {
+	attributes => {
+		pattern => {
+      type => Variant[Undef,String,Regexp],
+      value => undef
+    }
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewRegexpType2(args...)
+		})
+}
+
 func DefaultRegexpType() *RegexpType {
 	return regexpType_DEFAULT
 }
@@ -76,6 +92,17 @@ func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 	return ok && t.patternString == ot.patternString
 }
 
+func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `pattern`:
+		if t.patternString == regexpType_DEFAULT_PATTERN {
+			return _UNDEF, true
+		}
+		return WrapString(t.patternString), true
+	}
+	return nil, false
+}
+
 func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	rx, ok := o.(*RegexpType)
 	return ok && (t.patternString == regexpType_DEFAULT_PATTERN || t.patternString == rx.patternString)
@@ -84,6 +111,10 @@ func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
 func (t *RegexpType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
 	return ok && (t.patternString == regexpType_DEFAULT_PATTERN || t.patternString == rx.PatternString())
+}
+
+func (t *RegexpType) MetaType() eval.ObjectType {
+	return Regexp_Type
 }
 
 func (t *RegexpType) Name() string {

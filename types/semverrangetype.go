@@ -17,6 +17,14 @@ type (
 
 var semVerRangeType_DEFAULT = &SemVerRangeType{}
 
+var SemVerRange_Type eval.ObjectType
+
+func init() {
+	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultSemVerRangeType()
+	})
+}
+
 func DefaultSemVerRangeType() *SemVerRangeType {
 	return semVerRangeType_DEFAULT
 }
@@ -28,6 +36,10 @@ func (t *SemVerRangeType) Accept(v eval.Visitor, g eval.Guard) {
 func (t *SemVerRangeType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeType)
 	return ok
+}
+
+func (t *SemVerRangeType) MetaType() eval.ObjectType {
+	return SemVerRange_Type
 }
 
 func (t *SemVerRangeType) Name() string {

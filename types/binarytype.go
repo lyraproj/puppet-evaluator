@@ -12,6 +12,14 @@ import (
 
 var binaryType_DEFAULT = &BinaryType{}
 
+var Binary_Type eval.ObjectType
+
+func init() {
+	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultBinaryType()
+	})
+}
+
 type (
 	BinaryType struct{}
 
@@ -42,6 +50,10 @@ func (t *BinaryType) IsAssignable(o eval.PType, g eval.Guard) bool {
 func (t *BinaryType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*BinaryValue)
 	return ok
+}
+
+func (t *BinaryType) MetaType() eval.ObjectType {
+	return Binary_Type
 }
 
 func (t *BinaryType) Name() string {

@@ -28,6 +28,26 @@ type (
 
 var runtimeType_DEFAULT = &RuntimeType{``, ``, nil, nil}
 
+var Runtime_Type eval.ObjectType
+
+func init() {
+	Runtime_Type = newObjectType(`Pcore::RuntimeType`,
+		`Pcore::AnyType {
+	attributes => {
+		runtime => {
+      type => Optional[String[1]],
+      value => undef
+    },
+		name_or_pattern => {
+      type => Variant[Undef,String[1],Tuple[Regexp,String[1]]],
+      value => undef
+    }
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewRuntimeType2(args...)
+		})
+}
+
 func DefaultRuntimeType() *RuntimeType {
 	return runtimeType_DEFAULT
 }
@@ -113,6 +133,26 @@ func (t *RuntimeType) Generic() eval.PType {
 	return runtimeType_DEFAULT
 }
 
+func (t *RuntimeType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `runtime`:
+		if t.runtime == `` {
+			return _UNDEF, true
+		}
+		return WrapString(t.runtime), true
+	case `name_or_pattern`:
+		if t.pattern != nil {
+			return t.pattern, true
+		}
+		if t.name != `` {
+			return WrapString(t.name), true
+		}
+		return _UNDEF, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if rt, ok := o.(*RuntimeType); ok {
 		if t.goType != nil && rt.goType != nil {
@@ -155,6 +195,10 @@ func (t *RuntimeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return true
 	}
 	return t.name == fmt.Sprintf(`%T`, rt.Interface())
+}
+
+func (t *RuntimeType) MetaType() eval.ObjectType {
+	return Runtime_Type
 }
 
 func (t *RuntimeType) Name() string {

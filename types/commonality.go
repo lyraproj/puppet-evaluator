@@ -24,7 +24,8 @@ func commonType(a eval.PType, b eval.PType) eval.PType {
 		case *StringType:
 			str := b.(*StringType).value
 			if str != `` {
-				return NewEnumType(utils.Unique(append(a.(*EnumType).values, str)))
+				ea := a.(*EnumType)
+				return NewEnumType(utils.Unique(append(ea.values, str)), ea.caseInsensitive)
 			}
 		}
 	case *StringType:
@@ -43,7 +44,9 @@ func commonType(a eval.PType, b eval.PType) eval.PType {
 			return NewArrayType(commonType(aa.typ, ba.typ), commonType(aa.size, ba.size).(*IntegerType))
 
 		case *EnumType:
-			return NewEnumType(utils.Unique(append(a.(*EnumType).values, b.(*EnumType).values...)))
+			ea := a.(*EnumType)
+			eb := b.(*EnumType)
+			return NewEnumType(utils.Unique(append(ea.values, eb.values...)), ea.caseInsensitive || eb.caseInsensitive)
 
 		case *FloatType:
 			af := a.(*FloatType)
@@ -97,7 +100,7 @@ func commonType(a eval.PType, b eval.PType) eval.PType {
 			if as.value == `` || bs.value == `` {
 				return NewStringType(commonType(as.size, bs.size).(*IntegerType), ``)
 			}
-			return NewEnumType([]string{as.value, bs.value})
+			return NewEnumType([]string{as.value, bs.value}, false)
 
 		case *TupleType:
 			at := a.(*TupleType)

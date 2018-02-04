@@ -10,6 +10,8 @@ type (
 
 		IsAssignable(t PType, g Guard) bool
 
+		MetaType() ObjectType
+
 		Name() string
 
 		Accept(visitor Visitor, g Guard)
@@ -25,6 +27,12 @@ type (
 		PType
 
 		Resolve(c EvalContext) PType
+	}
+
+	ObjectTypeAndCtor interface {
+		Type() ObjectType
+
+		Creator() DispatchFunction
 	}
 
 	ParameterizedType interface {
@@ -85,6 +93,9 @@ type (
 		AnnotatedMember
 		Kind() AttributeKind
 
+		// Get returs this attributes value in the given instance
+		Get(instance PValue) PValue
+
 		// HasValue returns true if a value has been defined for this attribute.
 		HasValue() bool
 
@@ -99,12 +110,15 @@ type (
 		AnnotatedMember
 	}
 
+	ReadableObject interface {
+		Get(key string) (value PValue, ok bool)
+	}
+
 	PuppetObject interface {
 		PValue
+		ReadableObject
 
 		InitHash() KeyedValue
-
-		Get(key string) (value PValue, ok bool)
 	}
 
 	AttributesInfo interface {
@@ -117,11 +131,15 @@ type (
 		EqualityAttributeIndex() []int
 
 		RequiredCount() int
+
+		PositionalFromHash(hash KeyedValue) []PValue
 	}
 
 	ObjectType interface {
 		ParameterizedType
 		TypeWithCallableMembers
+
+		HasHashConstructor() bool
 
 		IsParameterized() bool
 
@@ -317,4 +335,4 @@ var AssertType func(pfx interface{}, expected, actual PType) PType
 
 var AssertInstance func(pfx interface{}, expected PType, value PValue) PValue
 
-var NewType func(name, typeDecl string) PType
+var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType

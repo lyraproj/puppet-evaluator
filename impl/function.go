@@ -304,11 +304,11 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 	}
 }
 
-func (f *goFunction) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
+func (f *goFunction) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) eval.PValue {
+	argsArray := types.WrapArray(args)
 	for _, d := range f.dispatchers {
-		if d.Signature().CallableWith(types.WrapArray(args), block) {
-			result = d.Call(c, block, args...)
-			return
+		if d.Signature().CallableWith(argsArray, block) {
+			return d.Call(c, block, args...)
 		}
 	}
 	panic(errors.NewArgumentsError(f.name, eval.DescribeSignatures(signatures(f.dispatchers), types.WrapArray(args).DetailedType(), block)))

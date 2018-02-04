@@ -11,6 +11,22 @@ type NotUndefType struct {
 	typ eval.PType
 }
 
+var NotUndef_Type eval.ObjectType
+
+func init() {
+	NotUndef_Type = newObjectType(`Pcore::NotUndefType`,
+		`Pcore::AnyType {
+			attributes => {
+				type => {
+					type => Optional[Type],
+					value => Any
+				},
+			}
+		}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewNotUndefType2(args...)
+		})
+}
+
 func DefaultNotUndefType() *NotUndefType {
 	return notUndefType_DEFAULT
 }
@@ -67,12 +83,24 @@ func (t *NotUndefType) Generic() eval.PType {
 	return NewNotUndefType(eval.GenericType(t.typ))
 }
 
+func (t *NotUndefType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `type`:
+		return t.typ, true
+	}
+	return nil, false
+}
+
 func (t *NotUndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return !GuardedIsAssignable(o, undefType_DEFAULT, g) && GuardedIsAssignable(t.typ, o, g)
 }
 
 func (t *NotUndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return o != _UNDEF && GuardedIsInstance(t.typ, o, g)
+}
+
+func (t *NotUndefType) MetaType() eval.ObjectType {
+	return NotUndef_Type
 }
 
 func (t *NotUndefType) Name() string {

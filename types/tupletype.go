@@ -13,6 +13,27 @@ type TupleType struct {
 	types             []eval.PType
 }
 
+var Tuple_Type eval.ObjectType
+
+func init() {
+	Tuple_Type = newObjectType(`Pcore::TupleType`,
+		`Pcore::AnyType {
+	attributes => {
+		types => Array[Type],
+		size_type => {
+      type => Optional[Type[Integer]],
+      value => undef
+    }
+  }
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	    tupleArgs := args[0].(*ArrayValue).AppendTo([]eval.PValue{})
+	    if len(args) > 1 {
+		    tupleArgs = append(tupleArgs, args[1].(*IntegerType).Parameters()...)
+	    }
+			return NewTupleType2(tupleArgs...)
+		})
+}
+
 func DefaultTupleType() *TupleType {
 	return tupleType_DEFAULT
 }
@@ -159,6 +180,23 @@ func (t *TupleType) Generic() eval.PType {
 	return NewTupleType(alterTypes(t.types, generalize), t.size)
 }
 
+func (t *TupleType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `types`:
+		tps := make([]eval.PValue, len(t.types))
+		for i, t := range t.types {
+			tps[i] = t
+		}
+		return WrapArray(tps), true
+	case `size_type`:
+		if t.size == nil {
+			return _UNDEF, true
+		}
+		return t.size, true
+	}
+	return nil, false
+}
+
 func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *ArrayType:
@@ -180,7 +218,7 @@ func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 
 	case *TupleType:
 		tt := o.(*TupleType)
-		if !GuardedIsInstance(t.givenOrActualSize, WrapInteger(tt.givenOrActualSize.Min()), g) {
+		if !(t.size == nil || GuardedIsInstance(t.size, WrapInteger(tt.givenOrActualSize.Min()), g)) {
 			return false
 		}
 
@@ -236,6 +274,10 @@ func (t *TupleType) IsInstance2(vs eval.IndexedValue, g eval.Guard) bool {
 		}
 	}
 	return true
+}
+
+func (t *TupleType) MetaType() eval.ObjectType {
+	return Tuple_Type
 }
 
 func (t *TupleType) Name() string {

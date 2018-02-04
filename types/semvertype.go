@@ -19,6 +19,22 @@ type (
 
 var semVerType_DEFAULT = &SemVerType{semver.MATCH_ALL}
 
+var SemVer_Type eval.ObjectType
+
+func init() {
+	SemVer_Type = newObjectType(`Pcore::SemVerType`,
+		`Pcore::ScalarType {
+	attributes => {
+		ranges => {
+      type => Array[Variant[SemVerRange,String[1]]],
+      value => []
+    }
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewSemVerType2(args...)
+		})
+}
+
 func DefaultSemVerType() *SemVerType {
 	return semVerType_DEFAULT
 }
@@ -31,13 +47,23 @@ func NewSemVerType(vr *semver.VersionRange) *SemVerType {
 }
 
 func NewSemVerType2(limits ...eval.PValue) *SemVerType {
-	argc := len(limits)
+	return NewSemVerType3(WrapArray(limits))
+}
+
+func NewSemVerType3(limits eval.IndexedValue) *SemVerType {
+	argc := limits.Len()
 	if argc == 0 {
 		return DefaultSemVerType()
 	}
 
+	if argc == 1 {
+		if ranges, ok := limits.At(0).(eval.IndexedValue); ok {
+			return NewSemVerType3(ranges)
+		}
+	}
+
 	var finalRange *semver.VersionRange
-	for idx, arg := range limits {
+	limits.EachWithIndex(func(arg eval.PValue, idx int) {
 		var rng *semver.VersionRange
 		str, ok := arg.(*StringValue)
 		if ok {
@@ -49,7 +75,7 @@ func NewSemVerType2(limits ...eval.PValue) *SemVerType {
 		} else {
 			rv, ok := arg.(*SemVerRangeValue)
 			if !ok {
-				panic(NewIllegalArgumentType2(`SemVer[]`, idx, `Variant[String,SemVerRange]`, limits[0]))
+				panic(NewIllegalArgumentType2(`SemVer[]`, idx, `Variant[String,SemVerRange]`, arg))
 			}
 			rng = rv.VersionRange()
 		}
@@ -58,7 +84,7 @@ func NewSemVerType2(limits ...eval.PValue) *SemVerType {
 		} else {
 			finalRange = finalRange.Merge(rng)
 		}
-	}
+	})
 	return NewSemVerType(finalRange)
 }
 
@@ -73,6 +99,19 @@ func (t *SemVerType) Default() eval.PType {
 func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*SemVerType)
 	return ok
+}
+
+func (t *SemVerType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `ranges`:
+		return WrapArray(t.Parameters()), true
+	default:
+		return nil, false
+	}
+}
+
+func (t *SemVerType) MetaType() eval.ObjectType {
+	return SemVer_Type
 }
 
 func (t *SemVerType) Name() string {

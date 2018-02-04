@@ -8,6 +8,14 @@ import (
 
 type ScalarDataType struct{}
 
+var ScalarData_Type eval.ObjectType
+
+func init() {
+	ScalarData_Type = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultScalarDataType()
+	})
+}
+
 func DefaultScalarDataType() *ScalarDataType {
 	return scalarDataType_DEFAULT
 }
@@ -39,6 +47,10 @@ func (t *ScalarDataType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return true
 	}
 	return false
+}
+
+func (t *ScalarDataType) MetaType() eval.ObjectType {
+	return ScalarData_Type
 }
 
 func (t *ScalarDataType) Name() string {

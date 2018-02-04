@@ -26,15 +26,18 @@ type (
 	}
 )
 
-var Array_Type eval.PType
+var Array_Type eval.ObjectType
 
 func init() {
-	Array_Type = newType(`ArrayType`,
-		`CollectionType {
+	Array_Type = newObjectType(`Pcore::ArrayType`,
+		`Pcore::CollectionType {
   attributes => {
-    'element_type' => { type => Optional[Type], value => Any }
-  }
-}`)
+    'element_type' => { type => Type, value => Any }
+  },
+  serialization => [ 'element_type', 'size_type' ]
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewArrayType2(args...)
+		})
 }
 
 func DefaultArrayType() *ArrayType {
@@ -137,6 +140,16 @@ func (t *ArrayType) Generic() eval.PType {
 	return NewArrayType(eval.Generalize(t.typ), nil)
 }
 
+func (t *ArrayType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `element_type`:
+		return t.typ, true
+	case `size_type`:
+		return t.size, true
+	}
+	return nil, false
+}
+
 func (t *ArrayType) Default() eval.PType {
 	return arrayType_DEFAULT
 }
@@ -178,6 +191,10 @@ func (t *ArrayType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	return true
 }
 
+func (t *ArrayType) MetaType() eval.ObjectType {
+	return Array_Type
+}
+
 func (t *ArrayType) Name() string {
 	return `Array`
 }
@@ -191,7 +208,7 @@ func (t *ArrayType) String() string {
 }
 
 func (t *ArrayType) Type() eval.PType {
-	return Array_Type
+	return &TypeType{t}
 }
 
 func writeTypes(bld io.Writer, format eval.FormatContext, g eval.RDetect, types ...eval.PType) bool {
@@ -224,6 +241,10 @@ func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool)
 }
 
 func (t *ArrayType) Parameters() []eval.PValue {
+	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *integerType_ZERO {
+		return t.size.SizeParameters()
+	}
+
 	params := make([]eval.PValue, 0)
 	if !t.typ.Equals(DefaultAnyType(), nil) {
 		params = append(params, t.typ)

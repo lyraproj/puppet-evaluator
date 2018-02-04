@@ -26,6 +26,22 @@ var integerType_POSITIVE = &IntegerType{0, math.MaxInt64}
 var integerType_ZERO = &IntegerType{0, 0}
 var integerType_ONE = &IntegerType{1, 1}
 var ZERO = (*IntegerValue)(integerType_ZERO)
+var MIN_INT = WrapInteger(math.MinInt64)
+var MAX_INT = WrapInteger(math.MaxInt64)
+
+var Integer_Type eval.ObjectType
+
+func init() {
+	Integer_Type = newObjectType(`Pcore::IntegerType`,
+		`Pcore::NumericType {
+  attributes => {
+    from => { type => Optional[Integer], value => undef },
+    to => { type => Optional[Integer], value => undef }
+  }
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewIntegerType2(args...)
+		})
+}
 
 func DefaultIntegerType() *IntegerType {
 	return integerType_DEFAULT
@@ -105,6 +121,25 @@ func (t *IntegerType) Generic() eval.PType {
 	return integerType_DEFAULT
 }
 
+func (t *IntegerType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `from`:
+		v := eval.UNDEF
+		if t.min != math.MinInt64 {
+			v = WrapInteger(t.min)
+		}
+		return v, true
+	case `to`:
+		v := eval.UNDEF
+		if t.max != math.MaxInt64 {
+			v = WrapInteger(t.max)
+		}
+		return v, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *IntegerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if it, ok := o.(*IntegerType); ok {
 		return t.min <= it.min && t.max >= it.max
@@ -137,6 +172,10 @@ func (t *IntegerType) Min() int64 {
 
 func (t *IntegerType) Max() int64 {
 	return t.max
+}
+
+func (t *IntegerType) MetaType() eval.ObjectType {
+	return Integer_Type
 }
 
 func (t *IntegerType) Name() string {

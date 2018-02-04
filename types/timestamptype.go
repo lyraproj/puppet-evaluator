@@ -31,6 +31,20 @@ var MIN_TIME = time.Time{}
 var MAX_TIME = time.Unix(MAX_UNIX_SECS, 999999999)
 var timestampType_DEFAULT = &TimestampType{MIN_TIME, MAX_TIME}
 
+var Timestamp_Type eval.ObjectType
+
+func init() {
+	Timestamp_Type = newObjectType(`Pcore::TimestampType`,
+		`Pcore::ScalarType {
+	attributes => {
+		from => { type => Optional[Timestamp], value => undef },
+		to => { type => Optional[Timestamp], value => undef }
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewTimestampType2(args...)
+		})
+}
+
 func DefaultTimestampType() *TimestampType {
 	return timestampType_DEFAULT
 }
@@ -113,6 +127,25 @@ func (t *TimestampType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
+func (t *TimestampType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `from`:
+		v := eval.UNDEF
+		if t.min != MIN_TIME {
+			v = WrapTimestamp(t.min)
+		}
+		return v, true
+	case `to`:
+		v := eval.UNDEF
+		if t.max != MAX_TIME {
+			v = WrapTimestamp(t.max)
+		}
+		return v, true
+	default:
+		return nil, false
+	}
+}
+
 func (t *TimestampType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
@@ -122,6 +155,10 @@ func (t *TimestampType) IsAssignable(o eval.PType, g eval.Guard) bool {
 		return (t.min.Before(ot.min) || t.min.Equal(ot.min)) && (t.max.After(ot.max) || t.max.Equal(ot.max))
 	}
 	return false
+}
+
+func (t *TimestampType) MetaType() eval.ObjectType {
+	return Timestamp_Type
 }
 
 func (t *TimestampType) Parameters() []eval.PValue {

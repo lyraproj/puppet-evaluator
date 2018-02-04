@@ -21,6 +21,18 @@ type (
 
 var booleanType_DEFAULT = &BooleanType{-1}
 
+var Boolean_Type eval.ObjectType
+
+func init() {
+	Boolean_Type = newObjectType(`Pcore::BooleanType`, `Pcore::ScalarDataType {
+  attributes => {
+    value => { type => Optional[Boolean], value => undef }
+  }
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return NewBooleanType2(args...)
+	})
+}
+
 func DefaultBooleanType() *BooleanType {
 	return booleanType_DEFAULT
 }
@@ -64,6 +76,26 @@ func (t *BooleanType) Equals(o interface{}, g eval.Guard) bool {
 		return t.value == bo.value
 	}
 	return false
+}
+
+func (t *BooleanType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `value`:
+		switch t.value {
+		case 0:
+			return Boolean_FALSE, true
+		case 1:
+			return Boolean_TRUE, true
+		default:
+			return eval.UNDEF, true
+		}
+	default:
+		return nil, false
+	}
+}
+
+func (t *BooleanType) MetaType() eval.ObjectType {
+	return Boolean_Type
 }
 
 func (t *BooleanType) Name() string {

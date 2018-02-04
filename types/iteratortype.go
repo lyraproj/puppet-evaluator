@@ -37,6 +37,22 @@ type (
 
 var iteratorType_DEFAULT = &IteratorType{typ: DefaultAnyType()}
 
+var Iterator_Type eval.ObjectType
+
+func init() {
+	Iterator_Type = newObjectType(`Pcore::IteratorType`,
+		`Pcore::AnyType {
+			attributes => {
+				type => {
+					type => Optional[Type],
+					value => Any
+				},
+			}
+		}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewIteratorType2(args...)
+		})
+}
+
 func DefaultIteratorType() *IteratorType {
 	return iteratorType_DEFAULT
 }
@@ -83,6 +99,14 @@ func (t *IteratorType) Generic() eval.PType {
 	return NewIteratorType(eval.GenericType(t.typ))
 }
 
+func (t *IteratorType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `type`:
+		return t.typ, true
+	}
+	return nil, false
+}
+
 func (t *IteratorType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if it, ok := o.(*IteratorType); ok {
 		return GuardedIsAssignable(t.typ, it.typ, g)
@@ -95,6 +119,10 @@ func (t *IteratorType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return GuardedIsInstance(t.typ, it.ElementType(), g)
 	}
 	return false
+}
+
+func (t *IteratorType) MetaType() eval.ObjectType {
+	return Iterator_Type
 }
 
 func (t *IteratorType) Name() string {

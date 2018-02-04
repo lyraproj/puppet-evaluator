@@ -12,6 +12,19 @@ type TypeReferenceType struct {
 	typeString string
 }
 
+var TypeReference_Type eval.ObjectType
+
+func init() {
+	TypeReference_Type = newObjectType(`Pcore::TypeReference`,
+		`Pcore::AnyType {
+	attributes => {
+		type_string => String[1]
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewTypeReferenceType2(args...)
+		})
+}
+
 func DefaultTypeReferenceType() *TypeReferenceType {
 	return typeReferenceType_DEFAULT
 }
@@ -49,6 +62,15 @@ func (t *TypeReferenceType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (t *TypeReferenceType) Get(key string) (eval.PValue, bool) {
+	switch key {
+	case `type_string`:
+		return WrapString(t.typeString), true
+	default:
+		return nil, false
+	}
+}
+
 func (t *TypeReferenceType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	tr, ok := o.(*TypeReferenceType)
 	return ok && t.typeString == tr.typeString
@@ -56,6 +78,10 @@ func (t *TypeReferenceType) IsAssignable(o eval.PType, g eval.Guard) bool {
 
 func (t *TypeReferenceType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return false
+}
+
+func (t *TypeReferenceType) MetaType() eval.ObjectType {
+	return TypeReference_Type
 }
 
 func (t *TypeReferenceType) Name() string {

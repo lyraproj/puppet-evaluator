@@ -16,6 +16,14 @@ type (
 
 var defaultType_DEFAULT = &DefaultType{}
 
+var Default_Type eval.ObjectType
+
+func init() {
+	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return DefaultDefaultType()
+	})
+}
+
 func DefaultDefaultType() *DefaultType {
 	return defaultType_DEFAULT
 }
@@ -36,6 +44,10 @@ func (t *DefaultType) IsAssignable(o eval.PType, g eval.Guard) bool {
 func (t *DefaultType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*DefaultValue)
 	return ok
+}
+
+func (t *DefaultType) MetaType() eval.ObjectType {
+	return Default_Type
 }
 
 func (t *DefaultType) Name() string {

@@ -11,6 +11,19 @@ type PatternType struct {
 	regexps []*RegexpType
 }
 
+var Pattern_Type eval.ObjectType
+
+func init() {
+	Pattern_Type = newObjectType(`Pcore::PatternType`,
+		`Pcore::ScalarDataType {
+	attributes => {
+		patterns => Array[Regexp]
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewPatternType2(args...)
+		})
+}
+
 func DefaultPatternType() *PatternType {
 	return patternType_DEFAULT
 }
@@ -69,6 +82,14 @@ func (t *PatternType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (t *PatternType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `patterns`:
+		return WrapArray(t.Parameters()), true
+	}
+	return nil, false
+}
+
 func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if st, ok := o.(*StringType); ok {
 		if len(t.regexps) == 0 {
@@ -91,6 +112,10 @@ func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
 func (t *PatternType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && (len(t.regexps) == 0 || utils.MatchesString(MapToRegexps(t.regexps), str.String()))
+}
+
+func (t *PatternType) MetaType() eval.ObjectType {
+	return Pattern_Type
 }
 
 func (t *PatternType) Name() string {

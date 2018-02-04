@@ -13,6 +13,22 @@ type TypeType struct {
 
 var typeType_DEFAULT = &TypeType{typ: anyType_DEFAULT}
 
+var Type_Type eval.ObjectType
+
+func init() {
+	Type_Type = newObjectType(`Pcore::TypeType`,
+		`Pcore::AnyType {
+	attributes => {
+		type => {
+			type => Optional[Type],
+			value => Any
+		},
+	}
+}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+			return NewTypeType2(args...)
+		})
+}
+
 func DefaultTypeType() *TypeType {
 	return typeType_DEFAULT
 }
@@ -62,6 +78,14 @@ func (t *TypeType) Generic() eval.PType {
 	return NewTypeType(eval.GenericType(t.typ))
 }
 
+func (t *TypeType) Get(key string) (value eval.PValue, ok bool) {
+	switch key {
+	case `type`:
+		return t.typ, true
+	}
+	return nil, false
+}
+
 func (t *TypeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if ot, ok := o.(*TypeType); ok {
 		return GuardedIsAssignable(t.typ, ot.typ, g)
@@ -74,6 +98,10 @@ func (t *TypeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 		return GuardedIsAssignable(t.typ, ot, g)
 	}
 	return false
+}
+
+func (t *TypeType) MetaType() eval.ObjectType {
+	return Type_Type
 }
 
 func (t *TypeType) Name() string {

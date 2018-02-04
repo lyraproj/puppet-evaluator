@@ -55,6 +55,10 @@ func (t *TypeSetType) Equals(other interface{}, guard eval.Guard) bool {
 	panic("implement me")
 }
 
+func (t *TypeSetType) MetaType() eval.ObjectType {
+	panic("implement me")
+}
+
 func (t *TypeSetType) String() string {
 	panic("implement me")
 }
