@@ -1,26 +1,27 @@
 package impl
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
 	"reflect"
 	"testing"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func toType(pt interface{}) PType {
-	return pt.(PType)
+func toType(pt interface{}) eval.PType {
+	return pt.(eval.PType)
 }
 
 func TestAssignability(t *testing.T) {
-	t1 := &AnyType{}
-	t2 := &UnitType{}
-	if !IsAssignable(t1, t2) {
+	t1 := &types.AnyType{}
+	t2 := &types.UnitType{}
+	if !eval.IsAssignable(t1, t2) {
 		t.Error(`Unit not assignable to Any`)
 	}
 }
 
 func TestIdentitySetZeroSizeSameType(t *testing.T) {
-	x := &AnyType{}
+	x := &types.AnyType{}
 	if1 := toType(x)
 	if2 := toType(x)
 
@@ -36,8 +37,8 @@ func TestIdentitySetZeroSizeSameType(t *testing.T) {
 }
 
 func TestIdentitySetZeroSizeDifferentType(t *testing.T) {
-	x := &AnyType{}
-	y := &UndefType{}
+	x := &types.AnyType{}
+	y := &types.UndefType{}
 	if1 := toType(x)
 	if2 := toType(y)
 	if if1 == if2 {
@@ -52,7 +53,7 @@ func TestIdentitySetZeroSizeDifferentType(t *testing.T) {
 }
 
 func TestIdentitySameInstance(t *testing.T) {
-	x := DefaultTypeType()
+	x := types.DefaultTypeType()
 	if1 := toType(x)
 	if2 := toType(x)
 
@@ -123,8 +124,8 @@ func TestIdentitySameIfdNil(t *testing.T) {
 }
 
 func TestIdentityDifferentButEqual(t *testing.T) {
-	if1 := NewTypeType(NewIntegerType(1, 3))
-	if2 := NewTypeType(NewIntegerType(1, 3))
+	if1 := types.NewTypeType(types.NewIntegerType(1, 3))
+	if2 := types.NewTypeType(types.NewIntegerType(1, 3))
 
 	if !reflect.DeepEqual(if1, if2) {
 		t.Error(`Interfaces are not equal`)

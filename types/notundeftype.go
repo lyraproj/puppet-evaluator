@@ -1,33 +1,33 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type NotUndefType struct {
-	typ PType
+	typ eval.PType
 }
 
 func DefaultNotUndefType() *NotUndefType {
 	return notUndefType_DEFAULT
 }
 
-func NewNotUndefType(containedType PType) *NotUndefType {
+func NewNotUndefType(containedType eval.PType) *NotUndefType {
 	if containedType == nil || containedType == anyType_DEFAULT {
 		return DefaultNotUndefType()
 	}
 	return &NotUndefType{containedType}
 }
 
-func NewNotUndefType2(args ...PValue) *NotUndefType {
+func NewNotUndefType2(args ...eval.PValue) *NotUndefType {
 	switch len(args) {
 	case 0:
 		return DefaultNotUndefType()
 	case 1:
-		if containedType, ok := args[0].(PType); ok {
+		if containedType, ok := args[0].(eval.PType); ok {
 			return NewNotUndefType(containedType)
 		}
 		if containedType, ok := args[0].(*StringValue); ok {
@@ -35,7 +35,7 @@ func NewNotUndefType2(args ...PValue) *NotUndefType {
 		}
 		panic(NewIllegalArgumentType2(`NotUndef[]`, 0, `Variant[Type,String]`, args[0]))
 	default:
-		panic(NewIllegalArgumentCount(`NotUndef[]`, `0 - 1`, len(args)))
+		panic(errors.NewIllegalArgumentCount(`NotUndef[]`, `0 - 1`, len(args)))
 	}
 }
 
@@ -43,35 +43,35 @@ func NewNotUndefType3(str string) *NotUndefType {
 	return &NotUndefType{NewStringType(nil, str)}
 }
 
-func (t *NotUndefType) Accept(v Visitor, g Guard) {
+func (t *NotUndefType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	t.typ.Accept(v, g)
 }
 
-func (t *NotUndefType) ContainedType() PType {
+func (t *NotUndefType) ContainedType() eval.PType {
 	return t.typ
 }
 
-func (t *NotUndefType) Default() PType {
+func (t *NotUndefType) Default() eval.PType {
 	return notUndefType_DEFAULT
 }
 
-func (t *NotUndefType) Equals(o interface{}, g Guard) bool {
+func (t *NotUndefType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*NotUndefType); ok {
 		return t.typ.Equals(ot.typ, g)
 	}
 	return false
 }
 
-func (t *NotUndefType) Generic() PType {
-	return NewNotUndefType(GenericType(t.typ))
+func (t *NotUndefType) Generic() eval.PType {
+	return NewNotUndefType(eval.GenericType(t.typ))
 }
 
-func (t *NotUndefType) IsAssignable(o PType, g Guard) bool {
+func (t *NotUndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return !GuardedIsAssignable(o, undefType_DEFAULT, g) && GuardedIsAssignable(t.typ, o, g)
 }
 
-func (t *NotUndefType) IsInstance(o PValue, g Guard) bool {
+func (t *NotUndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return o != _UNDEF && GuardedIsInstance(t.typ, o, g)
 }
 
@@ -79,25 +79,25 @@ func (t *NotUndefType) Name() string {
 	return `NotUndef`
 }
 
-func (t *NotUndefType) Parameters() []PValue {
+func (t *NotUndefType) Parameters() []eval.PValue {
 	if t.typ == DefaultAnyType() {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
 	if str, ok := t.typ.(*StringType); ok && str.value != `` {
-		return []PValue{WrapString(str.value)}
+		return []eval.PValue{WrapString(str.value)}
 	}
-	return []PValue{t.typ}
+	return []eval.PValue{t.typ}
 }
 
 func (t *NotUndefType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *NotUndefType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *NotUndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *NotUndefType) Type() PType {
+func (t *NotUndefType) Type() eval.PType {
 	return &TypeType{t}
 }
 

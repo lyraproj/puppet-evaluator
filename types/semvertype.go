@@ -2,49 +2,49 @@ package types
 
 import (
 	"bytes"
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/semver"
 )
 
 type (
 	SemVerType struct {
-		vRange *VersionRange
+		vRange *semver.VersionRange
 	}
 
 	SemVerValue SemVerType
 )
 
-var semVerType_DEFAULT = &SemVerType{MATCH_ALL}
+var semVerType_DEFAULT = &SemVerType{semver.MATCH_ALL}
 
 func DefaultSemVerType() *SemVerType {
 	return semVerType_DEFAULT
 }
 
-func NewSemVerType(vr *VersionRange) *SemVerType {
-	if vr.Equals(MATCH_ALL) {
+func NewSemVerType(vr *semver.VersionRange) *SemVerType {
+	if vr.Equals(semver.MATCH_ALL) {
 		return DefaultSemVerType()
 	}
 	return &SemVerType{vr}
 }
 
-func NewSemVerType2(limits ...PValue) *SemVerType {
+func NewSemVerType2(limits ...eval.PValue) *SemVerType {
 	argc := len(limits)
 	if argc == 0 {
 		return DefaultSemVerType()
 	}
 
-	var finalRange *VersionRange
+	var finalRange *semver.VersionRange
 	for idx, arg := range limits {
-		var rng *VersionRange
+		var rng *semver.VersionRange
 		str, ok := arg.(*StringValue)
 		if ok {
 			var err error
-			rng, err = ParseVersionRange(str.String())
+			rng, err = semver.ParseVersionRange(str.String())
 			if err != nil {
-				panic(NewIllegalArgument(`SemVer[]`, idx, err.Error()))
+				panic(errors.NewIllegalArgument(`SemVer[]`, idx, err.Error()))
 			}
 		} else {
 			rv, ok := arg.(*SemVerRangeValue)
@@ -62,15 +62,15 @@ func NewSemVerType2(limits ...PValue) *SemVerType {
 	return NewSemVerType(finalRange)
 }
 
-func (t *SemVerType) Accept(v Visitor, g Guard) {
+func (t *SemVerType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *SemVerType) Default() PType {
+func (t *SemVerType) Default() eval.PType {
 	return semVerType_DEFAULT
 }
 
-func (t *SemVerType) Equals(o interface{}, g Guard) bool {
+func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*SemVerType)
 	return ok
 }
@@ -80,47 +80,47 @@ func (t *SemVerType) Name() string {
 }
 
 func (t *SemVerType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *SemVerType) IsAssignable(o PType, g Guard) bool {
+func (t *SemVerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if vt, ok := o.(*SemVerType); ok {
 		return vt.vRange.IsAsRestrictiveAs(t.vRange)
 	}
 	return false
 }
 
-func (t *SemVerType) IsInstance(o PValue, g Guard) bool {
+func (t *SemVerType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if v, ok := o.(*SemVerValue); ok {
 		return t.vRange.Includes(v.Version())
 	}
 	return false
 }
 
-func (t *SemVerType) Parameters() []PValue {
-	if t.vRange.Equals(MATCH_ALL) {
-		return EMPTY_VALUES
+func (t *SemVerType) Parameters() []eval.PValue {
+	if t.vRange.Equals(semver.MATCH_ALL) {
+		return eval.EMPTY_VALUES
 	}
-	return []PValue{WrapString(t.vRange.String())}
+	return []eval.PValue{WrapString(t.vRange.String())}
 }
 
-func (t *SemVerType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *SemVerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerType) Type() PType {
+func (t *SemVerType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func WrapSemVer(val *Version) *SemVerValue {
-	return (*SemVerValue)(NewSemVerType(ExactVersionRange(val)))
+func WrapSemVer(val *semver.Version) *SemVerValue {
+	return (*SemVerValue)(NewSemVerType(semver.ExactVersionRange(val)))
 }
 
-func (v *SemVerValue) Version() *Version {
+func (v *SemVerValue) Version() *semver.Version {
 	return v.vRange.StartVersion()
 }
 
-func (v *SemVerValue) Equals(o interface{}, g Guard) bool {
+func (v *SemVerValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*SemVerValue); ok {
 		return v.Version().Equals(ov.Version())
 	}
@@ -141,10 +141,10 @@ func (v *SemVerValue) ToKey(b *bytes.Buffer) {
 	v.Version().ToString(b)
 }
 
-func (v *SemVerValue) ToString(b Writer, s FormatContext, g RDetect) {
+func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	v.Version().ToString(b)
 }
 
-func (v *SemVerValue) Type() PType {
+func (v *SemVerValue) Type() eval.PType {
 	return (*SemVerType)(v)
 }

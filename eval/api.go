@@ -1,19 +1,19 @@
 package eval
 
 import (
-	. "github.com/puppetlabs/go-parser/issue"
-	. "github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 type (
 	Evaluator interface {
-		AddDefinitions(expression Expression)
+		AddDefinitions(expression parser.Expression)
 
 		ResolveDefinitions(c EvalContext)
 
-		Evaluate(expression Expression, scope Scope, loader Loader) (PValue, *ReportedIssue)
+		Evaluate(expression parser.Expression, scope Scope, loader Loader) (PValue, *issue.Reported)
 
-		Eval(expression Expression, c EvalContext) PValue
+		Eval(expression parser.Expression, c EvalContext) PValue
 
 		Logger() Logger
 	}
@@ -21,20 +21,20 @@ type (
 	EvalContext interface {
 		Call(name string, args []PValue, block Lambda) PValue
 
-		Evaluate(expr Expression) PValue
+		Evaluate(expr parser.Expression) PValue
 
-		EvaluateIn(expr Expression, scope Scope) PValue
+		EvaluateIn(expr parser.Expression, scope Scope) PValue
 
 		Evaluator() Evaluator
 
-		// Error creates a ReportedIssue with the given issue code, location, and arguments
+		// Error creates a Reported with the given issue code, location, and arguments
 		// Typical use is to panic with the returned value
-		Error(location Location, issueCode IssueCode, args H) *ReportedIssue
+		Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported
 
-		// Fail creates a ReportedIssue with the EVAL_FAILURE issue code, location from stack top,
+		// Fail creates a Reported with the EVAL_FAILURE issue code, location from stack top,
 		// and the given message
 		// Typical use is to panic with the returned value
-		Fail(message string) *ReportedIssue
+		Fail(message string) *issue.Reported
 
 		Loader() Loader
 
@@ -42,38 +42,38 @@ type (
 
 		WithScope(scope Scope) EvalContext
 
-		ParseAndValidate(filename, content string, singleExpression bool) Expression
+		ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
 
 		ParseResolve(typeString string) PType
 
 		ParseType(str PValue) PType
 
-		Resolve(expr Expression) PValue
+		Resolve(expr parser.Expression) PValue
 
-		ResolveType(expr Expression) PType
+		ResolveType(expr parser.Expression) PType
 
 		StackPop()
 
-		StackPush(location Location)
+		StackPush(location issue.Location)
 
-		StackTop() Location
+		StackTop() issue.Location
 
 		Scope() Scope
 
-		Stack() []Location
+		Stack() []issue.Location
 	}
 )
 
 var CurrentContext func() EvalContext
 
-// Error creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error func(issueCode IssueCode, args H) *ReportedIssue
+var Error func(issueCode issue.Code, args issue.H) *issue.Reported
 
-// Error2 creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Error2 creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error2 func(location Location, issueCode IssueCode, args H) *ReportedIssue
+var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported
 
-// Warning creates a ReportedIssue with the given issue code, location from stack top, and arguments
+// Warning creates a Reported with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
-var Warning func(issueCode IssueCode, args H) *ReportedIssue
+var Warning func(issueCode issue.Code, args issue.H) *issue.Reported

@@ -2,20 +2,21 @@ package functions
 
 import (
 	"bytes"
-	. "github.com/puppetlabs/go-evaluator/eval"
+
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {
-	NewGoFunction(`fail`,
-		func(d Dispatch) {
+	eval.NewGoFunction(`fail`,
+		func(d eval.Dispatch) {
 			d.RepeatedParam(`Any`)
-			d.Function(func(c EvalContext, args []PValue) PValue {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				w := bytes.NewBufferString(``)
 				for ix, arg := range args {
 					if ix > 0 {
 						w.WriteByte(' ')
 					}
-					ToString3(arg, w)
+					eval.ToString3(arg, w)
 				}
 				panic(c.Fail(w.String()))
 			})

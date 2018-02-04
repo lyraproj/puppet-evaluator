@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-parser/issue"
-	"unicode/utf8"
 )
 
 type (
@@ -28,12 +28,12 @@ type (
 		separator        string
 		separator2       string
 		origFmt          string
-		containerFormats FormatMap
+		containerFormats eval.FormatMap
 	}
 
 	formatContext struct {
-		indentation Indentation
-		formatMap   FormatMap
+		indentation eval.Indentation
+		formatMap   eval.FormatMap
 	}
 
 	indentation struct {
@@ -44,7 +44,7 @@ type (
 	}
 )
 
-func (f *format) Equals(other interface{}, guard Guard) bool {
+func (f *format) Equals(other interface{}, guard eval.Guard) bool {
 	if of, ok := other.(*format); ok {
 		return f.alt == of.alt &&
 			f.left == of.left &&
@@ -66,28 +66,28 @@ func (f *format) String() string {
 	return f.origFmt
 }
 
-func (f *format) ToString(bld io.Writer, format FormatContext, g RDetect) {
+func (f *format) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
 	io.WriteString(bld, f.origFmt)
 }
 
-func (f *format) Type() PType {
+func (f *format) Type() eval.PType {
 	return WrapRuntime(f).Type()
 }
 
 var DEFAULT_PROGRAM_FORMAT = simpleFormat('p')
-var DEFAULT_CONTAINER_FORMATS = FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT)}))
+var DEFAULT_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT)}))
 
 var DEFAULT_ANY_FORMAT = simpleFormat('s')
 
 func init() {
-	DEFAULT_FORMAT = DEFAULT_ANY_FORMAT
-	DEFAULT_FORMAT_CONTEXT = NONE
+	eval.DEFAULT_FORMAT = DEFAULT_ANY_FORMAT
+	eval.DEFAULT_FORMAT_CONTEXT = NONE
 
-	NewFormatContext = newFormatContext
-	NewFormatContext2 = newFormatContext2
-	NewFormatContext3 = newFormatContext3
-	NewIndentation = newIndentation
-	NewFormat = newFormat
+	eval.NewFormatContext = newFormatContext
+	eval.NewFormatContext2 = newFormatContext2
+	eval.NewFormatContext3 = newFormatContext3
+	eval.NewIndentation = newIndentation
+	eval.NewFormat = newFormat
 }
 
 var DEFAULT_ARRAY_FORMAT = basicFormat('a', `,`, '[', DEFAULT_CONTAINER_FORMATS)
@@ -96,7 +96,7 @@ var DEFAULT_OBJECT_FORMAT = basicFormat('p', ` => `, '(', DEFAULT_CONTAINER_FORM
 
 var DEFAULT_INDENTATION = newIndentation(false, 0)
 
-var DEFAULT_FORMATS = FormatMap(WrapHash([]*HashEntry{
+var DEFAULT_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{
 	WrapHashEntry(DefaultObjectType(), DEFAULT_OBJECT_FORMAT),
 	WrapHashEntry(DefaultTypeType(), DEFAULT_OBJECT_FORMAT),
 	WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
@@ -122,25 +122,25 @@ var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
 
 var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
 
-var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)))
+var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, eval.FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)))
 
-func newFormatContext(t PType, format Format, indentation Indentation) FormatContext {
+func newFormatContext(t eval.PType, format eval.Format, indentation eval.Indentation) eval.FormatContext {
 	return &formatContext{indentation, WrapHash([]*HashEntry{WrapHashEntry(t, format)})}
 }
 
-func newFormatContext2(indentation Indentation, formatMap FormatMap) FormatContext {
+func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap) eval.FormatContext {
 	return &formatContext{indentation, formatMap}
 }
 
-var TYPE_STRING_FORMAT = NewVariantType([]PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
+var TYPE_STRING_FORMAT = NewVariantType([]eval.PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
 
-func newFormatContext3(value PValue, format PValue) (context FormatContext, err error) {
-	AssertInstance(`String format`, TYPE_STRING_FORMAT, format)
+func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.FormatContext, err error) {
+	eval.AssertInstance(`String format`, TYPE_STRING_FORMAT, format)
 
 	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
-			if err, ok = r.(*issue.ReportedIssue); !ok {
+			if err, ok = r.(*issue.Reported); !ok {
 				panic(r)
 			}
 		}
@@ -148,16 +148,16 @@ func newFormatContext3(value PValue, format PValue) (context FormatContext, err 
 
 	switch format.(type) {
 	case *StringValue:
-		context = NewFormatContext(value.Type(), newFormat(format.String()), DEFAULT_INDENTATION)
+		context = eval.NewFormatContext(value.Type(), newFormat(format.String()), DEFAULT_INDENTATION)
 	case *DefaultValue:
-		context = DEFAULT_FORMAT_CONTEXT
+		context = eval.DEFAULT_FORMAT_CONTEXT
 	default:
 		context = newFormatContext2(DEFAULT_INDENTATION, mergeFormats(DEFAULT_FORMATS, NewFormatMap(format.(*HashValue))))
 	}
 	return
 }
 
-func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
+func mergeFormats(lower eval.FormatMap, higher eval.FormatMap) eval.FormatMap {
 	if lower == nil || lower.Len() == 0 {
 		return higher
 	}
@@ -166,18 +166,18 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 	}
 
 	higherKeys := higher.Keys()
-	normLower := WrapHash2(Reject2(lower.Entries(), func(lev PValue) bool {
+	normLower := WrapHash2(eval.Reject2(lower.Entries(), func(lev eval.PValue) bool {
 		le := lev.(*HashEntry)
-		return Any2(higherKeys, func(hk PValue) bool {
-			return !hk.Equals(le.Key(), nil) && IsAssignable(hk.(PType), le.Key().(PType))
+		return eval.Any2(higherKeys, func(hk eval.PValue) bool {
+			return !hk.Equals(le.Key(), nil) && eval.IsAssignable(hk.(eval.PType), le.Key().(eval.PType))
 		})
 	}))
 
 	merged := make([]*HashEntry, 0, 8)
-	normLower.Keys().AddAll(higherKeys).Unique().Each(func(k PValue) {
+	normLower.Keys().AddAll(higherKeys).Unique().Each(func(k eval.PValue) {
 		if low, ok := normLower.Get(k); ok {
 			if high, ok := higher.Get(k); ok {
-				merged = append(merged, WrapHashEntry(k, merge(low.(Format), high.(Format))))
+				merged = append(merged, WrapHashEntry(k, merge(low.(eval.Format), high.(eval.Format))))
 			} else {
 				merged = append(merged, WrapHashEntry(k, low))
 			}
@@ -189,13 +189,13 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 	})
 
 	sort.Slice(merged, func(ax, bx int) bool {
-		a := merged[ax].Key().(PType)
-		b := merged[bx].Key().(PType)
+		a := merged[ax].Key().(eval.PType)
+		b := merged[bx].Key().(eval.PType)
 		if a.Equals(b, nil) {
 			return false
 		}
-		ab := IsAssignable(b, a)
-		ba := IsAssignable(a, b)
+		ab := eval.IsAssignable(b, a)
+		ba := eval.IsAssignable(a, b)
 		if ab && !ba {
 			return true
 		}
@@ -212,10 +212,10 @@ func mergeFormats(lower FormatMap, higher FormatMap) FormatMap {
 		}
 		return strings.Compare(a.String(), b.String()) < 0
 	})
-	return FormatMap(WrapHash(merged))
+	return eval.FormatMap(WrapHash(merged))
 }
 
-func merge(low Format, high Format) Format {
+func merge(low eval.Format, high eval.Format) eval.Format {
 	sep := high.Separator(NO_STRING)
 	if sep == NO_STRING {
 		sep = low.Separator(NO_STRING)
@@ -241,7 +241,7 @@ func merge(low Format, high Format) Format {
 	}
 }
 
-func typeRank(pt PType) int {
+func typeRank(pt eval.PType) int {
 	switch pt.(type) {
 	case *NumericType, *IntegerType, *FloatType:
 		return 13
@@ -263,14 +263,14 @@ func typeRank(pt PType) int {
 	return 0
 }
 
-var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType([]PType{DefaultStringType(), DefaultHashType()}), nil)
+var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType([]eval.PType{DefaultStringType(), DefaultHashType()}), nil)
 
-func NewFormatMap(h *HashValue) FormatMap {
-	AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
+func NewFormatMap(h *HashValue) eval.FormatMap {
+	eval.AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
 	result := make([]*HashEntry, h.Len())
-	h.EachWithIndex(func(elem PValue, idx int) {
+	h.EachWithIndex(func(elem eval.PValue, idx int) {
 		entry := elem.(*HashEntry)
-		pt := entry.Key().(PType)
+		pt := entry.Key().(eval.PType)
 		v := entry.Value()
 		if s, ok := v.(*StringValue); ok {
 			result[idx] = WrapHashEntry(pt, newFormat(s.String()))
@@ -278,11 +278,11 @@ func NewFormatMap(h *HashValue) FormatMap {
 			result[idx] = WrapHashEntry(pt, FormatFromHash(v.(*HashValue)))
 		}
 	})
-	return FormatMap(WrapHash(result))
+	return eval.FormatMap(WrapHash(result))
 }
 
-func NewFormatMap2(t PType, tf Format, fm FormatMap) FormatMap {
-	return mergeFormats(fm, FormatMap(WrapHash([]*HashEntry{{t, tf}})))
+func NewFormatMap2(t eval.PType, tf eval.Format, fm eval.FormatMap) eval.FormatMap {
+	return mergeFormats(fm, eval.FormatMap(WrapHash([]*HashEntry{{t, tf}})))
 }
 
 var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement{
@@ -292,8 +292,8 @@ var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(`string_formats`), DefaultHashType()),
 })
 
-func FormatFromHash(h *HashValue) Format {
-	AssertInstance(`String format hash`, TYPE_STRING_FORMAT_HASH, h)
+func FormatFromHash(h *HashValue) eval.Format {
+	eval.AssertInstance(`String format hash`, TYPE_STRING_FORMAT_HASH, h)
 
 	stringArg := func(key string, required bool) string {
 		v := h.Get5(key, _UNDEF)
@@ -305,31 +305,31 @@ func FormatFromHash(h *HashValue) Format {
 		}
 	}
 
-	var cf FormatMap
+	var cf eval.FormatMap
 	cf = nil
-	if v := h.Get5(`string_formats`, _UNDEF); !Equals(v, _UNDEF) {
+	if v := h.Get5(`string_formats`, _UNDEF); !eval.Equals(v, _UNDEF) {
 		cf = NewFormatMap(v.(*HashValue))
 	}
 	return parseFormat(stringArg(`format`, true), stringArg(`separator`, false), stringArg(`separator2`, false), cf)
 }
 
-func (c *formatContext) Indentation() Indentation {
+func (c *formatContext) Indentation() eval.Indentation {
 	return c.indentation
 }
 
-func (c *formatContext) FormatMap() FormatMap {
+func (c *formatContext) FormatMap() eval.FormatMap {
 	return c.formatMap
 }
 
-func (c *formatContext) UnsupportedFormat(t PType, supportedFormats string, actualFormat Format) error {
-	return Error(EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
+func (c *formatContext) UnsupportedFormat(t eval.PType, supportedFormats string, actualFormat eval.Format) error {
+	return eval.Error(eval.EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
 }
 
-func newIndentation(indenting bool, level int) Indentation {
+func newIndentation(indenting bool, level int) eval.Indentation {
 	return newIndentation2(true, indenting, level)
 }
 
-func newIndentation2(first bool, indenting bool, level int) Indentation {
+func newIndentation2(first bool, indenting bool, level int) eval.Indentation {
 	return &indentation{first, indenting, level, strings.Repeat(`  `, level)}
 }
 
@@ -341,11 +341,11 @@ func (i *indentation) Level() int {
 	return i.level
 }
 
-func (i *indentation) Increase(indenting bool) Indentation {
+func (i *indentation) Increase(indenting bool) eval.Indentation {
 	return newIndentation2(true, indenting, i.level+1)
 }
 
-func (i *indentation) Indenting(indenting bool) Indentation {
+func (i *indentation) Indenting(indenting bool) eval.Indentation {
 	if i.indenting == indenting {
 		return i
 	}
@@ -364,7 +364,7 @@ func (i *indentation) Padding() string {
 	return i.padding
 }
 
-func (i *indentation) Subsequent() Indentation {
+func (i *indentation) Subsequent() eval.Indentation {
 	if i.first {
 		return &indentation{false, i.indenting, i.level, i.padding}
 	}
@@ -372,15 +372,15 @@ func (i *indentation) Subsequent() Indentation {
 }
 
 // NewFormat parses a format string into a Format
-func newFormat(format string) Format {
+func newFormat(format string) eval.Format {
 	return parseFormat(format, NO_STRING, NO_STRING, nil)
 }
 
-func simpleFormat(formatChar byte) Format {
+func simpleFormat(formatChar byte) eval.Format {
 	return basicFormat(formatChar, NO_STRING, '[', nil)
 }
 
-func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerFormats FormatMap) Format {
+func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerFormats eval.FormatMap) eval.Format {
 	return &format{
 		formatChar:       formatChar,
 		prec:             -1,
@@ -393,10 +393,10 @@ func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerForm
 	}
 }
 
-func parseFormat(origFmt string, separator string, separator2 string, containerFormats FormatMap) Format {
-	group := FORMAT_PATTERN.FindStringSubmatch(origFmt)
+func parseFormat(origFmt string, separator string, separator2 string, containerFormats eval.FormatMap) eval.Format {
+	group := eval.FORMAT_PATTERN.FindStringSubmatch(origFmt)
 	if group == nil {
-		panic(Error(EVAL_INVALID_STRING_FORMAT_SPEC, issue.H{`format`: origFmt}))
+		panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_SPEC, issue.H{`format`: origFmt}))
 	}
 
 	flags := group[1]
@@ -412,7 +412,7 @@ func parseFormat(origFmt string, separator string, separator2 string, containerF
 	for _, delim := range delimiters {
 		if hasDelimOnce(flags, origFmt, delim) {
 			if foundDelim != 0 {
-				panic(Error(EVAL_INVALID_STRING_FORMAT_DELIMITER, issue.H{`delimiter`: foundDelim}))
+				panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_DELIMITER, issue.H{`delimiter`: foundDelim}))
 			}
 			foundDelim = delim
 		}
@@ -479,7 +479,7 @@ func hasDelimOnce(flags string, format string, delim byte) bool {
 	for _, b := range flags {
 		if byte(b) == delim {
 			if found {
-				panic(Error(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, issue.H{`format`: format}))
+				panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, issue.H{`format`: format}))
 			}
 			found = true
 		}
@@ -552,7 +552,7 @@ func (f *format) LeftDelimiter() byte {
 	return f.leftDelimiter
 }
 
-func (f *format) ContainerFormats() FormatMap {
+func (f *format) ContainerFormats() eval.FormatMap {
 	return f.containerFormats
 }
 
@@ -574,7 +574,7 @@ func (f *format) OrigFormat() string {
 	return f.origFmt
 }
 
-func (f *format) ReplaceFormatChar(c byte) Format {
+func (f *format) ReplaceFormatChar(c byte) eval.Format {
 	nf := &format{}
 	*nf = *f
 	nf.formatChar = c
@@ -582,7 +582,7 @@ func (f *format) ReplaceFormatChar(c byte) Format {
 	return nf
 }
 
-func (f *format) WithoutWidth() Format {
+func (f *format) WithoutWidth() eval.Format {
 	nf := &format{}
 	*nf = *f
 	nf.width = -1
@@ -617,7 +617,7 @@ func (r *stringReader) Next() (rune, bool) {
 
 // PuppetSprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
-func PuppetSprintf(s string, args ...PValue) string {
+func PuppetSprintf(s string, args ...eval.PValue) string {
 	buf := bytes.NewBufferString(``)
 	fprintf(buf, `sprintf`, s, args...)
 	return buf.String()
@@ -625,11 +625,11 @@ func PuppetSprintf(s string, args ...PValue) string {
 
 // PuppetFprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
-func PuppetFprintf(buf io.Writer, s string, args ...PValue) {
+func PuppetFprintf(buf io.Writer, s string, args ...eval.PValue) {
 	fprintf(buf, `fprintf`, s, args...)
 }
 
-func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
+func fprintf(buf io.Writer, callerName string, s string, args ...eval.PValue) {
 	// Transform the map into a slice of values and a map that maps a key to the position
 	// of its value in the slice.
 	// Transform all %{key} to %[pos]
@@ -637,7 +637,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 	var ok bool
 	rdr := &stringReader{0, s}
 
-	consumeAndApplyPattern := func(v PValue) {
+	consumeAndApplyPattern := func(v eval.PValue) {
 		f := bytes.NewBufferString(`%`)
 		for ok {
 			f.WriteRune(c)
@@ -647,11 +647,11 @@ func fprintf(buf io.Writer, callerName string, s string, args ...PValue) {
 			}
 			c, ok = rdr.Next()
 		}
-		ctx, err := NewFormatContext3(v, WrapString(f.String()))
+		ctx, err := eval.NewFormatContext3(v, WrapString(f.String()))
 		if err != nil {
-			panic(NewIllegalArgument(callerName, 1, err.Error()))
+			panic(errors.NewIllegalArgument(callerName, 1, err.Error()))
 		}
-		ToString4(v, ctx, buf)
+		eval.ToString4(v, ctx, buf)
 	}
 
 	var hashArg *HashValue
@@ -687,10 +687,10 @@ nextChar:
 			// This is a positional argument. It is allowed but there can only be one (for the
 			// hash as a whole)
 			if hashArg != nil {
-				panic(NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
+				panic(errors.NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
 			}
 			if pos >= top {
-				panic(NewArgumentsError(callerName, `unbalanced format versus arguments`))
+				panic(errors.NewArgumentsError(callerName, `unbalanced format versus arguments`))
 			}
 			consumeAndApplyPattern(args[pos])
 			pos++
@@ -698,7 +698,7 @@ nextChar:
 		}
 
 		if pos > 0 {
-			panic(NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
+			panic(errors.NewArgumentsError(callerName, `keyed and positional format specifications cannot be mixed`))
 		}
 
 		if hashArg == nil {
@@ -707,7 +707,7 @@ nextChar:
 				hashArg, ok = args[0].(*HashValue)
 			}
 			if !ok {
-				panic(NewArgumentsError(callerName, `keyed format specifications requires one hash argument`))
+				panic(errors.NewArgumentsError(callerName, `keyed format specifications requires one hash argument`))
 			}
 		}
 
@@ -721,16 +721,16 @@ nextChar:
 				if value, keyFound := hashArg.Get(WrapString(key)); keyFound {
 					c, ok = rdr.Next()
 					if b == '{' {
-						ToString4(value, NONE, buf)
+						eval.ToString4(value, NONE, buf)
 					} else {
 						consumeAndApplyPattern(value)
 					}
 					continue nextChar
 				}
-				panic(NewIllegalArgument(callerName, 1, fmt.Sprintf("key%c%s%c not found", b, key, c)))
+				panic(errors.NewIllegalArgument(callerName, 1, fmt.Sprintf("key%c%s%c not found", b, key, c)))
 			}
 			c, ok = rdr.Next()
 		}
-		panic(NewArgumentsError(callerName, fmt.Sprintf(`unterminated %%%c`, b)))
+		panic(errors.NewArgumentsError(callerName, fmt.Sprintf(`unterminated %%%c`, b)))
 	}
 }

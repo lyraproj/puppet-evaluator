@@ -1,10 +1,10 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 type (
@@ -20,20 +20,20 @@ func DefaultDefaultType() *DefaultType {
 	return defaultType_DEFAULT
 }
 
-func (t *DefaultType) Accept(v Visitor, g Guard) {
+func (t *DefaultType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *DefaultType) Equals(o interface{}, g Guard) bool {
+func (t *DefaultType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*DefaultType)
 	return ok
 }
 
-func (t *DefaultType) IsAssignable(o PType, g Guard) bool {
+func (t *DefaultType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return o == defaultType_DEFAULT
 }
 
-func (t *DefaultType) IsInstance(o PValue, g Guard) bool {
+func (t *DefaultType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*DefaultValue)
 	return ok
 }
@@ -43,14 +43,14 @@ func (t *DefaultType) Name() string {
 }
 
 func (t *DefaultType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *DefaultType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *DefaultType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *DefaultType) Type() PType {
+func (t *DefaultType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -58,25 +58,25 @@ func WrapDefault() *DefaultValue {
 	return &DefaultValue{}
 }
 
-func (dv *DefaultValue) DynamicValue() Default {
-	return DEFAULT_INSTANCE
+func (dv *DefaultValue) DynamicValue() parser.Default {
+	return parser.DEFAULT_INSTANCE
 }
 
-func (dv *DefaultValue) Equals(o interface{}, g Guard) bool {
+func (dv *DefaultValue) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*DefaultValue)
 	return ok
 }
 
-func (dv *DefaultValue) ToKey() HashKey {
-	return HashKey([]byte{1, HK_DEFAULT})
+func (dv *DefaultValue) ToKey() eval.HashKey {
+	return eval.HashKey([]byte{1, HK_DEFAULT})
 }
 
 func (dv *DefaultValue) String() string {
 	return `default`
 }
 
-func (dv *DefaultValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), dv.Type())
+func (dv *DefaultValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), dv.Type())
 	switch f.FormatChar() {
 	case 'd', 's', 'p':
 		f.ApplyStringFlags(b, `default`, f.IsAlt())
@@ -87,6 +87,6 @@ func (dv *DefaultValue) ToString(b Writer, s FormatContext, g RDetect) {
 	}
 }
 
-func (dv *DefaultValue) Type() PType {
+func (dv *DefaultValue) Type() eval.PType {
 	return DefaultDefaultType()
 }

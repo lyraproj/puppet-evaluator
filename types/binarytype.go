@@ -3,11 +3,11 @@ package types
 import (
 	"bytes"
 	"encoding/base64"
-	. "io"
+	"io"
 	"unicode/utf8"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 var binaryType_DEFAULT = &BinaryType{}
@@ -25,21 +25,21 @@ func DefaultBinaryType() *BinaryType {
 	return binaryType_DEFAULT
 }
 
-func (t *BinaryType) Accept(v Visitor, g Guard) {
+func (t *BinaryType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *BinaryType) Equals(o interface{}, g Guard) bool {
+func (t *BinaryType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*BinaryType)
 	return ok
 }
 
-func (t *BinaryType) IsAssignable(o PType, g Guard) bool {
+func (t *BinaryType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	_, ok := o.(*BinaryType)
 	return ok
 }
 
-func (t *BinaryType) IsInstance(o PValue, g Guard) bool {
+func (t *BinaryType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*BinaryValue)
 	return ok
 }
@@ -52,11 +52,11 @@ func (t *BinaryType) String() string {
 	return `Binary`
 }
 
-func (t *BinaryType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *BinaryType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *BinaryType) Type() PType {
+func (t *BinaryType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -77,21 +77,21 @@ func BinaryFromString(str string, f string) *BinaryValue {
 		bytes, err = base64.StdEncoding.Strict().DecodeString(str)
 	case `%s`:
 		if !utf8.ValidString(str) {
-			panic(NewIllegalArgument(`BinaryFromString`, 0, `The given string is not valid utf8. Cannot create a Binary UTF-8 representation`))
+			panic(errors.NewIllegalArgument(`BinaryFromString`, 0, `The given string is not valid utf8. Cannot create a Binary UTF-8 representation`))
 		}
 		bytes = []byte(str)
 	case `%r`:
 		bytes = []byte(str)
 	default:
-		panic(NewIllegalArgument(`BinaryFromString`, 1, `unsupported format specifier`))
+		panic(errors.NewIllegalArgument(`BinaryFromString`, 1, `unsupported format specifier`))
 	}
 	if err == nil {
 		return WrapBinary(bytes)
 	}
-	panic(NewIllegalArgument(`BinaryFromString`, 0, err.Error()))
+	panic(errors.NewIllegalArgument(`BinaryFromString`, 0, err.Error()))
 }
 
-func BinaryFromArray(array IndexedValue) *BinaryValue {
+func BinaryFromArray(array eval.IndexedValue) *BinaryValue {
 	top := array.Len()
 	result := make([]byte, top)
 	for idx := 0; idx < top; idx++ {
@@ -99,12 +99,12 @@ func BinaryFromArray(array IndexedValue) *BinaryValue {
 			result[idx] = byte(v)
 			continue
 		}
-		panic(NewIllegalArgument(`Binary`, 0, `The given array is not all integers between 0 and 255`))
+		panic(errors.NewIllegalArgument(`Binary`, 0, `The given array is not all integers between 0 and 255`))
 	}
 	return WrapBinary(result)
 }
 
-func (bv *BinaryValue) Equals(o interface{}, g Guard) bool {
+func (bv *BinaryValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*BinaryValue); ok {
 		return bytes.Equal(bv.bytes, ov.bytes)
 	}
@@ -116,7 +116,7 @@ func (bv *BinaryValue) SerializationString() string {
 }
 
 func (bv *BinaryValue) String() string {
-	return ToString2(bv, NONE)
+	return eval.ToString2(bv, NONE)
 }
 
 func (bv *BinaryValue) ToKey(b *bytes.Buffer) {
@@ -125,13 +125,13 @@ func (bv *BinaryValue) ToKey(b *bytes.Buffer) {
 	b.Write(bv.bytes)
 }
 
-func (bv *BinaryValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), bv.Type())
+func (bv *BinaryValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), bv.Type())
 	var str string
 	switch f.FormatChar() {
 	case 's':
 		if !utf8.Valid(bv.bytes) {
-			panic(GenericError(`binary data is not valid UTF-8`))
+			panic(errors.GenericError(`binary data is not valid UTF-8`))
 		}
 		str = string(bv.bytes)
 	case 'p':
@@ -152,7 +152,7 @@ func (bv *BinaryValue) ToString(b Writer, s FormatContext, g RDetect) {
 	f.ApplyStringFlags(b, str, f.IsAlt())
 }
 
-func (bv *BinaryValue) Type() PType {
+func (bv *BinaryValue) Type() eval.PType {
 	return DefaultBinaryType()
 }
 

@@ -2,13 +2,14 @@ package errors
 
 import (
 	"fmt"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-parser/issue"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
 	Breaker struct {
-		location Location
+		location issue.Location
 	}
 
 	StopIteration struct {
@@ -17,12 +18,12 @@ type (
 
 	NextIteration struct {
 		Breaker
-		value PValue
+		value eval.PValue
 	}
 
 	Return struct {
 		Breaker
-		value PValue
+		value eval.PValue
 	}
 
 	InstantiationError interface {
@@ -138,26 +139,26 @@ func NewIllegalArgumentCount(name string, expected string, actual int) Instantia
 	return &IllegalArgumentCount{name, expected, actual}
 }
 
-func (e *Breaker) Location() Location {
+func (e *Breaker) Location() issue.Location {
 	return e.location
 }
 
-func NewStopIteration(location Location) *StopIteration {
+func NewStopIteration(location issue.Location) *StopIteration {
 	return &StopIteration{Breaker{location}}
 }
 
-func NewNextIteration(location Location, value PValue) *NextIteration {
+func NewNextIteration(location issue.Location, value eval.PValue) *NextIteration {
 	return &NextIteration{Breaker{location}, value}
 }
 
-func (e *NextIteration) Value() PValue {
+func (e *NextIteration) Value() eval.PValue {
 	return e.value
 }
 
-func NewReturn(location Location, value PValue) *Return {
+func NewReturn(location issue.Location, value eval.PValue) *Return {
 	return &Return{Breaker{location}, value}
 }
 
-func (e *Return) Value() PValue {
+func (e *Return) Value() eval.PValue {
 	return e.value
 }

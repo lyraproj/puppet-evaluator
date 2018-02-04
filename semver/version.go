@@ -2,12 +2,12 @@ package semver
 
 import (
 	"bytes"
-	. "fmt"
+	"fmt"
 	"io"
-	. "math"
-	. "regexp"
-	. "strconv"
-	. "strings"
+	"math"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 type (
@@ -35,12 +35,12 @@ var vBUILD = `(?:\+(` + vPARTS + `))?`
 var vQUALIFIER = vPRERELEASE + vBUILD
 var vNR = `(0|[1-9][0-9]*)`
 
-var vPR_PARTS_PATTERN = MustCompile(`\A` + vPR_PARTS + `\z`)
-var vPARTS_PATTERN = MustCompile(`\A` + vPARTS + `\z`)
+var vPR_PARTS_PATTERN = regexp.MustCompile(`\A` + vPR_PARTS + `\z`)
+var vPARTS_PATTERN = regexp.MustCompile(`\A` + vPARTS + `\z`)
 
-var MAX = &Version{MaxInt64, MaxInt64, MaxInt64, nil, nil}
+var MAX = &Version{math.MaxInt64, math.MaxInt64, math.MaxInt64, nil, nil}
 var MIN = &Version{0, 0, 0, vMIN_PRERELEASE, nil}
-var VERSION_PATTERN = MustCompile(`\A` + vNR + `\.` + vNR + `\.` + vNR + vQUALIFIER + `\z`)
+var VERSION_PATTERN = regexp.MustCompile(`\A` + vNR + `\.` + vNR + `\.` + vNR + vQUALIFIER + `\z`)
 
 func NewVersion(major, minor, patch int) (version *Version, err error) {
 	return NewVersion3(major, minor, patch, ``, ``)
@@ -84,9 +84,9 @@ func NewVersion4(major, minor, patch int, preRelease string, build string) *Vers
 
 func ParseVersion(str string) (version *Version, err error) {
 	if group := VERSION_PATTERN.FindStringSubmatch(str); group != nil {
-		major, _ := Atoi(group[1])
-		minor, _ := Atoi(group[2])
-		patch, _ := Atoi(group[3])
+		major, _ := strconv.Atoi(group[1])
+		minor, _ := strconv.Atoi(group[2])
+		patch, _ := strconv.Atoi(group[3])
 		return NewVersion3(major, minor, patch, group[4], group[5])
 	}
 	return nil, &badArgument{`The string '` + str + `' does not represent a valid semantic version`}
@@ -125,7 +125,7 @@ func (v *Version) String() string {
 }
 
 func (v *Version) ToString(bld io.Writer) {
-	Fprintf(bld, `%d.%d.%d`, v.major, v.minor, v.patch)
+	fmt.Fprintf(bld, `%d.%d.%d`, v.major, v.minor, v.patch)
 	if v.preRelease != nil {
 		bld.Write([]byte(`-`))
 		writeParts(v.preRelease, bld)
@@ -143,10 +143,10 @@ func (v *Version) TripletEquals(ov *Version) bool {
 func writeParts(parts []interface{}, bld io.Writer) {
 	top := len(parts)
 	if top > 0 {
-		Fprintf(bld, `%v`, parts[0])
+		fmt.Fprintf(bld, `%v`, parts[0])
 		for idx := 1; idx < top; idx++ {
 			bld.Write([]byte(`.`))
-			Fprintf(bld, `%v`, parts[idx])
+			fmt.Fprintf(bld, `%v`, parts[idx])
 		}
 	}
 }
@@ -186,7 +186,7 @@ func comparePreReleases(p1, p2 []interface{}) int {
 			return 1
 		}
 
-		cmp := Compare(v1.(string), v2.(string))
+		cmp := strings.Compare(v1.(string), v2.(string))
 		if cmp != 0 {
 			return cmp
 		}
@@ -218,7 +218,7 @@ func (v *Version) ToStable() *Version {
 }
 
 func mungePart(part string) interface{} {
-	if i, err := ParseInt(part, 10, 64); err == nil {
+	if i, err := strconv.ParseInt(part, 10, 64); err == nil {
 		return int(i)
 	}
 	return part
@@ -237,7 +237,7 @@ func splitParts(tag, str string, stringToInt bool) ([]interface{}, error) {
 		return nil, &badArgument{`Illegal characters in ` + tag}
 	}
 
-	parts := Split(str, `.`)
+	parts := strings.Split(str, `.`)
 	result := make([]interface{}, len(parts))
 	for idx, sp := range parts {
 		if stringToInt {

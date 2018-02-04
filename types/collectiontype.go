@@ -1,19 +1,18 @@
 package types
 
 import (
-	. "io"
-
+	"io"
 	"math"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type CollectionType struct {
 	size *IntegerType
 }
 
-var Collection_Type PType
+var Collection_Type eval.PType
 
 func init() {
 	Collection_Type = newType(`CollectionType`, `AnyType {
@@ -34,7 +33,7 @@ func NewCollectionType(size *IntegerType) *CollectionType {
 	return &CollectionType{size}
 }
 
-func NewCollectionType2(args ...PValue) *CollectionType {
+func NewCollectionType2(args ...eval.PValue) *CollectionType {
 	switch len(args) {
 	case 0:
 		return DefaultCollectionType()
@@ -71,31 +70,31 @@ func NewCollectionType2(args ...PValue) *CollectionType {
 		}
 		return NewCollectionType(NewIntegerType(min, max))
 	default:
-		panic(NewIllegalArgumentCount(`Collection[]`, `0 - 2`, len(args)))
+		panic(errors.NewIllegalArgumentCount(`Collection[]`, `0 - 2`, len(args)))
 	}
 }
 
-func (t *CollectionType) Accept(v Visitor, g Guard) {
+func (t *CollectionType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	t.size.Accept(v, g)
 }
 
-func (t *CollectionType) Default() PType {
+func (t *CollectionType) Default() eval.PType {
 	return collectionType_DEFAULT
 }
 
-func (t *CollectionType) Equals(o interface{}, g Guard) bool {
+func (t *CollectionType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*CollectionType); ok {
 		return t.size.Equals(ot.size, g)
 	}
 	return false
 }
 
-func (t *CollectionType) Generic() PType {
+func (t *CollectionType) Generic() eval.PType {
 	return collectionType_DEFAULT
 }
 
-func (t *CollectionType) IsAssignable(o PType, g Guard) bool {
+func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	var osz *IntegerType
 	switch o.(type) {
 	case *CollectionType:
@@ -115,7 +114,7 @@ func (t *CollectionType) IsAssignable(o PType, g Guard) bool {
 	return t.size.IsAssignable(osz, g)
 }
 
-func (t *CollectionType) IsInstance(o PValue, g Guard) bool {
+func (t *CollectionType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 
@@ -123,9 +122,9 @@ func (t *CollectionType) Name() string {
 	return `Collection`
 }
 
-func (t *CollectionType) Parameters() []PValue {
+func (t *CollectionType) Parameters() []eval.PValue {
 	if *t.size == *integerType_POSITIVE {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
 	return t.size.SizeParameters()
 }
@@ -135,14 +134,14 @@ func (t *CollectionType) Size() *IntegerType {
 }
 
 func (t *CollectionType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *CollectionType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *CollectionType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *CollectionType) Type() PType {
+func (t *CollectionType) Type() eval.PType {
 	return Collection_Type
 }
 

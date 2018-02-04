@@ -3,16 +3,16 @@ package types
 import (
 	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/semver"
-	. "github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 type (
 	TypeSetReference struct {
 		name          string
-		nameAuthority URI
-		versionRange  *VersionRange
+		nameAuthority eval.URI
+		versionRange  *semver.VersionRange
 		typeSet       *TypeSetType
 		annotations   *HashValue
 	}
@@ -20,38 +20,38 @@ type (
 	TypeSetType struct {
 		dcToCcMap          map[string]string
 		name               string
-		nameAuthority      URI
-		pcoreURI           URI
-		pcoreVersion       *Version
-		version            *Version
-		loader             Loader
+		nameAuthority      eval.URI
+		pcoreURI           eval.URI
+		pcoreVersion       *semver.Version
+		version            *semver.Version
+		loader             eval.Loader
 		annotations        *HashValue
-		initHashExpression Expression
+		initHashExpression parser.Expression
 	}
 )
 
 var typeSetType_DEFAULT = &TypeSetType{
 	name:          `DefaultTypeSet`,
-	nameAuthority: RUNTIME_NAME_AUTHORITY,
-	pcoreURI:      PCORE_URI,
-	pcoreVersion:  PCORE_VERSION,
-	version:       NewVersion4(0, 0, 0, ``, ``),
+	nameAuthority: eval.RUNTIME_NAME_AUTHORITY,
+	pcoreURI:      eval.PCORE_URI,
+	pcoreVersion:  eval.PCORE_VERSION,
+	version:       semver.NewVersion4(0, 0, 0, ``, ``),
 }
 
 func DefaultTypeSetType() *TypeSetType {
 	return typeSetType_DEFAULT
 }
 
-func (t *TypeSetType) Accept(v Visitor, g Guard) {
+func (t *TypeSetType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	// TODO: Visit typeset members
 }
 
-func (t *TypeSetType) Default() PType {
+func (t *TypeSetType) Default() eval.PType {
 	return typeSetType_DEFAULT
 }
 
-func (t *TypeSetType) Equals(other interface{}, guard Guard) bool {
+func (t *TypeSetType) Equals(other interface{}, guard eval.Guard) bool {
 	panic("implement me")
 }
 
@@ -59,19 +59,19 @@ func (t *TypeSetType) String() string {
 	panic("implement me")
 }
 
-func (t *TypeSetType) ToString(bld io.Writer, format FormatContext, g RDetect) {
+func (t *TypeSetType) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
 	panic("implement me")
 }
 
-func (t *TypeSetType) Type() PType {
+func (t *TypeSetType) Type() eval.PType {
 	panic("implement me")
 }
 
-func (t *TypeSetType) IsInstance(o PValue, g Guard) bool {
+func (t *TypeSetType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	panic("implement me")
 }
 
-func (t *TypeSetType) IsAssignable(ot PType, g Guard) bool {
+func (t *TypeSetType) IsAssignable(ot eval.PType, g eval.Guard) bool {
 	panic("implement me")
 }
 
@@ -83,6 +83,6 @@ func (t *TypeSetType) Name() string {
 	return t.name
 }
 
-func (t *TypeSetType) Resolve(loader Loader) {
+func (t *TypeSetType) Resolve(loader eval.Loader) {
 	panic("implement me")
 }

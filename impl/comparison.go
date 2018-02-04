@@ -5,64 +5,64 @@ import (
 	"regexp"
 	"strings"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
-	. "github.com/puppetlabs/go-evaluator/types"
-	. "github.com/puppetlabs/go-parser/issue"
-	. "github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 func init() {
-	PuppetMatch = func(a, b PValue) bool {
+	eval.PuppetMatch = func(a, b eval.PValue) bool {
 		return match(nil, nil, `=~`, nil, a, b)
 	}
 }
-func (e *evaluator) eval_ComparisonExpression(expr *ComparisonExpression, c EvalContext) PValue {
+func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.EvalContext) eval.PValue {
 	return e.compare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
 }
 
-func (e *evaluator) eval_MatchExpression(expr *MatchExpression, c EvalContext) PValue {
-	return WrapBoolean(match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
+func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.EvalContext) eval.PValue {
+	return types.WrapBoolean(match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 
-func (e *evaluator) compare(expr Expression, op string, a PValue, b PValue) PValue {
+func (e *evaluator) compare(expr parser.Expression, op string, a eval.PValue, b eval.PValue) eval.PValue {
 	var result bool
 	switch op {
 	case `==`:
-		result = PuppetEquals(a, b)
+		result = eval.PuppetEquals(a, b)
 	case `!=`:
-		result = !PuppetEquals(a, b)
+		result = !eval.PuppetEquals(a, b)
 	default:
 		result = e.compareMagnitude(expr, op, a, b)
 	}
-	return WrapBoolean(result)
+	return types.WrapBoolean(result)
 }
 
-func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PValue) bool {
+func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.PValue, b eval.PValue) bool {
 	switch a.(type) {
-	case PType:
-		left := a.(PType)
+	case eval.PType:
+		left := a.(eval.PType)
 		switch b.(type) {
-		case PType:
-			right := b.(PType)
+		case eval.PType:
+			right := b.(eval.PType)
 			switch op {
 			case `<`:
-				return IsAssignable(right, left) && !Equals(left, right)
+				return eval.IsAssignable(right, left) && !eval.Equals(left, right)
 			case `<=`:
-				return IsAssignable(right, left)
+				return eval.IsAssignable(right, left)
 			case `>`:
-				return IsAssignable(left, right) && !Equals(left, right)
+				return eval.IsAssignable(left, right) && !eval.Equals(left, right)
 			case `>=`:
-				return IsAssignable(left, right)
+				return eval.IsAssignable(left, right)
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
-	case *StringValue:
-		if right, ok := b.(*StringValue); ok {
+	case *types.StringValue:
+		if right, ok := b.(*types.StringValue); ok {
 			// Case insensitive compare
-			cmp := strings.Compare(strings.ToLower(a.(*StringValue).String()), strings.ToLower(right.String()))
+			cmp := strings.Compare(strings.ToLower(a.(*types.StringValue).String()), strings.ToLower(right.String()))
 			switch op {
 			case `<`:
 				return cmp < 0
@@ -73,13 +73,13 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
-	case *SemVerValue:
-		if rhv, ok := b.(*SemVerValue); ok {
-			cmp := a.(*SemVerValue).Version().CompareTo(rhv.Version())
+	case *types.SemVerValue:
+		if rhv, ok := b.(*types.SemVerValue); ok {
+			cmp := a.(*types.SemVerValue).Version().CompareTo(rhv.Version())
 			switch op {
 			case `<`:
 				return cmp < 0.0
@@ -90,13 +90,13 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
-	case NumericValue:
-		if rhv, ok := b.(NumericValue); ok {
-			cmp := a.(NumericValue).Float() - rhv.Float()
+	case eval.NumericValue:
+		if rhv, ok := b.(eval.NumericValue); ok {
+			cmp := a.(eval.NumericValue).Float() - rhv.Float()
 			switch op {
 			case `<`:
 				return cmp < 0.0
@@ -107,37 +107,37 @@ func (e *evaluator) compareMagnitude(expr Expression, op string, a PValue, b PVa
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 			}
 		}
 
 	default:
-		panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE, expr, H{`operator`: op, `left`: a.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 	}
-	panic(e.evalError(EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
 }
 
-func match(lhs Expression, rhs Expression, operator string, scope Scope, a PValue, b PValue) bool {
+func match(lhs parser.Expression, rhs parser.Expression, operator string, scope eval.Scope, a eval.PValue, b eval.PValue) bool {
 	result := false
 	switch b.(type) {
-	case PType:
-		result = IsInstance(b.(PType), a)
+	case eval.PType:
+		result = eval.IsInstance(b.(eval.PType), a)
 
-	case *StringValue, *RegexpValue:
+	case *types.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp
-		if s, ok := b.(*StringValue); ok {
+		if s, ok := b.(*types.StringValue); ok {
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(Error2(rhs, EVAL_MATCH_NOT_REGEXP, H{`detail`: err.Error()}))
+				panic(eval.Error2(rhs, eval.EVAL_MATCH_NOT_REGEXP, issue.H{`detail`: err.Error()}))
 			}
 		} else {
-			rx = b.(*RegexpValue).Regexp()
+			rx = b.(*types.RegexpValue).Regexp()
 		}
 
-		sv, ok := a.(*StringValue)
+		sv, ok := a.(*types.StringValue)
 		if !ok {
-			panic(Error2(lhs, EVAL_MATCH_NOT_STRING, H{`left`: a.Type()}))
+			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.Type()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			if scope != nil {
@@ -146,29 +146,29 @@ func match(lhs Expression, rhs Expression, operator string, scope Scope, a PValu
 			result = true
 		}
 
-	case *SemVerValue, *SemVerRangeValue:
+	case *types.SemVerValue, *types.SemVerRangeValue:
 		var version *semver.Version
 
-		if v, ok := a.(*SemVerValue); ok {
+		if v, ok := a.(*types.SemVerValue); ok {
 			version = v.Version()
-		} else if s, ok := a.(*StringValue); ok {
+		} else if s, ok := a.(*types.StringValue); ok {
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {
-				panic(Error2(lhs, EVAL_NOT_SEMVER, H{`detail`: err.Error()}))
+				panic(eval.Error2(lhs, eval.EVAL_NOT_SEMVER, issue.H{`detail`: err.Error()}))
 			}
 		} else {
-			panic(Error2(lhs, EVAL_NOT_SEMVER,
-				H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
+			panic(eval.Error2(lhs, eval.EVAL_NOT_SEMVER,
+				issue.H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
 		}
-		if lv, ok := b.(*SemVerValue); ok {
+		if lv, ok := b.(*types.SemVerValue); ok {
 			result = lv.Version().Equals(version)
 		} else {
-			result = b.(*SemVerRangeValue).VersionRange().Includes(version)
+			result = b.(*types.SemVerRangeValue).VersionRange().Includes(version)
 		}
 
 	default:
-		result = PuppetEquals(b, a)
+		result = eval.PuppetEquals(b, a)
 	}
 
 	if operator == `!~` {

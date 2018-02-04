@@ -1,9 +1,9 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type ScalarDataType struct{}
@@ -12,16 +12,16 @@ func DefaultScalarDataType() *ScalarDataType {
 	return scalarDataType_DEFAULT
 }
 
-func (t *ScalarDataType) Accept(v Visitor, g Guard) {
+func (t *ScalarDataType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *ScalarDataType) Equals(o interface{}, g Guard) bool {
+func (t *ScalarDataType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*ScalarDataType)
 	return ok
 }
 
-func (t *ScalarDataType) IsAssignable(o PType, g Guard) bool {
+func (t *ScalarDataType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *ScalarDataType:
 		return true
@@ -33,7 +33,7 @@ func (t *ScalarDataType) IsAssignable(o PType, g Guard) bool {
 	}
 }
 
-func (t *ScalarDataType) IsInstance(o PValue, g Guard) bool {
+func (t *ScalarDataType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	switch o.(type) {
 	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue:
 		return true
@@ -49,11 +49,11 @@ func (t *ScalarDataType) String() string {
 	return `ScalarData`
 }
 
-func (t *ScalarDataType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *ScalarDataType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *ScalarDataType) Type() PType {
+func (t *ScalarDataType) Type() eval.PType {
 	return &TypeType{t}
 }
 

@@ -2,50 +2,51 @@ package serialization
 
 import (
 	"encoding/json"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/issue"
 	"io"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
-func DataToNative(value PValue) interface{} {
+func DataToNative(value eval.PValue) interface{} {
 	switch value.(type) {
-	case *IntegerValue:
-		return value.(*IntegerValue).Int()
-	case *FloatValue:
-		return value.(*FloatValue).Float()
-	case *BooleanValue:
-		return value.(*BooleanValue).Bool()
-	case *UndefValue:
+	case *types.IntegerValue:
+		return value.(*types.IntegerValue).Int()
+	case *types.FloatValue:
+		return value.(*types.FloatValue).Float()
+	case *types.BooleanValue:
+		return value.(*types.BooleanValue).Bool()
+	case *types.UndefValue:
 		return nil
-	case *StringValue:
+	case *types.StringValue:
 		return value.String()
-	case *ArrayValue:
-		av := value.(*ArrayValue)
+	case *types.ArrayValue:
+		av := value.(*types.ArrayValue)
 		result := make([]interface{}, av.Len())
-		av.EachWithIndex(func(elem PValue, idx int) { result[idx] = DataToNative(elem) })
+		av.EachWithIndex(func(elem eval.PValue, idx int) { result[idx] = DataToNative(elem) })
 		return result
-	case *HashValue:
-		hv := value.(*HashValue)
+	case *types.HashValue:
+		hv := value.(*types.HashValue)
 		result := make(map[string]interface{}, hv.Len())
-		hv.EachPair(func(k, v PValue) { result[assertString(k)] = DataToNative(v) })
+		hv.EachPair(func(k, v eval.PValue) { result[assertString(k)] = DataToNative(v) })
 		return result
 	default:
-		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(``, DefaultDataType(), value.Type())}))
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultDataType(), value.Type())}))
 	}
 }
 
-func DataToJson(value PValue, out io.Writer, options KeyedValue) {
+func DataToJson(value eval.PValue, out io.Writer, options eval.KeyedValue) {
 	e := json.NewEncoder(out)
-	prefix := options.Get5(`prefix`, EMPTY_STRING).String()
-	indent := options.Get5(`indent`, EMPTY_STRING).String()
+	prefix := options.Get5(`prefix`, eval.EMPTY_STRING).String()
+	indent := options.Get5(`indent`, eval.EMPTY_STRING).String()
 	if !(prefix == `` && indent == ``) {
 		e.SetIndent(prefix, indent)
 	}
 	e.Encode(DataToNative(value))
 }
 
-func JsonToData(path string, in io.Reader) PValue {
+func JsonToData(path string, in io.Reader) eval.PValue {
 	d := json.NewDecoder(in)
 	d.UseNumber()
 	var parsedValue interface{}
@@ -53,16 +54,16 @@ func JsonToData(path string, in io.Reader) PValue {
 	if err == nil {
 		return NativeToData(parsedValue)
 	}
-	panic(Error(EVAL_TASK_BAD_JSON, issue.H{`path`: path, `detail`: err}))
+	panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: path, `detail`: err}))
 }
 
-func NativeToData(value interface{}) PValue {
-	return WrapUnknown(value)
+func NativeToData(value interface{}) eval.PValue {
+	return eval.WrapUnknown(value)
 }
 
-func assertString(value PValue) string {
-	if s, ok := value.(*StringValue); ok {
+func assertString(value eval.PValue) string {
+	if s, ok := value.(*types.StringValue); ok {
 		return s.String()
 	}
-	panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(``, DefaultStringType(), value.Type())}))
+	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultStringType(), value.Type())}))
 }

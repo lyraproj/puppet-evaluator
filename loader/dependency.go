@@ -1,29 +1,29 @@
 package loader
 
-import . "github.com/puppetlabs/go-evaluator/eval"
+import "github.com/puppetlabs/go-evaluator/eval"
 
 type dependencyLoader struct {
 	basicLoader
-	loaders []ModuleLoader
-	index   map[string]ModuleLoader
+	loaders []eval.ModuleLoader
+	index   map[string]eval.ModuleLoader
 }
 
-func newDependencyLoader(loaders []ModuleLoader) Loader {
-	index := make(map[string]ModuleLoader, len(loaders))
+func newDependencyLoader(loaders []eval.ModuleLoader) eval.Loader {
+	index := make(map[string]eval.ModuleLoader, len(loaders))
 	for _, ml := range loaders {
 		index[ml.ModuleName()] = ml
 	}
 	return &dependencyLoader{
-		basicLoader: basicLoader{namedEntries: make(map[string]Entry, 32)},
+		basicLoader: basicLoader{namedEntries: make(map[string]eval.Entry, 32)},
 		loaders:     loaders,
 		index:       index}
 }
 
 func init() {
-	NewDependencyLoader = newDependencyLoader
+	eval.NewDependencyLoader = newDependencyLoader
 }
 
-func (l *dependencyLoader) LoadEntry(name TypedName) Entry {
+func (l *dependencyLoader) LoadEntry(name eval.TypedName) eval.Entry {
 	entry := l.basicLoader.LoadEntry(name)
 	if entry == nil {
 		entry = l.find(name)
@@ -35,11 +35,11 @@ func (l *dependencyLoader) LoadEntry(name TypedName) Entry {
 	return entry
 }
 
-func (l *dependencyLoader) LoaderFor(moduleName string) ModuleLoader {
+func (l *dependencyLoader) LoaderFor(moduleName string) eval.ModuleLoader {
 	return l.index[moduleName]
 }
 
-func (l *dependencyLoader) find(name TypedName) Entry {
+func (l *dependencyLoader) find(name eval.TypedName) eval.Entry {
 	if name.IsQualified() {
 		if ml, ok := l.index[name.NameParts()[0]]; ok {
 			return ml.LoadEntry(name)

@@ -2,17 +2,17 @@ package types
 
 import (
 	"bytes"
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/semver"
-	. "github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 type (
 	SemVerRangeType struct{}
 
-	SemVerRangeValue VersionRange
+	SemVerRangeValue semver.VersionRange
 )
 
 var semVerRangeType_DEFAULT = &SemVerRangeType{}
@@ -21,11 +21,11 @@ func DefaultSemVerRangeType() *SemVerRangeType {
 	return semVerRangeType_DEFAULT
 }
 
-func (t *SemVerRangeType) Accept(v Visitor, g Guard) {
+func (t *SemVerRangeType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *SemVerRangeType) Equals(o interface{}, g Guard) bool {
+func (t *SemVerRangeType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeType)
 	return ok
 }
@@ -38,35 +38,35 @@ func (t *SemVerRangeType) String() string {
 	return `SemVerRange`
 }
 
-func (t *SemVerRangeType) IsAssignable(o PType, g Guard) bool {
+func (t *SemVerRangeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeType)
 	return ok
 }
 
-func (t *SemVerRangeType) IsInstance(o PValue, g Guard) bool {
+func (t *SemVerRangeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeValue)
 	return ok
 }
 
-func (t *SemVerRangeType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *SemVerRangeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerRangeType) Type() PType {
+func (t *SemVerRangeType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func WrapSemVerRange(val *VersionRange) *SemVerRangeValue {
+func WrapSemVerRange(val *semver.VersionRange) *SemVerRangeValue {
 	return (*SemVerRangeValue)(val)
 }
 
-func (bv *SemVerRangeValue) VersionRange() *VersionRange {
-	return (*VersionRange)(bv)
+func (bv *SemVerRangeValue) VersionRange() *semver.VersionRange {
+	return (*semver.VersionRange)(bv)
 }
 
-func (bv *SemVerRangeValue) Equals(o interface{}, g Guard) bool {
+func (bv *SemVerRangeValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*SemVerRangeValue); ok {
-		return (*VersionRange)(bv).Equals((*VersionRange)(ov))
+		return (*semver.VersionRange)(bv).Equals((*semver.VersionRange)(ov))
 	}
 	return false
 }
@@ -76,18 +76,18 @@ func (bv *SemVerRangeValue) SerializationString() string {
 }
 
 func (bv *SemVerRangeValue) String() string {
-	return ToString2(bv, NONE)
+	return eval.ToString2(bv, NONE)
 }
 
-func (bv *SemVerRangeValue) ToString(b Writer, s FormatContext, g RDetect) {
-	f := GetFormat(s.FormatMap(), bv.Type())
-	vr := (*VersionRange)(bv)
+func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	f := eval.GetFormat(s.FormatMap(), bv.Type())
+	vr := (*semver.VersionRange)(bv)
 	switch f.FormatChar() {
 	case 'p':
 		if f.IsAlt() {
-			PuppetQuote(b, vr.NormalizedString())
+			utils.PuppetQuote(b, vr.NormalizedString())
 		} else {
-			PuppetQuote(b, vr.String())
+			utils.PuppetQuote(b, vr.String())
 		}
 	case 's':
 		if f.IsAlt() {
@@ -103,9 +103,9 @@ func (bv *SemVerRangeValue) ToString(b Writer, s FormatContext, g RDetect) {
 func (bv *SemVerRangeValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
 	b.WriteByte(HK_VERSION_RANGE)
-	(*VersionRange)(bv).ToString(b)
+	(*semver.VersionRange)(bv).ToString(b)
 }
 
-func (bv *SemVerRangeValue) Type() PType {
+func (bv *SemVerRangeValue) Type() eval.PType {
 	return DefaultSemVerRangeType()
 }

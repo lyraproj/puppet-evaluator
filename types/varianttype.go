@@ -1,20 +1,20 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type VariantType struct {
-	types []PType
+	types []eval.PType
 }
 
 func DefaultVariantType() *VariantType {
 	return variantType_DEFAULT
 }
 
-func NewVariantType(types []PType) PType {
+func NewVariantType(types []eval.PType) eval.PType {
 	switch len(types) {
 	case 0:
 		return DefaultVariantType()
@@ -25,12 +25,12 @@ func NewVariantType(types []PType) PType {
 	}
 }
 
-func NewVariantType2(args ...PValue) PType {
+func NewVariantType2(args ...eval.PValue) eval.PType {
 	return NewVariantType3(WrapArray(args))
 }
 
-func NewVariantType3(args IndexedValue) PType {
-	var variants []PType
+func NewVariantType3(args eval.IndexedValue) eval.PType {
+	var variants []eval.PType
 	var failIdx int
 
 	switch args.Len() {
@@ -39,8 +39,8 @@ func NewVariantType3(args IndexedValue) PType {
 	case 1:
 		first := args.At(0)
 		switch first.(type) {
-		case PType:
-			return first.(PType)
+		case eval.PType:
+			return first.(eval.PType)
 		case *ArrayValue:
 			return NewVariantType3(first.(*ArrayValue))
 		default:
@@ -55,27 +55,27 @@ func NewVariantType3(args IndexedValue) PType {
 	return &VariantType{variants}
 }
 
-func (t *VariantType) Accept(v Visitor, g Guard) {
+func (t *VariantType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	for _, c := range t.types {
 		c.Accept(v, g)
 	}
 }
 
-func (t *VariantType) Equals(o interface{}, g Guard) bool {
+func (t *VariantType) Equals(o interface{}, g eval.Guard) bool {
 	ot, ok := o.(*VariantType)
-	return ok && len(t.types) == len(ot.types) && GuardedIncludesAll(EqSlice(t.types), EqSlice(ot.types), g)
+	return ok && len(t.types) == len(ot.types) && eval.GuardedIncludesAll(eval.EqSlice(t.types), eval.EqSlice(ot.types), g)
 }
 
-func (t *VariantType) Generic() PType {
+func (t *VariantType) Generic() eval.PType {
 	return &VariantType{UniqueTypes(alterTypes(t.types, generalize))}
 }
 
-func (t *VariantType) Default() PType {
+func (t *VariantType) Default() eval.PType {
 	return variantType_DEFAULT
 }
 
-func (t *VariantType) IsAssignable(o PType, g Guard) bool {
+func (t *VariantType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	for _, v := range t.types {
 		if GuardedIsAssignable(v, o, g) {
 			return true
@@ -84,7 +84,7 @@ func (t *VariantType) IsAssignable(o PType, g Guard) bool {
 	return false
 }
 
-func (t *VariantType) IsInstance(o PValue, g Guard) bool {
+func (t *VariantType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	for _, v := range t.types {
 		if GuardedIsInstance(v, o, g) {
 			return true
@@ -97,11 +97,11 @@ func (t *VariantType) Name() string {
 	return `Variant`
 }
 
-func (t *VariantType) Parameters() []PValue {
+func (t *VariantType) Parameters() []eval.PValue {
 	if len(t.types) == 0 {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
-	ps := make([]PValue, len(t.types))
+	ps := make([]eval.PValue, len(t.types))
 	for idx, t := range t.types {
 		ps[idx] = t
 	}
@@ -109,28 +109,28 @@ func (t *VariantType) Parameters() []PValue {
 }
 
 func (t *VariantType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *VariantType) Types() []PType {
+func (t *VariantType) Types() []eval.PType {
 	return t.types
 }
 
-func (t *VariantType) allAssignableTo(o PType, g Guard) bool {
+func (t *VariantType) allAssignableTo(o eval.PType, g eval.Guard) bool {
 	return allAssignableTo(t.types, o, g)
 }
 
-func (t *VariantType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *VariantType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *VariantType) Type() PType {
+func (t *VariantType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-var variantType_DEFAULT = &VariantType{types: []PType{}}
+var variantType_DEFAULT = &VariantType{types: []eval.PType{}}
 
-func allAssignableTo(types []PType, o PType, g Guard) bool {
+func allAssignableTo(types []eval.PType, o eval.PType, g eval.Guard) bool {
 	for _, v := range types {
 		if !GuardedIsAssignable(o, v, g) {
 			return false

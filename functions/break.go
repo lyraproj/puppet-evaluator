@@ -1,15 +1,15 @@
 package functions
 
 import (
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 func init() {
-	NewGoFunction(`break`,
-		func(d Dispatch) {
-			d.Function(func(c EvalContext, args []PValue) PValue {
-				panic(NewStopIteration(c.StackTop()))
+	eval.NewGoFunction(`break`,
+		func(d eval.Dispatch) {
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				panic(errors.NewStopIteration(c.StackTop()))
 			})
 		},
 	)

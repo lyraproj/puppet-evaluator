@@ -1,14 +1,14 @@
 package types
 
 import (
-	. "fmt"
-	. "io"
+	"fmt"
+	"io"
 	"reflect"
 
-	. "github.com/puppetlabs/go-evaluator/errors"
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/utils"
-	. "github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -37,15 +37,15 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 		return DefaultRuntimeType()
 	}
 	if runtimeName == `go` && name != `` {
-		panic(Error(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, H{`name`: name}))
+		panic(eval.Error(eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
 	}
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }
 
-func NewRuntimeType2(args ...PValue) *RuntimeType {
+func NewRuntimeType2(args ...eval.PValue) *RuntimeType {
 	top := len(args)
 	if top > 3 {
-		panic(NewIllegalArgumentCount(`Runtime[]`, `0 - 3`, len(args)))
+		panic(errors.NewIllegalArgumentCount(`Runtime[]`, `0 - 3`, len(args)))
 	}
 	if top == 0 {
 		return DefaultRuntimeType()
@@ -57,9 +57,9 @@ func NewRuntimeType2(args ...PValue) *RuntimeType {
 	}
 
 	var pattern *RegexpType
-	var name PValue
+	var name eval.PValue
 	if top == 1 {
-		name = EMPTY_STRING
+		name = eval.EMPTY_STRING
 	} else {
 		var rv *StringValue
 		rv, ok = args[1].(*StringValue)
@@ -91,15 +91,15 @@ func NewGoRuntimeType(array interface{}) *RuntimeType {
 	return &RuntimeType{runtime: `go`, name: goType.String(), goType: goType}
 }
 
-func (t *RuntimeType) Accept(v Visitor, g Guard) {
+func (t *RuntimeType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *RuntimeType) Default() PType {
+func (t *RuntimeType) Default() eval.PType {
 	return runtimeType_DEFAULT
 }
 
-func (t *RuntimeType) Equals(o interface{}, g Guard) bool {
+func (t *RuntimeType) Equals(o interface{}, g eval.Guard) bool {
 	if ot, ok := o.(*RuntimeType); ok && t.runtime == ot.runtime && t.name == ot.name {
 		if t.pattern == nil {
 			return ot.pattern == nil
@@ -109,11 +109,11 @@ func (t *RuntimeType) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) Generic() PType {
+func (t *RuntimeType) Generic() eval.PType {
 	return runtimeType_DEFAULT
 }
 
-func (t *RuntimeType) IsAssignable(o PType, g Guard) bool {
+func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if rt, ok := o.(*RuntimeType); ok {
 		if t.goType != nil && rt.goType != nil {
 			return rt.goType.AssignableTo(t.goType)
@@ -137,7 +137,7 @@ func (t *RuntimeType) IsAssignable(o PType, g Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) IsInstance(o PValue, g Guard) bool {
+func (t *RuntimeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	rt, ok := o.(*RuntimeValue)
 	if !ok {
 		return false
@@ -154,18 +154,18 @@ func (t *RuntimeType) IsInstance(o PValue, g Guard) bool {
 	if t.name == `` {
 		return true
 	}
-	return t.name == Sprintf(`%T`, rt.Interface())
+	return t.name == fmt.Sprintf(`%T`, rt.Interface())
 }
 
 func (t *RuntimeType) Name() string {
 	return `Runtime`
 }
 
-func (t *RuntimeType) Parameters() []PValue {
+func (t *RuntimeType) Parameters() []eval.PValue {
 	if t.runtime == `` {
-		return EMPTY_VALUES
+		return eval.EMPTY_VALUES
 	}
-	ps := make([]PValue, 0, 2)
+	ps := make([]eval.PValue, 0, 2)
 	ps = append(ps, WrapString(t.runtime))
 	if t.name != `` {
 		ps = append(ps, WrapString(t.name))
@@ -177,14 +177,14 @@ func (t *RuntimeType) Parameters() []PValue {
 }
 
 func (t *RuntimeType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *RuntimeType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *RuntimeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *RuntimeType) Type() PType {
+func (t *RuntimeType) Type() eval.PType {
 	return &TypeType{t}
 }
 
@@ -193,12 +193,12 @@ func WrapRuntime(value interface{}) *RuntimeValue {
 	return &RuntimeValue{&RuntimeType{runtime: `go`, name: goType.String(), goType: goType}, value}
 }
 
-func (rv *RuntimeValue) Equals(o interface{}, g Guard) bool {
+func (rv *RuntimeValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*RuntimeValue); ok {
-		var re Equality
-		if re, ok = rv.value.(Equality); ok {
-			var oe Equality
-			if oe, ok = ov.value.(Equality); ok {
+		var re eval.Equality
+		if re, ok = rv.value.(eval.Equality); ok {
+			var oe eval.Equality
+			if oe, ok = ov.value.(eval.Equality); ok {
 				return re.Equals(oe, g)
 			}
 			return false
@@ -209,14 +209,14 @@ func (rv *RuntimeValue) Equals(o interface{}, g Guard) bool {
 }
 
 func (rv *RuntimeValue) String() string {
-	return ToString2(rv, NONE)
+	return eval.ToString2(rv, NONE)
 }
 
-func (rv *RuntimeValue) ToString(b Writer, s FormatContext, g RDetect) {
-	PuppetQuote(b, Sprintf(`%v`, rv.value))
+func (rv *RuntimeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	utils.PuppetQuote(b, fmt.Sprintf(`%v`, rv.value))
 }
 
-func (rv *RuntimeValue) Type() PType {
+func (rv *RuntimeValue) Type() eval.PType {
 	return rv.puppetType
 }
 

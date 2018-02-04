@@ -1,14 +1,14 @@
 package types
 
 import (
-	. "io"
+	"io"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type AnyType struct{}
 
-var Any_Type PType
+var Any_Type eval.PType
 
 func init() {
 	Any_Type = newType(`AnyType`, `{}`)
@@ -18,20 +18,20 @@ func DefaultAnyType() *AnyType {
 	return anyType_DEFAULT
 }
 
-func (t *AnyType) Accept(v Visitor, g Guard) {
+func (t *AnyType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *AnyType) Equals(o interface{}, g Guard) bool {
+func (t *AnyType) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*AnyType)
 	return ok
 }
 
-func (t *AnyType) IsAssignable(o PType, g Guard) bool {
+func (t *AnyType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return true
 }
 
-func (t *AnyType) IsInstance(v PValue, g Guard) bool {
+func (t *AnyType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	return true
 }
 
@@ -43,11 +43,11 @@ func (t *AnyType) String() string {
 	return `Any`
 }
 
-func (t *AnyType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *AnyType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *AnyType) Type() PType {
+func (t *AnyType) Type() eval.PType {
 	return Any_Type
 }
 

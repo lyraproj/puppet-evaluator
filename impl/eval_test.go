@@ -1,26 +1,27 @@
 package impl
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"testing"
+
+	"github.com/puppetlabs/go-evaluator/eval"
 	_ "github.com/puppetlabs/go-evaluator/loader"
-	. "github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"testing"
 )
 
 func TestIT(t *testing.T) {
-	x := PValue(WrapInteger(32))
+	x := eval.PValue(types.WrapInteger(32))
 	switch x.(type) {
-	case PValue:
-		t.Log("Is PValue")
+	case eval.PValue:
+		t.Log("Is eval.PValue")
 	default:
-		t.Error("Not PValue")
+		t.Error("Not eval.PValue")
 	}
 
 	switch x.Type().(type) {
-	case *IntegerType:
+	case *types.IntegerType:
 		t.Log("Type is IntegerType")
 	default:
 		t.Error("Not IntegerType")
@@ -54,24 +55,24 @@ func TestMisc(t *testing.T) {
 		}
 	}
 
-	e := NewEvaluator(NewParentedLoader(StaticLoader()), NewStdLogger())
+	e := NewEvaluator(eval.NewParentedLoader(eval.StaticLoader()), eval.NewStdLogger())
 	e.AddDefinitions(prog)
 	v, err := e.Evaluate(prog, NewScope(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ta, ok := v.(*TypeAliasType)
+	ta, ok := v.(*types.TypeAliasType)
 	if !ok {
 		t.Fatalf(`Eval did not return a TypeAliasType. It returned a %T`, v)
 	}
 	t.Logf("Successfully created a %T", ta)
 	rt := ta.ResolvedType()
-	va, ok := rt.(*VariantType)
+	va, ok := rt.(*types.VariantType)
 	if !ok {
 		t.Fatalf(`Not alias for Variant. Is %T`, va)
 	}
 	first := va.Types()[0]
-	_, ok = first.(*StringType)
+	_, ok = first.(*types.StringType)
 	if !ok {
 		t.Fatalf(`First in Variant is not string. Is %T`, first)
 	}
@@ -101,13 +102,13 @@ func TestEmpty(t *testing.T) {
 		}
 	}
 
-	e := NewEvaluator(NewParentedLoader(StaticLoader()), NewStdLogger())
+	e := NewEvaluator(eval.NewParentedLoader(eval.StaticLoader()), eval.NewStdLogger())
 	e.AddDefinitions(prog)
 	v, err := e.Evaluate(prog, NewScope(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, ok := v.(*UndefValue)
+	_, ok := v.(*types.UndefValue)
 	if !ok {
 		t.Fatalf(`Eval did not return a undef. It returned a %T`, v)
 	}

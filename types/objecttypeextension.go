@@ -1,18 +1,19 @@
 package types
 
 import (
-	. "github.com/puppetlabs/go-evaluator/eval"
-	. "github.com/puppetlabs/go-evaluator/hash"
-	"github.com/puppetlabs/go-parser/issue"
 	"io"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/hash"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type objectTypeExtension struct {
 	baseType   *objectType
-	parameters *StringHash
+	parameters *hash.StringHash
 }
 
-var ObjectTypeExtension_Type PType
+var ObjectTypeExtension_Type eval.PType
 
 func init() {
 	ObjectTypeExtension_Type = newType(`ObjectTypeExtensionType`,
@@ -24,36 +25,36 @@ func init() {
 		}`)
 }
 
-func NewObjectTypeExtension(baseType ObjectType, initParameters []PValue) *objectTypeExtension {
+func NewObjectTypeExtension(baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
 	o := &objectTypeExtension{}
 	o.initialize(baseType.(*objectType), initParameters)
 	return o
 }
 
-func (te *objectTypeExtension) Accept(v Visitor, g Guard) {
+func (te *objectTypeExtension) Accept(v eval.Visitor, g eval.Guard) {
 	v(te)
 	te.baseType.Accept(v, g)
 }
 
-func (te *objectTypeExtension) Default() PType {
+func (te *objectTypeExtension) Default() eval.PType {
 	return te.baseType.Default()
 }
 
-func (te *objectTypeExtension) Equals(other interface{}, g Guard) bool {
+func (te *objectTypeExtension) Equals(other interface{}, g eval.Guard) bool {
 	op, ok := other.(*objectTypeExtension)
 	return ok && te.baseType.Equals(op.baseType, g) && te.parameters.Equals(op.parameters, g)
 }
 
-func (te *objectTypeExtension) Generalize() PType {
+func (te *objectTypeExtension) Generalize() eval.PType {
 	return te.baseType
 }
 
-func (te *objectTypeExtension) IsAssignable(t PType, g Guard) bool {
+func (te *objectTypeExtension) IsAssignable(t eval.PType, g eval.Guard) bool {
 	if ote, ok := t.(*objectTypeExtension); ok {
 		return te.baseType.IsAssignable(ote.baseType, g) && te.testAssignable(ote.parameters, g)
 	}
 	if ot, ok := t.(*objectType); ok {
-		return te.baseType.IsAssignable(ot, g) && te.testAssignable(EMPTY_STRINGHASH, g)
+		return te.baseType.IsAssignable(ot, g) && te.testAssignable(hash.EMPTY_STRINGHASH, g)
 	}
 	return false
 }
@@ -62,11 +63,11 @@ func (te *objectTypeExtension) IsParameterized() bool {
 	return true
 }
 
-func (te *objectTypeExtension) IsInstance(v PValue, g Guard) bool {
+func (te *objectTypeExtension) IsInstance(v eval.PValue, g eval.Guard) bool {
 	return te.baseType.IsInstance(v, g) && te.testInstance(v, g)
 }
 
-func (te *objectTypeExtension) Member(name string) (CallableMember, bool) {
+func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
 	return te.baseType.Member(name)
 }
 
@@ -74,13 +75,13 @@ func (te *objectTypeExtension) Name() string {
 	return te.baseType.Name()
 }
 
-func (te *objectTypeExtension) Parameters() []PValue {
+func (te *objectTypeExtension) Parameters() []eval.PValue {
 	pts := te.baseType.typeParameters(true)
 	n := pts.Len()
 	if n > 2 {
-		return []PValue{WrapHash5(te.parameters)}
+		return []eval.PValue{WrapHash5(te.parameters)}
 	}
-	params := make([]PValue, 0, n)
+	params := make([]eval.PValue, 0, n)
 	top := 0
 	idx := 0
 	pts.EachKey(func(k string) {
@@ -90,29 +91,29 @@ func (te *objectTypeExtension) Parameters() []PValue {
 		} else {
 			v = WrapDefault()
 		}
-		params = append(params, v.(PValue))
+		params = append(params, v.(eval.PValue))
 		idx++
 	})
 	return params[:top]
 }
 
 func (te *objectTypeExtension) String() string {
-	return ToString2(te, NONE)
+	return eval.ToString2(te, NONE)
 }
 
-func (te *objectTypeExtension) ToString(bld io.Writer, format FormatContext, g RDetect) {
+func (te *objectTypeExtension) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
 	TypeToString(te, bld, format, g)
 }
 
-func (te *objectTypeExtension) Type() PType {
+func (te *objectTypeExtension) Type() eval.PType {
 	return ObjectTypeExtension_Type
 }
 
-func (te *objectTypeExtension) initialize(baseType *objectType, initParameters []PValue) {
+func (te *objectTypeExtension) initialize(baseType *objectType, initParameters []eval.PValue) {
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
-		panic(Error(EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
+		panic(eval.Error(eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
 	}
 	te.baseType = baseType
 	namedArgs := false
@@ -121,23 +122,23 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 	}
 
 	if namedArgs {
-		namedArgs = pts.Len() >= 1 && !IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
-	checkParam := func(tp *typeParameter, v PValue) PValue {
-		return AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
+	checkParam := func(tp *typeParameter, v eval.PValue) eval.PValue {
+		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
 	}
 
-	byName := NewStringHash(pts.Len())
+	byName := hash.NewStringHash(pts.Len())
 	if namedArgs {
 		hash := initParameters[0].(*HashValue)
-		hash.EachPair(func(k, pv PValue) {
+		hash.EachPair(func(k, pv eval.PValue) {
 			pn := k.String()
 			tp := pts.Get(pn, nil)
 			if tp == nil {
-				panic(Error(EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
+				panic(eval.Error(eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
-			if !Equals(pv, WrapDefault()) {
+			if !eval.Equals(pv, WrapDefault()) {
 				byName.Put(pn, checkParam(tp.(*typeParameter), pv))
 			}
 		})
@@ -146,19 +147,19 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 			if idx < len(initParameters) {
 				tp := t.(*typeParameter)
 				pv := initParameters[idx]
-				if !Equals(pv, WrapDefault()) {
+				if !eval.Equals(pv, WrapDefault()) {
 					byName.Put(tp.Name(), checkParam(tp, pv))
 				}
 			}
 		}
 	}
 	if byName.IsEmpty() {
-		panic(Error(EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
+		panic(eval.Error(eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
 	}
 	te.parameters = byName
 }
 
-func (te *objectTypeExtension) AttributesInfo() AttributesInfo {
+func (te *objectTypeExtension) AttributesInfo() eval.AttributesInfo {
 	return te.baseType.AttributesInfo()
 }
 
@@ -168,20 +169,20 @@ func (te *objectTypeExtension) AttributesInfo() AttributesInfo {
 //
 // This method is only called when a given type is found to be assignable to the base type of
 // this extension.
-func (te *objectTypeExtension) testAssignable(paramValues *StringHash, g Guard) bool {
+func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g eval.Guard) bool {
 	// Default implementation performs case expression style matching of all parameter values
 	// provided that the value exist (this should always be the case, since all defaults have
 	// been assigned at this point)
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
 		if v2, ok := paramValues.Get3(key); ok {
-			a := v2.(PValue)
-			b := v1.(PValue)
-			if PuppetMatch(a, b) {
+			a := v2.(eval.PValue)
+			b := v1.(eval.PValue)
+			if eval.PuppetMatch(a, b) {
 				return true
 			}
-			if at, ok := a.(PType); ok {
-				if bt, ok := b.(PType); ok {
-					return IsAssignable(bt, at)
+			if at, ok := a.(eval.PType); ok {
+				if bt, ok := b.(eval.PType); ok {
+					return eval.IsAssignable(bt, at)
 				}
 			}
 		}
@@ -195,9 +196,9 @@ func (te *objectTypeExtension) testAssignable(paramValues *StringHash, g Guard) 
 //
 // This method is only called when the given value is found to be an instance of the base type of
 // this extension.
-func (te *objectTypeExtension) testInstance(o PValue, g Guard) bool {
+func (te *objectTypeExtension) testInstance(o eval.PValue, g eval.Guard) bool {
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
 		v2, ok := te.baseType.GetValue(key, o)
-		return ok && PuppetMatch(v2, v1.(PValue))
+		return ok && eval.PuppetMatch(v2, v1.(eval.PValue))
 	})
 }

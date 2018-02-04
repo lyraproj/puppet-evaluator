@@ -1,16 +1,16 @@
 package types
 
 import (
-	. "io"
+	"io"
 	"math"
 
-	. "github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type TupleType struct {
 	size              *IntegerType
 	givenOrActualSize *IntegerType
-	types             []PType
+	types             []eval.PType
 }
 
 func DefaultTupleType() *TupleType {
@@ -21,7 +21,7 @@ func EmptyTupleType() *TupleType {
 	return tupleType_EMPTY
 }
 
-func NewTupleType(types []PType, size *IntegerType) *TupleType {
+func NewTupleType(types []eval.PType, size *IntegerType) *TupleType {
 	var givenOrActualSize *IntegerType
 	sz := int64(len(types))
 	if size == nil {
@@ -40,15 +40,15 @@ func NewTupleType(types []PType, size *IntegerType) *TupleType {
 	return &TupleType{size, givenOrActualSize, types}
 }
 
-func NewTupleType2(args ...PValue) *TupleType {
+func NewTupleType2(args ...eval.PValue) *TupleType {
 	return tupleFromArgs(false, WrapArray(args))
 }
 
-func NewTupleType3(args IndexedValue) *TupleType {
+func NewTupleType3(args eval.IndexedValue) *TupleType {
 	return tupleFromArgs(false, args)
 }
 
-func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
+func tupleFromArgs(callable bool, args eval.IndexedValue) *TupleType {
 	argc := args.Len()
 	if argc == 0 {
 		return tupleType_DEFAULT
@@ -89,15 +89,15 @@ func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
 			return tupleType_EMPTY
 		}
 		if callable {
-			return &TupleType{rng, rng, []PType{DefaultUnitType()}}
+			return &TupleType{rng, rng, []eval.PType{DefaultUnitType()}}
 		}
 		if *rng == *integerType_POSITIVE {
 			return tupleType_DEFAULT
 		}
-		return &TupleType{rng, rng, []PType{}}
+		return &TupleType{rng, rng, []eval.PType{}}
 	}
 
-	var tupleTypes []PType
+	var tupleTypes []eval.PType
 	ok = false
 	failIdx := -1
 	if argc == 1 {
@@ -119,7 +119,7 @@ func tupleFromArgs(callable bool, args IndexedValue) *TupleType {
 	return &TupleType{rng, givenOrActualRng, tupleTypes}
 }
 
-func (t *TupleType) Accept(v Visitor, g Guard) {
+func (t *TupleType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 	t.size.Accept(v, g)
 	for _, c := range t.types {
@@ -127,7 +127,7 @@ func (t *TupleType) Accept(v Visitor, g Guard) {
 	}
 }
 
-func (t *TupleType) CommonElementType() PType {
+func (t *TupleType) CommonElementType() eval.PType {
 	top := len(t.types)
 	if top == 0 {
 		return anyType_DEFAULT
@@ -139,12 +139,12 @@ func (t *TupleType) CommonElementType() PType {
 	return cet
 }
 
-func (t *TupleType) Default() PType {
+func (t *TupleType) Default() eval.PType {
 	return tupleType_DEFAULT
 }
 
-func (t *TupleType) Equals(o interface{}, g Guard) bool {
-	if ot, ok := o.(*TupleType); ok && len(t.types) == len(ot.types) && GuardedEquals(t.size, ot.size, g) {
+func (t *TupleType) Equals(o interface{}, g eval.Guard) bool {
+	if ot, ok := o.(*TupleType); ok && len(t.types) == len(ot.types) && eval.GuardedEquals(t.size, ot.size, g) {
 		for idx, col := range t.types {
 			if !col.Equals(ot.types[idx], g) {
 				return false
@@ -155,11 +155,11 @@ func (t *TupleType) Equals(o interface{}, g Guard) bool {
 	return false
 }
 
-func (t *TupleType) Generic() PType {
+func (t *TupleType) Generic() eval.PType {
 	return NewTupleType(alterTypes(t.types, generalize), t.size)
 }
 
-func (t *TupleType) IsAssignable(o PType, g Guard) bool {
+func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *ArrayType:
 		at := o.(*ArrayType)
@@ -208,14 +208,14 @@ func (t *TupleType) IsAssignable(o PType, g Guard) bool {
 	}
 }
 
-func (t *TupleType) IsInstance(v PValue, g Guard) bool {
+func (t *TupleType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	if iv, ok := v.(*ArrayValue); ok {
 		return t.IsInstance2(iv, g)
 	}
 	return false
 }
 
-func (t *TupleType) IsInstance2(vs IndexedValue, g Guard) bool {
+func (t *TupleType) IsInstance2(vs eval.IndexedValue, g eval.Guard) bool {
 	osz := vs.Len()
 	if !t.givenOrActualSize.IsInstance3(osz) {
 		return false
@@ -247,12 +247,12 @@ func (t *TupleType) Size() *IntegerType {
 }
 
 func (t *TupleType) String() string {
-	return ToString2(t, NONE)
+	return eval.ToString2(t, NONE)
 }
 
-func (t *TupleType) Parameters() []PValue {
+func (t *TupleType) Parameters() []eval.PValue {
 	top := len(t.types)
-	params := make([]PValue, 0, top+2)
+	params := make([]eval.PValue, 0, top+2)
 	for _, c := range t.types {
 		params = append(params, c)
 	}
@@ -262,17 +262,17 @@ func (t *TupleType) Parameters() []PValue {
 	return params
 }
 
-func (t *TupleType) ToString(b Writer, s FormatContext, g RDetect) {
+func (t *TupleType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *TupleType) Type() PType {
+func (t *TupleType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func (t *TupleType) Types() []PType {
+func (t *TupleType) Types() []eval.PType {
 	return t.types
 }
 
-var tupleType_DEFAULT = &TupleType{integerType_POSITIVE, integerType_POSITIVE, []PType{}}
-var tupleType_EMPTY = &TupleType{integerType_ZERO, integerType_ZERO, []PType{}}
+var tupleType_DEFAULT = &TupleType{integerType_POSITIVE, integerType_POSITIVE, []eval.PType{}}
+var tupleType_EMPTY = &TupleType{integerType_ZERO, integerType_ZERO, []eval.PType{}}
