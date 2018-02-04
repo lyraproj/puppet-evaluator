@@ -7,9 +7,9 @@ import (
 
 func TestPcore(t *testing.T) {
 	p := NewPcore(eval.NewStdLogger())
-	l, _ := eval.Load(p.SystemLoader(), eval.NewTypedName(eval.TYPE, `ObjectTypeExtensionType`))
+	l, _ := eval.Load(p.SystemLoader(), eval.NewTypedName(eval.TYPE, `Pcore::ObjectTypeExtensionType`))
 	x, ok := l.(eval.PType)
-	if !(ok && x.Name() == `ObjectTypeExtensionType`) {
-		t.Errorf(`failed to load %s`, `ObjectTypeExtensionType`)
+	if !(ok && x.Name() == `Pcore::ObjectTypeExtensionType`) {
+		t.Errorf(`failed to load %s`, `Pcore::ObjectTypeExtensionType`)
 	}
 }
