@@ -54,8 +54,8 @@ directory.
 * [x] Puppet type aliases
 * [x] custom functions written in Puppet
 * [x] custom functions written in Go
-* [ ] custom data types written in Puppet
-* [ ] custom data types written in Go
+* [x] custom data types written in Puppet
+* [x] custom data types written in Go
 * [ ] external data binding (i.e. hiera)
 * [ ] loading functions, plans, data types, and tasks from environment
 * [ ] loading functions, plans, data types, and tasks from module
@@ -119,7 +119,7 @@ directory.
 * [x] Type
 * [x] Unit
 * [x] Undef
-* [ ] URI
+* [x] URI
 * [x] Variant
 
 * [ ] CatalogEntry
@@ -193,7 +193,7 @@ directory.
 * [x] Logging
 * [ ] Facts as global variables
 * [ ] Pcore serialization
-* [ ] Pcore RichData <-> Data transformation
+* [x] Pcore RichData <-> Data transformation
 * [ ] Remote calls to other language runtimes
 * [ ] Hiera 5
 * [ ] Automatic Parameter Lookup
