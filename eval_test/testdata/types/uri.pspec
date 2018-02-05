@@ -1,0 +1,142 @@
+Examples('URI type',
+  Example('is an instance of its meta type',
+    Given(@(SRC)),
+      URI =~ Type[URI]
+      |-SRC
+    Evaluates_to(true)),
+
+  Example('is equal to itself',
+    Given(@(SRC)),
+      URI == URI
+      |-SRC
+    Evaluates_to(true)),
+
+  Example('is not less than itself',
+    Given(@(SRC)),
+      URI < URI
+      |-SRC
+    Evaluates_to(false)),
+
+  Example('is not greater than itself',
+    Given(@(SRC)),
+      URI > URI
+      |-SRC
+    Evaluates_to(false)),
+
+  Examples('when parameterized',
+    Example('is equal other URI types with equal parameters',
+      Given(@(SRC)),
+        [
+          URI == URI[{}],
+          URI['http://example.com'] == URI[scheme => http, host => 'example.com'],
+          URI['urn:a:b:c'] == URI[scheme => urn, opaque => 'a:b:c'],
+        ]
+        |-SRC
+      Evaluates_to([true, true, true])),
+
+    Example('is assignable from more qualified types',
+      Given(@(SRC)),
+        [
+          URI > URI['http://example.com'],
+          URI['http://example.com'] > URI['http://example.com/path'],
+          URI[scheme => Enum[http, https]] > URI['http://example.com']
+        ]
+        |-SRC
+      Evaluates_to([true, true, true])),
+
+    Example('is not assignable unless scheme is assignable',
+      Given(@(SRC)),
+        URI[scheme => Enum[http, https]] > URI[scheme => 'ftp']
+        |-SRC
+      Evaluates_to(false)),
+  ),
+
+  Examples('instance',
+    Example('can be created from a string',
+      Given(@(SRC)),
+        type(URI('https://example.com/a/b'))
+        |-SRC
+      Evaluates_to(URI['scheme' => 'https', 'host' => 'example.com', 'path' => '/a/b'])),
+
+    Example('which is opaque, can be created from a string',
+      Given(@(SRC)),
+        type(URI('urn:a:b:c'))
+        |-SRC
+      Evaluates_to(URI['scheme' => 'urn', 'opaque' => 'a:b:c'])),
+
+    Example('xcan be created from a hash',
+      Given(@(SRC)),
+        type(URI(scheme => 'https', host => 'example.com', path => '/a/b'))
+        |-SRC
+      Evaluates_to(URI['scheme' => 'https', 'host' => 'example.com', 'path' => '/a/b'])),
+
+    Example('which is opaque, can be created from a hash',
+      Given(@(SRC)),
+        type(URI(scheme => 'urn', opaque => 'a:b:c'))
+        |-SRC
+      Evaluates_to(URI['scheme' => 'urn', 'opaque' => 'a:b:c'])),
+
+    Example('is an instance of its inferred type',
+      Given(@(SRC)),
+        $o = URI('https://example.com/a/b')
+        $o =~ type($o)
+        |-SRC
+      Evaluates_to(true)),
+
+    Example('is an instance of matching parameterized URI',
+      Given(@(SRC)),
+        URI('https://example.com/a/b') =~ URI[scheme => https, host => 'example.com']
+        |-SRC
+      Evaluates_to(true)),
+
+    Example('is an instance of matching default URI',
+      Given(@(SRC)),
+        URI('https://example.com/a/b') =~ URI
+        |-SRC
+      Evaluates_to(true)),
+
+    Example('path is not matched by opaque',
+      Given(@(SRC)),
+        URI('urn:a:b:c') =~ URI[path => 'a:b:c']
+        |-SRC
+      Evaluates_to(false)),
+
+    Example('opaque is not matched by path',
+      Given(@(SRC)),
+        URI('https://example.com/a/b') =~ URI[opaque => '/a/b']
+        |-SRC
+      Evaluates_to(false)),
+
+    Example('is not an instance unless parameters matches',
+      Given(@(SRC)),
+        URI('https://example.com/a/b') =~ URI[scheme => http]
+        |-SRC
+      Evaluates_to(false)),
+
+    Example('individual parts of URI can be accessed using accessor methods',
+      Given(@(SRC)),
+        $o = URI('https://bob:pw@example.com:8080/a/b?a=b#frag')
+        [ $o.scheme, $o.userinfo, $o.host, $o.port, $o.path, $o.query, $o.fragment ]
+        |-SRC
+      Evaluates_to(['https', 'bob:pw', 'example.com', 8080, '/a/b', 'a=b', 'frag'])),
+
+    Example('individual parts of opaque URI can be accessed using accessor methods',
+      Given(@(SRC)),
+        $o = URI('urn:a:b:c')
+        [ $o.scheme, $o.opaque ]
+        |-SRC
+      Evaluates_to(['urn', 'a:b:c'])),
+
+    Example('can be merged with a String using the + operator',
+      Given(@(SRC)),
+        URI('https://example.com') + '/a/b'
+        |-SRC
+      Evaluates_to(URI('https://example.com/a/b'))),
+
+    Example('can be merged with another URI using the + operator',
+      Given(@(SRC)),
+        URI('https://example.com') + URI('/a/b')
+        |-SRC
+      Evaluates_to(URI('https://example.com/a/b'))),
+  ),
+)

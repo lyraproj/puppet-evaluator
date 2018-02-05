@@ -17,7 +17,7 @@ func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression,
 func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue) eval.PValue {
 	op := expr.Operator()
 	switch a.(type) {
-	case *types.HashValue, *types.ArrayValue:
+	case *types.HashValue, *types.ArrayValue, *types.UriValue:
 		switch op {
 		case `+`:
 			return e.concatenate(expr, a, b)
@@ -153,6 +153,13 @@ func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.PValue
 			return a.(*types.HashValue).Merge(types.WrapHashFromArray(b.(*types.ArrayValue)))
 		case *types.HashValue:
 			return a.(*types.HashValue).Merge(b.(*types.HashValue))
+		}
+	case *types.UriValue:
+		switch b.(type) {
+		case *types.StringValue:
+			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(types.ParseURI(b.String())))
+		case *types.UriValue:
+			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(b.(*types.UriValue).URL()))
 		}
 	}
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.Type(), `right`: b.Type()}))

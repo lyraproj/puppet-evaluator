@@ -140,6 +140,8 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReferen
 	switch dcName {
 	case `array`:
 		tp = types.NewArrayType2(args...)
+	case `boolean`:
+		tp = types.NewBooleanType2(args...)
 	case `callable`:
 		tp = types.NewCallableType2(args...)
 	case `collection`:
@@ -184,10 +186,10 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReferen
 		tp = types.NewTypeType2(args...)
 	case `typereference`:
 		tp = types.NewTypeReferenceType2(args...)
+	case `uri`:
+		tp = types.NewUriType2(args...)
 	case `variant`:
 		tp = types.NewVariantType2(args...)
-	case `boolean`:
-		tp = types.NewBooleanType2(args...)
 	case `any`:
 	case `binary`:
 	case `catalogentry`:

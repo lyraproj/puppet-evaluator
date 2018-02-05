@@ -320,6 +320,21 @@ func init() {
 		},
 	)
 
+	eval.NewGoConstructor(`URI`,
+		func(d eval.Dispatch) {
+			d.Param(`String[1]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return types.WrapURI2(args[0].String())
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Hash[String[1],ScalarData]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return types.WrapURI(types.URIFromHash(args[0].(*types.HashValue)))
+			})
+		})
+
 	eval.NewGoConstructor(`Type`,
 		func(d eval.Dispatch) {
 			d.Param(`String`)

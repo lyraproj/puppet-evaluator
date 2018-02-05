@@ -36,6 +36,7 @@ const (
 	EVAL_INVALID_STRING_FORMAT_SPEC                = `EVAL_INVALID_STRING_FORMAT_SPEC`
 	EVAL_INVALID_STRING_FORMAT_DELIMITER           = `EVAL_INVALID_STRING_FORMAT_DELIMITER`
 	EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG       = `EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG`
+	EVAL_INVALID_URI                               = `EVAL_INVALID_URI`
 	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP             = `EVAL_MATCH_NOT_REGEXP`
 	EVAL_MATCH_NOT_SEMVER_RANGE       = `EVAL_MATCH_NOT_SEMVER_RANGE`
@@ -94,15 +95,9 @@ func init() {
 
 	issue.Hard(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, `attribute %{label}[%{key}] is defined as both a constant and an attribute`)
 
-	issue.Hard(EVAL_CTOR_NOT_FOUND, `Unable to load the constructor for data type '%{type}'`)
-
-	issue.Hard(EVAL_INVALID_STRING_FORMAT_SPEC, `The string format '%{format}' is not a valid format on the form '%%<flags><width>.<prec><format>'`)
-
-	issue.Hard(EVAL_INVALID_STRING_FORMAT_DELIMITER, `Only one of the delimiters [ { ( < | can be given in the string format flags, got '%<delimiter>c'`)
-
-	issue.Hard(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, `The same flag can only be used once in a string format, got '%{format}'`)
-
 	issue.Hard(EVAL_CONSTANT_REQUIRES_VALUE, `%{label} of kind 'constant' requires a value`)
+
+	issue.Hard(EVAL_CTOR_NOT_FOUND, `Unable to load the constructor for data type '%{type}'`)
 
 	// TRANSLATOR 'final => false' is puppet syntax and should not be translated
 	issue.Hard(EVAL_CONSTANT_WITH_FINAL, `%{label} of kind 'constant' cannot be combined with final => false`)
@@ -152,6 +147,14 @@ func init() {
 	issue.Hard(EVAL_ILLEGAL_REASSIGNMENT, `Cannot reassign variable '$%{var}'`)
 
 	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '${pattern}': %{detail}`)
+
+	issue.Hard(EVAL_INVALID_STRING_FORMAT_SPEC, `The string format '%{format}' is not a valid format on the form '%%<flags><width>.<prec><format>'`)
+
+	issue.Hard(EVAL_INVALID_STRING_FORMAT_DELIMITER, `Only one of the delimiters [ { ( < | can be given in the string format flags, got '%<delimiter>c'`)
+
+	issue.Hard(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, `The same flag can only be used once in a string format, got '%{format}'`)
+
+	issue.Hard(EVAL_INVALID_URI, `Cannot parse an URI from string '%{str}': '%{detail}'`)
 
 	issue.Hard(EVAL_LHS_MUST_BE_QREF, `Expression to the left of [] expression must be a Type name`)
 

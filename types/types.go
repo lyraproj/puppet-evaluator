@@ -452,6 +452,24 @@ func init() {
 	eval.NewObjectType = newObjectType
 }
 
+func newAliasType(name, typeDecl string) eval.PType {
+	p := parser.CreateParser()
+	_, fileName, fileLine, _ := runtime.Caller(1)
+	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
+	if err != nil {
+		err = convertReported(err, fileName, fileLine)
+		panic(err)
+	}
+
+	if ta, ok := expr.(*parser.TypeAlias); ok {
+		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
+		at := rt.(*TypeAliasType)
+		registerResolvableType(at)
+		return at
+	}
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
+}
+
 func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
 	p := parser.CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)

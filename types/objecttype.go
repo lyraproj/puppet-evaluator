@@ -1181,6 +1181,9 @@ func (t *objectType) Parameters() []eval.PValue {
 }
 
 func (t *objectType) Parameters2(includeName bool) []eval.PValue {
+	if t == objectType_DEFAULT {
+		return eval.EMPTY_VALUES
+	}
 	return []eval.PValue{WrapHash3(t.initHash(includeName))}
 }
 

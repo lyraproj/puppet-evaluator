@@ -53,6 +53,7 @@ var coreTypes = map[string]eval.PType{
 	`typeset`:       types.DefaultTypeSetType(),
 	`undef`:         types.DefaultUndefType(),
 	`unit`:          types.DefaultUnitType(),
+	`uri`:           types.DefaultUriType(),
 	`variant`:       types.DefaultVariantType(),
 }
 
