@@ -47,6 +47,7 @@ const (
 	EVAL_MISSING_TYPE_PARAMETER       = `EVAL_MISSING_TYPE_PARAMETER`
 	EVAL_NO_ATTRIBUTE_READER          = `EVAL_NO_ATTRIBUTE_READER`
 	EVAL_NO_DEFINITION                = `EVAL_NO_DEFINITION`
+	EVAL_NOT_COLLECTION_AT            = `EVAL_NOT_COLLECTION_AT`
 	EVAL_NOT_EXPECTED_TYPESET         = `EVAL_NOT_EXPECTED_TYPESET`
 	EVAL_NOT_INTEGER                  = `EVAL_NOT_INTEGER`
 	EVAL_NOT_ONLY_DEFINITION          = `EVAL_NOT_ONLY_DEFINITION`
@@ -178,6 +179,8 @@ func init() {
 	issue.Hard(EVAL_NO_ATTRIBUTE_READER, `No attribute reader is implemented for %{label}`)
 
 	issue.Hard(EVAL_NO_DEFINITION, `The code loaded from %{source} does not define the %{type} '%{name}`)
+
+	issue.Hard(EVAL_NOT_COLLECTION_AT, `The given data does not contain a Collection at %{walked_path}, got '%{klass}'`)
 
 	issue.Hard(EVAL_NOT_INTEGER, `The value '%{value}' cannot be converted to an Integer`)
 

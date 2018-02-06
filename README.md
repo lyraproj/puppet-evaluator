@@ -139,7 +139,7 @@ directory.
 * [x] crit
 * [x] convert_to
 * [x] debug
-* [ ] dig
+* [x] dig
 * [x] each
 * [x] emerg
 * [ ] epp
