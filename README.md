@@ -128,16 +128,16 @@ directory.
 
 ### Puppet functions:
 
+* [x] alert
 * [x] all
 * [ ] annotate
 * [x] any
-* [x] alert
 * [x] assert_type
 * [ ] binary_file
 * [x] break
 * [x] call
 * [x] crit
-* [ ] convert_to
+* [x] convert_to
 * [x] debug
 * [ ] dig
 * [x] each

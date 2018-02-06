@@ -1,0 +1,13 @@
+Examples('The convert_to function',
+  Example('converts and returns the converted when no lambda is given',
+    Given(`[a,1].convert_to(Hash)`),
+    Evaluates_to(a => 1)),
+
+  Example('converts given value to instance of type and calls a lambda with converted value',
+    Given(`'1'.convert_to(Integer) |$x| { "testing-${x.type(generalized)}" }`),
+    Evaluates_to(`testing-Integer`)),
+
+  Example('returns the lambda return when lambda is given',
+    Given(`"testing-${[a,1].convert_to(Hash) |$x| { yay }}"`),
+    Evaluates_to(`testing-yay`)),
+)
