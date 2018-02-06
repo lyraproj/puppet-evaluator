@@ -25,6 +25,14 @@ func init() {
 	Sensitive_Type = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 		return DefaultSensitiveType()
 	})
+
+	newGoConstructor(`Sensitive`,
+		func(d eval.Dispatch) {
+			d.Param(`Any`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return WrapSensitive(args[0])
+			})
+		})
 }
 
 func DefaultSensitiveType() *SensitiveType {

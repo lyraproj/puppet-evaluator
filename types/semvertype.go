@@ -33,6 +33,78 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewSemVerType2(args...)
 		})
+
+	newGoConstructor2(`SemVer`,
+		func(t eval.LocalTypes) {
+			t.Type(`PositiveInteger`, `Integer[0,default]`)
+			t.Type(`SemVerQualifier`, `Pattern[/\A(?<part>[0-9A-Za-z-]+)(?:\.\g<part>)*\Z/]`)
+			t.Type(`SemVerString`, `String[1]`)
+			t.Type(`SemVerHash`, `Struct[major=>PositiveInteger,minor=>PositiveInteger,patch=>PositiveInteger,Optional[prerelease]=>SemVerQualifier,Optional[build]=>SemVerQualifier]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`SemVerString`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				v, err := semver.ParseVersion(args[0].String())
+				if err != nil {
+					panic(errors.NewIllegalArgument(`SemVer`, 0, err.Error()))
+				}
+				return WrapSemVer(v)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`PositiveInteger`)
+			d.Param(`PositiveInteger`)
+			d.Param(`PositiveInteger`)
+			d.OptionalParam(`SemVerQualifier`)
+			d.OptionalParam(`SemVerQualifier`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				argc := len(args)
+				major := args[0].(*IntegerValue).Int()
+				minor := args[1].(*IntegerValue).Int()
+				patch := args[2].(*IntegerValue).Int()
+				preRelease := ``
+				build := ``
+				if argc > 3 {
+					preRelease = args[3].String()
+					if argc > 4 {
+						build = args[4].String()
+					}
+				}
+				v, err := semver.NewVersion3(int(major), int(minor), int(patch), preRelease, build)
+				if err != nil {
+					panic(errors.NewArgumentsError(`SemVer`, err.Error()))
+				}
+				return WrapSemVer(v)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`SemVerHash`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hash := args[0].(*HashValue)
+				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
+				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
+				patch := hash.Get5(`patch`, ZERO).(*IntegerValue).Int()
+				preRelease := ``
+				build := ``
+				ev := hash.Get5(`prerelease`, nil)
+				if ev != nil {
+					preRelease = ev.String()
+				}
+				ev = hash.Get5(`build`, nil)
+				if ev != nil {
+					build = ev.String()
+				}
+				v, err := semver.NewVersion3(int(major), int(minor), int(patch), preRelease, build)
+				if err != nil {
+					panic(errors.NewArgumentsError(`SemVer`, err.Error()))
+				}
+				return WrapSemVer(v)
+			})
+		},
+	)
 }
 
 func DefaultSemVerType() *SemVerType {

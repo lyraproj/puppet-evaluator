@@ -433,6 +433,17 @@ func (av *ArrayValue) Map(mapper eval.Mapper) eval.IndexedValue {
 	return WrapArray(mapped)
 }
 
+func (av *ArrayValue) Reduce(redactor eval.BiMapper) eval.PValue {
+	if av.IsEmpty() {
+		return _UNDEF
+	}
+	return reduceSlice(av.elements[1:], av.At(0), redactor)
+}
+
+func (av *ArrayValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	return reduceSlice(av.elements, initialValue, redactor)
+}
+
 func (av *ArrayValue) Reject(predicate eval.Predicate) eval.IndexedValue {
 	selected := make([]eval.PValue, 0)
 	for _, e := range av.elements {
@@ -635,4 +646,12 @@ func (av *ArrayValue) prtvReducedType() eval.PType {
 		}
 	}
 	return av.reducedType
+}
+
+func reduceSlice(slice []eval.PValue, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	memo := initialValue
+	for _, v := range	slice {
+		memo = redactor(memo, v)
+	}
+	return memo
 }

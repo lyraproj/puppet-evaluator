@@ -117,7 +117,7 @@ func (l *goLambdaWithBlock) Call(c eval.EvalContext, block eval.Lambda, args ...
 
 var emptyTypeBuilder = &localTypeBuilder{[]*typeDecl{}}
 
-func buildFunction(name string, localTypes eval.LocalTypesCreator, creators []eval.DispatchCreator) *functionBuilder {
+func BuildFunction(name string, localTypes eval.LocalTypesCreator, creators []eval.DispatchCreator) eval.ResolvableFunction {
 	lt := emptyTypeBuilder
 	if localTypes != nil {
 		lt = &localTypeBuilder{make([]*typeDecl, 0, 8)}
@@ -570,19 +570,11 @@ func resolveParameters(c eval.EvalContext, eps []parser.Expression) []*parameter
 func init() {
 
 	eval.NewGoFunction = func(name string, creators ...eval.DispatchCreator) {
-		eval.RegisterGoFunction(buildFunction(name, nil, creators))
+		eval.RegisterGoFunction(BuildFunction(name, nil, creators))
 	}
 
 	eval.NewGoFunction2 = func(name string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) {
-		eval.RegisterGoFunction(buildFunction(name, localTypes, creators))
-	}
-
-	eval.NewGoConstructor = func(typeName string, creators ...eval.DispatchCreator) {
-		eval.RegisterGoConstructor(buildFunction(typeName, nil, creators))
-	}
-
-	eval.NewGoConstructor2 = func(typeName string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) {
-		eval.RegisterGoConstructor(buildFunction(typeName, localTypes, creators))
+		eval.RegisterGoFunction(BuildFunction(name, localTypes, creators))
 	}
 
 	eval.MakeGoAllocator = func(allocFunc eval.DispatchFunction) eval.Lambda {
@@ -590,10 +582,10 @@ func init() {
 	}
 
 	eval.MakeGoConstructor = func(typeName string, creators ...eval.DispatchCreator) eval.ResolvableFunction {
-		return buildFunction(typeName, nil, creators)
+		return BuildFunction(typeName, nil, creators)
 	}
 
 	eval.MakeGoConstructor2 = func(typeName string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) eval.ResolvableFunction {
-		return buildFunction(typeName, localTypes, creators)
+		return BuildFunction(typeName, localTypes, creators)
 	}
 }

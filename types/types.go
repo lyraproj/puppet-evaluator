@@ -34,6 +34,19 @@ const (
 	HK_URI           = byte('U')
 	HK_VERSION       = byte('v')
 	HK_VERSION_RANGE = byte('R')
+
+	INTEGER_HEX = `(?:0[xX][0-9A-Fa-f]+)`
+	INTEGER_OCT = `(?:0[0-7]+)`
+	INTEGER_BIN = `(?:0[bB][01]+)`
+	INTEGER_DEC = `(?:0|[1-9]\d*)`
+	SIGN_PREFIX = `[+-]?\s*`
+
+	OPTIONAL_FRACTION = `(?:\.\d+)?`
+	OPTIONAL_EXPONENT = `(?:[eE]-?\d+)?`
+	FLOAT_DEC = `(?:` + INTEGER_DEC + OPTIONAL_FRACTION + OPTIONAL_EXPONENT + `)`
+
+	INTEGER_PATTERN = `\A` + SIGN_PREFIX + `(?:` + INTEGER_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
+	FLOAT_PATTERN = `\A` + SIGN_PREFIX + `(?:` + FLOAT_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
 )
 
 type objectTypeAndCtor struct {
@@ -262,6 +275,14 @@ var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 var resolvableTypes = make([]eval.ResolvableType, 0, 16)
 var resolvableTypesLock sync.Mutex
 
+type BuildFunctionArgs struct {
+	Name string
+	LocalTypes eval.LocalTypesCreator
+	Creators []eval.DispatchCreator
+}
+
+var constructorsDecls = make([]*BuildFunctionArgs, 0, 16)
+
 func init() {
 	// "resolve" the dataType and richDataType
 	dataArrayType_DEFAULT.typ = dataType_DEFAULT
@@ -318,8 +339,17 @@ func init() {
 	}
 
 	eval.RegisterResolvableType = registerResolvableType
-
+	eval.NewGoConstructor = newGoConstructor
+	eval.NewGoConstructor2 = newGoConstructor2
 	eval.WrapUnknown = wrap
+}
+
+func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
+	registerGoConstructor(&BuildFunctionArgs{typeName, nil, creators})
+}
+
+func newGoConstructor2(typeName string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) {
+	registerGoConstructor(&BuildFunctionArgs{typeName, localTypes, creators})
 }
 
 func PopDeclaredTypes() (types []eval.ResolvableType) {
@@ -330,6 +360,22 @@ func PopDeclaredTypes() (types []eval.ResolvableType) {
 	}
 	resolvableTypesLock.Unlock()
 	return
+}
+
+func PopDeclaredConstructors() (ctorDecls []*BuildFunctionArgs) {
+	resolvableTypesLock.Lock()
+	ctorDecls = constructorsDecls
+	if len(ctorDecls) > 0 {
+		constructorsDecls = make([]*BuildFunctionArgs, 0, 16)
+	}
+	resolvableTypesLock.Unlock()
+	return
+}
+
+func registerGoConstructor(ctorDecl *BuildFunctionArgs) {
+	resolvableTypesLock.Lock()
+	constructorsDecls = append(constructorsDecls, ctorDecl)
+	resolvableTypesLock.Unlock()
 }
 
 func registerResolvableType(tp eval.ResolvableType) {

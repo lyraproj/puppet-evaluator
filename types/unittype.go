@@ -14,6 +14,15 @@ func init() {
 	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 		return DefaultUnitType()
 	})
+
+	newGoConstructor(`Unit`,
+		func(d eval.Dispatch) {
+			d.Param(`Any`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return args[0]
+			})
+		},
+	)
 }
 
 func DefaultUnitType() *UnitType {

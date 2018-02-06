@@ -58,6 +58,90 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewHashType2(args...)
 		})
+
+	newGoConstructor2(`Hash`,
+		func(t eval.LocalTypes) {
+			t.Type(`KeyValueArray`, `Array[Tuple[Any,Any],1]`)
+			t.Type(`TreeArray`,     `Array[Tuple[Array,Any],1]`)
+			t.Type(`NewHashOption`, `Enum[tree, hash_tree]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`TreeArray`)
+			d.OptionalParam(`NewHashOption`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				if len(args) < 2 {
+					return WrapHashFromArray(args[0].(*ArrayValue))
+				}
+				allHashes := args[1].String() == `hash_tree`
+				result := NewMutableHash()
+				args[0].(*ArrayValue).Each(func(entry eval.PValue) {
+					tpl := entry.(*ArrayValue)
+					path := tpl.At(0).(*ArrayValue)
+					value := tpl.At(1)
+					if path.IsEmpty() {
+						// root node (index [] was included - values merge into the result)
+						//  An array must be changed to a hash first as this is the root
+						// (Cannot return an array from a Hash.new)
+						if av, ok := value.(*ArrayValue); ok {
+							result.PutAll(IndexedFromArray(av))
+						} else {
+							if hv, ok := value.(eval.KeyedValue); ok {
+								result.PutAll(hv)
+							}
+						}
+					} else {
+						r := path.Slice(0, path.Len() - 1).Reduce2(result, func(memo, idx eval.PValue) eval.PValue {
+							if hv, ok := memo.(*MutableHashValue); ok {
+								return hv.Get3(idx, func() eval.PValue {
+									x := NewMutableHash()
+									hv.Put(idx, x)
+									return x
+								})
+							}
+							if av, ok := memo.(eval.IndexedValue); ok {
+								if ix, ok := idx.(*IntegerValue); ok {
+									return av.At(int(ix.Int()))
+								}
+							}
+							return _UNDEF
+						})
+						if hr, ok := r.(*MutableHashValue); ok {
+							if allHashes {
+								if av, ok := value.(*ArrayValue); ok {
+									value = IndexedFromArray(av)
+								}
+							}
+							hr.Put(path.At(path.Len()-1), value)
+						}
+					}
+				})
+				return &result.HashValue
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`KeyValueArray`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return WrapHashFromArray(args[0].(*ArrayValue))
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Iterable`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				arg := args[0]
+				switch arg.(type) {
+				case *ArrayValue:
+					return WrapHashFromArray(arg.(*ArrayValue))
+				case *HashValue:
+					return arg
+				default:
+					return WrapHashFromArray(arg.(eval.IterableValue).Iterator().AsArray().(*ArrayValue))
+				}
+			})
+		},
+	)
 }
 
 func DefaultHashType() *HashType {
@@ -403,6 +487,14 @@ func (he *HashEntry) Slice(i int, j int) eval.IndexedValue {
 	return he
 }
 
+func (he *HashEntry) Reduce(redactor eval.BiMapper) eval.PValue {
+	return redactor(he.key, he.value)
+}
+
+func (he *HashEntry) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	return redactor(redactor(initialValue, he.key), he.value)
+}
+
 func (he *HashEntry) Reject(predicate eval.Predicate) eval.IndexedValue {
 	if predicate(he.key) {
 		if predicate(he.value) {
@@ -521,6 +613,15 @@ func WrapHashFromArray(a *ArrayValue) *HashValue {
 		})
 		return WrapHash(entries)
 	}
+}
+
+func IndexedFromArray(a *ArrayValue) *HashValue {
+	top := a.Len()
+	entries := make([]*HashEntry, top)
+	a.EachWithIndex(func(v eval.PValue, idx int) {
+		entries[idx] = WrapHashEntry(WrapInteger(int64(idx)), v)
+	})
+	return WrapHash(entries)
 }
 
 func SingletonHash(key, value eval.PValue) *HashValue {
@@ -698,6 +799,17 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.KeyedValue {
 		}
 	}
 	return WrapHash(selected)
+}
+
+func (hv *HashValue) Reduce(redactor eval.BiMapper) eval.PValue {
+	if hv.IsEmpty() {
+		return _UNDEF
+	}
+	return reduceEntries(hv.entries[1:], hv.At(0), redactor)
+}
+
+func (hv *HashValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	return reduceEntries(hv.entries, initialValue, redactor)
 }
 
 func (hv *HashValue) Reject(predicate eval.Predicate) eval.IndexedValue {
@@ -1039,9 +1151,13 @@ func (hv *HashValue) valueIndex() map[eval.HashKey]int {
 	return hv.index
 }
 
+func NewMutableHash() *MutableHashValue {
+	return &MutableHashValue{HashValue{entries:make([]*HashEntry, 0, 7)}}
+}
+
 // PutAll merges the given hash into this hash (mutates the hash). The method
 // is not thread safe
-func (hv *MutableHashValue) PutAll(o *HashValue) {
+func (hv *MutableHashValue) PutAll(o eval.KeyedValue) {
 	hv.entries = hv.mergeEntries(o)
 	hv.detailedType = nil
 	hv.index = nil
@@ -1050,4 +1166,12 @@ func (hv *MutableHashValue) PutAll(o *HashValue) {
 // Put adds or replaces the given key/value association in this hash
 func (hv *MutableHashValue) Put(key, value eval.PValue) {
 	hv.PutAll(WrapHash([]*HashEntry{{key, value}}))
+}
+
+func reduceEntries(slice []*HashEntry, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	memo := initialValue
+	for _, v := range	slice {
+		memo = redactor(memo, v)
+	}
+	return memo
 }

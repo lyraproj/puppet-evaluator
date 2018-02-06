@@ -68,6 +68,8 @@ type (
 		Map(mapper Mapper) IndexedValue
 		Select(predicate Predicate) IndexedValue
 		Slice(i int, j int) IndexedValue
+		Reduce(redactor BiMapper) PValue
+		Reduce2(initialValue PValue, redactor BiMapper) PValue
 		Reject(predicate Predicate) IndexedValue
 		Unique() IndexedValue
 	}

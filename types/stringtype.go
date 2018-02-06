@@ -39,6 +39,46 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewStringType2(args...)
 		})
+
+	newGoConstructor2(`String`,
+		func(t eval.LocalTypes) {
+			t.Type2(`Format`, NewPatternType([]*RegexpType{NewRegexpTypeR(eval.FORMAT_PATTERN)}))
+			t.Type(`ContainerFormat`, `Struct[{
+          Optional[format]         => Format,
+          Optional[separator]      => String,
+          Optional[separator2]     => String,
+          Optional[string_formats] => Hash[Type, Format]
+        }]`)
+			t.Type(`TypeMap`, `Hash[Type, Variant[Format, ContainerFormat]]`)
+			t.Type(`Formats`, `Variant[Default, String[1], TypeMap]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Any`)
+			d.OptionalParam(`Formats`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				fmt := NONE
+				if len(args) > 1 {
+					var err error
+					fmt, err = eval.NewFormatContext3(args[0], args[1])
+					if err != nil {
+						panic(errors.NewIllegalArgument(`String`, 1, err.Error()))
+					}
+				}
+
+				// Convert errors on first argument to argument errors
+				defer func() {
+					if r := recover(); r != nil {
+						if ge, ok := r.(errors.GenericError); ok {
+							panic(errors.NewIllegalArgument(`String`, 0, ge.Error()))
+						}
+						panic(r)
+					}
+				}()
+				return WrapString(eval.ToString2(args[0], fmt))
+			})
+		},
+	)
 }
 
 func DefaultStringType() *StringType {
@@ -297,6 +337,18 @@ func (sv *StringValue) Map(mapper eval.Mapper) eval.IndexedValue {
 	return WrapArray(mapped)
 }
 
+func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.PValue {
+	s := sv.String()
+	if len(s) == 0 {
+		return _UNDEF
+	}
+	return reduceString(s[1:], sv.At(0), redactor)
+}
+
+func (sv *StringValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	return reduceString(sv.String(), initialValue, redactor)
+}
+
 func (sv *StringValue) Reject(predicate eval.Predicate) eval.IndexedValue {
 	selected := bytes.NewBufferString(``)
 	for _, c := range sv.String() {
@@ -415,4 +467,12 @@ func (sv *StringValue) Unique() eval.IndexedValue {
 		return sv
 	}
 	return WrapString(result.String())
+}
+
+func reduceString(slice string, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+	memo := initialValue
+	for _, v := range	slice {
+		memo = redactor(memo, WrapString(string(v)))
+	}
+	return memo
 }

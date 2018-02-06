@@ -27,6 +27,15 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewTypeType2(args...)
 		})
+
+	newGoConstructor(`Type`,
+		func(d eval.Dispatch) {
+			d.Param(`String`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return c.ParseType(args[0])
+			})
+		},
+	)
 }
 
 func DefaultTypeType() *TypeType {

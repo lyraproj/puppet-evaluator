@@ -99,6 +99,21 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewUriType2(args...)
 		})
+
+	newGoConstructor(`URI`,
+		func(d eval.Dispatch) {
+			d.Param(`String[1]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return WrapURI2(args[0].String())
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Hash[String[1],ScalarData]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return WrapURI(URIFromHash(args[0].(*HashValue)))
+			})
+		})
 }
 
 type (

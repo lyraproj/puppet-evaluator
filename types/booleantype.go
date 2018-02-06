@@ -153,6 +153,14 @@ func (bv *BooleanValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (bv *BooleanValue) Float() float64 {
+	return float64(bv.value)
+}
+
+func (bv *BooleanValue) Int() int64 {
+	return int64(bv.value)
+}
+
 func (bv *BooleanValue) String() string {
 	if bv.value == 1 {
 		return `true`
@@ -172,22 +180,14 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 'Y':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `Yes`, `No`), false)
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(bv.intVal()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		WrapInteger(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(bv.floatVal()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		WrapFloat(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':
 		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), f.IsAlt())
 	default:
 		panic(s.UnsupportedFormat(bv.Type(), `tTyYdxXobBeEfgGaAsp`, f))
 	}
-}
-
-func (bv *BooleanValue) intVal() int64 {
-	return int64(bv.value)
-}
-
-func (bv *BooleanValue) floatVal() float64 {
-	return float64(bv.value)
 }
 
 func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {

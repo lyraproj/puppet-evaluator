@@ -48,6 +48,7 @@ const (
 	EVAL_NO_ATTRIBUTE_READER          = `EVAL_NO_ATTRIBUTE_READER`
 	EVAL_NO_DEFINITION                = `EVAL_NO_DEFINITION`
 	EVAL_NOT_EXPECTED_TYPESET         = `EVAL_NOT_EXPECTED_TYPESET`
+	EVAL_NOT_INTEGER                  = `EVAL_NOT_INTEGER`
 	EVAL_NOT_ONLY_DEFINITION          = `EVAL_NOT_ONLY_DEFINITION`
 	EVAL_NOT_NUMERIC                  = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE       = `EVAL_NOT_PARAMETERIZED_TYPE`
@@ -177,6 +178,8 @@ func init() {
 	issue.Hard(EVAL_NO_ATTRIBUTE_READER, `No attribute reader is implemented for %{label}`)
 
 	issue.Hard(EVAL_NO_DEFINITION, `The code loaded from %{source} does not define the %{type} '%{name}`)
+
+	issue.Hard(EVAL_NOT_INTEGER, `The value '%{value}' cannot be converted to an Integer`)
 
 	issue.Hard(EVAL_NOT_EXPECTED_TYPESET, `The code loaded from %{source} does not define the TypeSet %{name}'`)
 

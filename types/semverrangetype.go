@@ -7,6 +7,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-evaluator/errors"
 )
 
 type (
@@ -23,6 +24,72 @@ func init() {
 	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 		return DefaultSemVerRangeType()
 	})
+
+	newGoConstructor2(`SemVerRange`,
+		func(t eval.LocalTypes) {
+			t.Type(`SemVerRangeString`, `String[1]`)
+			t.Type(`SemVerRangeHash`, `Struct[min=>Variant[Default,SemVer],Optional[max]=>Variant[Default,SemVer],Optional[exclude_max]=>Boolean]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`SemVerRangeString`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				v, err := semver.ParseVersionRange(args[0].String())
+				if err != nil {
+					panic(errors.NewIllegalArgument(`SemVerRange`, 0, err.Error()))
+				}
+				return WrapSemVerRange(v)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Variant[Default,SemVer]`)
+			d.Param(`Variant[Default,SemVer]`)
+			d.OptionalParam(`Boolean`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				var start *semver.Version
+				if _, ok := args[0].(*DefaultValue); ok {
+					start = semver.MIN
+				} else {
+					start = args[0].(*SemVerValue).Version()
+				}
+				var end *semver.Version
+				if _, ok := args[1].(*DefaultValue); ok {
+					end = semver.MAX
+				} else {
+					end = args[1].(*SemVerValue).Version()
+				}
+				excludeEnd := false
+				if len(args) > 2 {
+					excludeEnd = args[2].(*BooleanValue).Bool()
+				}
+				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`SemVerRangeHash`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hash := args[0].(*HashValue)
+				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
+
+				var end *semver.Version
+				ev := hash.Get5(`max`, nil)
+				if ev == nil {
+					end = semver.MAX
+				} else {
+					end = ev.(*SemVerValue).Version()
+				}
+
+				excludeEnd := false
+				ev = hash.Get5(`excludeMax`, nil)
+				if ev != nil {
+					excludeEnd = ev.(*BooleanValue).Bool()
+				}
+				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
+			})
+		},
+	)
 }
 
 func DefaultSemVerRangeType() *SemVerRangeType {

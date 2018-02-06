@@ -9,6 +9,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -41,6 +42,80 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewIntegerType2(args...)
 		})
+
+	newGoConstructor2(`Integer`,
+		func(t eval.LocalTypes) {
+			t.Type(`Radix`, `Variant[Default, Integer[2,2], Integer[8,8], Integer[10,10], Integer[16,16]]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + INTEGER_PATTERN + `/], Timespan, Timestamp]`)
+			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[radix] => Radix, Optional[abs] => Boolean}]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Convertible`)
+			d.OptionalParam(`Radix`)
+			d.OptionalParam(`Boolean`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				r := 10
+				abs := false
+				if len(args) > 1 {
+					if radix, ok := args[1].(*IntegerValue); ok {
+						r = int(radix.Int())
+					}
+					if len(args) > 2 {
+						abs = args[2].(*BooleanValue).Bool()
+					}
+				}
+				n := intFromConvertible(args[0], r)
+				if abs && n < 0 {
+					n = -n
+				}
+				return WrapInteger(n)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`NamedArgs`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				h := args[0].(*HashValue)
+				r := 10
+				abs := false
+				if rx, ok := h.Get4(`radix`); ok {
+					if radix, ok := rx.(*IntegerValue); ok {
+						r = int(radix.Int())
+					}
+				}
+				if ab, ok := h.Get4(`abs`); ok {
+					abs = ab.(*BooleanValue).Bool()
+				}
+				n := intFromConvertible(h.Get5(`from`, _UNDEF), r)
+				if abs && n < 0 {
+					n = -n
+				}
+				return WrapInteger(n)
+			})
+		},
+	)
+}
+
+func intFromConvertible(from eval.PValue, radix int) int64 {
+	switch from.(type) {
+	case *IntegerValue:
+		return from.(*IntegerValue).Int()
+	case *FloatValue:
+		return from.(*FloatValue).Int()
+	case *TimestampValue:
+		return from.(*TimestampValue).Int()
+	case *TimespanValue:
+		return from.(*TimespanValue).Int()
+	case *BooleanValue:
+		return from.(*BooleanValue).Int()
+	default:
+		i, err := strconv.ParseInt(from.String(), radix, 64)
+		if err == nil {
+			return i
+		}
+		panic(eval.Error(eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
+	}
 }
 
 func DefaultIntegerType() *IntegerType {

@@ -18,6 +18,50 @@ func init() {
 	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 		return DefaultBinaryType()
 	})
+
+	newGoConstructor2(`Binary`,
+		func(t eval.LocalTypes) {
+			t.Type(`ByteInteger`, `Integer[0,255]`)
+			t.Type(`Base64Format`, `Enum['%b', '%u', '%B', '%s', '%r']`)
+			t.Type(`StringHash`, `Struct[value => String, format => Optional[Base64Format]]`)
+			t.Type(`ArrayHash`, `Struct[value => Array[ByteInteger]]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`String`)
+			d.OptionalParam(`Base64Format`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				str := args[0].String()
+				f := `%B`
+				if len(args) > 1 {
+					f = args[1].String()
+				}
+				return BinaryFromString(str, f)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Array[ByteInteger]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return BinaryFromArray(args[0].(eval.IndexedValue))
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`StringHash`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				hv := args[0].(eval.KeyedValue)
+				return BinaryFromString(hv.Get5(`value`, eval.UNDEF).String(), hv.Get5(`format`, eval.UNDEF).String())
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`ArrayHash`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return BinaryFromArray(args[0].(eval.IndexedValue))
+			})
+		},
+	)
 }
 
 type (

@@ -6,6 +6,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/impl"
 )
 
 type (
@@ -26,7 +27,6 @@ type (
 )
 
 var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
-var resolvableConstructors = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
@@ -45,12 +45,6 @@ func init() {
 		resolvableFunctionsLock.Unlock()
 	}
 
-	eval.RegisterGoConstructor = func(function eval.ResolvableFunction) {
-		resolvableFunctionsLock.Lock()
-		resolvableConstructors = append(resolvableConstructors, function)
-		resolvableFunctionsLock.Unlock()
-	}
-
 	eval.NewLoaderEntry = func(value interface{}, origin string) eval.Entry {
 		return &loaderEntry{value, origin}
 	}
@@ -58,15 +52,11 @@ func init() {
 	eval.Load = load
 }
 
-func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction, ctors []eval.ResolvableFunction) {
+func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {
 	resolvableFunctionsLock.Lock()
 	funcs = resolvableFunctions
 	if len(funcs) > 0 {
 		resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
-	}
-	ctors = resolvableConstructors
-	if len(ctors) > 0 {
-		resolvableConstructors = make([]eval.ResolvableFunction, 0, 16)
 	}
 	resolvableFunctionsLock.Unlock()
 	return
@@ -81,21 +71,24 @@ func (e *loaderEntry) Value() interface{} {
 }
 
 func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
-	types := types.PopDeclaredTypes()
-	for _, t := range types {
+	ts := types.PopDeclaredTypes()
+	for _, t := range ts {
 		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), &loaderEntry{t, ``})
 	}
 
-	for _, t := range types {
+	for _, t := range ts {
 		t.(eval.ResolvableType).Resolve(c)
 	}
 
-	funcs, ctors := popDeclaredGoFunctions()
+	ctors := types.PopDeclaredConstructors()
+	for _, ct := range ctors {
+		rf := impl.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
+		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
+	}
+
+	funcs := popDeclaredGoFunctions()
 	for _, rf := range funcs {
 		l.SetEntry(eval.NewTypedName(eval.FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
-	}
-	for _, ct := range ctors {
-		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, ct.Name()), &loaderEntry{ct.Resolve(c), ``})
 	}
 }
 

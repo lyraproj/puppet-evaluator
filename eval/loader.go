@@ -58,5 +58,4 @@ var NewParentedLoader func(parent Loader) DefiningLoader
 var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ...PathType) ModuleLoader
 var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
 var RegisterGoFunction func(function ResolvableFunction)
-var RegisterGoConstructor func(function ResolvableFunction)
 var RegisterResolvableType func(rt ResolvableType)
