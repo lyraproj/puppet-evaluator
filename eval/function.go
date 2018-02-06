@@ -89,6 +89,8 @@ type (
 	LocalTypesCreator func(lt LocalTypes)
 )
 
+var BuildFunction func(name string, localTypes LocalTypesCreator, creators []DispatchCreator) ResolvableFunction
+
 var NewGoFunction func(name string, creators ...DispatchCreator)
 
 var NewGoFunction2 func(name string, localTypes LocalTypesCreator, creators ...DispatchCreator)

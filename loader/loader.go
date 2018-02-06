@@ -6,7 +6,6 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-evaluator/impl"
 )
 
 type (
@@ -82,7 +81,7 @@ func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
 
 	ctors := types.PopDeclaredConstructors()
 	for _, ct := range ctors {
-		rf := impl.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
+		rf := eval.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
 		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
 	}
 
