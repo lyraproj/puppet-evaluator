@@ -74,6 +74,9 @@ const (
 	EVAL_TASK_NO_EXECUTABLE_FOUND                  = `EVAL_TASK_NO_EXECUTABLE_FOUND`
 	EVAL_TASK_NOT_JSON_OBJECT                      = `EVAL_TASK_NOT_JSON_OBJECT`
 	EVAL_TASK_TOO_MANY_FILES                       = `EVAL_TASK_TOO_MANY_FILES`
+	EVAL_TIMESPAN_BAD_FSPEC                        = `EVAL_TIMESPAN_BAD_FSPEC`
+	EVAL_TIMESPAN_CANNOT_BE_PARSED                 = `EVAL_TIMESPAN_CANNOT_BE_PARSED`
+	EVAL_TIMESPAN_FSPEC_NOT_HIGHER                 = `EVAL_TIMESPAN_FSPEC_NOT_HIGHER`
 	EVAL_TYPE_MISMATCH                             = `EVAL_TYPE_MISMATCH`
 	EVAL_UNABLE_TO_DESERIALIZE_TYPE                = `EVAL_UNABLE_TO_DESERIALIZE_TYPE`
 	EVAL_UNABLE_TO_DESERIALIZE_VALUE               = `EVAL_UNABLE_TO_DESERIALIZE_VALUE`
@@ -234,6 +237,12 @@ func init() {
 	issue.Hard(EVAL_TASK_NOT_JSON_OBJECT, `The content of '%{path}' does not represent a JSON Object`)
 
 	issue.Hard(EVAL_TASK_TOO_MANY_FILES, `Only one file can exists besides the .json file for task %{name} in directory %{directory}`)
+
+	issue.Hard(EVAL_TIMESPAN_BAD_FSPEC, `Bad format specifier '%{expression}' in '%{format}', at position %{position}`)
+
+	issue.Hard(EVAL_TIMESPAN_CANNOT_BE_PARSED, `Unable to parse '%{str}' using any of the formats %{formats}`)
+
+	issue.Hard(EVAL_TIMESPAN_FSPEC_NOT_HIGHER, `Format specifiers %L and %N denotes fractions and must be used together with a specifier of higher magnitude`)
 
 	issue.Hard(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 

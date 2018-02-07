@@ -35,6 +35,28 @@ func init() {
 }`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return NewFloatType2(args...)
 		})
+
+	newGoConstructor2(`Float`,
+		func(t eval.LocalTypes) {
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + FLOAT_PATTERN + `/], Timespan, Timestamp]`)
+			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[abs] => Boolean}]`)
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`Convertible`)
+			d.OptionalParam(`Boolean`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return numberFromPositionalArgs(args, false)
+			})
+		},
+
+		func(d eval.Dispatch) {
+			d.Param(`NamedArgs`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				return numberFromNamedArgs(args, false)
+			})
+		},
+	)
 }
 
 func DefaultFloatType() *FloatType {

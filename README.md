@@ -113,7 +113,7 @@ directory.
 * [x] Struct
 * [x] Target
 * [x] Task
-* [ ] Timespan
+* [x] Timespan
 * [ ] Timestamp
 * [x] Tuple
 * [x] Type

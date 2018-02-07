@@ -175,5 +175,4 @@ func match(lhs parser.Expression, rhs parser.Expression, operator string, scope 
 		result = !result
 	}
 	return result
-
 }

@@ -22,20 +22,14 @@ func init() {
 
 	newGoConstructor2(`Numeric`,
 		func(t eval.LocalTypes) {
-			t.Type(`Convertible`, `Variant[Undef, Integer, Float, Boolean, String, Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + FLOAT_PATTERN + `/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[from => Convertible, Optional[abs] => Boolean]`)
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				h := args[0].(*HashValue)
-				n := fromConvertible(h.Get5(`from`, eval.UNDEF))
-				a := h.Get5(`abs`, nil)
-				if a != nil && a.(*BooleanValue).Bool() {
-					n = n.Abs()
-				}
-				return n
+				return numberFromNamedArgs(args, true)
 			})
 		},
 
@@ -43,14 +37,28 @@ func init() {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				n := fromConvertible(args[0])
-				if len(args) > 1 && args[1].(*BooleanValue).Bool() {
-					n = n.Abs()
-				}
-				return n
+				return numberFromPositionalArgs(args, true)
 			})
 		},
 	)
+}
+
+func numberFromPositionalArgs(args []eval.PValue, tryInt bool) eval.NumericValue {
+	n := fromConvertible(args[0], tryInt)
+	if len(args) > 1 && args[1].(*BooleanValue).Bool() {
+		n = n.Abs()
+	}
+	return n
+}
+
+func numberFromNamedArgs(args []eval.PValue, tryInt bool) eval.NumericValue {
+	h := args[0].(*HashValue)
+	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
+	a := h.Get5(`abs`, nil)
+	if a != nil && a.(*BooleanValue).Bool() {
+		n = n.Abs()
+	}
+	return n
 }
 
 func DefaultNumericType() *NumericType {
@@ -104,33 +112,40 @@ func (t *NumericType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func fromConvertible(c eval.PValue) eval.NumericValue {
+func fromConvertible(c eval.PValue, allowInt bool) eval.NumericValue {
 	switch c.(type) {
-	case *UndefValue:
-		panic(`undefined_value`)
-	case eval.NumericValue:
-		return c.(eval.NumericValue)
+	case *IntegerValue:
+		iv := c.(*IntegerValue)
+		if allowInt {
+			return iv
+		}
+		return WrapFloat(iv.Float())
 	case *TimestampValue:
 		return WrapFloat(c.(*TimestampValue).Float())
 	case *TimespanValue:
 		return WrapFloat(c.(*TimespanValue).Float())
 	case *BooleanValue:
-		b := c.(*BooleanValue).Bool()
-		if b {
-			return WrapInteger(1)
+		if allowInt {
+			return WrapInteger(c.(*BooleanValue).Int())
 		}
-		return WrapInteger(0)
+		return WrapFloat(c.(*BooleanValue).Float())
+	case eval.NumericValue:
+		return c.(eval.NumericValue)
 	case *StringValue:
 		s := c.String()
-		if i, err := strconv.ParseInt(s, 0, 64); err == nil {
-			return WrapInteger(i)
+		if allowInt {
+			if i, err := strconv.ParseInt(s, 0, 64); err == nil {
+				return WrapInteger(i)
+			}
 		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			return WrapFloat(f)
 		}
-		if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {
-			if i, err := strconv.ParseInt(s[2:], 2, 64); err == nil {
-				return WrapInteger(i)
+		if allowInt {
+			if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {
+				if i, err := strconv.ParseInt(s[2:], 2, 64); err == nil {
+					return WrapInteger(i)
+				}
 			}
 		}
 	}
