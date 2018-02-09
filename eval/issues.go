@@ -36,6 +36,7 @@ const (
 	EVAL_INVALID_STRING_FORMAT_SPEC                = `EVAL_INVALID_STRING_FORMAT_SPEC`
 	EVAL_INVALID_STRING_FORMAT_DELIMITER           = `EVAL_INVALID_STRING_FORMAT_DELIMITER`
 	EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG       = `EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG`
+	EVAL_INVALID_TIMEZONE                          = `EVAL_INVALID_TIMEZONE`
 	EVAL_INVALID_URI                               = `EVAL_INVALID_URI`
 	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP             = `EVAL_MATCH_NOT_REGEXP`
@@ -54,6 +55,7 @@ const (
 	EVAL_NOT_NUMERIC                  = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE       = `EVAL_NOT_PARAMETERIZED_TYPE`
 	EVAL_NOT_SEMVER                   = `EVAL_NOT_SEMVER`
+	EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT = `EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT`
 	EVAL_OBJECT_INHERITS_SELF         = `EVAL_OBJECT_INHERITS_SELF`
 	EVAL_OPERATOR_NOT_APPLICABLE                   = `EVAL_OPERATOR_NOT_APPLICABLE`
 	EVAL_OPERATOR_NOT_APPLICABLE_WHEN              = `EVAL_OPERATOR_NOT_APPLICABLE_WHEN`
@@ -77,6 +79,8 @@ const (
 	EVAL_TIMESPAN_BAD_FSPEC                        = `EVAL_TIMESPAN_BAD_FSPEC`
 	EVAL_TIMESPAN_CANNOT_BE_PARSED                 = `EVAL_TIMESPAN_CANNOT_BE_PARSED`
 	EVAL_TIMESPAN_FSPEC_NOT_HIGHER                 = `EVAL_TIMESPAN_FSPEC_NOT_HIGHER`
+	EVAL_TIMESTAMP_CANNOT_BE_PARSED                = `EVAL_TIMESTAMP_CANNOT_BE_PARSED`
+	EVAL_TIMESTAMP_TZ_AMBIGUITY                    = `EVAL_TIMESTAMP_TZ_AMBIGUITY`
 	EVAL_TYPE_MISMATCH                             = `EVAL_TYPE_MISMATCH`
 	EVAL_UNABLE_TO_DESERIALIZE_TYPE                = `EVAL_UNABLE_TO_DESERIALIZE_TYPE`
 	EVAL_UNABLE_TO_DESERIALIZE_VALUE               = `EVAL_UNABLE_TO_DESERIALIZE_VALUE`
@@ -159,6 +163,8 @@ func init() {
 
 	issue.Hard(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, `The same flag can only be used once in a string format, got '%{format}'`)
 
+	issue.Hard(EVAL_INVALID_TIMEZONE, `Unable to load timezone '%{zone}': %{detail}`)
+
 	issue.Hard(EVAL_INVALID_URI, `Cannot parse an URI from string '%{str}': '%{detail}'`)
 
 	issue.Hard(EVAL_LHS_MUST_BE_QREF, `Expression to the left of [] expression must be a Type name`)
@@ -197,6 +203,8 @@ func init() {
 		issue.HF{`type`: parser.A_anUc})
 
 	issue.Hard(EVAL_NOT_SEMVER, `The value cannot be converted to semantic version. Caused by '%{detail}'`)
+
+	issue.Hard(EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, `The format specifier '%{format_specifier}' "%{description}" can not be converted to a Go Time Layout`)
 
 	issue.Hard2(EVAL_OPERATOR_NOT_APPLICABLE, `Operator '%{operator}' is not applicable to %{left}`,
 		issue.HF{`left`: parser.A_an})
@@ -240,9 +248,13 @@ func init() {
 
 	issue.Hard(EVAL_TIMESPAN_BAD_FSPEC, `Bad format specifier '%{expression}' in '%{format}', at position %{position}`)
 
-	issue.Hard(EVAL_TIMESPAN_CANNOT_BE_PARSED, `Unable to parse '%{str}' using any of the formats %{formats}`)
+	issue.Hard(EVAL_TIMESPAN_CANNOT_BE_PARSED, `Unable to parse Timespan '%{str}' using any of the formats %{formats}`)
 
 	issue.Hard(EVAL_TIMESPAN_FSPEC_NOT_HIGHER, `Format specifiers %L and %N denotes fractions and must be used together with a specifier of higher magnitude`)
+
+	issue.Hard(EVAL_TIMESTAMP_CANNOT_BE_PARSED, `Unable to parse Timestamp '%{str}' using any of the formats %{formats}`)
+
+	issue.Hard(EVAL_TIMESTAMP_TZ_AMBIGUITY, `Parsed timezone '%{parsed}' conflicts with provided timezone argument %{given}`)
 
 	issue.Hard(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 

@@ -101,7 +101,7 @@ func init() {
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				formats := DEFAULT_TIMESPAN_FORMATS
 				if len(args) > 1 {
-					formats = toTimestampFormats(args[1])
+					formats = toTimespanFormats(args[1])
 				}
 
 				return ParseTimespan(args[0].String(), formats)
@@ -141,7 +141,7 @@ func init() {
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				hash := args[0].(*HashValue)
 				str := hash.Get5(`string`, _EMPTY_STRING)
-				formats := toTimestampFormats(hash.Get5(`format`, _UNDEF))
+				formats := toTimespanFormats(hash.Get5(`format`, _UNDEF))
 				return ParseTimespan(str.String(), formats)
 			})
 		},
@@ -1067,7 +1067,7 @@ func (s *nanosecondSegment) ordinal() int {
 	return NSEC_MAX
 }
 
-func toTimestampFormats(fmt eval.PValue) []*TimespanFormat {
+func toTimespanFormats(fmt eval.PValue) []*TimespanFormat {
 	formats := DEFAULT_TIMESPAN_FORMATS
 	switch fmt.(type) {
 	case *ArrayValue:

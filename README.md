@@ -94,6 +94,7 @@ directory.
 * [x] Error
 * [x] Float
 * [x] Hash
+* [x] Init
 * [x] Integer
 * [x] Iterable
 * [x] Iterator
@@ -114,7 +115,7 @@ directory.
 * [x] Target
 * [x] Task
 * [x] Timespan
-* [ ] Timestamp
+* [x] Timestamp
 * [x] Tuple
 * [x] Type
 * [x] Unit
