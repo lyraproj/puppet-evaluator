@@ -174,7 +174,7 @@ directory.
 * [ ] tree_each
 * [x] type
 * [ ] unique
-* [ ] unwrap
+* [x] unwrap
 * [ ] versioncmp
 * [x] warning
 * [x] with

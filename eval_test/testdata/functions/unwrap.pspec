@@ -1,0 +1,13 @@
+Examples('the unwrap function',
+  Example('unwraps a sensitive value',
+    Given(`Sensitive('12345').unwrap`),
+    Evaluates_to('12345')),
+
+  Example('unwraps a sensitive value and calls given block',
+    Given(@(SRC)),
+      Sensitive('12345').unwrap |$unwrapped| {
+        $unwrapped.split(/3/)
+      }
+      |SRC
+    Evaluates_to(['12', '45'])),
+)
