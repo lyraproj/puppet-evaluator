@@ -23,8 +23,7 @@ type (
 	RegexpValue RegexpType
 )
 
-var regexpType_DEFAULT_PATTERN = `.*`
-var regexpType_DEFAULT = &RegexpType{pattern: regexp.MustCompile(regexpType_DEFAULT_PATTERN), patternString: regexpType_DEFAULT_PATTERN}
+var regexpType_DEFAULT = &RegexpType{pattern: regexp.MustCompile(``), patternString: ``}
 
 var Regexp_Type eval.ObjectType
 
@@ -47,7 +46,7 @@ func DefaultRegexpType() *RegexpType {
 }
 
 func NewRegexpType(patternString string) *RegexpType {
-	if patternString == regexpType_DEFAULT_PATTERN {
+	if patternString == `` {
 		return DefaultRegexpType()
 	}
 	return &RegexpType{patternString: patternString}
@@ -55,7 +54,7 @@ func NewRegexpType(patternString string) *RegexpType {
 
 func NewRegexpTypeR(pattern *regexp.Regexp) *RegexpType {
 	patternString := pattern.String()
-	if patternString == regexpType_DEFAULT_PATTERN {
+	if patternString == `` {
 		return DefaultRegexpType()
 	}
 	return &RegexpType{pattern: pattern, patternString: patternString}
@@ -95,7 +94,7 @@ func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `pattern`:
-		if t.patternString == regexpType_DEFAULT_PATTERN {
+		if t.patternString == `` {
 			return _UNDEF, true
 		}
 		return WrapString(t.patternString), true
@@ -105,12 +104,12 @@ func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
 
 func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	rx, ok := o.(*RegexpType)
-	return ok && (t.patternString == regexpType_DEFAULT_PATTERN || t.patternString == rx.patternString)
+	return ok && (t.patternString == `` || t.patternString == rx.patternString)
 }
 
 func (t *RegexpType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
-	return ok && (t.patternString == regexpType_DEFAULT_PATTERN || t.patternString == rx.PatternString())
+	return ok && (t.patternString == `` || t.patternString == rx.PatternString())
 }
 
 func (t *RegexpType) MetaType() eval.ObjectType {
@@ -122,7 +121,7 @@ func (t *RegexpType) Name() string {
 }
 
 func (t *RegexpType) Parameters() []eval.PValue {
-	if t.patternString == regexpType_DEFAULT_PATTERN {
+	if t.patternString == `` {
 		return eval.EMPTY_VALUES
 	}
 	return []eval.PValue{WrapRegexp(t.patternString)}
