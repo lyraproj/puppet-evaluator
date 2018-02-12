@@ -158,7 +158,7 @@ func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 		if ot, ok := o.(*typeMismatch); ok {
 			if ev, ok := et.expectedType.(*types.VariantType); ok {
 				if ov, ok := ot.expectedType.(*types.VariantType); ok {
-					ts := make([]eval.PType, len(ev.Types())+len(ov.Types()))
+					ts := make([]eval.PType, 0, len(ev.Types())+len(ov.Types()))
 					ts = append(ts, ev.Types()...)
 					ts = append(ts, ov.Types()...)
 					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)))
@@ -167,7 +167,7 @@ func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 				}
 			} else {
 				if ov, ok := ot.expectedType.(*types.VariantType); ok {
-					ts := make([]eval.PType, len(ev.Types())+1)
+					ts := make([]eval.PType, 0, len(ov.Types())+1)
 					ts = append(ts, et.expectedType)
 					ts = append(ts, ov.Types()...)
 					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)))
