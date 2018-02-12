@@ -166,6 +166,7 @@ directory.
 * [ ] reverse_each
 * [ ] scanf
 * [ ] slice
+* [x] split
 * [ ] step
 * [x] sprintf
 * [x] strftime

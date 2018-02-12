@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"regexp"
 )
 
 type (
@@ -434,6 +435,15 @@ func (sv *StringValue) Len() int {
 
 func (sv *StringValue) Slice(i int, j int) eval.IndexedValue {
 	return WrapString(sv.String()[i:j])
+}
+
+func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
+	strings := pattern.Split(sv.String(), -1)
+	result := make([]eval.PValue, len(strings))
+	for i, s := range strings {
+		result[i] = WrapString(s)
+	}
+	return WrapArray(result)
 }
 
 func (sv *StringValue) String() string {
