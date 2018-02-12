@@ -419,6 +419,10 @@ func (tv *TimespanValue) Float() float64 {
 	return float64(tv.totalNanoseconds()) / float64(NSECS_PER_SEC)
 }
 
+func (tv *TimespanValue) Format(format string) string {
+	return DefaultTimespanFormatParser.ParseFormat(format).format(tv)
+}
+
 // Int returns the total number of seconds
 func (tv *TimespanValue) Int() int64 {
 	return tv.totalSeconds()
@@ -985,7 +989,7 @@ func (s *fragmentSegment) createFormat() string {
 	if w < 0 {
 		w = s.defaultWidth
 	}
-	return fmt.Sprintf(`-%%%dd`, w)
+	return fmt.Sprintf(`%%-%dd`, w)
 }
 
 func (s *fragmentSegment) nanoseconds(group string, multiplier int) int64 {

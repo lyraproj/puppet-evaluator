@@ -285,20 +285,14 @@ func ParseTimestamp(str string, formats []*TimestampFormat, tz string) *Timestam
 }
 
 func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bool) {
-	var ts time.Time
-	var err error
-	var loc *time.Location
 	usedTz := tz
 	if usedTz == `` {
 		usedTz = `UTC`
 	}
-	loc, err = time.LoadLocation(usedTz)
-	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_TIMEZONE, issue.H{`zone`: usedTz, `detail`: err.Error()}))
-	}
+	loc := loadLocation(usedTz)
 
 	for _, f := range formats {
-		ts, err = time.ParseInLocation(f.layout, str, loc)
+		ts, err := time.ParseInLocation(f.layout, str, loc)
 		if err == nil {
 			if usedTz != ts.Location().String() {
 				if tz != `` {
@@ -318,6 +312,14 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 	return time.Time{}, false
 }
 
+func loadLocation(tz string) *time.Location {
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		panic(eval.Error(eval.EVAL_INVALID_TIMEZONE, issue.H{`zone`: tz, `detail`: err.Error()}))
+	}
+	return loc
+}
+
 func (tv *TimestampValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*TimestampValue); ok {
 		return tv.Int() == ov.Int()
@@ -335,6 +337,14 @@ func (tv *TimestampValue) Float() float64 {
 	// Fall back to microsecond precision
 	us := tv.min.Unix()*1000000 + int64(tv.min.Nanosecond())/1000
 	return float64(us) / 1000000.0
+}
+
+func (tv *TimestampValue) Format(format string) string {
+	return DefaultTimestampFormatParser.ParseFormat(format).Format(tv)
+}
+
+func (tv *TimestampValue) Format2(format, tz string) string {
+	return DefaultTimestampFormatParser.ParseFormat(format).Format2(tv, tz)
 }
 
 func (tv *TimestampValue) Time() time.Time {
@@ -450,6 +460,14 @@ func (p *TimestampFormatParser) ParseFormat(format string) *TimestampFormat  {
 	fmt := &TimestampFormat{format, bld.String()}
 	p.formats[format] = fmt
 	return fmt
+}
+
+func (f *TimestampFormat) Format(t *TimestampValue) string {
+	return t.min.Format(f.layout)
+}
+
+func (f *TimestampFormat) Format2(t *TimestampValue, tz string) string {
+	return t.min.In(loadLocation(tz)).Format(f.layout)
 }
 
 func strftimeToLayout(bld *bytes.Buffer, str string)  {

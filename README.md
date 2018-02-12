@@ -168,7 +168,7 @@ directory.
 * [ ] slice
 * [ ] step
 * [x] sprintf
-* [ ] strftime
+* [x] strftime
 * [ ] then
 * [ ] tree_each
 * [x] type
