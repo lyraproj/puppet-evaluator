@@ -153,7 +153,7 @@ directory.
 * [x] info
 * [ ] inline_epp
 * [ ] json_data
-* [ ] lest
+* [x] lest
 * [ ] lookup
 * [x] map
 * [ ] match
