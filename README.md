@@ -170,7 +170,7 @@ directory.
 * [ ] step
 * [x] sprintf
 * [x] strftime
-* [ ] then
+* [x] then
 * [ ] tree_each
 * [x] type
 * [ ] unique
