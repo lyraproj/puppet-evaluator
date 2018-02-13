@@ -43,8 +43,8 @@ func NewPatternType3(regexps eval.IndexedValue) *PatternType {
 	case 0:
 		return DefaultPatternType()
 	case 1:
-		if iv, ok := regexps.At(0).(eval.IndexedValue); ok {
-			return NewPatternType3(iv)
+		if av, ok := regexps.At(0).(*ArrayValue); ok {
+			return NewPatternType3(av)
 		}
 	}
 
@@ -91,6 +91,10 @@ func (t *PatternType) Get(key string) (value eval.PValue, ok bool) {
 }
 
 func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
+	if _, ok := o.(*PatternType); ok {
+    return len(t.regexps) == 0
+	}
+
 	if st, ok := o.(*StringType); ok {
 		if len(t.regexps) == 0 {
 			return true
@@ -132,6 +136,14 @@ func (t *PatternType) Parameters() []eval.PValue {
 		rxs[idx] = WrapRegexp(rx.patternString)
 	}
 	return rxs
+}
+
+func (t *PatternType) Patterns() *ArrayValue {
+	rxs := make([]eval.PValue, len(t.regexps))
+	for idx, rx := range t.regexps {
+		rxs[idx] = rx
+	}
+	return WrapArray(rxs)
 }
 
 func (t *PatternType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
