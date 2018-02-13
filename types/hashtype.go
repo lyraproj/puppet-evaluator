@@ -437,6 +437,10 @@ func (he *HashEntry) Find(predicate eval.Predicate) (eval.PValue, bool) {
 	return nil, false
 }
 
+func (he *HashEntry) Flatten() eval.IndexedValue {
+	return WrapArray([]eval.PValue{he.key, he.value}).Flatten()
+}
+
 func (he *HashEntry) IsEmpty() bool {
 	return false
 }
@@ -771,6 +775,14 @@ func (hv *HashValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (hv *HashValue) Flatten() eval.IndexedValue {
+	els := make([]eval.PValue, 0, len(hv.entries) * 2)
+	for _, he := range hv.entries {
+		els = append(els, he.key, he.value)
+	}
+	return WrapArray(els).Flatten()
 }
 
 func (hv *HashValue) Map(mapper eval.Mapper) eval.IndexedValue {

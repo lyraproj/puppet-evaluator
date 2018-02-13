@@ -65,6 +65,7 @@ type (
 		EachSlice(int, SliceConsumer)
 		EachWithIndex(consumer IndexedConsumer)
 		Find(predicate Predicate) (PValue, bool)
+		Flatten() IndexedValue
 		Map(mapper Mapper) IndexedValue
 		Select(predicate Predicate) IndexedValue
 		Slice(i int, j int) IndexedValue

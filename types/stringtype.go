@@ -285,14 +285,12 @@ func (sv *StringValue) At(i int) eval.PValue {
 	return _UNDEF
 }
 
-func (sv *StringValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
-	for _, c := range sv.String() {
-		e := WrapString(string(c))
-		if predicate(e) {
-			return e, true
-		}
-	}
-	return nil, false
+func (sv *StringValue) Delete(v eval.PValue) eval.IndexedValue {
+	panic(`Operation not supported`)
+}
+
+func (sv *StringValue) DeleteAll(tv eval.IndexedValue) eval.IndexedValue {
+	panic(`Operation not supported`)
 }
 
 func (sv *StringValue) Elements() []eval.PValue {
@@ -327,6 +325,47 @@ func (sv *StringValue) EachWithIndex(consumer eval.IndexedConsumer) {
 	for i, c := range sv.String() {
 		consumer(WrapString(string(c)), i)
 	}
+}
+
+func (sv *StringValue) ElementType() eval.PType {
+	return ONE_CHAR_STRING_TYPE
+}
+
+func (sv *StringValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(*StringValue); ok {
+		return sv.String() == ov.String()
+	}
+	return false
+}
+
+func (sv *StringValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
+	for _, c := range sv.String() {
+		e := WrapString(string(c))
+		if predicate(e) {
+			return e, true
+		}
+	}
+	return nil, false
+}
+
+func (sv *StringValue) Flatten() eval.IndexedValue {
+	return sv
+}
+
+func (sv *StringValue) IsEmpty() bool {
+	return sv.Len() == 0
+}
+
+func (sv *StringValue) IsHashStyle() bool {
+	return false
+}
+
+func (sv *StringValue) Iterator() eval.Iterator {
+	return &indexedIterator{ONE_CHAR_STRING_TYPE, -1, sv}
+}
+
+func (sv *StringValue) Len() int {
+	return int((*StringType)(sv).Size().Min())
 }
 
 func (sv *StringValue) Map(mapper eval.Mapper) eval.IndexedValue {
@@ -370,15 +409,21 @@ func (sv *StringValue) Select(predicate eval.Predicate) eval.IndexedValue {
 	return WrapString(selected.String())
 }
 
-func (sv *StringValue) ElementType() eval.PType {
-	return ONE_CHAR_STRING_TYPE
+func (sv *StringValue) Slice(i int, j int) eval.IndexedValue {
+	return WrapString(sv.String()[i:j])
 }
 
-func (sv *StringValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*StringValue); ok {
-		return sv.String() == ov.String()
+func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
+	strings := pattern.Split(sv.String(), -1)
+	result := make([]eval.PValue, len(strings))
+	for i, s := range strings {
+		result[i] = WrapString(s)
 	}
-	return false
+	return WrapArray(result)
+}
+
+func (sv *StringValue) String() string {
+	return (*StringType)(sv).Value()
 }
 
 func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -407,47 +452,6 @@ func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	default:
 		panic(s.UnsupportedFormat(sv.Type(), `cCudspt`, f))
 	}
-}
-
-func (sv *StringValue) Delete(v eval.PValue) eval.IndexedValue {
-	panic(`Operation not supported`)
-}
-
-func (sv *StringValue) DeleteAll(tv eval.IndexedValue) eval.IndexedValue {
-	panic(`Operation not supported`)
-}
-
-func (sv *StringValue) IsEmpty() bool {
-	return sv.Len() == 0
-}
-
-func (sv *StringValue) IsHashStyle() bool {
-	return false
-}
-
-func (sv *StringValue) Iterator() eval.Iterator {
-	return &indexedIterator{ONE_CHAR_STRING_TYPE, -1, sv}
-}
-
-func (sv *StringValue) Len() int {
-	return int((*StringType)(sv).Size().Min())
-}
-
-func (sv *StringValue) Slice(i int, j int) eval.IndexedValue {
-	return WrapString(sv.String()[i:j])
-}
-
-func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
-	strings := pattern.Split(sv.String(), -1)
-	result := make([]eval.PValue, len(strings))
-	for i, s := range strings {
-		result[i] = WrapString(s)
-	}
-	return WrapArray(result)
-}
-
-func (sv *StringValue) String() string {
-	return (*StringType)(sv).Value()
 }
 
 func (sv *StringValue) ToKey() eval.HashKey {

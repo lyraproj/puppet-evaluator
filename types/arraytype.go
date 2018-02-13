@@ -409,6 +409,31 @@ func (av *ArrayValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
 	return nil, false
 }
 
+func (av *ArrayValue) Flatten() eval.IndexedValue {
+	for _, e := range av.elements {
+		switch e.(type) {
+		case *ArrayValue, *HashEntry:
+			return WrapArray(flattenElements(av.elements, make([]eval.PValue, 0, len(av.elements) * 2)))
+		}
+	}
+	return av
+}
+
+func flattenElements(elements, receiver []eval.PValue) []eval.PValue {
+	for _, e := range elements {
+		switch e.(type) {
+		case *ArrayValue:
+			receiver = flattenElements(e.(*ArrayValue).elements, receiver)
+		case *HashEntry:
+			he := e.(*HashEntry)
+			receiver = flattenElements([]eval.PValue{he.key, he.value}, receiver)
+		default:
+			receiver = append(receiver, e)
+		}
+	}
+	return receiver
+}
+
 func (av *ArrayValue) IsEmpty() bool {
 	return len(av.elements) == 0
 }
