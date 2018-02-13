@@ -1,0 +1,31 @@
+Examples('the match function',
+  Example('matches string and regular expression without captures',
+   Given(`match('abc123', /[a-z]+[1-9]+/)`),
+   Evaluates_to(['abc123'])),
+
+  Example('matches string and regular expression with captures',
+   Given(`match('abc123', /([a-z]+)([1-9]+)/)`),
+   Evaluates_to(['abc123', 'abc', '123'])),
+
+  Example('produces undef if match is not found',
+   Given(`match('abc123', /([x]+)([6]+)/)`),
+   Evaluates_to(undef)),
+
+  [ 'Pattern[/([a-z]+)([1-9]+)/]',       # regexp
+    'Pattern["([a-z]+)([1-9]+)"]',       # string
+    'Regexp[/([a-z]+)([1-9]+)/]',        # regexp type
+    'Pattern[/x9/, /([a-z]+)([1-9]+)/]', # regexp, first found matches
+  ].map |$pattern| {
+    Example("matches string and type ${pattern} with captures",
+      Given("match('abc123', $pattern)"),
+      Evaluates_to(['abc123', 'abc', '123']))
+  },
+
+  Example('matches an array of strings and yields a map of the result',
+   Given(`match(['abc123', '2a', 'xyz2'], /([a-z]+)[1-9]+/)`),
+   Evaluates_to([['abc123', 'abc'], undef, ['xyz2', 'xyz']])),
+
+  Example('raises error if Regexp type without regexp is used',
+   Given(`match('abc123', Regexp)`),
+   Evaluates_with(Error(EVAL_MISSING_REGEXP_IN_TYPE))),
+)

@@ -156,7 +156,7 @@ directory.
 * [x] lest
 * [ ] lookup
 * [x] map
-* [ ] match
+* [x] match
 * [x] new
 * [x] next
 * [x] notice

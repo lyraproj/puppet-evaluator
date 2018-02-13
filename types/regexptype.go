@@ -199,6 +199,10 @@ func (sv *RegexpValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (sv *RegexpValue) Match(s string) []string {
+	return (*RegexpType)(sv).Regexp().FindStringSubmatch(s)
+}
+
 func (sv *RegexpValue) Regexp() *regexp.Regexp {
 	return (*RegexpType)(sv).Regexp()
 }
