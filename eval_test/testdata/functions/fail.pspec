@@ -1,6 +1,6 @@
 Examples('the fail function',
   Example('errors with given argument and correct file/line info',
-    Given(NamedSource('the_file.pp', @(SRC)),
+    Given(Named_source('the_file.pp', @(SRC)),
     #
     #
     fail('too bad')
