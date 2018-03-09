@@ -7,7 +7,7 @@ Examples('regexp group variables',
     `)),
     Evaluates_to([true, 'ell'])),
 
-  Example('save/restore regexp value',
+  Example('save restore regexp value',
     Given(Unindent(`
       'abc' =~ /^([a-z])(.*)/
       $f = $1
