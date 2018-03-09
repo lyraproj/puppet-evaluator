@@ -18,10 +18,6 @@ func TestUnique(t *testing.T) {
 	UniqueValues([]eval.PValue{svec[0], svec[1]})
 }
 
-func TestFloat(t *testing.T) {
-	fmt.Printf(`%#g`, 18.0)
-}
-
 func TestInteger(t *testing.T) {
 	v := NewIntegerType(0, 0)
 	if x, ok := toInt(v); ok {
