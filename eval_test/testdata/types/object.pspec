@@ -22,6 +22,22 @@ Examples('Object type',
         |-SRC
       Evaluates_with(Notice('MyType'))),
 
+    Example('using parent name and hash',
+      Given(@(SRC)),
+        type MyType = Object{
+          attributes => {
+            p1 => String
+          }
+        }
+        type MySubType = MyType{
+          attributes => {
+            p2 => String
+          }
+        }
+        notice(MySubType)
+        |-SRC
+      Evaluates_with(Notice('MySubType'))),
+
     Example('just a hash',
       Given(@(SRC)),
         type MyType = {

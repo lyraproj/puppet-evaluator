@@ -560,30 +560,16 @@ func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.T
 				arg := ae.Keys()[0]
 				if hash, ok := arg.(*parser.LiteralHash); ok {
 					if lq, ok := ae.Operand().(*parser.QualifiedReference); ok {
-						if lq.Name() == `Object` || lq.Name() == `TypeSet` {
-							ta = createMetaType(name, lq.Name(), hash)
+						if lq.Name() == `Object` {
+							ta = createMetaType(name, lq.Name(), extractParentName(hash), hash)
+						} else if lq.Name() == `TypeSet` {
+							ta = createMetaType(name, lq.Name(), ``, hash)
 						}
 					}
 				}
 			}
 			if ta == nil {
 				ta = NewTypeAliasType(name, body, nil)
-			}
-		case *parser.LiteralHash:
-			ta = createMetaType(name, ``, body.(*parser.LiteralHash))
-		case *parser.LiteralList:
-			ll := body.(*parser.LiteralList)
-			if len(ll.Elements()) == 1 {
-				if hash, ok := ll.Elements()[0].(*parser.LiteralHash); ok {
-					ta = createMetaType(name, ``, hash)
-				}
-			}
-		case *parser.KeyedEntry:
-			ke := body.(*parser.KeyedEntry)
-			if pn, ok := ke.Key().(*parser.QualifiedReference); ok {
-				if hash, ok := ke.Value().(*parser.LiteralHash); ok {
-					ta = createMetaType(name, pn.Name(), hash)
-				}
 			}
 		}
 
@@ -596,10 +582,22 @@ func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.T
 	}
 }
 
-func createMetaType(name string, parentName string, hash *parser.LiteralHash) eval.PType {
-	if parentName == `` || parentName == `Object` {
+func extractParentName(hash *parser.LiteralHash) string {
+	for _, he := range hash.Entries() {
+		ke := he.(*parser.KeyedEntry)
+		if k, ok := ke.Key().(*parser.LiteralString); ok && k.StringValue() == `parent` {
+			if pr, ok := ke.Value().(*parser.QualifiedReference); ok {
+				return pr.Name()
+			}
+		}
+	}
+	return ``
+}
+
+func createMetaType(name string, typeName string, parentName string, hash *parser.LiteralHash) eval.PType {
+	if parentName == `` {
 		return NewObjectType(name, nil, hash)
-	} // TODO else if lq.Name() == `TypeSet`
+	} // TODO else iftypeName == `TypeSet`
 
 	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
 }
