@@ -36,7 +36,7 @@ Examples('the break function',
       if 1 == 1 {
         break()
       }`)),
-    Evaluates_with(Error(/break\(\) from context where this is illegal at line 2:3/))),
+    Evaluates_with(Error(/break\(\) from context where this is illegal \(line: 2, column: 3\)/))),
 
   Example('can be called when nested in a function to make that function behave as a break',
     Given(Unindent(`
