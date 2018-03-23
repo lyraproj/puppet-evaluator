@@ -1,0 +1,69 @@
+Examples('resource',
+  Let('resourceType', @(SRC)),
+  type MyRes = Resource {
+    attributes => {
+      ensure => { type => Optional[Enum[present,absent,file,directory,link]], value => undef }
+    }
+  }
+  |-SRC
+
+  Examples('when instantiated',
+    Example('returns array of objects',
+      Given(Format("%s\nString(myres { '/foo/bar': ensure => present })", Get('resourceType'))),
+      Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present')]`)),
+
+    Example('creates one object per title',
+      Given(Format("%s\nString(myres { ['/foo/bar', '/foo/baz']: ensure => present })", Get('resourceType'))),
+      Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present'), MyRes('title' => '/foo/baz', 'ensure' => 'present')]`)),
+
+    Example('creates one object per body',
+      Given(Format("%s\nString(myres { '/foo/bar': ensure => present; '/foo/baz': ensure => absent })", Get('resourceType'))),
+      Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present'), MyRes('title' => '/foo/baz', 'ensure' => 'absent')]`)),
+
+    Example('creates one object per title and body',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres {
+          ['/foo/bar', '/foo/baz']:
+            ensure => present;
+          ['/fu/bar', '/fu/baz']:
+            ensure => absent
+        }
+        String(get_resources())
+        |-SRC
+      Evaluates_to(@(SRC/L))),
+        [\
+        MyRes('title' => '/foo/bar', 'ensure' => 'present'), \
+        MyRes('title' => '/foo/baz', 'ensure' => 'present'), \
+        MyRes('title' => '/fu/bar', 'ensure' => 'absent'), \
+        MyRes('title' => '/fu/baz', 'ensure' => 'absent')\
+        ]
+        |-SRC
+
+    Example('same type and title cannot be instantiated twice',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/bar': ensure => present }
+        myres { '/foo/bar': ensure => file }
+        |-SRC
+      Evaluates_with(Issue(EVAL_DUPLICATE_RESOURCE, ref => 'myres[/foo/bar]', 'previous_location' => '(line: 6, column: 9)'))),
+  ),
+
+  Examples('when referenced',
+    Example('can be referenced with parameters',
+      Given(Format("%s\nString(MyRes['/foo/bar'])", Get('resourceType'))),
+      Evaluates_to(`MyRes['/foo/bar']`)),
+
+    Example('can be ordered',
+      Given(Format("%s\nString(MyRes['/foo/bar'] <- MyRes['/foo/baz'])", Get('resourceType'))),
+      Evaluates_to(`MyRes['/foo/bar']`)),
+
+    Example('instance be retrieved using a type reference',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/bar': }
+        String(get_resource(MyRes['/foo/bar']))
+        |-SRC
+      Evaluates_to(`MyRes('title' => '/foo/bar')`)),
+  ),
+)
