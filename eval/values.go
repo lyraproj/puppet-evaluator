@@ -15,6 +15,9 @@ type (
 		Type() PType
 	}
 
+	// Comparator returns true when a is less than b.
+	Comparator func(a, b PValue) bool
+
 	ObjectValue interface {
 		PValue
 		Initialize(arguments []PValue)
@@ -73,6 +76,11 @@ type (
 		Reduce2(initialValue PValue, redactor BiMapper) PValue
 		Reject(predicate Predicate) IndexedValue
 		Unique() IndexedValue
+	}
+
+	SortableValue interface {
+		IndexedValue
+		Sort(comparator Comparator) IndexedValue
 	}
 
 	HashKey string

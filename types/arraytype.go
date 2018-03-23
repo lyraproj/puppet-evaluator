@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"sort"
 )
 
 type (
@@ -491,6 +492,34 @@ func (av *ArrayValue) Select(predicate eval.Predicate) eval.IndexedValue {
 
 func (av *ArrayValue) Slice(i int, j int) eval.IndexedValue {
 	return WrapArray(av.elements[i:j])
+}
+
+type arraySorter struct {
+	values []eval.PValue
+	comparator eval.Comparator
+}
+
+func (s *arraySorter) Len() int {
+	return len(s.values)
+}
+
+func (s *arraySorter) Less(i, j int) bool {
+	vs := s.values
+	return s.comparator(vs[i], vs[j])
+}
+
+func (s *arraySorter) Swap(i, j int) {
+	vs := s.values
+	v := vs[i]
+	vs[i] = vs[j]
+	vs[j] = v
+}
+
+func (av *ArrayValue) Sort(comparator eval.Comparator) eval.IndexedValue {
+	s := &arraySorter{make([]eval.PValue, len(av.elements)), comparator}
+	copy(s.values, av.elements)
+	sort.Sort(s)
+	return WrapArray(s.values)
 }
 
 func (av *ArrayValue) String() string {

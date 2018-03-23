@@ -695,6 +695,10 @@ func (hv *HashValue) AnyPair(predicate eval.BiPredicate) bool {
 	return false
 }
 
+func (hv *HashValue) AppendEntriesTo(entries []*HashEntry) []*HashEntry {
+	return append(entries, hv.entries...)
+}
+
 func (hv *HashValue) AppendTo(slice []eval.PValue) []eval.PValue {
 	for _, e := range hv.entries {
 		slice = append(slice, e)
@@ -981,6 +985,36 @@ func (hv *HashValue) mergeEntries(o eval.KeyedValue) []*HashEntry {
 
 func (hv *HashValue) Slice(i int, j int) eval.IndexedValue {
 	return WrapHash(hv.entries[i:j])
+}
+
+type hashSorter struct {
+	entries    []*HashEntry
+	comparator eval.Comparator
+}
+
+func (s *hashSorter) Len() int {
+	return len(s.entries)
+}
+
+func (s *hashSorter) Less(i, j int) bool {
+	vs := s.entries
+	return s.comparator(vs[i].key, vs[j].key)
+}
+
+func (s *hashSorter) Swap(i, j int) {
+	vs := s.entries
+	v := vs[i]
+	vs[i] = vs[j]
+	vs[j] = v
+}
+
+// Sort reorders the associations of this hash by applying the comparator
+// to the keys
+func (hv *HashValue) Sort(comparator eval.Comparator) eval.IndexedValue {
+	s := &hashSorter{make([]*HashEntry, len(hv.entries)), comparator}
+	copy(s.entries, hv.entries)
+	sort.Sort(s)
+	return WrapHash(s.entries)
 }
 
 func (hv *HashValue) String() string {

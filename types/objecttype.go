@@ -691,7 +691,14 @@ func (t *objectType) IsAssignable(o eval.PType, g eval.Guard) bool {
 }
 
 func (t *objectType) IsParameterized() bool {
-	return !t.parameters.IsEmpty()
+	if !t.parameters.IsEmpty() {
+		return true
+	}
+	p := t.resolvedParent()
+	if p != nil {
+		return p.IsParameterized()
+	}
+	return false
 }
 
 func (t *objectType) Resolve(c eval.EvalContext) eval.PType {
