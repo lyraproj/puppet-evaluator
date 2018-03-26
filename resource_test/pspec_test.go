@@ -24,6 +24,19 @@ func init() {
 		},
 	)
 
+	eval.NewGoFunction(`get_edges`,
+		func(d eval.Dispatch) {
+			d.Param(`Variant[Resource,Type[Resource],String]`)
+			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				re := c.Evaluator().(resource.Evaluator)
+				if from, ok := re.Node(args[0]); ok {
+					return re.Edges(from);
+				}
+				return eval.EMPTY_ARRAY
+			})
+		},
+	)
+
 	eval.NewGoFunction(`get_resources`,
 		func(d eval.Dispatch) {
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {

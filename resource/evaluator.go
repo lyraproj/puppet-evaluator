@@ -11,7 +11,6 @@ import (
 	"gonum.org/v1/gonum/graph/simple"
 	"fmt"
 	"strings"
-	"io"
 )
 
 type(
@@ -20,7 +19,7 @@ type(
 
 		maxNode int64
 
-		graph *simple.UndirectedGraph
+		graph *simple.DirectedGraph
 
 		nodes map[string]*node
 	}
@@ -30,6 +29,8 @@ type(
 	Evaluator interface {
 		eval.Evaluator
 
+		Edges(from Node) eval.IndexedValue
+
 		Graph() graph.Graph
 
 		HasNode(value eval.PValue) bool
@@ -37,37 +38,8 @@ type(
 		Node(value eval.PValue) (Node, bool)
 
 		Nodes() eval.IndexedValue
-	}
 
-	Node interface {
-		graph.Node
-		eval.PValue
-
-		Location() issue.Location
-
-		Resolved() bool
-
-		Value() eval.PuppetObject
-	}
-
-	Edge interface {
-		graph.Edge
-		Subscribe() bool
-	}
-
-	// edge denotes a relationship between two ResourceNodes
-	edge struct {
-		from *node
-		to *node
-		subscribe bool
-	}
-
-	// node represents a PuppetObject in the graph with a unique ID
-	node struct {
-		id int64
-		ref string
-		value eval.PuppetObject
-		location issue.Location
+		From(node Node) eval.IndexedValue
 	}
 )
 
@@ -113,61 +85,10 @@ func SplitRef(ref string) (typeName, title string, ok bool) {
 	return ``, ``, false
 }
 
-func (re *edge) From() graph.Node {
-	return re.from
-}
-
-func (re *edge) To() graph.Node {
-	return re.to
-}
-
-func (re *edge) Subscribe() bool {
-	return re.subscribe
-}
-
-func (rn *node) ID() int64 {
-	return rn.id
-}
-
-func (rn *node) Resolved() bool {
-	return rn.value != nil
-}
-
-func (rn *node) Value() eval.PuppetObject {
-	if rn.value == nil {
-		name, title, _ := SplitRef(rn.ref)
-		panic(eval.Error(EVAL_UNKNOWN_RESOURCE, issue.H {`type_name`: name, `title`: title}))
-	}
-	return rn.value
-}
-
-func (rn *node) Equals(other interface{}, guard eval.Guard) bool {
-	on, ok := other.(*node)
-	return ok && rn.id == on.id
-}
-
-func (rn *node) Location() issue.Location {
-	return rn.location
-}
-
-func (rn *node) String() string {
-	return eval.ToString2(rn, types.NONE)
-}
-
-func (rn *node) ToString(b io.Writer, format eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, `Node(`)
-	io.WriteString(b, rn.ref)
-	io.WriteString(b, `)`)
-}
-
-func (rn *node) Type() eval.PType {
-	return types.WrapRuntime(rn).Type()
-}
-
 // NewEvaluator creates a new instance of the resource.Evaluator
 func NewEvaluator(loader eval.DefiningLoader, logger eval.Logger) Evaluator {
 	re := &resourceEval{}
-	re.graph = simple.NewUndirectedGraph()
+	re.graph = simple.NewDirectedGraph()
 	re.nodes = make(map[string]*node, 17)
 	re.evaluator = impl.NewOverriddenEvaluator(loader, logger, re)
 	return re
@@ -258,7 +179,24 @@ func (re *resourceEval) Node(value eval.PValue) (Node, bool) {
 
 // Nodes returns all resource nodes, sorted by file, line, pos
 func (re *resourceEval) Nodes() eval.IndexedValue {
-	nodes := re.graph.Nodes()
+	return nodeList(re.graph.Nodes())
+}
+
+// FromNode returns all resource nodes extending from the given node, sorted by file, line, pos
+func (re *resourceEval) From(node Node) eval.IndexedValue {
+	return nodeList(re.graph.From(node))
+}
+
+// Edges returns all edges extending from the given node, sorted by file, line, pos of the
+// node appointed by the edge
+func (re *resourceEval) Edges(from Node) eval.IndexedValue {
+	g := re.graph
+	return re.From(from).Map(func(to eval.PValue) eval.PValue {
+		return g.Edge(from, to.(Node)).(Edge);
+	})
+}
+
+func nodeList(nodes []graph.Node) eval.IndexedValue {
 	rs := make([]eval.PValue, len(nodes))
 	for i, n := range nodes {
 		rs[i] = n.(eval.PValue)

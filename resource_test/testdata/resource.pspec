@@ -9,15 +9,24 @@ Examples('resource',
 
   Examples('when instantiated',
     Example('returns array of objects',
-      Given(Format("%s\nString(myres { '/foo/bar': ensure => present })", Get('resourceType'))),
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        String(myres { '/foo/bar': ensure => present })
+        |-SRC
       Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present')]`)),
 
     Example('creates one object per title',
-      Given(Format("%s\nString(myres { ['/foo/bar', '/foo/baz']: ensure => present })", Get('resourceType'))),
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        String(myres { ['/foo/bar', '/foo/baz']: ensure => present })
+        |-SRC
       Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present'), MyRes('title' => '/foo/baz', 'ensure' => 'present')]`)),
 
     Example('creates one object per body',
-      Given(Format("%s\nString(myres { '/foo/bar': ensure => present; '/foo/baz': ensure => absent })", Get('resourceType'))),
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        String(myres { '/foo/bar': ensure => present; '/foo/baz': ensure => absent })
+        |-SRC
       Evaluates_to(`[MyRes('title' => '/foo/bar', 'ensure' => 'present'), MyRes('title' => '/foo/baz', 'ensure' => 'absent')]`)),
 
     Example('creates one object per title and body',
@@ -29,16 +38,14 @@ Examples('resource',
           ['/fu/bar', '/fu/baz']:
             ensure => absent
         }
-        String(get_resources())
+        get_resources().map |$r| { [ $r.title, $r.ensure ] }
         |-SRC
-      Evaluates_to(@(SRC/L))),
-        [\
-        MyRes('title' => '/foo/bar', 'ensure' => 'present'), \
-        MyRes('title' => '/foo/baz', 'ensure' => 'present'), \
-        MyRes('title' => '/fu/bar', 'ensure' => 'absent'), \
-        MyRes('title' => '/fu/baz', 'ensure' => 'absent')\
-        ]
-        |-SRC
+      Evaluates_to([
+        [ '/foo/bar', 'present' ],
+        [ '/foo/baz', 'present' ],
+        [ '/fu/bar', 'absent' ],
+        [ '/fu/baz', 'absent' ],
+        ])),
 
     Example('same type and title cannot be instantiated twice',
       Given(Format(@(SRC), Get('resourceType'))),
@@ -47,6 +54,54 @@ Examples('resource',
         myres { '/foo/bar': ensure => file }
         |-SRC
       Evaluates_with(Issue(EVAL_DUPLICATE_RESOURCE, ref => 'myres[/foo/bar]', 'previous_location' => '(line: 6, column: 9)'))),
+
+    Example('can be ordered using attribute "before"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/baz': }
+        myres { '/foo/bar': before => MyRes['/foo/baz'] }
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[['myres[/foo/baz]', false]], []])),
+
+    Example('can be ordered using attribute "after"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/baz': }
+        myres { '/foo/bar': after => MyRes['/foo/baz'] }
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[], [['myres[/foo/bar]', false]]])),
+
+    Example('can be ordered using attribute "notify"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/baz': }
+        myres { '/foo/bar': notify => MyRes['/foo/baz'] }
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[['myres[/foo/baz]', true]], []])),
+
+    Example('can be ordered using attribute "subscribe"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/baz': }
+        myres { '/foo/bar': subscribe => MyRes['/foo/baz'] }
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[], [['myres[/foo/bar]', true]]])),
   ),
 
   Examples('when referenced',
@@ -54,9 +109,49 @@ Examples('resource',
       Given(Format("%s\nString(MyRes['/foo/bar'])", Get('resourceType'))),
       Evaluates_to(`MyRes['/foo/bar']`)),
 
-    Example('can be ordered',
-      Given(Format("%s\nString(MyRes['/foo/bar'] <- MyRes['/foo/baz'])", Get('resourceType'))),
-      Evaluates_to(`MyRes['/foo/bar']`)),
+    Example('can be ordered using ->',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        MyRes['/foo/bar'] -> MyRes['/foo/baz']
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[['myres[/foo/baz]', false]], []])),
+
+    Example('can be ordered using <-',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        MyRes['/foo/bar'] <- MyRes['/foo/baz']
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[], [['myres[/foo/bar]', false]]])),
+
+    Example('can be ordered using ~>',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        MyRes['/foo/bar'] ~> MyRes['/foo/baz']
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[['myres[/foo/baz]', true]], []])),
+
+    Example('can be ordered using <~',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        MyRes['/foo/bar'] <~ MyRes['/foo/baz']
+        [
+          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
+        ]
+        |-SRC
+      Evaluates_to([[], [['myres[/foo/bar]', true]]])),
 
     Example('instance be retrieved using a type reference',
       Given(Format(@(SRC), Get('resourceType'))),

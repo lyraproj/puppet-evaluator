@@ -190,6 +190,11 @@ type (
 	}
 )
 
+func ObjectToString(o eval.PuppetObject, s eval.FormatContext, writer io.Writer, g eval.RDetect) {
+	io.WriteString(writer, o.Type().Name())
+	o.InitHash().(*HashValue).ToString2(writer, s, eval.GetFormat(s.FormatMap(), o.Type()), '(', g)
+}
+
 func argError(e eval.PType, a eval.PValue) errors.InstantiationError {
 	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.Type()))
 }
@@ -1420,8 +1425,7 @@ func (o *objectValue) String() string {
 }
 
 func (o *objectValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, o.typ.Name())
-	o.InitHash().(*HashValue).ToString2(b, s, eval.GetFormat(s.FormatMap(), o.typ), '(', g)
+	ObjectToString(o, s, b, g)
 }
 
 func (o *objectValue) Type() eval.PType {
