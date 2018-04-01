@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/puppetlabs/go-parser/parser"
 	"strings"
+	"bytes"
 )
 
 type (
@@ -23,6 +24,12 @@ type (
 
 		NameParts() []string
 
+		// Child returns the typed name with its leading segment stripped off, e.g.
+		// A::B::C returns B::C
+		Child() TypedName
+
+		// Parent returns the typed name with its final segment stripped off, e.g.
+		// A::B::C returns A::B
 		Parent() TypedName
 	}
 
@@ -62,6 +69,34 @@ func NewTypedName2(namespace Namespace, name string, nameAuthority URI) TypedNam
 	tn.compoundName = string(nameAuthority) + `/` + string(namespace) + `/` + name
 	tn.canonicalName = strings.ToLower(tn.compoundName)
 	return &tn
+}
+
+func (t *typedName) Child() TypedName {
+	if !t.IsQualified() {
+		return nil
+	}
+
+	stripLen := len(t.nameParts[0]) + 2
+	parts := t.nameParts[1:]
+	b := bytes.NewBufferString(``)
+	b.Grow(len(t.compoundName) - stripLen)
+	b.WriteString(string(t.nameAuthority))
+	b.WriteByte('/')
+	b.WriteString(string(t.namespace))
+	b.WriteByte('/')
+	b.WriteString(parts[0])
+	for idx := 1; idx < len(parts); idx++ {
+		b.WriteString(`::`)
+		b.WriteString(parts[idx])
+	}
+	compoundName := b.String()
+
+	return &typedName{
+		nameParts:     parts,
+		namespace:     t.namespace,
+		nameAuthority: t.nameAuthority,
+		compoundName:  compoundName,
+		canonicalName: strings.ToLower(compoundName)}
 }
 
 func (t *typedName) Parent() TypedName {
