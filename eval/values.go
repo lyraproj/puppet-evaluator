@@ -3,14 +3,15 @@ package eval
 import (
 	"bytes"
 	"io"
+	"fmt"
 )
 
 type (
 	RDetect map[interface{}]bool
 
 	PValue interface {
+		fmt.Stringer
 		Equality
-		String() string
 		ToString(bld io.Writer, format FormatContext, g RDetect)
 		Type() PType
 	}
@@ -118,6 +119,11 @@ type (
 		Get6(key string, dflt Producer) PValue
 
 		Keys() IndexedValue
+
+		// MapValues returns a new KeyedValue with the exact same keys as
+		// before but where each value has been converted using the given
+		// mapper function
+		MapValues(mapper Mapper) KeyedValue
 
 		Merge(KeyedValue) KeyedValue
 

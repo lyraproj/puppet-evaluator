@@ -797,6 +797,14 @@ func (hv *HashValue) Map(mapper eval.Mapper) eval.IndexedValue {
 	return WrapArray(mapped)
 }
 
+func (hv *HashValue) MapValues(mapper eval.Mapper) eval.KeyedValue {
+	mapped := make([]*HashEntry, len(hv.entries))
+	for i, e := range hv.entries {
+		mapped[i] = WrapHashEntry(e.key, mapper(e.value))
+	}
+	return WrapHash(mapped)
+}
+
 func (hv *HashValue) Select(predicate eval.Predicate) eval.IndexedValue {
 	selected := make([]*HashEntry, 0)
 	for _, e := range hv.entries {
