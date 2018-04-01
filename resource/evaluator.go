@@ -1,19 +1,20 @@
 package resource
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-parser/issue"
-	"github.com/puppetlabs/go-parser/parser"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-evaluator/impl"
-  "gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 	"fmt"
 	"strings"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/impl"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-parser/validator"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/simple"
 )
 
-type(
+type (
 	resourceEval struct {
 		evaluator eval.Evaluator
 
@@ -78,8 +79,8 @@ func SplitRef(ref string) (typeName, title string, ok bool) {
 	end := len(ref) - 1
 	if end >= 3 && ref[end] == ']' {
 		titleStart := strings.IndexByte(ref, '[')
-		if titleStart > 0 && titleStart + 1 < end {
-			return ref[:titleStart], ref[titleStart+1:end], true
+		if titleStart > 0 && titleStart+1 < end {
+			return ref[:titleStart], ref[titleStart+1 : end], true
 		}
 	}
 	return ``, ``, false
@@ -170,7 +171,7 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 
 // Node returns the node for the given value
 func (re *resourceEval) Node(value eval.PValue) (Node, bool) {
-	n := re.node(value, nil, false);
+	n := re.node(value, nil, false)
 	if n == nil {
 		return nil, false
 	}
@@ -184,7 +185,7 @@ func (re *resourceEval) Nodes() eval.IndexedValue {
 
 // FromNode returns all resource nodes extending from the given node, sorted by file, line, pos
 func (re *resourceEval) From(node Node) eval.IndexedValue {
-	return nodeList(re.graph.From(node))
+	return nodeList(re.graph.From(node.ID()))
 }
 
 // Edges returns all edges extending from the given node, sorted by file, line, pos of the
@@ -192,7 +193,7 @@ func (re *resourceEval) From(node Node) eval.IndexedValue {
 func (re *resourceEval) Edges(from Node) eval.IndexedValue {
 	g := re.graph
 	return re.From(from).Map(func(to eval.PValue) eval.PValue {
-		return g.Edge(from, to.(Node)).(Edge);
+		return g.Edge(from.ID(), to.(Node).ID()).(Edge)
 	})
 }
 
@@ -231,7 +232,7 @@ func (re *resourceEval) node(value eval.PValue, location issue.Location, create 
 			node.value = resource // Resolves reference
 			node.location = location
 		} else if resource != nil && node.value != resource {
-			panic(eval.Error(EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.location) }))
+			panic(eval.Error(EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.location)}))
 		}
 		return node
 	}
