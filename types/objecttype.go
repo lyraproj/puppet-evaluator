@@ -970,7 +970,7 @@ func (t *objectType) createNewFunction(c eval.EvalContext) {
 	} else {
 		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return AllocObjectValue(t)
-		}), ``))
+		}), nil))
 
 		functions = []eval.DispatchFunction{
 			// Positional argument creator
@@ -1007,7 +1007,7 @@ func (t *objectType) createNewFunction(c eval.EvalContext) {
 	}
 
 	ctor = eval.MakeGoConstructor(t.name, creators...).Resolve(c)
-	dl.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.name), eval.NewLoaderEntry(ctor, ``))
+	dl.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.name), eval.NewLoaderEntry(ctor, nil))
 }
 
 func (t *objectType) AttributesInfo() eval.AttributesInfo {

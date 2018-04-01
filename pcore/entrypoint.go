@@ -94,7 +94,7 @@ func (p *pcoreImpl) Loader(key string) eval.Loader {
 	if key == `` {
 		return envLoader
 	}
-	if dp, ok := envLoader.(eval.DependencyLoaer); ok {
+	if dp, ok := envLoader.(eval.DependencyLoader); ok {
 		return dp.LoaderFor(key)
 	}
 	return nil

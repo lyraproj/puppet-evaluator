@@ -6,12 +6,13 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
 	loaderEntry struct {
 		value  interface{}
-		origin string
+		origin issue.Location
 	}
 
 	basicLoader struct {
@@ -44,7 +45,7 @@ func init() {
 		resolvableFunctionsLock.Unlock()
 	}
 
-	eval.NewLoaderEntry = func(value interface{}, origin string) eval.Entry {
+	eval.NewLoaderEntry = func(value interface{}, origin issue.Location) eval.Entry {
 		return &loaderEntry{value, origin}
 	}
 
@@ -61,7 +62,7 @@ func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {
 	return
 }
 
-func (e *loaderEntry) Origin() string {
+func (e *loaderEntry) Origin() issue.Location {
 	return e.origin
 }
 
@@ -72,7 +73,7 @@ func (e *loaderEntry) Value() interface{} {
 func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
 	ts := types.PopDeclaredTypes()
 	for _, t := range ts {
-		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), &loaderEntry{t, ``})
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), &loaderEntry{t, nil})
 	}
 
 	for _, t := range ts {
@@ -82,12 +83,12 @@ func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
 	ctors := types.PopDeclaredConstructors()
 	for _, ct := range ctors {
 		rf := eval.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
-		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
+		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
 	}
 
 	funcs := popDeclaredGoFunctions()
 	for _, rf := range funcs {
-		l.SetEntry(eval.NewTypedName(eval.FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), ``})
+		l.SetEntry(eval.NewTypedName(eval.FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
 	}
 }
 
@@ -98,7 +99,7 @@ func load(l eval.Loader, name eval.TypedName) (interface{}, bool) {
 	entry := l.LoadEntry(name)
 	if entry == nil {
 		if dl, ok := l.(eval.DefiningLoader); ok {
-			dl.SetEntry(name, &loaderEntry{nil, ``})
+			dl.SetEntry(name, &loaderEntry{nil, nil})
 		}
 		return nil, false
 	}

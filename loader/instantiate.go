@@ -87,7 +87,7 @@ func InstantiatePuppetTask(loader ContentProvidingLoader, tn eval.TypedName, sou
 	if origin == `` {
 		origin = taskSource
 	}
-	loader.(eval.DefiningLoader).SetEntry(tn, eval.NewLoaderEntry(task, origin))
+	loader.(eval.DefiningLoader).SetEntry(tn, eval.NewLoaderEntry(task, issue.NewLocation(origin, 0, 0)))
 }
 
 func createTask(ctx eval.EvalContext, loader ContentProvidingLoader, name, taskSource, metadata string) eval.PValue {

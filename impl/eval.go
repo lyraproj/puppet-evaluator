@@ -389,7 +389,7 @@ func (e *evaluator) define(loader eval.DefiningLoader, d parser.Definition) {
 	default:
 		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
 	}
-	loader.SetEntry(tn, eval.NewLoaderEntry(ta, d.File()))
+	loader.SetEntry(tn, eval.NewLoaderEntry(ta, d))
 	e.definitions = append(e.definitions, &definition{ta, loader})
 }
 

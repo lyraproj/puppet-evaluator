@@ -1,6 +1,9 @@
 package eval
 
-import "regexp"
+import (
+	"regexp"
+	"github.com/puppetlabs/go-parser/issue"
+)
 
 type (
 	PathType string
@@ -8,7 +11,7 @@ type (
 	Entry interface {
 		Value() interface{}
 
-		Origin() string
+		Origin() issue.Location
 	}
 
 	Loader interface {
@@ -31,7 +34,7 @@ type (
 		ModuleName() string
 	}
 
-	DependencyLoaer interface {
+	DependencyLoader interface {
 		Loader
 
 		LoaderFor(key string) ModuleLoader
@@ -52,7 +55,7 @@ func IsValidModuleName(moduleName string) bool {
 }
 
 var Load func(loader Loader, name TypedName) (interface{}, bool)
-var NewLoaderEntry func(value interface{}, origin string) Entry
+var NewLoaderEntry func(value interface{}, origin issue.Location) Entry
 var StaticLoader func() Loader
 var NewParentedLoader func(parent Loader) DefiningLoader
 var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ...PathType) ModuleLoader

@@ -129,7 +129,7 @@ func (l *fileBasedLoader) LoadEntry(name eval.TypedName) eval.Entry {
 	if entry == nil {
 		entry = l.find(name)
 		if entry == nil {
-			entry = &loaderEntry{nil, ``}
+			entry = &loaderEntry{nil, nil}
 			l.SetEntry(name, entry)
 		}
 	}
