@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"strconv"
 	"fmt"
+	"bytes"
 )
 
 var uriType_Default = &UriType{_UNDEF}
@@ -401,6 +402,13 @@ func (u *UriValue) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
+func (u *UriValue) Get(key string) (eval.PValue, bool) {
+	if member, ok := members[key]; ok {
+		return member(u.URL()), true
+	}
+	return _UNDEF, false
+}
+
 func (u *UriValue) SerializationString() string {
 	return u.String()
 }
@@ -422,6 +430,12 @@ func (u *UriValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	default:
 		panic(s.UnsupportedFormat(u.Type(), `sp`, f))
 	}
+}
+
+func (u *UriValue) ToKey(b *bytes.Buffer) {
+	b.WriteByte(1)
+	b.WriteByte(HK_URI)
+	b.Write([]byte(u.URL().String()))
 }
 
 func (u *UriValue) Type() eval.PType {
