@@ -204,6 +204,24 @@ func (r *VersionRange) Includes(v *Version) bool {
 	return false
 }
 
+func (r *VersionRange) Intersection(or *VersionRange) *VersionRange {
+	if or != nil {
+		iscs := make([]abstractRange, 0)
+		for _, ar := range r.ranges {
+			for _, ao := range or.ranges {
+				is := intersection(ar, ao)
+				if is != nil {
+					iscs = append(iscs, is)
+				}
+			}
+		}
+		if len(iscs) > 0 {
+			return newVersionRange(``, iscs)
+		}
+	}
+	return nil
+}
+
 func (r *VersionRange) IsAsRestrictiveAs(o *VersionRange) bool {
 arNext:
 	for _, ar := range r.ranges {
