@@ -223,6 +223,10 @@ func (c *context) Logger() eval.Logger {
 	return c.evaluator.Logger()
 }
 
+func (c *context) WithLoader(loader eval.Loader) eval.EvalContext {
+	return &context{c.evaluator, loader, c.scope, c.stack}
+}
+
 func (c *context) WithScope(scope eval.Scope) eval.EvalContext {
 	return &context{c.evaluator, c.loader, scope, c.stack}
 }

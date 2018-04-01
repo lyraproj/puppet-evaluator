@@ -40,6 +40,8 @@ type (
 
 		Logger() Logger
 
+		WithLoader(loader Loader) EvalContext
+
 		WithScope(scope Scope) EvalContext
 
 		ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
