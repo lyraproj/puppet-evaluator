@@ -99,6 +99,9 @@ func GuardedIsInstance(a eval.PType, v eval.PValue, g eval.Guard) bool {
 }
 
 func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {
+	if a == anyType_DEFAULT {
+		return true
+	}
 	switch b.(type) {
 	case nil:
 		return false
@@ -393,13 +396,28 @@ func appendKey(b *bytes.Buffer, v eval.PValue) {
 		b.Write([]byte(pt.Name()))
 		if ppt, ok := pt.(eval.ParameterizedType); ok {
 			for _, p := range ppt.Parameters() {
-				appendKey(b, p)
+				appendTypeParamKey(b, p)
 			}
 		}
 	} else if hk, ok := v.(eval.HashKeyValue); ok {
 		b.Write([]byte(hk.ToKey()))
 	} else {
 		panic(NewIllegalArgumentType2(`ToKey`, 0, `value used as hash key`, v))
+	}
+}
+
+// Special hash key generation for type parameters which might be hashes
+// using string keys
+func appendTypeParamKey(b *bytes.Buffer, v eval.PValue) {
+	if h, ok := v.(*HashValue); ok {
+		b.WriteByte(2)
+		h.EachPair(func(k, v eval.PValue) {
+			b.Write([]byte(k.String()))
+			b.WriteByte(3)
+			appendTypeParamKey(b, v)
+		})
+	} else {
+		appendKey(b, v)
 	}
 }
 
@@ -535,6 +553,13 @@ func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eva
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }
 
+func newObjectType2(name string, parent eval.PType, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
+	ta := NewObjectType(name, parent, initHash)
+	ta.setCreators(creators...)
+	registerResolvableType(ta)
+	return ta
+}
+
 func convertReported(err error, fileName string, lineOffset int) error {
 	if ri, ok := err.(*issue.Reported); ok {
 		return ri.OffsetByLocation(issue.NewLocation(fileName, lineOffset, 0))
@@ -547,39 +572,44 @@ func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.T
 	case *parser.TypeAlias:
 		taExpr := d.(*parser.TypeAlias)
 		name := taExpr.Name()
-		body := taExpr.Type()
-		tn := eval.NewTypedName2(eval.TYPE, name, na)
-		var ta eval.PType
-		switch body.(type) {
-		case *parser.QualifiedReference:
-			ta = NewTypeAliasType(name, body, nil)
-		case *parser.AccessExpression:
-			ta = nil
-			ae := body.(*parser.AccessExpression)
-			if len(ae.Keys()) == 1 {
-				arg := ae.Keys()[0]
-				if hash, ok := arg.(*parser.LiteralHash); ok {
-					if lq, ok := ae.Operand().(*parser.QualifiedReference); ok {
-						if lq.Name() == `Object` {
-							ta = createMetaType(name, lq.Name(), extractParentName(hash), hash)
-						} else if lq.Name() == `TypeSet` {
-							ta = createMetaType(name, lq.Name(), ``, hash)
-						}
-					}
-				}
-			}
-			if ta == nil {
-				ta = NewTypeAliasType(name, body, nil)
-			}
-		}
-
-		if ta == nil {
-			panic(fmt.Sprintf(`cannot create object from a %T`, body))
-		}
-		return ta, tn
+		return createTypeDefinition(na, name, taExpr.Type()), eval.NewTypedName2(eval.TYPE, name, na)
 	default:
 		panic(fmt.Sprintf(`Don't know how to define a %T`, d))
 	}
+}
+
+func createTypeDefinition(na eval.URI, name string, body parser.Expression) eval.PType {
+	var ta eval.PType
+	switch body.(type) {
+	case *parser.QualifiedReference:
+		ta = NewTypeAliasType(name, body, nil)
+	case *parser.AccessExpression:
+		ta = nil
+		ae := body.(*parser.AccessExpression)
+		if len(ae.Keys()) == 1 {
+			arg := ae.Keys()[0]
+			if hash, ok := arg.(*parser.LiteralHash); ok {
+				if lq, ok := ae.Operand().(*parser.QualifiedReference); ok {
+					if lq.Name() == `Object` {
+						ta = createMetaType(na, name, lq.Name(), extractParentName(hash), hash)
+					} else if lq.Name() == `TypeSet` {
+						ta = createMetaType(na, name, lq.Name(), ``, hash)
+					}
+				}
+			}
+		}
+		if ta == nil {
+			ta = NewTypeAliasType(name, body, nil)
+		}
+	case *parser.LiteralHash:
+		hash := body.(*parser.LiteralHash)
+		ta = createMetaType(na, name, `Object`, extractParentName(hash), hash)
+	}
+
+	if ta == nil {
+		panic(fmt.Sprintf(`cannot create object from a %T`, body))
+	}
+	return ta
 }
 
 func extractParentName(hash *parser.LiteralHash) string {
@@ -594,10 +624,15 @@ func extractParentName(hash *parser.LiteralHash) string {
 	return ``
 }
 
-func createMetaType(name string, typeName string, parentName string, hash *parser.LiteralHash) eval.PType {
+func createMetaType(na eval.URI, name string, typeName string, parentName string, hash *parser.LiteralHash) eval.PType {
 	if parentName == `` {
-		return NewObjectType(name, nil, hash)
-	} // TODO else iftypeName == `TypeSet`
+		switch typeName {
+		case `Object`:
+			return NewObjectType(name, nil, hash)
+		default:
+			return NewTypeSetType(na, name, hash)
+		}
+	}
 
 	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
 }

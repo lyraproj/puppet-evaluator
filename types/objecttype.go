@@ -12,33 +12,19 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-evaluator/semver"
 )
 
 var Object_Type eval.ObjectType
 
 func init() {
-	Object_Type = newObjectType(`Pcore::ObjectType`,
-		`Pcore::AnyType {
-  attributes => {
-    '_pcore_init_hash' => Struct[
-			Optional[name] => Pattern[/\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z/],
-			Optional[parent] => Type,
-			Optional[type_parameters] => Hash[Pattern[/\A[a-z_]\w*\z/], NotUndef],
-			Optional[attributes] => Hash[Pattern[/\A[a-z_]\w*\z/], NotUndef],
-			Optional[constants] => Hash[Pattern[/\A[a-z_]\w*\z/], Any],
-			Optional[functions] => Hash[Pattern[/\A[a-z_]\w*\z/], Callable],
-			Optional[equality] => Variant[Pattern[/\A[a-z_]\w*\z/], Array[Pattern[/\A[a-z_]\w*\z/]]],
-			Optional[equality_includes_type] => Boolean,
-      Optional[checks] => Any,
-      Optional[annotations] => Hash[Type[Annotation], Hash[Pattern[/\A[a-z_]\w*\z/], Any]]
-    ]
-  }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
-			return NewObjectType2(args[0].(*HashValue), ctx.Loader())
-		},
-		func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
-			return NewObjectType2(args[0].(*HashValue), ctx.Loader())
-		})
+	oneArgCtor := func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		return NewObjectType2(args[0].(*HashValue), ctx.Loader())
+	}
+	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
+		WrapHash3(map[string]eval.PValue{
+			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
+		oneArgCtor, oneArgCtor)
 }
 
 const (
@@ -81,12 +67,14 @@ func DefaultAnnotationType() eval.PType {
 	return annotationType_DEFAULT
 }
 
+var TYPE_ANNOTATIONS = NewHashType(annotationType_DEFAULT, DefaultHashType(), nil)
+
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
 var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
 
 var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
 	NewStructElement2(KEY_TYPE, DefaultTypeType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
+	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
 var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
@@ -95,7 +83,7 @@ var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_KIND), TYPE_ATTRIBUTE_KIND),
 	NewStructElement(NewOptionalType3(KEY_VALUE), DefaultAnyType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
+	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
 var TYPE_MEMBER_NAME = NewPatternType2(NewRegexpTypeR(validator.PARAM_NAME))
@@ -106,7 +94,7 @@ var TYPE_FUNCTION = NewStructType([]*StructElement{
 	NewStructElement2(KEY_TYPE, TYPE_FUNCTION_TYPE),
 	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
+	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
 var TYPE_MEMBER_NAMES = NewArrayType2(TYPE_MEMBER_NAME)
@@ -128,7 +116,7 @@ var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_EQUALITY_INCLUDE_TYPE), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_EQUALITY), TYPE_EQUALITY),
 	NewStructElement(NewOptionalType3(KEY_SERIALIZATION), TYPE_MEMBER_NAMES),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), annotationType_DEFAULT),
+	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
 type (
@@ -241,6 +229,60 @@ func stringArg(hash eval.KeyedValue, key string, d string) string {
 		return t.String()
 	}
 	panic(argError(DefaultStringType(), v))
+}
+
+func uriArg(hash eval.KeyedValue, key string, d eval.URI) eval.URI {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		str := t.String()
+		if _, err := ParseURI2(str, true); err != nil {
+			panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		}
+		return eval.URI(str)
+	}
+	if t, ok := v.(*UriValue); ok {
+		return eval.URI(t.URL().String())
+	}
+	panic(argError(DefaultUriType(), v))
+}
+
+func versionArg(hash eval.KeyedValue, key string, d *semver.Version) *semver.Version {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sv, error := semver.ParseVersion(s.String())
+		if error != nil {
+			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sv
+	}
+	if sv, ok := v.(*SemVerValue); ok {
+		return sv.Version()
+	}
+	panic(argError(DefaultSemVerType(), v))
+}
+
+func versionRangeArg(hash eval.KeyedValue, key string, d *semver.VersionRange) *semver.VersionRange {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sr, error := semver.ParseVersionRange(s.String())
+		if error != nil {
+			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sr
+	}
+	if sv, ok := v.(*SemVerRangeValue); ok {
+		return sv.VersionRange()
+	}
+	panic(argError(DefaultSemVerType(), v))
 }
 
 // Visit the keys of an annotations map. All keys are known to be types
@@ -431,6 +473,9 @@ func (a *attribute) FeatureType() string {
 }
 
 func (a *attribute) Get(instance eval.PValue) eval.PValue {
+	if a.kind == CONSTANT {
+		return a.value
+	}
 	if v, ok := a.container.GetValue(a.name, instance); ok {
 		return v
 	}
@@ -526,10 +571,7 @@ var objectId = int64(0)
 func AllocObjectType() *objectType {
 	return &objectType{
 		annotatable:        annotatable{annotations: _EMPTY_MAP},
-		name:               ``,
 		hashKey:            eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
-		initHashExpression: nil,
-		parent:             nil,
 		parameters:         hash.EMPTY_STRINGHASH,
 		attributes:         hash.EMPTY_STRINGHASH,
 		functions:          hash.EMPTY_STRINGHASH}
@@ -545,7 +587,7 @@ func (t *objectType) Initialize(args []eval.PValue) {
 	panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an Object data type`}))
 }
 
-func NewObjectType(name string, parent eval.PType, initHashExpression parser.Expression) *objectType {
+func NewObjectType(name string, parent eval.PType, initHashExpression interface{}) *objectType {
 	obj := AllocObjectType()
 	obj.name = name
 	obj.initHashExpression = initHashExpression
@@ -952,6 +994,7 @@ func (t *objectType) InitFromHash(initHash eval.KeyedValue) {
 		t.serialization = serialization
 	}
 	t.attrInfo = t.createAttributesInfo()
+	t.annotatable.initialize(initHash.(*HashValue))
 }
 
 func (t *objectType) HasHashConstructor() bool {

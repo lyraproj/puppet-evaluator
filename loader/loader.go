@@ -24,6 +24,11 @@ type (
 		basicLoader
 		parent eval.Loader
 	}
+
+	typeSetLoader struct {
+		parentedLoader
+		typeSet *types.TypeSetType
+	}
 )
 
 var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
@@ -37,6 +42,10 @@ func init() {
 
 	eval.NewParentedLoader = func(parent eval.Loader) eval.DefiningLoader {
 		return &parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}
+	}
+
+	eval.NewTypeSetLoader = func(parent eval.Loader, typeSet eval.PType) eval.TypeSetLoader {
+		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(*types.TypeSetType)}
 	}
 
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
@@ -145,4 +154,32 @@ func (l *parentedLoader) LoadEntry(name eval.TypedName) eval.Entry {
 
 func (l *parentedLoader) NameAuthority() eval.URI {
 	return l.parent.NameAuthority()
+}
+
+func (l *typeSetLoader) TypeSet() eval.PType {
+	return l.typeSet
+}
+
+
+func (l *typeSetLoader) LoadEntry(name eval.TypedName) eval.Entry {
+	entry := l.parentedLoader.LoadEntry(name)
+	if entry == nil {
+		entry = l.find(name)
+		if entry == nil {
+			entry = &loaderEntry{nil, nil}
+			l.parentedLoader.SetEntry(name, entry)
+		}
+	}
+	return entry
+}
+
+func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
+	return l.parent.(eval.DefiningLoader).SetEntry(name, entry)
+}
+
+func (l *typeSetLoader) find(name eval.TypedName) eval.Entry {
+	if tp, ok := l.typeSet.GetType(name); ok {
+		return l.SetEntry(name, &loaderEntry{tp, nil})
+	}
+	return nil
 }

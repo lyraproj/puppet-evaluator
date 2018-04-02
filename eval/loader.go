@@ -39,6 +39,12 @@ type (
 
 		LoaderFor(key string) ModuleLoader
 	}
+
+	TypeSetLoader interface {
+		Loader
+
+		TypeSet() PType
+	}
 )
 
 const (
@@ -62,3 +68,4 @@ var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ..
 var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
 var RegisterGoFunction func(function ResolvableFunction)
 var RegisterResolvableType func(rt ResolvableType)
+var NewTypeSetLoader func(parent Loader, typeSet PType) TypeSetLoader

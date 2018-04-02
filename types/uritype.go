@@ -104,8 +104,18 @@ func init() {
 	newGoConstructor(`URI`,
 		func(d eval.Dispatch) {
 			d.Param(`String[1]`)
+			d.OptionalParam(`Boolean`)
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				return WrapURI2(args[0].String())
+				strict := false
+				str := args[0].String()
+				if len(args) > 1 {
+					strict = args[1].(*BooleanValue).Bool()
+				}
+				u, err := ParseURI2(str, strict)
+				if err != nil {
+					panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+				}
+				return WrapURI(u)
 			})
 		},
 
@@ -179,6 +189,13 @@ func ParseURI(str string) *url.URL {
 		panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 	}
 	return uri
+}
+
+func ParseURI2(str string, strict bool) (*url.URL, error) {
+	if strict {
+		return url.ParseRequestURI(str)
+	}
+	return url.Parse(str)
 }
 
 func URIFromHash(hash *HashValue) *url.URL {

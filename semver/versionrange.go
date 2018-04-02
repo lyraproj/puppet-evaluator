@@ -126,6 +126,9 @@ func ParseVersionRange(vr string) (result *VersionRange, err error) {
 	vr = OP_WS_PATTERN.ReplaceAllString(vr, `$1`)
 	rangeStrings := OR_SPLIT.Split(vr, -1)
 	ranges := make([]abstractRange, 0, len(rangeStrings))
+	if len(rangeStrings) == 0 {
+		return nil, &badArgument{fmt.Sprintf(`'%s' is not a valid version range`, vr)}
+	}
 	for _, rangeStr := range rangeStrings {
 		if rangeStr == `` {
 			ranges = append(ranges, _LOWEST_LB)
@@ -141,7 +144,7 @@ func ParseVersionRange(vr string) (result *VersionRange, err error) {
 		for _, simple := range SIMPLE_SPLIT.Split(rangeStr, -1) {
 			m := SIMPLE_PATTERN.FindStringSubmatch(simple)
 			if m == nil {
-				panic(&badArgument{fmt.Sprintf(`'%s' is not a valid version range`, simple)})
+				return nil, &badArgument{fmt.Sprintf(`'%s' is not a valid version range`, simple)}
 			}
 			var rng abstractRange
 			switch m[1] {
@@ -270,7 +273,7 @@ func (r *VersionRange) StartVersion() *Version {
 func (r *VersionRange) String() string {
 	bld := bytes.NewBufferString(``)
 	r.ToString(bld)
-	return r.String()
+	return bld.String()
 }
 
 func (r *VersionRange) ToNormalizedString(bld io.Writer) {

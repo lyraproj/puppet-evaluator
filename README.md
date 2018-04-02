@@ -64,14 +64,14 @@ directory.
 
 #### Catalog and Resource related:
 
-* [ ] -> operator
-* [ ] ~> operator
-* [ ] <- operator
-* [ ] <~ operator
+* [x] -> operator
+* [x] ~> operator
+* [x] <- operator
+* [x] <~ operator
 * [ ] class definition statements
 * [ ] defined type statements
 * [ ] node definition statements
-* [ ] resource expressions
+* [x] resource expressions
 * [ ] resource metaparameters
 * [ ] virtual resource expressions
 * [ ] exported resource expressions
@@ -94,7 +94,7 @@ directory.
 * [x] Error
 * [x] Float
 * [x] Hash
-* [x] Init
+* [ ] Init
 * [x] Integer
 * [x] Iterable
 * [x] Iterator
@@ -118,6 +118,7 @@ directory.
 * [x] Timestamp
 * [x] Tuple
 * [x] Type
+* [x] TypeSet
 * [x] Unit
 * [x] Undef
 * [x] URI
@@ -125,7 +126,7 @@ directory.
 
 * [ ] CatalogEntry
 * [ ] Class
-* [ ] Resource
+* [x] Resource
 
 ### Puppet functions:
 

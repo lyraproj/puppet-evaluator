@@ -13,6 +13,7 @@ const (
 	EVAL_CONSTANT_REQUIRES_VALUE                   = `EVAL_CONSTANT_REQUIRES_VALUE`
 	EVAL_CONSTANT_WITH_FINAL                       = `EVAL_CONSTANT_WITH_FINAL`
 	EVAL_CTOR_NOT_FOUND                            = `EVAL_CTOR_NOT_FOUND`
+	EVAL_DUPLICATE_KEY                             = `EVAL_DUPLICATE_KEY`
 	EVAL_EMPTY_TYPE_PARAMETER_LIST                 = `EVAL_EMPTY_TYPE_PARAMETER_LIST`
 	EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND              = `EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND`
 	EVAL_EQUALITY_NOT_ATTRIBUTE                    = `EVAL_EQUALITY_NOT_ATTRIBUTE`
@@ -38,6 +39,8 @@ const (
 	EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG       = `EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG`
 	EVAL_INVALID_TIMEZONE                          = `EVAL_INVALID_TIMEZONE`
 	EVAL_INVALID_URI                               = `EVAL_INVALID_URI`
+	EVAL_INVALID_VERSION                           = `EVAL_INVALID_VERSION`
+	EVAL_INVALID_VERSION_RANGE                     = `EVAL_INVALID_VERSION_RANGE`
 	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP                          = `EVAL_MATCH_NOT_REGEXP`
 	EVAL_MATCH_NOT_SEMVER_RANGE                    = `EVAL_MATCH_NOT_SEMVER_RANGE`
@@ -83,9 +86,17 @@ const (
 	EVAL_TIMESTAMP_CANNOT_BE_PARSED                = `EVAL_TIMESTAMP_CANNOT_BE_PARSED`
 	EVAL_TIMESTAMP_TZ_AMBIGUITY                    = `EVAL_TIMESTAMP_TZ_AMBIGUITY`
 	EVAL_TYPE_MISMATCH                             = `EVAL_TYPE_MISMATCH`
+	EVAL_TYPESET_ALIAS_COLLIDES                    = `EVAL_TYPESET_ALIAS_COLLIDES`
+	EVAL_TYPESET_MISSING_NAME_AUTHORITY            = `EVAL_TYPESET_MISSING_NAME_AUTHORITY`
+	EVAL_TYPESET_REFERENCE_BAD_TYPE                = `EVAL_TYPESET_REFERENCE_BAD_TYPE`
+	EVAL_TYPESET_REFERENCE_DUPLICATE               = `EVAL_TYPESET_REFERENCE_DUPLICATE`
+	EVAL_TYPESET_REFERENCE_MISMATCH                = `EVAL_TYPESET_REFERENCE_MISMATCH`
+	EVAL_TYPESET_REFERENCE_OVERLAP                 = `EVAL_TYPESET_REFERENCE_OVERLAP`
+	EVAL_TYPESET_REFERENCE_UNRESOLVED              = `EVAL_TYPESET_REFERENCE_UNRESOLVED`
 	EVAL_UNABLE_TO_DESERIALIZE_TYPE                = `EVAL_UNABLE_TO_DESERIALIZE_TYPE`
 	EVAL_UNABLE_TO_DESERIALIZE_VALUE               = `EVAL_UNABLE_TO_DESERIALIZE_VALUE`
 	EVAL_UNABLE_TO_READ_FILE                       = `EVAL_UNABLE_TO_READ_FILE`
+	EVAL_UNHANDLED_PCORE_VERSION                   = `EVAL_UNHANDLED_PCORE_VERSION`
 	EVAL_UNHANDLED_EXPRESSION                      = `EVAL_UNHANDLED_EXPRESSION`
 	EVAL_UNKNOWN_FUNCTION                          = `EVAL_UNKNOWN_FUNCTION`
 	EVAL_UNKNOWN_PLAN                              = `EVAL_UNKNOWN_PLAN`
@@ -111,6 +122,8 @@ func init() {
 
 	// TRANSLATOR 'final => false' is puppet syntax and should not be translated
 	issue.Hard(EVAL_CONSTANT_WITH_FINAL, `%{label} of kind 'constant' cannot be combined with final => false`)
+
+	issue.Hard(EVAL_DUPLICATE_KEY, `The key '%{key}' is declared more than once`)
 
 	issue.Hard(EVAL_EMPTY_TYPE_PARAMETER_LIST, `The %{label}-Type cannot be parameterized using an empty parameter list`)
 
@@ -165,6 +178,10 @@ func init() {
 	issue.Hard(EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, `The same flag can only be used once in a string format, got '%{format}'`)
 
 	issue.Hard(EVAL_INVALID_TIMEZONE, `Unable to load timezone '%{zone}': %{detail}`)
+
+	issue.Hard(EVAL_INVALID_VERSION, `Cannot parse a semantic version from string '%{str}': '%{detail}'`)
+
+	issue.Hard(EVAL_INVALID_VERSION_RANGE, `Cannot parse a semantic version range from string '%{str}': '%{detail}'`)
 
 	issue.Hard(EVAL_INVALID_URI, `Cannot parse an URI from string '%{str}': '%{detail}'`)
 
@@ -261,6 +278,20 @@ func init() {
 
 	issue.Hard(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 
+	issue.Hard(EVAL_TYPESET_ALIAS_COLLIDES, `TypeSet '%{name}' references a TypeSet using alias '%{ref_alias}'. The alias collides with the name of a declared type`)
+
+	issue.Hard(EVAL_TYPESET_MISSING_NAME_AUTHORITY, `No 'name_authority' is declared in TypeSet '%{name}' and it cannot be inferred`)
+
+	issue.Hard(EVAL_TYPESET_REFERENCE_BAD_TYPE, `TypeSet '%{name}' reference to TypeSet named %{ref_name} resoles to a %{type_name}`)
+
+	issue.Hard(EVAL_TYPESET_REFERENCE_DUPLICATE, `TypeSet '%{name}' references a TypeSet using alias '%{ref_alias}' more than once`)
+
+	issue.Hard(EVAL_TYPESET_REFERENCE_MISMATCH, `TypeSet '%{name}' reference to TypeSet named %{ref_name} resolves to an incompatible version. Expected %{version_range}, got %{version`)
+
+	issue.Hard(EVAL_TYPESET_REFERENCE_OVERLAP, `TypeSet '%{name}' references TypeSet '%{ref_na}/%{ref_name}' more than once using overlapping version ranges`)
+
+	issue.Hard(EVAL_TYPESET_REFERENCE_UNRESOLVED, `TypeSet '%{name}' reference to TypeSet '%{ref_name}' cannot be resolved`)
+
 	issue.Hard(EVAL_UNABLE_TO_DESERIALIZE_TYPE, `Unable to deserialize a data type from hash %{hash}`)
 
 	issue.Hard2(EVAL_UNABLE_TO_DESERIALIZE_VALUE, `Unable to deserialize an instance of %{type} from %{arg_type}`, issue.HF{`arg_type`: parser.A_an})
@@ -268,6 +299,8 @@ func init() {
 	issue.Hard(EVAL_UNABLE_TO_READ_FILE, `Unable to read file '%{path}': %{detail}`)
 
 	issue.Hard(EVAL_UNHANDLED_EXPRESSION, `Evaluator cannot handle an expression of type %<expression>T`)
+
+	issue.Hard(EVAL_UNHANDLED_PCORE_VERSION, `The pcore version for TypeSet '%{name}' is not understood by this runtime. Expected range %{expected_range}, got %{pcore_version}`)
 
 	issue.Hard(EVAL_UNKNOWN_FUNCTION, `Unknown function: '%{name}'`)
 
