@@ -14,6 +14,9 @@ import (
 	// results in a segfault if functions is not imported (but
 	// not used) at this point
 	_ "github.com/puppetlabs/go-evaluator/functions"
+	"github.com/puppetlabs/go-evaluator/resource"
+	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-parser/validator"
 )
 
 type (
@@ -26,6 +29,7 @@ type (
 
 	pcoreImpl struct {
 		lock              sync.RWMutex
+		logger            eval.Logger
 		systemLoader      eval.Loader
 		environmentLoader eval.Loader
 		moduleLoaders     map[string]eval.Loader
@@ -33,16 +37,25 @@ type (
 	}
 )
 
+var staticLock sync.Mutex
+var staticInitialized = false
+
 func NewPcore(logger eval.Logger) eval.Pcore {
-	loader := eval.NewParentedLoader(eval.StaticLoader())
-	settings := make(map[string]eval.Setting, 32)
-	p := &pcoreImpl{systemLoader: loader, settings: settings}
+	// First call initializes the static loader. There can be only one since it receives
+	// most of its contents from Go init() functions
+	staticLock.Lock()
+	if !staticInitialized {
+		loader := eval.StaticLoader().(eval.DefiningLoader)
+		impl.ResolveResolvables(loader, logger)
+		staticInitialized = true
+		staticLock.Unlock()
+	}
 
-	impl.ResolveResolvables(loader, logger)
-
+	p := &pcoreImpl{systemLoader: eval.NewParentedLoader(eval.StaticLoader()), settings: make(map[string]eval.Setting, 32), logger: logger}
 	p.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
 	p.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
 	p.DefineSetting(`module_path`, types.DefaultStringType(), nil)
+	p.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	p.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 	eval.Puppet = p
 	return p
@@ -101,7 +114,6 @@ func (p *pcoreImpl) Loader(key string) eval.Loader {
 }
 
 func (p *pcoreImpl) DefineSetting(key string, valueType eval.PType, dflt eval.PValue) {
-
 	s := &setting{name: key, valueType: valueType, defaultValue: dflt}
 	if dflt != nil {
 		s.Set(dflt)
@@ -126,6 +138,36 @@ func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.PValue {
 		return defaultProducer()
 	}
 	panic(fmt.Sprintf(`Attempt to access unknown setting '%s'`, key))
+}
+
+func (p *pcoreImpl) Logger() eval.Logger {
+	return p.logger
+}
+
+func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
+	return p.NewEvaluatorWithLogger(p.logger)
+}
+
+func (p *pcoreImpl) NewEvaluatorWithLogger(logger eval.Logger) eval.Evaluator {
+	loader := eval.NewParentedLoader(p.EnvironmentLoader())
+	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+		// Just script evaluator. No resource expressions
+		return impl.NewEvaluator(loader, logger)
+	}
+	return resource.NewEvaluator(loader, logger)
+}
+
+func (p *pcoreImpl) NewParser() validator.ParserValidator {
+	lo := make([]parser.Option, 0)
+	var v validator.Validator
+	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+		// Keyword 'plan' enabled. No resource expressions allowed in validation
+		lo = append(lo, parser.PARSER_TASKS_ENABLED)
+		v = validator.NewTasksChecker()
+	} else {
+		v = validator.NewChecker(validator.Strict(p.Get(`strict`, nil).String()))
+	}
+	return validator.NewParserValidator(parser.CreateParser(lo...), v)
 }
 
 func (p *pcoreImpl) Set(key string, value eval.PValue) {
