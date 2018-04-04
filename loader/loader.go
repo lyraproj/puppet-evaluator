@@ -32,12 +32,17 @@ type (
 )
 
 var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
+var staticResourceLoader = &parentedLoader{basicLoader:basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent:staticLoader}
 var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
 func init() {
 	eval.StaticLoader = func() eval.Loader {
 		return staticLoader
+	}
+
+	eval.StaticResourceLoader = func() eval.Loader {
+		return staticResourceLoader
 	}
 
 	eval.NewParentedLoader = func(parent eval.Loader) eval.DefiningLoader {
