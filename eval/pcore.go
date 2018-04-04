@@ -65,6 +65,9 @@ type (
 		// DefineSetting defines a new setting with a given valueType and default
 		// value.
 		DefineSetting(key string, valueType PType, dflt PValue)
+
+		// Resolve types, constructions, or functions that has been recently added
+		ResolveResolvables(loader DefiningLoader)
 	}
 )
 

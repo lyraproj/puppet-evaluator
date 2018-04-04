@@ -38,38 +38,63 @@ type (
 )
 
 var staticLock sync.Mutex
-var staticInitialized = false
 
-func NewPcore(logger eval.Logger) eval.Pcore {
+func InitializePuppet() {
 	// First call initializes the static loader. There can be only one since it receives
 	// most of its contents from Go init() functions
 	staticLock.Lock()
-	if !staticInitialized {
-		loader := eval.StaticLoader().(eval.DefiningLoader)
-		impl.ResolveResolvables(loader, logger)
-		staticInitialized = true
-		staticLock.Unlock()
+	defer staticLock.Unlock()
+
+	if eval.Puppet != nil {
+		return
 	}
 
-	p := &pcoreImpl{systemLoader: eval.NewParentedLoader(eval.StaticLoader()), settings: make(map[string]eval.Setting, 32), logger: logger}
+	logger := eval.NewStdLogger()
+	impl.ResolveResolvables(eval.StaticLoader().(eval.DefiningLoader), logger)
+
+	p := &pcoreImpl{settings: make(map[string]eval.Setting, 32), logger: logger}
 	p.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
 	p.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
 	p.DefineSetting(`module_path`, types.DefaultStringType(), nil)
 	p.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	p.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 	eval.Puppet = p
-	return p
 }
 
 func (p *pcoreImpl) Reset() {
+	p.lock.Lock()
+	p.systemLoader = nil
 	p.environmentLoader = nil
 	for _, s := range p.settings {
 		s.Reset()
 	}
+	p.lock.Unlock()
 }
 
 func (p *pcoreImpl) SystemLoader() eval.Loader {
+	p.lock.Lock()
+	p.ensureSystemLoader()
+	p.lock.Unlock()
 	return p.systemLoader
+}
+
+func (p *pcoreImpl) configuredStaticLoader() eval.Loader {
+	if p.settings[`tasks`].Get().(*types.BooleanValue).Bool() {
+		return eval.StaticLoader()
+	}
+	return eval.StaticResourceLoader()
+}
+
+// not exported, provides unprotected access to shared object
+func (p *pcoreImpl) ensureSystemLoader() eval.Loader {
+	if p.systemLoader == nil {
+		p.systemLoader = eval.NewParentedLoader(p.configuredStaticLoader())
+	}
+	return p.systemLoader
+}
+
+func (p *pcoreImpl) ResolveResolvables(loader eval.DefiningLoader) {
+	impl.ResolveResolvables(loader, p.logger)
 }
 
 func (p *pcoreImpl) EnvironmentLoader() eval.Loader {
@@ -77,6 +102,7 @@ func (p *pcoreImpl) EnvironmentLoader() eval.Loader {
 	defer p.lock.Unlock()
 
 	if p.environmentLoader == nil {
+		p.ensureSystemLoader()
 		envLoader := p.systemLoader // TODO: Add proper environment loader
 		s := p.settings[`module_path`]
 		mds := make([]eval.ModuleLoader, 0)
