@@ -23,7 +23,7 @@ func init() {
 	eval.NewDependencyLoader = newDependencyLoader
 }
 
-func (l *dependencyLoader) LoadEntry(c eval.EvalContext, name eval.TypedName) eval.Entry {
+func (l *dependencyLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
 	entry := l.basicLoader.LoadEntry(c, name)
 	if entry == nil {
 		entry = l.find(c, name)
@@ -39,7 +39,7 @@ func (l *dependencyLoader) LoaderFor(moduleName string) eval.ModuleLoader {
 	return l.index[moduleName]
 }
 
-func (l *dependencyLoader) find(c eval.EvalContext, name eval.TypedName) eval.Entry {
+func (l *dependencyLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 	if name.IsQualified() {
 		if ml, ok := l.index[name.NameParts()[0]]; ok {
 			return ml.LoadEntry(c, name)

@@ -17,11 +17,11 @@ func init() {
 		return match(nil, nil, `=~`, nil, a, b)
 	}
 }
-func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.EvalContext) eval.PValue {
+func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.Context) eval.PValue {
 	return e.compare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
 }
 
-func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.EvalContext) eval.PValue {
+func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.Context) eval.PValue {
 	return types.WrapBoolean(match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 

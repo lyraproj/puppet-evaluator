@@ -25,7 +25,7 @@ func init() {
 			value => false
 		}
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 	    enumArgs := args[0].(eval.IndexedValue).AppendTo([]eval.PValue{})
 			return NewEnumType2(append(enumArgs, args[1:]...)...)
 		})

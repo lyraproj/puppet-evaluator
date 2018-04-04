@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AssignmentExpression(expr *parser.AssignmentExpression, c eval.EvalContext) eval.PValue {
+func (e *evaluator) eval_AssignmentExpression(expr *parser.AssignmentExpression, c eval.Context) eval.PValue {
 	return e.assign(expr, c.Scope(), e.lvalue(expr.Lhs()), e.Eval(expr.Rhs(), c))
 }
 

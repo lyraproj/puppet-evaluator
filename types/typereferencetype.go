@@ -20,7 +20,7 @@ func init() {
 	attributes => {
 		type_string => String[1]
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewTypeReferenceType2(args...)
 		})
 }
@@ -99,7 +99,7 @@ func (t *TypeReferenceType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapString(t.typeString)}
 }
 
-func (t *TypeReferenceType) Resolve(c eval.EvalContext) eval.PType {
+func (t *TypeReferenceType) Resolve(c eval.Context) eval.PType {
 	r := c.ParseType2(t.typeString)
 	if rt, ok := r.(eval.ResolvableType); ok {
 		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {

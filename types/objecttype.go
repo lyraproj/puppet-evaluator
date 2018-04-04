@@ -18,7 +18,7 @@ import (
 var Object_Type eval.ObjectType
 
 func init() {
-	oneArgCtor := func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	oneArgCtor := func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return NewObjectType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
 	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
@@ -231,7 +231,7 @@ func stringArg(hash eval.KeyedValue, key string, d string) string {
 	panic(argError(DefaultStringType(), v))
 }
 
-func uriArg(c eval.EvalContext, hash eval.KeyedValue, key string, d eval.URI) eval.URI {
+func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.URI {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -249,7 +249,7 @@ func uriArg(c eval.EvalContext, hash eval.KeyedValue, key string, d eval.URI) ev
 	panic(argError(DefaultUriType(), v))
 }
 
-func versionArg(c eval.EvalContext, hash eval.KeyedValue, key string, d *semver.Version) *semver.Version {
+func versionArg(c eval.Context, hash eval.KeyedValue, key string, d *semver.Version) *semver.Version {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -267,7 +267,7 @@ func versionArg(c eval.EvalContext, hash eval.KeyedValue, key string, d *semver.
 	panic(argError(DefaultSemVerType(), v))
 }
 
-func versionRangeArg(c eval.EvalContext, hash eval.KeyedValue, key string, d *semver.VersionRange) *semver.VersionRange {
+func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d *semver.VersionRange) *semver.VersionRange {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -326,7 +326,7 @@ func (a *annotatedMember) Annotations() *HashValue {
 
 // Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with
 // override = true and that the inherited member accepts to be overridden by this member.
-func assertOverride(c eval.EvalContext, a eval.AnnotatedMember, parentMembers *hash.StringHash) {
+func assertOverride(c eval.Context, a eval.AnnotatedMember, parentMembers *hash.StringHash) {
 	parentMember, _ := parentMembers.Get(a.Name(), nil).(eval.AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
@@ -337,7 +337,7 @@ func assertOverride(c eval.EvalContext, a eval.AnnotatedMember, parentMembers *h
 	}
 }
 
-func assertCanBeOverridden(c eval.EvalContext, a eval.AnnotatedMember, member eval.AnnotatedMember) {
+func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.AnnotatedMember) {
 	if a.FeatureType() != member.FeatureType() {
 		panic(eval.Error(c, eval.EVAL_OVERRIDE_MEMBER_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
@@ -355,7 +355,7 @@ func assertCanBeOverridden(c eval.EvalContext, a eval.AnnotatedMember, member ev
 	}
 }
 
-func (a *annotatedMember) Call(c eval.EvalContext, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (a *annotatedMember) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
 	// TODO:
 	panic("implement me")
 }
@@ -392,13 +392,13 @@ func (a *annotatedMember) Final() bool {
 	return a.final
 }
 
-func newAttribute(c eval.EvalContext, name string, container *objectType, initHash *HashValue) eval.Attribute {
+func newAttribute(c eval.Context, name string, container *objectType, initHash *HashValue) eval.Attribute {
 	a := &attribute{}
 	a.initialize(c, name, container, initHash)
 	return a
 }
 
-func (a *attribute) initialize(c eval.EvalContext, name string, container *objectType, initHash *HashValue) {
+func (a *attribute) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
 	a.annotatedMember.initialize(name, container, initHash)
 	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for %s`, a.Label()) }, TYPE_ATTRIBUTE, initHash)
 	a.kind = eval.AttributeKind(stringArg(initHash, KEY_KIND, ``))
@@ -426,7 +426,7 @@ func (a *attribute) initialize(c eval.EvalContext, name string, container *objec
 	}
 }
 
-func (a *attribute) Call(c eval.EvalContext, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (a *attribute) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
 	if block == nil && len(args) == 0 {
 		return a.Get(c, receiver)
 	}
@@ -461,7 +461,7 @@ func (a *attribute) InitHash() eval.KeyedValue {
 	return WrapHash3(a.initHash())
 }
 
-func (a *attribute) Value(c eval.EvalContext) eval.PValue {
+func (a *attribute) Value(c eval.Context) eval.PValue {
 	if a.value == nil {
 		panic(eval.Error(c, eval.EVAL_ATTRIBUTE_HAS_NO_VALUE, issue.H{`label`: a.Label()}))
 	}
@@ -472,7 +472,7 @@ func (a *attribute) FeatureType() string {
 	return `attribute`
 }
 
-func (a *attribute) Get(c eval.EvalContext, instance eval.PValue) eval.PValue {
+func (a *attribute) Get(c eval.Context, instance eval.PValue) eval.PValue {
 	if a.kind == CONSTANT {
 		return a.value
 	}
@@ -497,7 +497,7 @@ func (a *attribute) CallableType() eval.PType {
 	return TYPE_ATTRIBUTE_CALLABLE
 }
 
-func newTypeParameter(c eval.EvalContext, name string, container *objectType, initHash *HashValue) eval.Attribute {
+func newTypeParameter(c eval.Context, name string, container *objectType, initHash *HashValue) eval.Attribute {
 	t := &typeParameter{}
 	t.initialize(c, name, container, initHash)
 	return t
@@ -520,13 +520,13 @@ func (t *typeParameter) FeatureType() string {
 	return `type_parameter`
 }
 
-func newFunction(c eval.EvalContext, name string, container *objectType, initHash *HashValue) eval.ObjFunc {
+func newFunction(c eval.Context, name string, container *objectType, initHash *HashValue) eval.ObjFunc {
 	f := &function{}
 	f.initialize(c, name, container, initHash)
 	return f
 }
 
-func (f *function) initialize(c eval.EvalContext, name string, container *objectType, initHash *HashValue) {
+func (f *function) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
 	f.annotatedMember.initialize(name, container, initHash)
 	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for %s`, f.Label()) }, TYPE_FUNCTION, initHash)
 }
@@ -577,7 +577,7 @@ func AllocObjectType() *objectType {
 		functions:          hash.EMPTY_STRINGHASH}
 }
 
-func (t *objectType) Initialize(c eval.EvalContext, args []eval.PValue) {
+func (t *objectType) Initialize(c eval.Context, args []eval.PValue) {
 	if len(args) == 1 {
 		if hash, ok := args[0].(eval.KeyedValue); ok {
 			t.InitFromHash(c, hash)
@@ -595,7 +595,7 @@ func NewObjectType(name string, parent eval.PType, initHashExpression interface{
 	return obj
 }
 
-func NewObjectType2(c eval.EvalContext, initHash *HashValue, loader eval.Loader) *objectType {
+func NewObjectType2(c eval.Context, initHash *HashValue, loader eval.Loader) *objectType {
 	if initHash.IsEmpty() {
 		return DefaultObjectType()
 	}
@@ -748,7 +748,7 @@ func (t *objectType) IsParameterized() bool {
 	return false
 }
 
-func (t *objectType) Resolve(c eval.EvalContext) eval.PType {
+func (t *objectType) Resolve(c eval.Context) eval.PType {
 	if t.initHashExpression != nil {
 		ihe := t.initHashExpression
 		t.initHashExpression = nil
@@ -771,7 +771,7 @@ func (t *objectType) Resolve(c eval.EvalContext) eval.PType {
 	return t
 }
 
-func resolveTypeRefs(c eval.EvalContext, v eval.PValue) eval.PValue {
+func resolveTypeRefs(c eval.Context, v eval.PValue) eval.PValue {
 	switch v.(type) {
 	case *HashValue:
 		hv := v.(*HashValue)
@@ -799,7 +799,7 @@ func resolveTypeRefs(c eval.EvalContext, v eval.PValue) eval.PValue {
 	}
 }
 
-func (t *objectType) InitFromHash(c eval.EvalContext, initHash eval.KeyedValue) {
+func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	eval.AssertInstance(c, `object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
 	t.parameters = hash.EMPTY_STRINGHASH
 	t.attributes = hash.EMPTY_STRINGHASH
@@ -1001,7 +1001,7 @@ func (t *objectType) HasHashConstructor() bool {
 	return t.creators == nil || len(t.creators) == 2
 }
 
-func (t *objectType) createNewFunction(c eval.EvalContext) {
+func (t *objectType) createNewFunction(c eval.Context) {
 	pi := t.AttributesInfo()
 	dl := t.loader.(eval.DefiningLoader)
 
@@ -1015,17 +1015,17 @@ func (t *objectType) createNewFunction(c eval.EvalContext) {
 			return
 		}
 	} else {
-		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return AllocObjectValue(t)
 		}), nil))
 
 		functions = []eval.DispatchFunction{
 			// Positional argument creator
-			func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			func(c eval.Context, args []eval.PValue) eval.PValue {
 				return NewObjectValue(c, t, args)
 			},
 			// Named argument creator
-			func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			func(c eval.Context, args []eval.PValue) eval.PValue {
 				return NewObjectValue2(c, t, args[0].(*HashValue))
 			}}
 	}
@@ -1177,7 +1177,7 @@ func (ai *attributesInfo) RequiredCount() int {
 	return ai.requiredCount
 }
 
-func (ai *attributesInfo) PositionalFromHash(c eval.EvalContext, hash eval.KeyedValue) []eval.PValue {
+func (ai *attributesInfo) PositionalFromHash(c eval.Context, hash eval.KeyedValue) []eval.PValue {
 	nameToPos := ai.NameToPos()
 	va := make([]eval.PValue, len(nameToPos))
 
@@ -1262,7 +1262,7 @@ func compressedMembersHash(mh *hash.StringHash) *HashValue {
 	return WrapHash(he)
 }
 
-func (t *objectType) checkSelfRecursion(c eval.EvalContext, originator *objectType) {
+func (t *objectType) checkSelfRecursion(c eval.Context, originator *objectType) {
 	if t.parent != nil {
 		op := t.resolvedParent(c)
 		if eval.Equals(op, originator) {
@@ -1334,7 +1334,7 @@ func (t *objectType) initHash(includeName bool) map[string]eval.PValue {
 	return h
 }
 
-func (t *objectType) resolvedParent(c eval.EvalContext) *objectType {
+func (t *objectType) resolvedParent(c eval.Context) *objectType {
 	tp := t.parent
 	for {
 		switch tp.(type) {
@@ -1398,7 +1398,7 @@ func AllocObjectValue(typ eval.ObjectType) eval.ObjectValue {
 	return &objectValue{typ, eval.EMPTY_VALUES}
 }
 
-func (ov *objectValue) Initialize(c eval.EvalContext, values []eval.PValue) {
+func (ov *objectValue) Initialize(c eval.Context, values []eval.PValue) {
 	if len(values) > 0 && ov.typ.IsParameterized() {
 		ov.InitFromHash(c, makeValueHash(ov.typ.AttributesInfo(), values))
 		return
@@ -1407,7 +1407,7 @@ func (ov *objectValue) Initialize(c eval.EvalContext, values []eval.PValue) {
 	ov.values = values
 }
 
-func (ov *objectValue) InitFromHash(c eval.EvalContext, hash eval.KeyedValue) {
+func (ov *objectValue) InitFromHash(c eval.Context, hash eval.KeyedValue) {
 	typ := ov.typ.(*objectType)
 	va := typ.AttributesInfo().PositionalFromHash(c, hash)
 	if len(va) > 0 && typ.IsParameterized() {
@@ -1424,20 +1424,20 @@ func (ov *objectValue) InitFromHash(c eval.EvalContext, hash eval.KeyedValue) {
 	ov.values = va
 }
 
-func NewObjectValue(c eval.EvalContext, typ eval.ObjectType, values []eval.PValue) eval.ObjectValue {
+func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.PValue) eval.ObjectValue {
 	ov := AllocObjectValue(typ)
 	ov.Initialize(c, values)
 	return ov
 }
 
-func NewObjectValue2(c eval.EvalContext, typ eval.ObjectType, hash *HashValue) eval.ObjectValue {
+func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) eval.ObjectValue {
 	ov := AllocObjectValue(typ)
 	ov.InitFromHash(c, hash)
 	return ov
 }
 
 // Ensure that all entries in the value slice that are nil receive default values from the given attributes
-func fillValueSlice(c eval.EvalContext, values []eval.PValue, attrs []eval.Attribute) {
+func fillValueSlice(c eval.Context, values []eval.PValue, attrs []eval.Attribute) {
 	for ix, v := range values {
 		if v == nil {
 			at := attrs[ix]

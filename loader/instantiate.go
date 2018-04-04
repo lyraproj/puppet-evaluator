@@ -12,17 +12,17 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-type Instantiator func(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string)
+type Instantiator func(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string)
 
-func InstantiatePuppetFunction(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func InstantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	instantiatePuppetFunction(ctx, loader, tn, sources)
 }
 
-func InstantiatePuppetPlan(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func InstantiatePuppetPlan(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	instantiatePuppetFunction(ctx, loader, tn, sources)
 }
 
-func instantiatePuppetFunction(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func instantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	source := sources[0]
 	content := string(loader.GetContent(ctx, source))
 	expr := ctx.ParseAndValidate(source, content, false)
@@ -39,7 +39,7 @@ func instantiatePuppetFunction(ctx eval.EvalContext, loader ContentProvidingLoad
 	e.ResolveDefinitions(ctx)
 }
 
-func InstantiatePuppetType(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	content := string(loader.GetContent(ctx, sources[0]))
 	expr := ctx.ParseAndValidate(sources[0], content, false)
 	name := tn.Name()
@@ -63,7 +63,7 @@ func InstantiatePuppetType(ctx eval.EvalContext, loader ContentProvidingLoader, 
 	e.ResolveDefinitions(ctx)
 }
 
-func InstantiatePuppetTask(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	name := tn.Name()
 	metadata := ``
 	taskSource := ``
@@ -88,7 +88,7 @@ func InstantiatePuppetTask(ctx eval.EvalContext, loader ContentProvidingLoader, 
 	loader.(eval.DefiningLoader).SetEntry(tn, eval.NewLoaderEntry(task, issue.NewLocation(origin, 0, 0)))
 }
 
-func createTask(ctx eval.EvalContext, loader ContentProvidingLoader, name, taskSource, metadata string) eval.PValue {
+func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSource, metadata string) eval.PValue {
 	if metadata == `` {
 		return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
 	}
@@ -105,7 +105,7 @@ func createTask(ctx eval.EvalContext, loader ContentProvidingLoader, name, taskS
 	panic(eval.Error(ctx, eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
 }
 
-func createTaskFromHash(ctx eval.EvalContext, name, taskSource string, hash map[string]interface{}) eval.PValue {
+func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[string]interface{}) eval.PValue {
 	arguments := make(map[string]interface{}, 7)
 	arguments[`name`] = types.WrapString(name)
 	arguments[`executable`] = types.WrapString(taskSource)

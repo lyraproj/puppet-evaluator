@@ -105,12 +105,12 @@ func (l *lambda) Signature() eval.Signature {
 	return l.signature
 }
 
-func (l *goLambda) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
+func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
 	result = l.function(c, args)
 	return
 }
 
-func (l *goLambdaWithBlock) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
+func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
 	result = l.function(c, args, block)
 	return
 }
@@ -142,7 +142,7 @@ func (fb *functionBuilder) Name() string {
 	return fb.name
 }
 
-func (fb *functionBuilder) Resolve(c eval.EvalContext) eval.Function {
+func (fb *functionBuilder) Resolve(c eval.Context) eval.Function {
 	if len(fb.localTypeBuilder.localTypes) > 0 {
 		localLoader := eval.NewParentedLoader(c.Loader())
 		localEval := NewEvaluator(localLoader, c.Logger())
@@ -183,7 +183,7 @@ func (tb *localTypeBuilder) Type2(name string, tp eval.PType) {
 	tb.localTypes = append(tb.localTypes, &typeDecl{name, ``, tp})
 }
 
-func (db *dispatchBuilder) createDispatch(c eval.EvalContext) eval.Lambda {
+func (db *dispatchBuilder) createDispatch(c eval.Context) eval.Lambda {
 	for idx, tp := range db.types {
 		if trt, ok := tp.(*types.TypeReferenceType); ok {
 			db.types[idx] = c.ParseType2(trt.TypeString())
@@ -304,7 +304,7 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 	}
 }
 
-func (f *goFunction) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) eval.PValue {
+func (f *goFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) eval.PValue {
 	argsArray := types.WrapArray(args)
 	for _, d := range f.dispatchers {
 		if d.Signature().CallableWith(argsArray, block) {
@@ -360,14 +360,14 @@ func (f *goFunction) Type() eval.PType {
 	return types.NewVariantType(variants)
 }
 
-func NewPuppetLambda(expr *parser.LambdaExpression, c eval.EvalContext) eval.Lambda {
+func NewPuppetLambda(expr *parser.LambdaExpression, c eval.Context) eval.Lambda {
 	rps := resolveParameters(c, expr.Parameters())
 	sg := createTupleType(rps)
 
 	return &puppetLambda{types.NewCallableType(sg, resolveReturnType(c, expr.ReturnType()), nil), expr, rps}
 }
 
-func (l *puppetLambda) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
+func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
 	if block != nil {
 		panic(errors.NewArgumentsError(`lambda`, `nested lambdas are not supported`))
 	}
@@ -410,7 +410,7 @@ func NewPuppetFunction(expr *parser.FunctionDefinition) *puppetFunction {
 	return &puppetFunction{expression: expr}
 }
 
-func (f *puppetFunction) Call(c eval.EvalContext, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
+func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
 	if block != nil {
 		panic(errors.NewArgumentsError(f.Name(), `Puppet functions does not yet support lambdas`))
 	}
@@ -434,7 +434,7 @@ func (f *puppetFunction) Signature() eval.Signature {
 	return f.signature
 }
 
-func doCall(c eval.EvalContext, name string, parameters []*parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
+func doCall(c eval.Context, name string, parameters []*parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
 	return c.Scope().WithLocalScope(func(functionScope eval.Scope) (v eval.PValue) {
 		na := len(args)
 		np := len(parameters)
@@ -508,7 +508,7 @@ func (f *puppetFunction) Type() eval.PType {
 	return f.signature
 }
 
-func (f *puppetFunction) Resolve(c eval.EvalContext) {
+func (f *puppetFunction) Resolve(c eval.Context) {
 	if f.parameters != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
 	}
@@ -545,14 +545,14 @@ func createTupleType(params []*parameter) *types.TupleType {
 	return types.NewTupleType(tps, types.NewIntegerType(int64(min), int64(max)))
 }
 
-func resolveReturnType(c eval.EvalContext, typeExpr parser.Expression) eval.PType {
+func resolveReturnType(c eval.Context, typeExpr parser.Expression) eval.PType {
 	if typeExpr == nil {
 		return types.DefaultAnyType()
 	}
 	return c.ResolveType(typeExpr)
 }
 
-func resolveParameters(c eval.EvalContext, eps []parser.Expression) []*parameter {
+func resolveParameters(c eval.Context, eps []parser.Expression) []*parameter {
 	pps := make([]*parameter, len(eps))
 	for idx, ep := range eps {
 		pd := ep.(*parser.Parameter)

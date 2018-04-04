@@ -36,7 +36,7 @@ func init() {
       value => undef
     }
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewRegexpType2(args...)
 		})
 }

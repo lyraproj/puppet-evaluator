@@ -15,7 +15,7 @@ var binaryType_DEFAULT = &BinaryType{}
 var Binary_Type eval.ObjectType
 
 func init() {
-	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultBinaryType()
 	})
 
@@ -30,7 +30,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.OptionalParam(`Base64Format`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				str := args[0].String()
 				f := `%B`
 				if len(args) > 1 {
@@ -42,14 +42,14 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Array[ByteInteger]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return BinaryFromArray(args[0].(eval.IndexedValue))
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`StringHash`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				hv := args[0].(eval.KeyedValue)
 				return BinaryFromString(hv.Get5(`value`, eval.UNDEF).String(), hv.Get5(`format`, eval.UNDEF).String())
 			})
@@ -57,7 +57,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`ArrayHash`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return BinaryFromArray(args[0].(eval.IndexedValue))
 			})
 		},

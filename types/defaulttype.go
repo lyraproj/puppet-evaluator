@@ -19,7 +19,7 @@ var defaultType_DEFAULT = &DefaultType{}
 var Default_Type eval.ObjectType
 
 func init() {
-	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultDefaultType()
 	})
 }

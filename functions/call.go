@@ -11,7 +11,7 @@ func init() {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable`)
-			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return c.Call(args[0].(*types.StringValue).String(), args[1:], block)
 			})
 		},

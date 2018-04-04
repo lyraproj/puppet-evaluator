@@ -32,7 +32,7 @@ func init() {
       value => undef
     }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewCallableType2(args...)
 		})
 }

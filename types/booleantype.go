@@ -28,7 +28,7 @@ func init() {
   attributes => {
     value => { type => Optional[Boolean], value => undef }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return NewBooleanType2(args...)
 	})
 }

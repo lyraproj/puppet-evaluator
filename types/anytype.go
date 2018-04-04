@@ -11,7 +11,7 @@ type AnyType struct{}
 var Any_Type eval.ObjectType
 
 func init() {
-	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultAnyType()
 	})
 }

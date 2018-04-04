@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.EvalContext) (result eval.PValue) {
+func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.PValue) {
 	op := expr.Operand()
 	keys := expr.Keys()
 	nArgs := len(keys)
@@ -129,7 +129,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 	}
 }
 
-func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.PValue, expr *parser.AccessExpression, c eval.EvalContext) (tp eval.PType) {
+func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.PValue, expr *parser.AccessExpression, c eval.Context) (tp eval.PType) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {

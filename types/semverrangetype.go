@@ -21,7 +21,7 @@ var semVerRangeType_DEFAULT = &SemVerRangeType{}
 var SemVerRange_Type eval.ObjectType
 
 func init() {
-	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultSemVerRangeType()
 	})
 
@@ -33,7 +33,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeString`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				v, err := semver.ParseVersionRange(args[0].String())
 				if err != nil {
 					panic(errors.NewIllegalArgument(`SemVerRange`, 0, err.Error()))
@@ -46,7 +46,7 @@ func init() {
 			d.Param(`Variant[Default,SemVer]`)
 			d.Param(`Variant[Default,SemVer]`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				var start *semver.Version
 				if _, ok := args[0].(*DefaultValue); ok {
 					start = semver.MIN
@@ -69,7 +69,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeHash`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				hash := args[0].(*HashValue)
 				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
 

@@ -17,14 +17,14 @@ type (
 		symbolAsString  bool
 		richData        bool
 		messagePrefix   string
-		context         eval.EvalContext
+		context         eval.Context
 		path            []eval.PValue
 		values          map[eval.PValue]interface{}
 		recursiveLock   map[eval.PValue]bool
 	}
 )
 
-func NewToDataConverter(ctx eval.EvalContext, options eval.KeyedValue) *ToDataConverter {
+func NewToDataConverter(ctx eval.Context, options eval.KeyedValue) *ToDataConverter {
 	t := &ToDataConverter{}
 	t.typeByReference = options.Get5(`type_by_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.localReference = options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()

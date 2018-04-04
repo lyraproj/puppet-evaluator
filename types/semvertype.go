@@ -30,7 +30,7 @@ func init() {
       value => []
     }
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewSemVerType2(args...)
 		})
 
@@ -44,7 +44,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerString`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				v, err := semver.ParseVersion(args[0].String())
 				if err != nil {
 					panic(errors.NewIllegalArgument(`SemVer`, 0, err.Error()))
@@ -59,7 +59,7 @@ func init() {
 			d.Param(`PositiveInteger`)
 			d.OptionalParam(`SemVerQualifier`)
 			d.OptionalParam(`SemVerQualifier`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				argc := len(args)
 				major := args[0].(*IntegerValue).Int()
 				minor := args[1].(*IntegerValue).Int()
@@ -82,7 +82,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerHash`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				hash := args[0].(*HashValue)
 				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
 				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()

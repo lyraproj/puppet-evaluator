@@ -39,7 +39,7 @@ func init() {
     from => { type => Optional[Integer], value => undef },
     to => { type => Optional[Integer], value => undef }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewIntegerType2(args...)
 		})
 
@@ -54,7 +54,7 @@ func init() {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Radix`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				r := 10
 				abs := false
 				if len(args) > 1 {
@@ -75,7 +75,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				h := args[0].(*HashValue)
 				r := 10
 				abs := false
@@ -97,7 +97,7 @@ func init() {
 	)
 }
 
-func intFromConvertible(c eval.EvalContext, from eval.PValue, radix int) int64 {
+func intFromConvertible(c eval.Context, from eval.PValue, radix int) int64 {
 	switch from.(type) {
 	case *IntegerValue:
 		return from.(*IntegerValue).Int()

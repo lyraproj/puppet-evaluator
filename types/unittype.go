@@ -11,14 +11,14 @@ type UnitType struct{}
 var Unit_Type eval.ObjectType
 
 func init() {
-	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultUnitType()
 	})
 
 	newGoConstructor(`Unit`,
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return args[0]
 			})
 		},

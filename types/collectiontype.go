@@ -19,7 +19,7 @@ func init() {
   attributes => {
     'size_type' => { type => Type[Integer], value => Integer[0] }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return NewCollectionType2(args...)
 	})
 }

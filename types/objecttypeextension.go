@@ -25,7 +25,7 @@ func init() {
 		}`)
 }
 
-func NewObjectTypeExtension(c eval.EvalContext, baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
+func NewObjectTypeExtension(c eval.Context, baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
 	o := &objectTypeExtension{}
 	o.initialize(c, baseType.(*objectType), initParameters)
 	return o
@@ -121,7 +121,7 @@ func (te *objectTypeExtension) Type() eval.PType {
 	return &TypeType{te}
 }
 
-func (te *objectTypeExtension) initialize(c eval.EvalContext, baseType *objectType, initParameters []eval.PValue) {
+func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, initParameters []eval.PValue) {
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {

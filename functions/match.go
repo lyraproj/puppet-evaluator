@@ -15,7 +15,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.Param(`Patterns`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return matchPatterns(c, args[0].String(), args[1])
 			})
 		},
@@ -23,7 +23,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Array[String]`)
 			d.Param(`Patterns`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				p := args[1]
 				return args[0].(*types.ArrayValue).Map(func(arg eval.PValue) eval.PValue {
 					return matchPatterns(c, arg.String(), p)
@@ -33,7 +33,7 @@ func init() {
 	)
 }
 
-func matchPatterns(c eval.EvalContext, s string, v eval.PValue) eval.PValue {
+func matchPatterns(c eval.Context, s string, v eval.PValue) eval.PValue {
 	switch v.(type) {
 	case *types.RegexpValue:
 		return matchRegexp(c, s, v.(*types.RegexpValue))
@@ -48,7 +48,7 @@ func matchPatterns(c eval.EvalContext, s string, v eval.PValue) eval.PValue {
 	}
 }
 
-func matchRegexp(c eval.EvalContext, s string, rx *types.RegexpValue) eval.PValue {
+func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.PValue {
 	if rx.PatternString() == `` {
 		panic(eval.Error(c, eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
 	}
@@ -64,7 +64,7 @@ func matchRegexp(c eval.EvalContext, s string, rx *types.RegexpValue) eval.PValu
 	return types.WrapArray(rs)
 }
 
-func matchArray(c eval.EvalContext, s string, ar *types.ArrayValue) eval.PValue {
+func matchArray(c eval.Context, s string, ar *types.ArrayValue) eval.PValue {
 	result := eval.UNDEF
 	ar.Find(func(p eval.PValue) bool {
 		r := matchPatterns(c, s, p)

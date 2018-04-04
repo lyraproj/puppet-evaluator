@@ -11,7 +11,7 @@ type ScalarDataType struct{}
 var ScalarData_Type eval.ObjectType
 
 func init() {
-	ScalarData_Type = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	ScalarData_Type = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultScalarDataType()
 	})
 }

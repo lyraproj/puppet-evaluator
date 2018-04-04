@@ -97,7 +97,7 @@ func init() {
       value => undef
     }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewUriType2(args...)
 		})
 
@@ -105,7 +105,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				strict := false
 				str := args[0].String()
 				if len(args) > 1 {
@@ -121,7 +121,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Hash[String[1],ScalarData]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return WrapURI(URIFromHash(args[0].(*HashValue)))
 			})
 		})
@@ -143,7 +143,7 @@ type (
 	}
 )
 
-func (um *uriMember) Call(c eval.EvalContext, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (um *uriMember) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
 	return um.memberFunc(receiver.(*UriValue).URL())
 }
 

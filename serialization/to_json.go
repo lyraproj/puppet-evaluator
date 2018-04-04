@@ -9,7 +9,7 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 )
 
-func DataToNative(c eval.EvalContext, value eval.PValue) interface{} {
+func DataToNative(c eval.Context, value eval.PValue) interface{} {
 	switch value.(type) {
 	case *types.IntegerValue:
 		return value.(*types.IntegerValue).Int()
@@ -36,7 +36,7 @@ func DataToNative(c eval.EvalContext, value eval.PValue) interface{} {
 	}
 }
 
-func DataToJson(c eval.EvalContext, value eval.PValue, out io.Writer, options eval.KeyedValue) {
+func DataToJson(c eval.Context, value eval.PValue, out io.Writer, options eval.KeyedValue) {
 	e := json.NewEncoder(out)
 	prefix := options.Get5(`prefix`, eval.EMPTY_STRING).String()
 	indent := options.Get5(`indent`, eval.EMPTY_STRING).String()
@@ -46,7 +46,7 @@ func DataToJson(c eval.EvalContext, value eval.PValue, out io.Writer, options ev
 	e.Encode(DataToNative(c, value))
 }
 
-func JsonToData(c eval.EvalContext, path string, in io.Reader) eval.PValue {
+func JsonToData(c eval.Context, path string, in io.Reader) eval.PValue {
 	d := json.NewDecoder(in)
 	d.UseNumber()
 	var parsedValue interface{}
@@ -61,7 +61,7 @@ func NativeToData(value interface{}) eval.PValue {
 	return eval.WrapUnknown(value)
 }
 
-func assertString(c eval.EvalContext, value eval.PValue) string {
+func assertString(c eval.Context, value eval.PValue) string {
 	if s, ok := value.(*types.StringValue); ok {
 		return s.String()
 	}

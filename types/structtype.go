@@ -33,7 +33,7 @@ func init() {
 		key_type => Type,
     value_type => Type
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewStructElement(args[0], args[1].(eval.PType))
 		})
 
@@ -42,7 +42,7 @@ func init() {
 	attributes => {
 		elements => Array[Pcore::StructElement]
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewStructType2(args[0].(*ArrayValue).AppendTo([]eval.PValue{})...)
 		})
 }

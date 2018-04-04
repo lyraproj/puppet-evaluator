@@ -48,7 +48,7 @@ func init() {
 					value => Any
 				},
 			}
-		}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+		}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewIteratorType2(args...)
 		})
 }

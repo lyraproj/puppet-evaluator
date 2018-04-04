@@ -75,7 +75,7 @@ func InitBuiltinResources() {
 			eval.NewGoConstructor(name,
 				func(d eval.Dispatch) {
 					d.Param(`Hash[String,Any]`)
-					d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+					d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 						typ, _ := eval.Load(c, eval.NewTypedName(eval.TYPE, name))
 						hash := args[0].(*types.HashValue)
 						return types.NewObjectValue2(c, typ.(eval.ObjectType), types.WrapHash3(

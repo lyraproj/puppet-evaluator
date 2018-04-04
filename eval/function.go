@@ -4,7 +4,7 @@ type (
 	Lambda interface {
 		PValue
 
-		Call(c EvalContext, block Lambda, args ...PValue) PValue
+		Call(c Context, block Lambda, args ...PValue) PValue
 
 		Signature() Signature
 	}
@@ -12,7 +12,7 @@ type (
 	Function interface {
 		PValue
 
-		Call(c EvalContext, block Lambda, args ...PValue) PValue
+		Call(c Context, block Lambda, args ...PValue) PValue
 
 		Dispatchers() []Lambda
 
@@ -21,12 +21,12 @@ type (
 
 	ResolvableFunction interface {
 		Name() string
-		Resolve(c EvalContext) Function
+		Resolve(c Context) Function
 	}
 
-	DispatchFunction func(c EvalContext, args []PValue) PValue
+	DispatchFunction func(c Context, args []PValue) PValue
 
-	DispatchFunctionWithBlock func(c EvalContext, args []PValue, block Lambda) PValue
+	DispatchFunctionWithBlock func(c Context, args []PValue, block Lambda) PValue
 
 	LocalTypes interface {
 		Type(name string, decl string)

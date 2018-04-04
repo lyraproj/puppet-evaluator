@@ -21,8 +21,8 @@ type (
 
 	ObjectValue interface {
 		PValue
-		Initialize(c EvalContext, arguments []PValue)
-		InitFromHash(c EvalContext, hash KeyedValue)
+		Initialize(c Context, arguments []PValue)
+		InitFromHash(c Context, hash KeyedValue)
 	}
 
 	DetailedTypeValue interface {

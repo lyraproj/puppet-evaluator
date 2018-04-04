@@ -34,9 +34,9 @@ type (
 
 		Graph() graph.Graph
 
-		HasNode(c eval.EvalContext, value eval.PValue) bool
+		HasNode(c eval.Context, value eval.PValue) bool
 
-		Node(c eval.EvalContext, value eval.PValue) (Node, bool)
+		Node(c eval.Context, value eval.PValue) (Node, bool)
 
 		Nodes() eval.IndexedValue
 
@@ -46,7 +46,7 @@ type (
 
 // NodeName returns the string T[<title>] where T is the lower case name of a resourc type
 // and <title> is the unique title of the instance that is referenced
-func NodeName(c eval.EvalContext, value eval.PValue) (string, *issue.Reported) {
+func NodeName(c eval.Context, value eval.PValue) (string, *issue.Reported) {
 	switch value.(type) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)
@@ -99,7 +99,7 @@ func (re *resourceEval) AddDefinitions(expression parser.Expression) {
 	re.evaluator.AddDefinitions(expression)
 }
 
-func (re *resourceEval) ResolveDefinitions(c eval.EvalContext) {
+func (re *resourceEval) ResolveDefinitions(c eval.Context) {
 	re.evaluator.ResolveDefinitions(c)
 }
 
@@ -115,7 +115,7 @@ func (re *resourceEval) Graph() graph.Graph {
 	return re.graph
 }
 
-func (re *resourceEval) HasNode(c eval.EvalContext, value eval.PValue) bool {
+func (re *resourceEval) HasNode(c eval.Context, value eval.PValue) bool {
 	ok := false
 	if ref, err := NodeName(c, value); err == nil {
 		_, ok = re.nodes[ref]
@@ -123,7 +123,7 @@ func (re *resourceEval) HasNode(c eval.EvalContext, value eval.PValue) bool {
 	return ok
 }
 
-func (re *resourceEval) Eval(expr parser.Expression, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue {
 	switch expr.(type) {
 	case *parser.RelationshipExpression:
 		return re.eval_RelationshipExpression(expr.(*parser.RelationshipExpression), c)
@@ -134,7 +134,7 @@ func (re *resourceEval) Eval(expr parser.Expression, c eval.EvalContext) eval.PV
 	}
 }
 
-func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {
 	lhs := re.Eval(expr.Lhs(), c)
 	rhs := re.Eval(expr.Rhs(), c)
 	switch expr.Operator() {
@@ -150,7 +150,7 @@ func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExp
 	return lhs
 }
 
-func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.Context) eval.PValue {
 	switch expr.Form() {
 	case parser.REGULAR:
 	default:
@@ -170,7 +170,7 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 }
 
 // Node returns the node for the given value
-func (re *resourceEval) Node(c eval.EvalContext, value eval.PValue) (Node, bool) {
+func (re *resourceEval) Node(c eval.Context, value eval.PValue) (Node, bool) {
 	n := re.node(c, value, nil, false)
 	if n == nil {
 		return nil, false
@@ -216,7 +216,7 @@ func nodeList(nodes []graph.Node) eval.IndexedValue {
 	})
 }
 
-func (re *resourceEval) node(c eval.EvalContext, value eval.PValue, location issue.Location, create bool) *node {
+func (re *resourceEval) node(c eval.Context, value eval.PValue, location issue.Location, create bool) *node {
 	var resource eval.PuppetObject
 	if po, ok := value.(eval.PuppetObject); ok {
 		resource = po
@@ -249,7 +249,7 @@ func (re *resourceEval) addEdge(edge *edge) {
 	re.graph.SetEdge(edge)
 }
 
-func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.Context) eval.PValue {
 	// Turn the resource expression into an instantiation of an object
 	bt := body.Title()
 	if bta, ok := bt.(*parser.LiteralList); ok {
@@ -262,7 +262,7 @@ func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBo
 	return re.newResources2(ctor, bt, body, c)
 }
 
-func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expression, body *parser.ResourceBody, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expression, body *parser.ResourceBody, c eval.Context) eval.PValue {
 	tes := re.Eval(title, c)
 	if ta, ok := tes.(*types.ArrayValue); ok {
 		return ta.Map(func(te eval.PValue) eval.PValue {
@@ -272,7 +272,7 @@ func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expressio
 	return re.newResource(ctor, title, tes, body, c)
 }
 
-func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Expression, title eval.PValue, body *parser.ResourceBody, c eval.EvalContext) eval.PValue {
+func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Expression, title eval.PValue, body *parser.ResourceBody, c eval.Context) eval.PValue {
 	entries := make([]*types.HashEntry, 0)
 	entries = append(entries, types.WrapHashEntry2(`title`, title))
 	fromHere := make([]*edge, 0)

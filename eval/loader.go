@@ -15,7 +15,7 @@ type (
 	}
 
 	Loader interface {
-		LoadEntry(c EvalContext, name TypedName) Entry
+		LoadEntry(c Context, name TypedName) Entry
 
 		NameAuthority() URI
 	}
@@ -23,7 +23,7 @@ type (
 	DefiningLoader interface {
 		Loader
 
-		ResolveResolvables(c EvalContext)
+		ResolveResolvables(c Context)
 
 		SetEntry(name TypedName, entry Entry) Entry
 	}
@@ -60,7 +60,7 @@ func IsValidModuleName(moduleName string) bool {
 	return moduleNameRX.MatchString(moduleName)
 }
 
-var Load func(c EvalContext, name TypedName) (interface{}, bool)
+var Load func(c Context, name TypedName) (interface{}, bool)
 var NewLoaderEntry func(value interface{}, origin issue.Location) Entry
 var StaticLoader func() Loader
 var StaticResourceLoader func() Loader

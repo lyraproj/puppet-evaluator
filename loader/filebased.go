@@ -18,7 +18,7 @@ type (
 	ContentProvidingLoader interface {
 		eval.Loader
 
-		GetContent(c eval.EvalContext, path string) []byte
+		GetContent(c eval.Context, path string) []byte
 	}
 
 	fileBasedLoader struct {
@@ -124,7 +124,7 @@ func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	}
 }
 
-func (l *fileBasedLoader) LoadEntry(c eval.EvalContext, name eval.TypedName) eval.Entry {
+func (l *fileBasedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
 	entry := l.parentedLoader.LoadEntry(c, name)
 	if entry == nil {
 		entry = l.find(c, name)
@@ -144,7 +144,7 @@ func (l *fileBasedLoader) isGlobal() bool {
 	return l.moduleName == `` || l.moduleName == `environment`
 }
 
-func (l *fileBasedLoader) find(c eval.EvalContext, name eval.TypedName) eval.Entry {
+func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 	if name.IsQualified() {
 		// The name is in a name space.
 		if l.moduleName != name.NameParts()[0] {
@@ -271,12 +271,12 @@ func (l *fileBasedLoader) ensureIndexed(sp SmartPath) {
 	}
 }
 
-func (l *fileBasedLoader) instantiate(c eval.EvalContext, smartPath SmartPath, name eval.TypedName, origins []string) eval.Entry {
+func (l *fileBasedLoader) instantiate(c eval.Context, smartPath SmartPath, name eval.TypedName, origins []string) eval.Entry {
 	smartPath.Instantiator()(c, l, name, origins)
 	return l.GetEntry(name)
 }
 
-func (l *fileBasedLoader) GetContent(c eval.EvalContext, path string) []byte {
+func (l *fileBasedLoader) GetContent(c eval.Context, path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(eval.Error(c, eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))

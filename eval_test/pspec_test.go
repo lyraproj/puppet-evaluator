@@ -17,7 +17,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`load_plan`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					planName := args[0].String()
 					if plan, ok := eval.Load(c, eval.NewTypedName(eval.PLAN, planName)); ok {
 						return eval.WrapUnknown(plan)
@@ -29,7 +29,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`load_task`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					taskName := args[0].String()
 					if task, ok := eval.Load(c, eval.NewTypedName(eval.TASK, taskName)); ok {
 						return task.(eval.PValue)
@@ -41,7 +41,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`to_symbol`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					return types.WrapRuntime(serialization.Symbol(args[0].String()))
 				})
 			})
@@ -57,7 +57,7 @@ func TestPSpecs(t *testing.T) {
   Optional['rich_data'] => Boolean,
   Optional['message_prefix'] => String
 ]`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
@@ -73,7 +73,7 @@ func TestPSpecs(t *testing.T) {
 					`Struct[
 					Optional['allow_unresolved'] => Boolean
 				]`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
@@ -90,7 +90,7 @@ func TestPSpecs(t *testing.T) {
 					Optional['prefix'] => String,
 					Optional['indent'] => String
 				]`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
@@ -104,7 +104,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`json_to_data`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					return serialization.JsonToData(c, ``, strings.NewReader(args[0].String()))
 				})
 			})

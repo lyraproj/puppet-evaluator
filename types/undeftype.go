@@ -18,7 +18,7 @@ var undefType_DEFAULT = &UndefType{}
 var Undef_Type eval.ObjectType
 
 func init() {
-	Undef_Type = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Undef_Type = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultUndefType()
 	})
 }

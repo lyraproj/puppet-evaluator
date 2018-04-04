@@ -9,7 +9,7 @@ func init() {
 	eval.NewGoFunction(`unwrap`,
 		func(d eval.Dispatch) {
 			d.Param(`Sensitive`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return args[0].(*types.SensitiveValue).Unwrap()
 			})
 		},
@@ -17,7 +17,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Sensitive`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return block.Call(c, nil, args[0].(*types.SensitiveValue).Unwrap())
 			})
 		})

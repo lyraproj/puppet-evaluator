@@ -9,7 +9,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
 			d.Block(`Callable[0,0]`)
-			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
 				if eval.UNDEF.Equals(args[0], nil) {
 					return block.Call(c, nil)
 				}

@@ -19,7 +19,7 @@ func init() {
 	attributes => {
 		patterns => Array[Regexp]
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewPatternType2(args...)
 		})
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.EvalContext) eval.PValue {
+func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.Context) eval.PValue {
 	return e.calculate(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
 }
 

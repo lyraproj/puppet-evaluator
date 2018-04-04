@@ -36,7 +36,7 @@ func init() {
     'element_type' => { type => Type, value => Any }
   },
   serialization => [ 'element_type', 'size_type' ]
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewArrayType2(args...)
 		})
 }

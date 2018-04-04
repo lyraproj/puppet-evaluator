@@ -16,7 +16,7 @@ var numericType_DEFAULT = &NumericType{}
 var Numeric_Type eval.ObjectType
 
 func init() {
-	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return DefaultNumericType()
 	})
 
@@ -28,7 +28,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return numberFromNamedArgs(args, true)
 			})
 		},
@@ -36,7 +36,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return numberFromPositionalArgs(args, true)
 			})
 		},

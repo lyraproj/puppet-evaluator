@@ -16,7 +16,7 @@ type (
 		current         builder
 		key             eval.PValue
 		allowUnresolved bool
-		context         eval.EvalContext
+		context         eval.Context
 		richDataFuncs   map[string]richDataFunc
 		defaultFunc     richDataFunc
 	}
@@ -24,7 +24,7 @@ type (
 	builder interface {
 		get(key eval.PValue) builder
 		put(key eval.PValue, value builder)
-		resolve(c eval.EvalContext) eval.PValue
+		resolve(c eval.Context) eval.PValue
 	}
 
 	valueBuilder struct {
@@ -61,7 +61,7 @@ func (b *valueBuilder) put(key eval.PValue, value builder) {
 	panic(`scalar indexed by string`)
 }
 
-func (b *valueBuilder) resolve(c eval.EvalContext) eval.PValue {
+func (b *valueBuilder) resolve(c eval.Context) eval.PValue {
 	return b.value
 }
 
@@ -76,7 +76,7 @@ func (b *hashBuilder) put(key eval.PValue, value builder) {
 	b.values.Put(string(eval.ToKey(key)), &hbEntry{key, value})
 }
 
-func (b *hashBuilder) resolve(c eval.EvalContext) eval.PValue {
+func (b *hashBuilder) resolve(c eval.Context) eval.PValue {
 	if b.resolved == nil {
 		es := make([]*types.HashEntry, 0, b.values.Len())
 		b.values.EachPair(func(key string, value interface{}) {
@@ -106,7 +106,7 @@ func (b *arrayBuilder) put(key eval.PValue, value builder) {
 	}
 }
 
-func (b *arrayBuilder) resolve(c eval.EvalContext) eval.PValue {
+func (b *arrayBuilder) resolve(c eval.Context) eval.PValue {
 	if b.resolved == nil {
 		es := make([]eval.PValue, len(b.values))
 		for i, v := range b.values {
@@ -117,7 +117,7 @@ func (b *arrayBuilder) resolve(c eval.EvalContext) eval.PValue {
 	return b.resolved
 }
 
-func (b *objectHashBuilder) resolve(c eval.EvalContext) eval.PValue {
+func (b *objectHashBuilder) resolve(c eval.Context) eval.PValue {
 	if b.resolved == nil {
 		b.hashBuilder.resolve(c)
 		b.object.InitFromHash(c, b.hashBuilder.resolve(c).(*types.HashValue))
@@ -126,7 +126,7 @@ func (b *objectHashBuilder) resolve(c eval.EvalContext) eval.PValue {
 	return b.resolved
 }
 
-func NewFromDataConverter(ctx eval.EvalContext, options eval.KeyedValue) *FromDataConverter {
+func NewFromDataConverter(ctx eval.Context, options eval.KeyedValue) *FromDataConverter {
 	f := &FromDataConverter{}
 	f.context = ctx
 	f.allowUnresolved = options.Get5(`allow_unresolved`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
@@ -234,7 +234,7 @@ func parseStringOrInteger(lexer parser.Lexer) (eval.PValue, bool) {
 	return nil, false
 }
 
-func resolveJsonPath(c eval.EvalContext, lhs builder, path string) (eval.PValue, bool) {
+func resolveJsonPath(c eval.Context, lhs builder, path string) (eval.PValue, bool) {
 	lexer := parser.NewSimpleLexer(``, path)
 	lexer.NextToken()
 	lexer.AssertToken(parser.TOKEN_VARIABLE)

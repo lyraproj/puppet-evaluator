@@ -46,10 +46,10 @@ type (
 
 		// Produce executes a given function with an unparented initialized Context instance
 		// and returns the result
-		Produce(func(EvalContext) PValue) PValue
+		Produce(func(Context) PValue) PValue
 
 		// Do executes a given function with an unparented initialized Context instance
-		Do(func(EvalContext))
+		Do(func(Context))
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured

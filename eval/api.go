@@ -11,20 +11,20 @@ type (
 	Evaluator interface {
 		AddDefinitions(expression parser.Expression)
 
-		ResolveDefinitions(c EvalContext)
+		ResolveDefinitions(c Context)
 
 		Evaluate(expression parser.Expression, scope Scope, loader Loader) (PValue, *issue.Reported)
 
-		Eval(expression parser.Expression, c EvalContext) PValue
+		Eval(expression parser.Expression, c Context) PValue
 
 		Logger() Logger
 	}
 
-	// An EvalContext holds all state during evaluation. Since it contains the stack, each
+	// An Context holds all state during evaluation. Since it contains the stack, each
 	// thread of execution must use a context of its own. It's expected that multiple
 	// contexts share common parents for scope and loaders.
 	//
-	EvalContext interface {
+	Context interface {
 		// Call calls a function known to the loader with arguments and an optional
 		// block.
 		Call(name string, args []PValue, block Lambda) PValue
@@ -56,11 +56,11 @@ type (
 
 		// WithLoader creates a copy of the receiver where the loader is replaced with the
 		// given loader.
-		WithLoader(loader Loader) EvalContext
+		WithLoader(loader Loader) Context
 
 		// WithScope creates a copy of the receiver where the scope is replaced with the
 		// given scope.
-		WithScope(scope Scope) EvalContext
+		WithScope(scope Scope) Context
 
 		// ParseAndValidate parses and evaluates the given content. It will panic with
 		// an *issue.Reported unless the parsing and evaluation was succesful.
@@ -102,7 +102,7 @@ type (
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error func(c EvalContext, issueCode issue.Code, args issue.H) *issue.Reported
+var Error func(c Context, issueCode issue.Code, args issue.H) *issue.Reported
 
 // Error2 creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
@@ -110,4 +110,4 @@ var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) *is
 
 // Warning creates a Reported with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
-var Warning func(c EvalContext, issueCode issue.Code, args issue.H) *issue.Reported
+var Warning func(c Context, issueCode issue.Code, args issue.H) *issue.Reported

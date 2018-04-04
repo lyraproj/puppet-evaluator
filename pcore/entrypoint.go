@@ -177,17 +177,17 @@ func (p *pcoreImpl) Logger() eval.Logger {
 	return p.logger
 }
 
-func (p *pcoreImpl) Do(actor func(eval.EvalContext)) {
+func (p *pcoreImpl) Do(actor func(eval.Context)) {
 	InitializePuppet()
 	actor(p.newContext())
 }
 
-func (p *pcoreImpl) Produce(producer func(eval.EvalContext) eval.PValue) eval.PValue {
+func (p *pcoreImpl) Produce(producer func(eval.Context) eval.PValue) eval.PValue {
 	InitializePuppet()
 	return producer(p.newContext())
 }
 
-func (p *pcoreImpl) newContext() eval.EvalContext {
+func (p *pcoreImpl) newContext() eval.Context {
 	return impl.NewEvalContext(p.NewEvaluator(), p.EnvironmentLoader(), impl.NewScope(), []issue.Location{})
 }
 

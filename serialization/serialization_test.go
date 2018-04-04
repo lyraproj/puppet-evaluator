@@ -15,7 +15,7 @@ func TestRichDataRoundtrip(t *testing.T) {
 	ver, _ := semver.NewVersion(1, 0, 0)
 	v := types.WrapSemVer(ver)
 	buf := bytes.NewBufferString(``)
-	v2 := eval.Puppet.Produce(func(ctx eval.EvalContext) eval.PValue {
+	v2 := eval.Puppet.Produce(func(ctx eval.Context) eval.PValue {
 		DataToJson(ctx, NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(v), buf, eval.EMPTY_MAP)
 		return NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(JsonToData(ctx, ``, buf))
 	})
@@ -25,7 +25,7 @@ func TestRichDataRoundtrip(t *testing.T) {
 }
 
 func ExampleToDataConverter_Convert() {
-	eval.Puppet.Do(func(ctx eval.EvalContext) {
+	eval.Puppet.Do(func(ctx eval.Context) {
 		ver, _ := semver.NewVersion(1, 0, 0)
 		fmt.Println(NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver)))
 	})
@@ -33,7 +33,7 @@ func ExampleToDataConverter_Convert() {
 }
 
 func ExampleDataToJson() {
-	eval.Puppet.Do(func(ctx eval.EvalContext) {
+	eval.Puppet.Do(func(ctx eval.Context) {
 		buf := bytes.NewBufferString(``)
 		DataToJson(ctx, types.WrapHash4(map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`}), buf, eval.EMPTY_MAP)
 		fmt.Println(buf)
@@ -42,7 +42,7 @@ func ExampleDataToJson() {
 }
 
 func ExampleJsonToData() {
-	eval.Puppet.Do(func(ctx eval.EvalContext) {
+	eval.Puppet.Do(func(ctx eval.Context) {
 		buf := bytes.NewBufferString(`{"__pcore_type__":"SemVer","__pcore_value__":"1.0.0"}`)
 		data := JsonToData(ctx, `/tmp/ver.json`, buf)
 		fmt.Println(data)
@@ -52,7 +52,7 @@ func ExampleJsonToData() {
 
 func ExampleFromDataConverter_Convert() {
 	data := types.WrapHash4(map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`})
-	ver := eval.Puppet.Produce(func(ctx eval.EvalContext) eval.PValue {
+	ver := eval.Puppet.Produce(func(ctx eval.Context) eval.PValue {
 		return NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 	})
 	fmt.Printf("%T\n", ver)

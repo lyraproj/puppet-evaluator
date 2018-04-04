@@ -58,7 +58,7 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement {
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS)})
 
 func init() {
-	oneArgCtor := func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+	oneArgCtor := func(ctx eval.Context, args []eval.PValue) eval.PValue {
 		return NewTypeSetType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
 	TypeSet_Type = newObjectType2(`Pcore::TypeSetType`, Any_Type,
@@ -94,7 +94,7 @@ type (
 	}
 )
 
-func newTypeSetReference(c eval.EvalContext, t* TypeSetType, ref *HashValue) *typeSetReference {
+func newTypeSetReference(c eval.Context, t* TypeSetType, ref *HashValue) *typeSetReference {
 	r := &typeSetReference{
 		owner: t,
 		nameAuthority: uriArg(c, ref, KEY_NAME_AUTHORITY, t.nameAuthority),
@@ -122,7 +122,7 @@ func (r *typeSetReference) Equals(other interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (r *typeSetReference) resolve(c eval.EvalContext) {
+func (r *typeSetReference) resolve(c eval.Context) {
 	tn := eval.NewTypedName2(eval.TYPE, r.name, r.nameAuthority)
 	loadedEntry := c.Loader().LoadEntry(c, tn)
 	if(loadedEntry != nil) {
@@ -173,7 +173,7 @@ func AllocTypeSetType() *TypeSetType {
 	}
 }
 
-func (t *TypeSetType) Initialize(c eval.EvalContext, args []eval.PValue) {
+func (t *TypeSetType) Initialize(c eval.Context, args []eval.PValue) {
 	if len(args) == 1 {
 		if hash, ok := args[0].(eval.KeyedValue); ok {
 			t.InitFromHash(c, hash)
@@ -191,7 +191,7 @@ func NewTypeSetType(na eval.URI, name string, initHashExpression interface{}) *T
 	return obj
 }
 
-func NewTypeSetType2(c eval.EvalContext, initHash *HashValue, loader eval.Loader) *TypeSetType {
+func NewTypeSetType2(c eval.Context, initHash *HashValue, loader eval.Loader) *TypeSetType {
 	if initHash.IsEmpty() {
 		return DefaultTypeSetType()
 	}
@@ -236,7 +236,7 @@ func (t *TypeSetType) Parameters() []eval.PValue {
 	return []eval.PValue{t.InitHash()}
 }
 
-func (t *TypeSetType) InitFromHash(c eval.EvalContext, initHash eval.KeyedValue) {
+func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	eval.AssertInstance(c, `typeset initializer`, TYPE_TYPESET_INIT, initHash)
 	t.name = stringArg(initHash, KEY_NAME, t.name)
 	t.nameAuthority = uriArg(c, initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
@@ -437,7 +437,7 @@ func (t *TypeSetType) NameAuthority() eval.URI {
 	return t.nameAuthority
 }
 
-func (t *TypeSetType) Resolve(c eval.EvalContext) eval.PType {
+func (t *TypeSetType) Resolve(c eval.Context) eval.PType {
 	ihe := t.initHashExpression
 	if ihe == nil {
 		return t
@@ -467,7 +467,7 @@ func (t *TypeSetType) Resolve(c eval.EvalContext) eval.PType {
 	return t
 }
 
-func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralHash) *HashValue {
+func (t *TypeSetType) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *HashValue {
 	entries := make([]*HashEntry, 0)
 	types := map[string]parser.Expression{}
 
@@ -563,7 +563,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralH
 	return result
 }
 
-func (t * TypeSetType) resolveNameAuthority(hash *HashValue, c eval.EvalContext, location issue.Location) eval.URI {
+func (t * TypeSetType) resolveNameAuthority(hash *HashValue, c eval.Context, location issue.Location) eval.URI {
 	nameAuth := t.nameAuthority
 	if nameAuth == `` {
 		nameAuth = uriArg(c, hash, KEY_NAME_AUTHORITY, ``)

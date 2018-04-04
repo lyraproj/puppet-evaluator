@@ -37,7 +37,7 @@ func init() {
 			value => undef
 		},
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewStringType2(args...)
 		})
 
@@ -57,7 +57,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
 			d.OptionalParam(`Formats`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				fmt := NONE
 				if len(args) > 1 {
 					var err error

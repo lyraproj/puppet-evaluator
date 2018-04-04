@@ -28,7 +28,7 @@ func init() {
 			value => undef
 		}
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewTypeAliasType2(args...)
 		})
 }
@@ -140,7 +140,7 @@ func (t *TypeAliasType) Name() string {
 	return t.name
 }
 
-func (t *TypeAliasType) Resolve(c eval.EvalContext) eval.PType {
+func (t *TypeAliasType) Resolve(c eval.Context) eval.PType {
 	if t.resolvedType != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved type %s`, t.name))
 	}

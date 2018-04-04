@@ -45,7 +45,7 @@ func init() {
 		from => { type => Optional[Timestamp], value => undef },
 		to => { type => Optional[Timestamp], value => undef }
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewTimestampType2(args...)
 		})
 
@@ -76,14 +76,14 @@ func init() {
 		},
 
 		func(d eval.Dispatch) {
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return WrapTimestamp(time.Now())
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Integer,Float]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				arg := args[0]
 				if i, ok := arg.(*IntegerValue); ok {
 					return WrapTimestamp(time.Unix(i.Int(), 0))
@@ -97,7 +97,7 @@ func init() {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Formats`)
 			d.OptionalParam(`String[1]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				formats := DEFAULT_TIMESTAMP_FORMATS
 				tz := ``
 				if len(args) > 1 {
@@ -112,7 +112,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Struct[string => String[1],Optional[format] => Formats,Optional[timezone] => String[1]]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				hash := args[0].(*HashValue)
 				str := hash.Get5(`string`, _EMPTY_STRING).String()
 				formats := toTimestampFormats(hash.Get5(`format`, eval.UNDEF))

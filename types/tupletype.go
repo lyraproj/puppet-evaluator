@@ -25,7 +25,7 @@ func init() {
       value => undef
     }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 	    tupleArgs := args[0].(*ArrayValue).AppendTo([]eval.PValue{})
 	    if len(args) > 1 {
 		    tupleArgs = append(tupleArgs, args[1].(*IntegerType).Parameters()...)

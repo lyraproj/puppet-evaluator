@@ -32,7 +32,7 @@ func init() {
     from => { type => Optional[Float], value => undef },
     to => { type => Optional[Float], value => undef }
   }
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewFloatType2(args...)
 		})
 
@@ -45,14 +45,14 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return numberFromPositionalArgs(args, false)
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return numberFromNamedArgs(args, false)
 			})
 		},

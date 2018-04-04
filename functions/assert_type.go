@@ -5,7 +5,7 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 )
 
-func assertType(c eval.EvalContext, t eval.PType, v eval.PValue, b eval.Lambda) eval.PValue {
+func assertType(c eval.Context, t eval.PType, v eval.PValue, b eval.Lambda) eval.PValue {
 	if eval.IsInstance(t, v) {
 		return v
 	}
@@ -22,7 +22,7 @@ func init() {
 			d.Param(`String[1]`)
 			d.Param(`Any`)
 			d.OptionalBlock(`Callable[2,2]`)
-			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return assertType(c, c.ParseType(args[0]), args[1], block)
 			})
 		},
@@ -31,7 +31,7 @@ func init() {
 			d.Param(`Type`)
 			d.Param(`Any`)
 			d.OptionalBlock(`Callable[2,2]`)
-			d.Function2(func(c eval.EvalContext, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
 				return assertType(c, args[0].(eval.PType), args[1], block)
 			})
 		},

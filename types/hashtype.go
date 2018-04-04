@@ -55,7 +55,7 @@ func init() {
 			value => Any
 		},
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewHashType2(args...)
 		})
 
@@ -69,7 +69,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`TreeArray`)
 			d.OptionalParam(`NewHashOption`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				if len(args) < 2 {
 					return WrapHashFromArray(args[0].(*ArrayValue))
 				}
@@ -122,14 +122,14 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`KeyValueArray`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return WrapHashFromArray(args[0].(*ArrayValue))
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				arg := args[0]
 				switch arg.(type) {
 				case *ArrayValue:

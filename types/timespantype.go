@@ -75,7 +75,7 @@ func init() {
 		from => { type => Optional[Timespan], value => undef },
 		to => { type => Optional[Timespan], value => undef }
 	}
-}`, func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
 			return NewTimespanType2(args...)
 		})
 
@@ -86,7 +86,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Integer,Float]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				arg := args[0]
 				if i, ok := arg.(*IntegerValue); ok {
 					return WrapTimespan(time.Duration(i.Int() * NSECS_PER_SEC))
@@ -98,7 +98,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Formats`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				formats := DEFAULT_TIMESPAN_FORMATS
 				if len(args) > 1 {
 					formats = toTimespanFormats(args[1])
@@ -116,7 +116,7 @@ func init() {
 			d.OptionalParam(`Integer`)
 			d.OptionalParam(`Integer`)
 			d.OptionalParam(`Integer`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				days := args[0].(*IntegerValue).Int()
 				hours := args[1].(*IntegerValue).Int()
 				minutes := args[2].(*IntegerValue).Int()
@@ -138,7 +138,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Struct[string => String[1], Optional[format] => Formats]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				hash := args[0].(*HashValue)
 				str := hash.Get5(`string`, _EMPTY_STRING)
 				formats := toTimespanFormats(hash.Get5(`format`, _UNDEF))
@@ -155,7 +155,7 @@ func init() {
         Optional[milliseconds] => Integer,
         Optional[microseconds] => Integer,
         Optional[nanoseconds] => Integer]`)
-			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				return WrapTimespan(fromFieldsHash(args[0].(*HashValue)))
 			})
 		})
