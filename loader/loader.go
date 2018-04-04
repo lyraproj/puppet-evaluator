@@ -106,11 +106,12 @@ func (l *basicLoader) ResolveResolvables(c eval.EvalContext) {
 	}
 }
 
-func load(l eval.Loader, name eval.TypedName) (interface{}, bool) {
+func load(c eval.EvalContext, name eval.TypedName) (interface{}, bool) {
+	l := c.Loader()
 	if name.NameAuthority() != l.NameAuthority() {
 		return nil, false
 	}
-	entry := l.LoadEntry(name)
+	entry := l.LoadEntry(c, name)
 	if entry == nil {
 		if dl, ok := l.(eval.DefiningLoader); ok {
 			dl.SetEntry(name, &loaderEntry{nil, nil})
@@ -123,7 +124,7 @@ func load(l eval.Loader, name eval.TypedName) (interface{}, bool) {
 	return entry.Value(), true
 }
 
-func (l *basicLoader) LoadEntry(name eval.TypedName) eval.Entry {
+func (l *basicLoader) LoadEntry(c eval.EvalContext, name eval.TypedName) eval.Entry {
 	return l.GetEntry(name)
 }
 
@@ -149,10 +150,10 @@ func (l *basicLoader) NameAuthority() eval.URI {
 	return eval.RUNTIME_NAME_AUTHORITY
 }
 
-func (l *parentedLoader) LoadEntry(name eval.TypedName) eval.Entry {
-	entry := l.parent.LoadEntry(name)
+func (l *parentedLoader) LoadEntry(c eval.EvalContext, name eval.TypedName) eval.Entry {
+	entry := l.parent.LoadEntry(c, name)
 	if entry == nil || entry.Value() == nil {
-		entry = l.basicLoader.LoadEntry(name)
+		entry = l.basicLoader.LoadEntry(c, name)
 	}
 	return entry
 }
@@ -166,10 +167,10 @@ func (l *typeSetLoader) TypeSet() eval.PType {
 }
 
 
-func (l *typeSetLoader) LoadEntry(name eval.TypedName) eval.Entry {
-	entry := l.parentedLoader.LoadEntry(name)
+func (l *typeSetLoader) LoadEntry(c eval.EvalContext, name eval.TypedName) eval.Entry {
+	entry := l.parentedLoader.LoadEntry(c, name)
 	if entry == nil {
-		entry = l.find(name)
+		entry = l.find(c, name)
 		if entry == nil {
 			entry = &loaderEntry{nil, nil}
 			l.parentedLoader.SetEntry(name, entry)
@@ -182,7 +183,7 @@ func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Ent
 	return l.parent.(eval.DefiningLoader).SetEntry(name, entry)
 }
 
-func (l *typeSetLoader) find(name eval.TypedName) eval.Entry {
+func (l *typeSetLoader) find(c eval.EvalContext, name eval.TypedName) eval.Entry {
 	if tp, ok := l.typeSet.GetType(name); ok {
 		return l.SetEntry(name, &loaderEntry{tp, nil})
 	}

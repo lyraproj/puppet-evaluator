@@ -984,16 +984,16 @@ func init() {
 		}
 	}
 
-	eval.AssertType = func(pfx interface{}, expected, actual eval.PType) eval.PType {
+	eval.AssertType = func(c eval.EvalContext, pfx interface{}, expected, actual eval.PType) eval.PType {
 		if !eval.IsAssignable(expected, actual) {
-			panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, actual)}))
+			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, actual)}))
 		}
 		return actual
 	}
 
-	eval.AssertInstance = func(pfx interface{}, expected eval.PType, value eval.PValue) eval.PValue {
+	eval.AssertInstance = func(c eval.EvalContext, pfx interface{}, expected eval.PType, value eval.PValue) eval.PValue {
 		if !eval.IsInstance(expected, value) {
-			panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, eval.DetailedValueType(value))}))
+			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, eval.DetailedValueType(value))}))
 		}
 		return value
 	}

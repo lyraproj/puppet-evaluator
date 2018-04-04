@@ -281,7 +281,7 @@ func ParseTimestamp(str string, formats []*TimestampFormat, tz string) *Timestam
 		}
 		fs.WriteString(f.format)
 	}
-	panic(eval.Error(eval.EVAL_TIMESTAMP_CANNOT_BE_PARSED, issue.H{`str`: str, `formats`: fs.String()}))
+	panic(eval.Error(nil, eval.EVAL_TIMESTAMP_CANNOT_BE_PARSED, issue.H{`str`: str, `formats`: fs.String()}))
 }
 
 func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bool) {
@@ -296,7 +296,7 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 		if err == nil {
 			if usedTz != ts.Location().String() {
 				if tz != `` {
-					panic(eval.Error(eval.EVAL_TIMESTAMP_TZ_AMBIGUITY, issue.H{`parsed`: ts.Location().String(), `given`: tz}))
+					panic(eval.Error(nil, eval.EVAL_TIMESTAMP_TZ_AMBIGUITY, issue.H{`parsed`: ts.Location().String(), `given`: tz}))
 				}
 				// Golang does real weird things when the string contains a timezone that isn't equal
 				// to the given timezone. Instead of loading the given zone, it creates a new location
@@ -315,7 +315,7 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 func loadLocation(tz string) *time.Location {
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_TIMEZONE, issue.H{`zone`: tz, `detail`: err.Error()}))
+		panic(eval.Error(nil, eval.EVAL_INVALID_TIMEZONE, issue.H{`zone`: tz, `detail`: err.Error()}))
 	}
 	return loc
 }
@@ -712,7 +712,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 }
 
 func notSupportedByGoTimeLayout(str string, start, pos int, description string) *issue.Reported {
-	return eval.Error(eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start:pos+1], `description`: description})
+	return eval.Error(nil, eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start:pos+1], `description`: description})
 }
 
 func toTimestampFormats(fmt eval.PValue) []*TimestampFormat {

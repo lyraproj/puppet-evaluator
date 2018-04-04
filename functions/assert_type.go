@@ -11,7 +11,7 @@ func assertType(c eval.EvalContext, t eval.PType, v eval.PValue, b eval.Lambda) 
 	}
 	vt := eval.DetailedValueType(v)
 	if b == nil {
-		panic(c.Error(nil, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
+		panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
 	}
 	return b.Call(c, nil, t, vt)
 }

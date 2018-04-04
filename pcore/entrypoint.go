@@ -17,6 +17,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -38,6 +39,11 @@ type (
 )
 
 var staticLock sync.Mutex
+var puppet = &pcoreImpl{}
+
+func init() {
+	eval.Puppet = puppet
+}
 
 func InitializePuppet() {
 	// First call initializes the static loader. There can be only one since it receives
@@ -45,22 +51,21 @@ func InitializePuppet() {
 	staticLock.Lock()
 	defer staticLock.Unlock()
 
-	if eval.Puppet != nil {
+	if puppet.logger != nil {
 		return
 	}
 
-	logger := eval.NewStdLogger()
-	impl.ResolveResolvables(eval.StaticLoader().(eval.DefiningLoader), logger)
-	resource.InitBuiltinResources()
-	impl.ResolveResolvables(eval.StaticResourceLoader().(eval.DefiningLoader), logger)
+	puppet.logger = eval.NewStdLogger()
+	puppet.settings = make(map[string]eval.Setting, 32)
+	puppet.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
+	puppet.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
+	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
+	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
+	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 
-	p := &pcoreImpl{settings: make(map[string]eval.Setting, 32), logger: logger}
-	p.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
-	p.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
-	p.DefineSetting(`module_path`, types.DefaultStringType(), nil)
-	p.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
-	p.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
-	eval.Puppet = p
+	impl.ResolveResolvables(eval.StaticLoader().(eval.DefiningLoader), puppet.logger)
+	resource.InitBuiltinResources()
+	impl.ResolveResolvables(eval.StaticResourceLoader().(eval.DefiningLoader), puppet.logger)
 }
 
 func (p *pcoreImpl) Reset() {
@@ -170,6 +175,20 @@ func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.PValue {
 
 func (p *pcoreImpl) Logger() eval.Logger {
 	return p.logger
+}
+
+func (p *pcoreImpl) Do(actor func(eval.EvalContext)) {
+	InitializePuppet()
+	actor(p.newContext())
+}
+
+func (p *pcoreImpl) Produce(producer func(eval.EvalContext) eval.PValue) eval.PValue {
+	InitializePuppet()
+	return producer(p.newContext())
+}
+
+func (p *pcoreImpl) newContext() eval.EvalContext {
+	return impl.NewEvalContext(p.NewEvaluator(), p.EnvironmentLoader(), impl.NewScope(), []issue.Location{})
 }
 
 func (p *pcoreImpl) NewEvaluator() eval.Evaluator {

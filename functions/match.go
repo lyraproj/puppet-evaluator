@@ -16,7 +16,7 @@ func init() {
 			d.Param(`String`)
 			d.Param(`Patterns`)
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-				return matchPatterns(args[0].String(), args[1])
+				return matchPatterns(c, args[0].String(), args[1])
 			})
 		},
 
@@ -26,31 +26,31 @@ func init() {
 			d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 				p := args[1]
 				return args[0].(*types.ArrayValue).Map(func(arg eval.PValue) eval.PValue {
-					return matchPatterns(arg.String(), p)
+					return matchPatterns(c, arg.String(), p)
 				})
 			})
 		},
 	)
 }
 
-func matchPatterns(s string, v eval.PValue) eval.PValue {
+func matchPatterns(c eval.EvalContext, s string, v eval.PValue) eval.PValue {
 	switch v.(type) {
 	case *types.RegexpValue:
-		return matchRegexp(s, v.(*types.RegexpValue))
+		return matchRegexp(c, s, v.(*types.RegexpValue))
 	case *types.PatternType:
-		return matchArray(s, v.(*types.PatternType).Patterns())
+		return matchArray(c, s, v.(*types.PatternType).Patterns())
 	case *types.RegexpType:
-		return matchRegexp(s, types.WrapRegexp(v.(*types.RegexpType).PatternString()))
+		return matchRegexp(c, s, types.WrapRegexp(v.(*types.RegexpType).PatternString()))
 	case *types.ArrayType:
-		return matchArray(s, v.(*types.ArrayValue))
+		return matchArray(c, s, v.(*types.ArrayValue))
 	default:
-		return matchRegexp(s, types.WrapRegexp(v.String()))
+		return matchRegexp(c, s, types.WrapRegexp(v.String()))
 	}
 }
 
-func matchRegexp(s string, rx *types.RegexpValue) eval.PValue {
+func matchRegexp(c eval.EvalContext, s string, rx *types.RegexpValue) eval.PValue {
 	if rx.PatternString() == `` {
-		panic(eval.Error(eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
+		panic(eval.Error(c, eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
 	}
 
 	g := rx.Match(s)
@@ -64,10 +64,10 @@ func matchRegexp(s string, rx *types.RegexpValue) eval.PValue {
 	return types.WrapArray(rs)
 }
 
-func matchArray(s string, ar *types.ArrayValue) eval.PValue {
+func matchArray(c eval.EvalContext, s string, ar *types.ArrayValue) eval.PValue {
 	result := eval.UNDEF
 	ar.Find(func(p eval.PValue) bool {
-		r := matchPatterns(s, p)
+		r := matchPatterns(c, s, p)
 		if r == eval.UNDEF {
 			return false
 		}

@@ -25,9 +25,9 @@ func init() {
 		}`)
 }
 
-func NewObjectTypeExtension(baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
+func NewObjectTypeExtension(c eval.EvalContext, baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
 	o := &objectTypeExtension{}
-	o.initialize(baseType.(*objectType), initParameters)
+	o.initialize(c, baseType.(*objectType), initParameters)
 	return o
 }
 
@@ -121,11 +121,11 @@ func (te *objectTypeExtension) Type() eval.PType {
 	return &TypeType{te}
 }
 
-func (te *objectTypeExtension) initialize(baseType *objectType, initParameters []eval.PValue) {
+func (te *objectTypeExtension) initialize(c eval.EvalContext, baseType *objectType, initParameters []eval.PValue) {
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
-		panic(eval.Error(eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
+		panic(eval.Error(c, eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
 	}
 	te.baseType = baseType
 	namedArgs := false
@@ -138,7 +138,7 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 	}
 
 	checkParam := func(tp *typeParameter, v eval.PValue) eval.PValue {
-		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
+		return eval.AssertInstance(c, func() string { return tp.Label() }, tp.Type(), v)
 	}
 
 	byName := hash.NewStringHash(pts.Len())
@@ -148,7 +148,7 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 			pn := k.String()
 			tp := pts.Get(pn, nil)
 			if tp == nil {
-				panic(eval.Error(eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
+				panic(eval.Error(c, eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !eval.Equals(pv, WrapDefault()) {
 				byName.Put(pn, checkParam(tp.(*typeParameter), pv))
@@ -166,7 +166,7 @@ func (te *objectTypeExtension) initialize(baseType *objectType, initParameters [
 		}
 	}
 	if byName.IsEmpty() {
-		panic(eval.Error(eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
+		panic(eval.Error(c, eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
 	}
 	te.parameters = byName
 }

@@ -6,10 +6,11 @@ import (
 )
 
 func TestPcore(t *testing.T) {
-	InitializePuppet()
-	l, _ := eval.Load(eval.Puppet.SystemLoader(), eval.NewTypedName(eval.TYPE, `Pcore::ObjectTypeExtensionType`))
-	x, ok := l.(eval.PType)
-	if !(ok && x.Name() == `Pcore::ObjectTypeExtensionType`) {
-		t.Errorf(`failed to load %s`, `Pcore::ObjectTypeExtensionType`)
-	}
+	eval.Puppet.Do(func(ctx eval.EvalContext) {
+		l, _ := eval.Load(ctx, eval.NewTypedName(eval.TYPE, `Pcore::ObjectTypeExtensionType`))
+		x, ok := l.(eval.PType)
+		if !(ok && x.Name() == `Pcore::ObjectTypeExtensionType`) {
+			t.Errorf(`failed to load %s`, `Pcore::ObjectTypeExtensionType`)
+		}
+	})
 }

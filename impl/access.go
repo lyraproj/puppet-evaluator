@@ -205,7 +205,7 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReferen
 	default:
 		oe := e.eval(qr, c)
 		if oo, ok := oe.(eval.ObjectType); ok && oo.IsParameterized() {
-			tp = types.NewObjectTypeExtension(oo, args)
+			tp = types.NewObjectTypeExtension(c, oo, args)
 		} else {
 			tp = types.NewTypeReferenceType(expr.String())
 		}

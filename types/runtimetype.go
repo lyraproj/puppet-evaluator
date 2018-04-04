@@ -57,7 +57,7 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 		return DefaultRuntimeType()
 	}
 	if runtimeName == `go` && name != `` {
-		panic(eval.Error(eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
+		panic(eval.Error(nil, eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
 	}
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }

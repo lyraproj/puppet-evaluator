@@ -59,7 +59,7 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement {
 
 func init() {
 	oneArgCtor := func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
-		return NewTypeSetType2(args[0].(*HashValue), ctx.Loader())
+		return NewTypeSetType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
 	TypeSet_Type = newObjectType2(`Pcore::TypeSetType`, Any_Type,
 		WrapHash3(map[string]eval.PValue{
@@ -94,12 +94,12 @@ type (
 	}
 )
 
-func newTypeSetReference(t* TypeSetType, ref *HashValue) *typeSetReference {
+func newTypeSetReference(c eval.EvalContext, t* TypeSetType, ref *HashValue) *typeSetReference {
 	r := &typeSetReference{
 		owner: t,
-		nameAuthority: uriArg(ref, KEY_NAME_AUTHORITY, t.nameAuthority),
+		nameAuthority: uriArg(c, ref, KEY_NAME_AUTHORITY, t.nameAuthority),
 		name: stringArg(ref, KEY_NAME, ``),
-		versionRange: versionRangeArg(ref, KEY_VERSION_RANGE, nil),
+		versionRange: versionRangeArg(c, ref, KEY_VERSION_RANGE, nil),
 	}
 	r.annotatable.initialize(ref)
 	return r
@@ -124,7 +124,7 @@ func (r *typeSetReference) Equals(other interface{}, g eval.Guard) bool {
 
 func (r *typeSetReference) resolve(c eval.EvalContext) {
 	tn := eval.NewTypedName2(eval.TYPE, r.name, r.nameAuthority)
-	loadedEntry := c.Loader().LoadEntry(tn)
+	loadedEntry := c.Loader().LoadEntry(c, tn)
 	if(loadedEntry != nil) {
 		if typeSet, ok := loadedEntry.Value().(*TypeSetType); ok {
 			typeSet = typeSet.Resolve(c).(*TypeSetType)
@@ -132,7 +132,7 @@ func (r *typeSetReference) resolve(c eval.EvalContext) {
 				r.typeSet = typeSet
 				return
 			}
-			panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_MISMATCH, issue.H{`name`: r.owner.name, `ref_name`: r.name, `version_range`: r.versionRange, `actual`: typeSet.version}))
+			panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_MISMATCH, issue.H{`name`: r.owner.name, `ref_name`: r.name, `version_range`: r.versionRange, `actual`: typeSet.version}))
 		}
 	}
 	var v interface{}
@@ -140,7 +140,7 @@ func (r *typeSetReference) resolve(c eval.EvalContext) {
 	  v = loadedEntry.Value()
 	}
 	if v == nil {
-		panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
+		panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
 	}
 	var typeName string
 	if vt, ok := v.(eval.PType); ok {
@@ -150,7 +150,7 @@ func (r *typeSetReference) resolve(c eval.EvalContext) {
 	} else {
 		typeName = fmt.Sprintf("%T", v)
 	}
-	panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}, ))
+	panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}, ))
 }
 
 var typeSetType_DEFAULT = &TypeSetType{
@@ -173,14 +173,14 @@ func AllocTypeSetType() *TypeSetType {
 	}
 }
 
-func (t *TypeSetType) Initialize(args []eval.PValue) {
+func (t *TypeSetType) Initialize(c eval.EvalContext, args []eval.PValue) {
 	if len(args) == 1 {
 		if hash, ok := args[0].(eval.KeyedValue); ok {
-			t.InitFromHash(hash)
+			t.InitFromHash(c, hash)
 			return
 		}
 	}
-	panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an TypeSet data type`}))
+	panic(eval.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an TypeSet data type`}))
 }
 
 func NewTypeSetType(na eval.URI, name string, initHashExpression interface{}) *TypeSetType {
@@ -191,12 +191,12 @@ func NewTypeSetType(na eval.URI, name string, initHashExpression interface{}) *T
 	return obj
 }
 
-func NewTypeSetType2(initHash *HashValue, loader eval.Loader) *TypeSetType {
+func NewTypeSetType2(c eval.EvalContext, initHash *HashValue, loader eval.Loader) *TypeSetType {
 	if initHash.IsEmpty() {
 		return DefaultTypeSetType()
 	}
 	obj := AllocTypeSetType()
-	obj.InitFromHash(initHash)
+	obj.InitFromHash(c, initHash)
 	obj.loader = loader
 	return obj
 }
@@ -236,18 +236,18 @@ func (t *TypeSetType) Parameters() []eval.PValue {
 	return []eval.PValue{t.InitHash()}
 }
 
-func (t *TypeSetType) InitFromHash(initHash eval.KeyedValue) {
-	eval.AssertInstance(`typeset initializer`, TYPE_TYPESET_INIT, initHash)
+func (t *TypeSetType) InitFromHash(c eval.EvalContext, initHash eval.KeyedValue) {
+	eval.AssertInstance(c, `typeset initializer`, TYPE_TYPESET_INIT, initHash)
 	t.name = stringArg(initHash, KEY_NAME, t.name)
-	t.nameAuthority = uriArg(initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
+	t.nameAuthority = uriArg(c, initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
 
-	t.pcoreVersion = versionArg(initHash, eval.KEY_PCORE_VERSION, nil)
+	t.pcoreVersion = versionArg(c, initHash, eval.KEY_PCORE_VERSION, nil)
 	if !eval.PARSABLE_PCORE_VERSIONS.Includes(t.pcoreVersion) {
-		panic(eval.Error(eval.EVAL_UNHANDLED_PCORE_VERSION,
+		panic(eval.Error(nil, eval.EVAL_UNHANDLED_PCORE_VERSION,
 			issue.H{`name`: t.name, `expected_range`: eval.PARSABLE_PCORE_VERSIONS, `pcore_version`: t.pcoreVersion}))
 	}
-	t.pcoreURI = uriArg(initHash, eval.KEY_PCORE_URI, ``)
-	t.version = versionArg(initHash, KEY_VERSION, nil)
+	t.pcoreURI = uriArg(c, initHash, eval.KEY_PCORE_URI, ``)
+	t.version = versionArg(c, initHash, KEY_VERSION, nil)
 	t.types = hashArg(initHash, KEY_TYPES)
 	t.types.EachKey(func(kv eval.PValue) {
 		key := kv.String()
@@ -262,16 +262,16 @@ func (t *TypeSetType) InitFromHash(initHash eval.KeyedValue) {
 			refAlias := k.String()
 
 			if t.types.IncludesKey(k) {
-				panic(eval.Error(eval.EVAL_TYPESET_ALIAS_COLLIDES,
+				panic(eval.Error(nil, eval.EVAL_TYPESET_ALIAS_COLLIDES,
 					issue.H{`name`: t.name, `ref_alias`: refAlias}))
 			}
 
 			if _, ok := refMap[refAlias]; ok {
-				panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_DUPLICATE,
+				panic(eval.Error(nil, eval.EVAL_TYPESET_REFERENCE_DUPLICATE,
 					issue.H{`name`: t.name, `ref_alias`: refAlias}))
 			}
 
-			ref := newTypeSetReference(t, v.(*HashValue))
+			ref := newTypeSetReference(c, t, v.(*HashValue))
 			refName := ref.name
 			refNA := ref.nameAuthority
 			naRoots, found := rootMap[refNA]
@@ -283,7 +283,7 @@ func (t *TypeSetType) InitFromHash(initHash eval.KeyedValue) {
 			if ranges, found := naRoots[refName]; found {
 				for _, rng := range ranges {
 					if rng.Intersection(ref.versionRange) != nil {
-						panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_OVERLAP,
+						panic(eval.Error(nil, eval.EVAL_TYPESET_REFERENCE_OVERLAP,
 							issue.H{`name`: t.name, `ref_na`: refNA, `ref_name`: refName}))
 					}
 				}
@@ -451,7 +451,7 @@ func (t *TypeSetType) Resolve(c eval.EvalContext) eval.PType {
 		initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
 	}
 	t.loader = c.Loader()
-	t.InitFromHash(initHash)
+	t.InitFromHash(c, initHash)
 
 	for _, ref := range t.references {
 		ref.resolve(c)
@@ -475,7 +475,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralH
 
 	for _, ex := range lh.Entries() {
 		entry := ex.(*parser.KeyedEntry)
-		key := c.Resolve(entry.Key()).String()
+		key := c.Evaluate(entry.Key()).String()
 		if key == KEY_TYPES || key == KEY_REFERENCES {
 			if key == KEY_TYPES {
 				typesHash = _EMPTY_MAP
@@ -490,13 +490,13 @@ func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralH
 					if qref, ok := he.Key().(*parser.QualifiedReference); ok {
 						name = qref.Name()
 					} else {
-						name = c.Resolve(he.Key()).String()
+						name = c.Evaluate(he.Key()).String()
 					}
 					if key == KEY_TYPES {
 						// Defer type resolution until all types are known
 						types[name] = he.Value()
 					} else {
-						xes = append(xes, WrapHashEntry2(name, c.Resolve(he.Value())))
+						xes = append(xes, WrapHashEntry2(name, c.Evaluate(he.Value())))
 					}
 				}
 				if key == KEY_REFERENCES {
@@ -504,13 +504,13 @@ func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralH
 				}
 			} else {
 				// Probably a bogus entry, will cause type error further on
-				entries = append(entries, WrapHashEntry2(key, c.Resolve(entry.Value())))
+				entries = append(entries, WrapHashEntry2(key, c.Evaluate(entry.Value())))
 				if key == KEY_TYPES {
 					typesHash = nil
 				}
 			}
 		} else {
-			entries = append(entries, WrapHashEntry2(key, c.Resolve(entry.Value())))
+			entries = append(entries, WrapHashEntry2(key, c.Evaluate(entry.Value())))
 		}
 	}
 
@@ -566,7 +566,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.EvalContext, lh *parser.LiteralH
 func (t * TypeSetType) resolveNameAuthority(hash *HashValue, c eval.EvalContext, location issue.Location) eval.URI {
 	nameAuth := t.nameAuthority
 	if nameAuth == `` {
-		nameAuth = uriArg(hash, KEY_NAME_AUTHORITY, ``)
+		nameAuth = uriArg(c, hash, KEY_NAME_AUTHORITY, ``)
 		if nameAuth == `` {
 			if tsLoader, ok := c.Loader().(eval.TypeSetLoader); ok {
 				nameAuth = tsLoader.TypeSet().(*TypeSetType).NameAuthority()

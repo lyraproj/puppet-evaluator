@@ -94,7 +94,7 @@ type (
 		Kind() AttributeKind
 
 		// Get returs this attributes value in the given instance
-		Get(instance PValue) PValue
+		Get(c EvalContext, instance PValue) PValue
 
 		// HasValue returns true if a value has been defined for this attribute.
 		HasValue() bool
@@ -103,7 +103,7 @@ type (
 		Default(value PValue) bool
 
 		// Value returns the value of this attribute, or raises an error if no value has been defined.
-		Value() PValue
+		Value(c EvalContext) PValue
 	}
 
 	ObjFunc interface {
@@ -132,7 +132,7 @@ type (
 
 		RequiredCount() int
 
-		PositionalFromHash(hash KeyedValue) []PValue
+		PositionalFromHash(c EvalContext, hash KeyedValue) []PValue
 	}
 
 	ObjectType interface {
@@ -333,8 +333,8 @@ var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambd
 
 var DescribeMismatch func(pfx string, expected PType, actual PType) string
 
-var AssertType func(pfx interface{}, expected, actual PType) PType
+var AssertType func(c EvalContext, pfx interface{}, expected, actual PType) PType
 
-var AssertInstance func(pfx interface{}, expected PType, value PValue) PValue
+var AssertInstance func(c EvalContext, pfx interface{}, expected PType, value PValue) PValue
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType

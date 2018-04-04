@@ -16,7 +16,7 @@ type (
 		current         builder
 		key             eval.PValue
 		allowUnresolved bool
-		loader          eval.DefiningLoader
+		context         eval.EvalContext
 		richDataFuncs   map[string]richDataFunc
 		defaultFunc     richDataFunc
 	}
@@ -24,7 +24,7 @@ type (
 	builder interface {
 		get(key eval.PValue) builder
 		put(key eval.PValue, value builder)
-		resolve() eval.PValue
+		resolve(c eval.EvalContext) eval.PValue
 	}
 
 	valueBuilder struct {
@@ -61,7 +61,7 @@ func (b *valueBuilder) put(key eval.PValue, value builder) {
 	panic(`scalar indexed by string`)
 }
 
-func (b *valueBuilder) resolve() eval.PValue {
+func (b *valueBuilder) resolve(c eval.EvalContext) eval.PValue {
 	return b.value
 }
 
@@ -76,12 +76,12 @@ func (b *hashBuilder) put(key eval.PValue, value builder) {
 	b.values.Put(string(eval.ToKey(key)), &hbEntry{key, value})
 }
 
-func (b *hashBuilder) resolve() eval.PValue {
+func (b *hashBuilder) resolve(c eval.EvalContext) eval.PValue {
 	if b.resolved == nil {
 		es := make([]*types.HashEntry, 0, b.values.Len())
 		b.values.EachPair(func(key string, value interface{}) {
 			hbe := value.(*hbEntry)
-			es = append(es, types.WrapHashEntry(hbe.key, hbe.value.resolve()))
+			es = append(es, types.WrapHashEntry(hbe.key, hbe.value.resolve(c)))
 		})
 		b.resolved = types.WrapHash(es)
 	}
@@ -106,29 +106,29 @@ func (b *arrayBuilder) put(key eval.PValue, value builder) {
 	}
 }
 
-func (b *arrayBuilder) resolve() eval.PValue {
+func (b *arrayBuilder) resolve(c eval.EvalContext) eval.PValue {
 	if b.resolved == nil {
 		es := make([]eval.PValue, len(b.values))
 		for i, v := range b.values {
-			es[i] = v.resolve()
+			es[i] = v.resolve(c)
 		}
 		b.resolved = types.WrapArray(es)
 	}
 	return b.resolved
 }
 
-func (b *objectHashBuilder) resolve() eval.PValue {
+func (b *objectHashBuilder) resolve(c eval.EvalContext) eval.PValue {
 	if b.resolved == nil {
-		b.hashBuilder.resolve()
-		b.object.InitFromHash(b.hashBuilder.resolve().(*types.HashValue))
+		b.hashBuilder.resolve(c)
+		b.object.InitFromHash(c, b.hashBuilder.resolve(c).(*types.HashValue))
 		b.resolved = b.object
 	}
 	return b.resolved
 }
 
-func NewFromDataConverter(loader eval.DefiningLoader, options eval.KeyedValue) *FromDataConverter {
+func NewFromDataConverter(ctx eval.EvalContext, options eval.KeyedValue) *FromDataConverter {
 	f := &FromDataConverter{}
-	f.loader = loader
+	f.context = ctx
 	f.allowUnresolved = options.Get5(`allow_unresolved`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
 	f.richDataFuncs = map[string]richDataFunc{
 		PCORE_TYPE_HASH: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
@@ -163,10 +163,10 @@ func NewFromDataConverter(loader eval.DefiningLoader, options eval.KeyedValue) *
 
 		PCORE_LOCAL_REF_SYMBOL: func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
 			path := hash.Get5(PCORE_VALUE_KEY, eval.EMPTY_STRING).String()
-			if resolved, ok := resolveJsonPath(f.root, path); ok {
+			if resolved, ok := resolveJsonPath(f.context, f.root, path); ok {
 				return f.buildValue(resolved)
 			}
-			panic(eval.Error(eval.EVAL_BAD_JSON_PATH, issue.H{path: path}))
+			panic(eval.Error(ctx, eval.EVAL_BAD_JSON_PATH, issue.H{path: path}))
 		},
 	}
 	f.defaultFunc = func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
@@ -182,16 +182,16 @@ func NewFromDataConverter(loader eval.DefiningLoader, options eval.KeyedValue) *
 			typ := f.withoutValue(func() eval.PValue { return f.Convert(typeHash) })
 			if typ, ok := typeValue.(*types.HashValue); ok {
 				if !f.allowUnresolved {
-					panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
+					panic(eval.Error(ctx, eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
 				}
 				return hash
 			}
 			return f.pcoreTypeHashToValue(typ.(eval.PType), value)
 		}
-		typ := eval.CurrentContext().ParseType(typeValue)
+		typ := f.context.ParseType(typeValue)
 		if tr, ok := typ.(*types.TypeReferenceType); ok {
 			if !f.allowUnresolved {
-				panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tr.String()}))
+				panic(eval.Error(ctx, eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tr.String()}))
 			}
 			return hash
 		}
@@ -234,7 +234,7 @@ func parseStringOrInteger(lexer parser.Lexer) (eval.PValue, bool) {
 	return nil, false
 }
 
-func resolveJsonPath(lhs builder, path string) (eval.PValue, bool) {
+func resolveJsonPath(c eval.EvalContext, lhs builder, path string) (eval.PValue, bool) {
 	lexer := parser.NewSimpleLexer(``, path)
 	lexer.NextToken()
 	lexer.AssertToken(parser.TOKEN_VARIABLE)
@@ -262,7 +262,7 @@ func resolveJsonPath(lhs builder, path string) (eval.PValue, bool) {
 				continue
 			}
 		case parser.TOKEN_END:
-			return lhs.resolve(), true
+			return lhs.resolve(c), true
 		}
 		return nil, false
 	}
@@ -311,7 +311,7 @@ func (f *FromDataConverter) build(vx builder, actor eval.Actor) eval.PValue {
 	if actor != nil {
 		f.withValue(vx, actor)
 	}
-	return vx.resolve()
+	return vx.resolve(f.context)
 }
 
 func (f *FromDataConverter) with(key eval.PValue, actor eval.Actor) {
@@ -354,26 +354,26 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.PType, value eval.PVal
 			if ot.HasHashConstructor() {
 				return f.buildValue(f.create(typ, hash))
 			}
-			return f.buildValue(f.create(typ, ot.AttributesInfo().PositionalFromHash(hash)...))
+			return f.buildValue(f.create(typ, ot.AttributesInfo().PositionalFromHash(f.context, hash)...))
 		}
 		return f.buildValue(f.create(typ, hash))
 	}
 	if str, ok := value.(*types.StringValue); ok {
 		return f.buildValue(f.create(typ, str))
 	}
-	panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
+	panic(eval.Error(f.context, eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
 }
 
 func (f *FromDataConverter) allocate(typ eval.PType) (eval.ObjectValue, bool) {
-	if allocator, ok := eval.Load(f.loader, eval.NewTypedName(eval.ALLOCATOR, typ.Name())); ok {
+	if allocator, ok := eval.Load(f.context, eval.NewTypedName(eval.ALLOCATOR, typ.Name())); ok {
 		return allocator.(eval.Lambda).Call(nil, nil).(eval.ObjectValue), true
 	}
 	return nil, false
 }
 
 func (f *FromDataConverter) create(typ eval.PType, args ...eval.PValue) eval.PValue {
-	if ctor, ok := eval.Load(f.loader, eval.NewTypedName(eval.CONSTRUCTOR, typ.Name())); ok {
-		return ctor.(eval.Function).Call(eval.CurrentContext(), nil, args...)
+	if ctor, ok := eval.Load(f.context, eval.NewTypedName(eval.CONSTRUCTOR, typ.Name())); ok {
+		return ctor.(eval.Function).Call(f.context, nil, args...)
 	}
-	panic(eval.Error(eval.EVAL_CTOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
+	panic(eval.Error(f.context, eval.EVAL_CTOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
 }

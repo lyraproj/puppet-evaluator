@@ -310,7 +310,7 @@ func ParseTimespan(str string, formats []*TimespanFormat) *TimespanValue {
 		}
 		fs.WriteString(f.fmt)
 	}
-	panic(eval.Error(eval.EVAL_TIMESPAN_CANNOT_BE_PARSED, issue.H{`str`: str, `formats`: fs.String()}))
+	panic(eval.Error(nil, eval.EVAL_TIMESPAN_CANNOT_BE_PARSED, issue.H{`str`: str, `formats`: fs.String()}))
 }
 
 func fromFields(negative bool, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds int64) time.Duration {
@@ -719,7 +719,7 @@ func appendLiteral(bld []segment, c rune) []segment {
 }
 
 func badFormatSpecifier(str string, start, pos int) *issue.Reported {
-  return eval.Error(eval.EVAL_TIMESPAN_BAD_FSPEC, issue.H{`expression`: str[start:pos], `format`: str, `position`: pos})
+  return eval.Error(nil, eval.EVAL_TIMESPAN_BAD_FSPEC, issue.H{`expression`: str[start:pos], `format`: str, `position`: pos})
 }
 
 func newTimespanFormat(format string, segments []segment) *TimespanFormat {
@@ -994,7 +994,7 @@ func (s *fragmentSegment) createFormat() string {
 
 func (s *fragmentSegment) nanoseconds(group string, multiplier int) int64 {
 	if s.useTotal {
-		panic(eval.Error(eval.EVAL_TIMESPAN_FSPEC_NOT_HIGHER, issue.NO_ARGS))
+		panic(eval.Error(nil, eval.EVAL_TIMESPAN_FSPEC_NOT_HIGHER, issue.NO_ARGS))
 	}
 	n := s.valueSegment.nanoseconds(group, multiplier)
 	p := int64(9 - len(group))

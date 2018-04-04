@@ -137,7 +137,7 @@ func (t *RegexpType) Regexp() *regexp.Regexp {
 		pattern, err := regexp.Compile(t.patternString)
 		if err != nil {
 			t.lock.Unlock()
-			panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
+			panic(eval.Error(nil, eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
 		}
 		t.pattern = pattern
 	}

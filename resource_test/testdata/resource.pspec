@@ -112,9 +112,9 @@ Examples('resource',
     Example('can be ordered using ->',
       Given(Format(@(SRC), Get('resourceType'))),
         %s
-        MyRes['/foo/bar'] -> MyRes['/foo/baz']
+        ($x = MyRes['/foo/bar']) -> ($y = MyRes['/foo/baz'])
         [
-          get_edges(MyRes['/foo/bar']).map |$e| { [$e.to.ref, $e.subscribe] },
+          get_edges($x).map |$e| { [$e.to.ref, $e.subscribe] },
           get_edges(MyRes['/foo/baz']).map |$e| { [$e.to.ref, $e.subscribe] }
         ]
         |-SRC

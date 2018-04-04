@@ -19,10 +19,10 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`String`)
 				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 					planName := args[0].String()
-					if plan, ok := eval.Load(c.Loader(), eval.NewTypedName(eval.PLAN, planName)); ok {
+					if plan, ok := eval.Load(c, eval.NewTypedName(eval.PLAN, planName)); ok {
 						return eval.WrapUnknown(plan)
 					}
-					panic(eval.Error(eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
+					panic(eval.Error(c, eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
 				})
 			})
 
@@ -31,10 +31,10 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`String`)
 				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 					taskName := args[0].String()
-					if task, ok := eval.Load(c.Loader(), eval.NewTypedName(eval.TASK, taskName)); ok {
+					if task, ok := eval.Load(c, eval.NewTypedName(eval.TASK, taskName)); ok {
 						return task.(eval.PValue)
 					}
-					panic(eval.Error(eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
+					panic(eval.Error(c, eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
 				})
 			})
 
@@ -62,7 +62,7 @@ func TestPSpecs(t *testing.T) {
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
 					}
-					return serialization.NewToDataConverter(options).Convert(args[0])
+					return serialization.NewToDataConverter(c, options).Convert(args[0])
 				})
 			})
 
@@ -78,7 +78,7 @@ func TestPSpecs(t *testing.T) {
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
 					}
-					return serialization.NewFromDataConverter(c.Loader().(eval.DefiningLoader), options).Convert(args[0])
+					return serialization.NewFromDataConverter(c, options).Convert(args[0])
 				})
 			})
 
@@ -96,7 +96,7 @@ func TestPSpecs(t *testing.T) {
 						options = args[1].(eval.KeyedValue)
 					}
 					out := bytes.NewBufferString(``)
-					serialization.DataToJson(args[0], out, options)
+					serialization.DataToJson(c, args[0], out, options)
 					return types.WrapString(out.String())
 				})
 			})
@@ -105,7 +105,7 @@ func TestPSpecs(t *testing.T) {
 			func(d eval.Dispatch) {
 				d.Param(`String`)
 				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-					return serialization.JsonToData(``, strings.NewReader(args[0].String()))
+					return serialization.JsonToData(c, ``, strings.NewReader(args[0].String()))
 				})
 			})
 

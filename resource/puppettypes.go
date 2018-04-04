@@ -76,9 +76,9 @@ func InitBuiltinResources() {
 				func(d eval.Dispatch) {
 					d.Param(`Hash[String,Any]`)
 					d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-						typ, _ := eval.Load(c.Loader(), eval.NewTypedName(eval.TYPE, name))
+						typ, _ := eval.Load(c, eval.NewTypedName(eval.TYPE, name))
 						hash := args[0].(*types.HashValue)
-						return types.NewObjectValue2(typ.(eval.ObjectType), types.WrapHash3(
+						return types.NewObjectValue2(c, typ.(eval.ObjectType), types.WrapHash3(
 							map[string]eval.PValue{
 								`title`: hash.Get5(`title`, eval.EMPTY_STRING),
 								`values`: hash.RejectPairs(func(k, v eval.PValue) bool {

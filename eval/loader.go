@@ -15,7 +15,7 @@ type (
 	}
 
 	Loader interface {
-		LoadEntry(name TypedName) Entry
+		LoadEntry(c EvalContext, name TypedName) Entry
 
 		NameAuthority() URI
 	}
@@ -60,7 +60,7 @@ func IsValidModuleName(moduleName string) bool {
 	return moduleNameRX.MatchString(moduleName)
 }
 
-var Load func(loader Loader, name TypedName) (interface{}, bool)
+var Load func(c EvalContext, name TypedName) (interface{}, bool)
 var NewLoaderEntry func(value interface{}, origin issue.Location) Entry
 var StaticLoader func() Loader
 var StaticResourceLoader func() Loader

@@ -44,6 +44,13 @@ type (
 		// Set changes a setting
 		Set(key string, value PValue)
 
+		// Produce executes a given function with an unparented initialized Context instance
+		// and returns the result
+		Produce(func(EvalContext) PValue) PValue
+
+		// Do executes a given function with an unparented initialized Context instance
+		Do(func(EvalContext))
+
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured
 		// for this instance.
@@ -81,6 +88,7 @@ const(
 
 var PCORE_VERSION = semver.NewVersion4(1, 0, 0, ``, ``)
 var PARSABLE_PCORE_VERSIONS, _ = semver.ParseVersionRange(`1.x`)
+
 var Puppet Pcore = nil
 
 func GetSetting(name string, dflt PValue) PValue {

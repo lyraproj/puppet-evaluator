@@ -65,7 +65,7 @@ func init() {
 						abs = args[2].(*BooleanValue).Bool()
 					}
 				}
-				n := intFromConvertible(args[0], r)
+				n := intFromConvertible(c, args[0], r)
 				if abs && n < 0 {
 					n = -n
 				}
@@ -87,7 +87,7 @@ func init() {
 				if ab, ok := h.Get4(`abs`); ok {
 					abs = ab.(*BooleanValue).Bool()
 				}
-				n := intFromConvertible(h.Get5(`from`, _UNDEF), r)
+				n := intFromConvertible(c, h.Get5(`from`, _UNDEF), r)
 				if abs && n < 0 {
 					n = -n
 				}
@@ -97,7 +97,7 @@ func init() {
 	)
 }
 
-func intFromConvertible(from eval.PValue, radix int) int64 {
+func intFromConvertible(c eval.EvalContext, from eval.PValue, radix int) int64 {
 	switch from.(type) {
 	case *IntegerValue:
 		return from.(*IntegerValue).Int()
@@ -114,7 +114,7 @@ func intFromConvertible(from eval.PValue, radix int) int64 {
 		if err == nil {
 			return i
 		}
-		panic(eval.Error(eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
+		panic(eval.Error(c, eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
 	}
 }
 

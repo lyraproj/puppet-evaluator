@@ -34,9 +34,9 @@ type (
 
 		Graph() graph.Graph
 
-		HasNode(value eval.PValue) bool
+		HasNode(c eval.EvalContext, value eval.PValue) bool
 
-		Node(value eval.PValue) (Node, bool)
+		Node(c eval.EvalContext, value eval.PValue) (Node, bool)
 
 		Nodes() eval.IndexedValue
 
@@ -46,14 +46,14 @@ type (
 
 // NodeName returns the string T[<title>] where T is the lower case name of a resourc type
 // and <title> is the unique title of the instance that is referenced
-func NodeName(value eval.PValue) (string, *issue.Reported) {
+func NodeName(c eval.EvalContext, value eval.PValue) (string, *issue.Reported) {
 	switch value.(type) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)
 		if title, ok := resource.Get(`title`); ok {
 			return fmt.Sprintf(`%s[%s]`, strings.ToLower(resource.Type().Name()), title.String()), nil
 		}
-		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
+		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
 	case eval.ParameterizedType:
 		pt := value.(eval.ParameterizedType)
 		params := pt.Parameters()
@@ -66,9 +66,9 @@ func NodeName(value eval.PValue) (string, *issue.Reported) {
 		if name, title, ok := SplitRef(value.String()); ok {
 			return fmt.Sprintf(`%s[%s]`, strings.ToLower(name), title), nil
 		}
-		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
+		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
 	}
-	return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
+	return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
 }
 
 // SplitRef splits a reference in the form `<name> '[' <title> ']'` into a name and
@@ -115,9 +115,9 @@ func (re *resourceEval) Graph() graph.Graph {
 	return re.graph
 }
 
-func (re *resourceEval) HasNode(value eval.PValue) bool {
+func (re *resourceEval) HasNode(c eval.EvalContext, value eval.PValue) bool {
 	ok := false
-	if ref, err := NodeName(value); err == nil {
+	if ref, err := NodeName(c, value); err == nil {
 		_, ok = re.nodes[ref]
 	}
 	return ok
@@ -139,13 +139,13 @@ func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExp
 	rhs := re.Eval(expr.Rhs(), c)
 	switch expr.Operator() {
 	case `->`:
-		re.addEdge(&edge{re.node(lhs, expr.Lhs(), true), re.node(rhs, expr.Rhs(), true), false})
+		re.addEdge(&edge{re.node(c, lhs, expr.Lhs(), true), re.node(c, rhs, expr.Rhs(), true), false})
 	case `~>`:
-		re.addEdge(&edge{re.node(lhs, expr.Lhs(), true), re.node(rhs, expr.Rhs(), true), true})
+		re.addEdge(&edge{re.node(c, lhs, expr.Lhs(), true), re.node(c, rhs, expr.Rhs(), true), true})
 	case `<-`:
-		re.addEdge(&edge{re.node(rhs, expr.Rhs(), true), re.node(lhs, expr.Lhs(), true), false})
+		re.addEdge(&edge{re.node(c, rhs, expr.Rhs(), true), re.node(c, lhs, expr.Lhs(), true), false})
 	default:
-		re.addEdge(&edge{re.node(rhs, expr.Rhs(), true), re.node(lhs, expr.Lhs(), true), true})
+		re.addEdge(&edge{re.node(c, rhs, expr.Rhs(), true), re.node(c, lhs, expr.Lhs(), true), true})
 	}
 	return lhs
 }
@@ -160,7 +160,7 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 	typeName := re.Eval(expr.TypeName(), c)
 
 	// Load the actual resource type
-	if ctor, ok := eval.Load(c.Loader(), eval.NewTypedName(eval.CONSTRUCTOR, typeName.String())); ok {
+	if ctor, ok := eval.Load(c, eval.NewTypedName(eval.CONSTRUCTOR, typeName.String())); ok {
 		for i, body := range expr.Bodies() {
 			result[i] = re.newResources(ctor.(eval.Function), body.(*parser.ResourceBody), c)
 		}
@@ -170,8 +170,8 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 }
 
 // Node returns the node for the given value
-func (re *resourceEval) Node(value eval.PValue) (Node, bool) {
-	n := re.node(value, nil, false)
+func (re *resourceEval) Node(c eval.EvalContext, value eval.PValue) (Node, bool) {
+	n := re.node(c, value, nil, false)
 	if n == nil {
 		return nil, false
 	}
@@ -216,13 +216,13 @@ func nodeList(nodes []graph.Node) eval.IndexedValue {
 	})
 }
 
-func (re *resourceEval) node(value eval.PValue, location issue.Location, create bool) *node {
+func (re *resourceEval) node(c eval.EvalContext, value eval.PValue, location issue.Location, create bool) *node {
 	var resource eval.PuppetObject
 	if po, ok := value.(eval.PuppetObject); ok {
 		resource = po
 	}
 
-	ref, err := NodeName(value)
+	ref, err := NodeName(c, value)
 	if err != nil {
 		panic(err)
 	}
@@ -232,7 +232,7 @@ func (re *resourceEval) node(value eval.PValue, location issue.Location, create 
 			node.value = resource // Resolves reference
 			node.location = location
 		} else if resource != nil && node.value != resource {
-			panic(eval.Error(EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.location)}))
+			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.location)}))
 		}
 		return node
 	}
@@ -283,13 +283,13 @@ func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Express
 			v := re.Eval(vexpr, c)
 			switch attr.Name() {
 			case `before`:
-				fromHere = append(fromHere, &edge{nil, re.node(v, vexpr, true), false})
+				fromHere = append(fromHere, &edge{nil, re.node(c, v, vexpr, true), false})
 			case `notify`:
-				fromHere = append(fromHere, &edge{nil, re.node(v, vexpr, true), true})
+				fromHere = append(fromHere, &edge{nil, re.node(c, v, vexpr, true), true})
 			case `after`:
-				toHere = append(toHere, &edge{re.node(v, vexpr, true), nil, false})
+				toHere = append(toHere, &edge{re.node(c, v, vexpr, true), nil, false})
 			case `subscribe`:
-				toHere = append(toHere, &edge{re.node(v, vexpr, true), nil, true})
+				toHere = append(toHere, &edge{re.node(c, v, vexpr, true), nil, true})
 			default:
 				entries = append(entries, types.WrapHashEntry2(attr.Name(), v))
 			}
@@ -301,7 +301,7 @@ func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Express
 			}
 		}
 	}
-	obj := re.node(ctor.Call(c, nil, types.WrapHash(entries)), titleExpr, true)
+	obj := re.node(c, ctor.Call(c, nil, types.WrapHash(entries)), titleExpr, true)
 	for _, edge := range fromHere {
 		edge.from = obj
 		re.addEdge(edge)

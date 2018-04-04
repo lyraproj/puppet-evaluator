@@ -11,10 +11,10 @@ func callNew(c eval.EvalContext, name string, args []eval.PValue, block eval.Lam
 	// Always make an attempt to load the named type
 	// TODO: This should be a properly checked load but it currently isn't because some receivers in the PSpec
 	// evaluator are not proper types yet.
-	eval.Load(c.Loader(), eval.NewTypedName(eval.TYPE, name))
+	eval.Load(c, eval.NewTypedName(eval.TYPE, name))
 
 	tn := eval.NewTypedName(eval.CONSTRUCTOR, name)
-	if ctor, ok := eval.Load(c.Loader(), tn); ok {
+	if ctor, ok := eval.Load(c, tn); ok {
 		r := ctor.(eval.Function).Call(c, nil, args...)
 		if block != nil {
 			r = block.Call(c, nil, r)

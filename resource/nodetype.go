@@ -30,7 +30,7 @@ type(
 
 		Resolved() bool
 
-		Value() eval.PuppetObject
+		Value(c eval.EvalContext) eval.PuppetObject
 	}
 
 	// node represents a PuppetObject in the graph with a unique ID
@@ -50,10 +50,10 @@ func (rn *node) Resolved() bool {
 	return rn.value != nil
 }
 
-func (rn *node) Value() eval.PuppetObject {
+func (rn *node) Value(c eval.EvalContext) eval.PuppetObject {
 	if rn.value == nil {
 		name, title, _ := SplitRef(rn.ref)
-		panic(eval.Error(EVAL_UNKNOWN_RESOURCE, issue.H {`type_name`: name, `title`: title}))
+		panic(eval.Error(c, EVAL_UNKNOWN_RESOURCE, issue.H {`type_name`: name, `title`: title}))
 	}
 	return rn.value
 }
@@ -70,7 +70,10 @@ func (rn *node) Get(key string) (value eval.PValue, ok bool) {
 	case `ref`:
 		return types.WrapString(rn.ref), true
 	case `value`:
-		return rn.Value(), true
+		if rn.value == nil {
+			return eval.UNDEF, false
+		}
+		return rn.value, true
 	case `resolved`:
 		return types.WrapBoolean(rn.Resolved()), true
 	}

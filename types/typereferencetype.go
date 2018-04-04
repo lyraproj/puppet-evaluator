@@ -100,10 +100,10 @@ func (t *TypeReferenceType) Parameters() []eval.PValue {
 }
 
 func (t *TypeReferenceType) Resolve(c eval.EvalContext) eval.PType {
-	r := c.ParseResolve(t.typeString)
+	r := c.ParseType2(t.typeString)
 	if rt, ok := r.(eval.ResolvableType); ok {
 		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {
-			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
+			panic(eval.Error(c, eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
 		}
 		r = rt.Resolve(c)
 	}

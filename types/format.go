@@ -135,7 +135,7 @@ func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap) e
 var TYPE_STRING_FORMAT = NewVariantType([]eval.PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
 
 func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.FormatContext, err error) {
-	eval.AssertInstance(`String format`, TYPE_STRING_FORMAT, format)
+	eval.AssertInstance(nil, `String format`, TYPE_STRING_FORMAT, format)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -266,7 +266,7 @@ func typeRank(pt eval.PType) int {
 var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType([]eval.PType{DefaultStringType(), DefaultHashType()}), nil)
 
 func NewFormatMap(h *HashValue) eval.FormatMap {
-	eval.AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
+	eval.AssertInstance(nil, `String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
 	result := make([]*HashEntry, h.Len())
 	h.EachWithIndex(func(elem eval.PValue, idx int) {
 		entry := elem.(*HashEntry)
@@ -293,7 +293,7 @@ var TYPE_STRING_FORMAT_HASH = NewStructType([]*StructElement{
 })
 
 func FormatFromHash(h *HashValue) eval.Format {
-	eval.AssertInstance(`String format hash`, TYPE_STRING_FORMAT_HASH, h)
+	eval.AssertInstance(nil, `String format hash`, TYPE_STRING_FORMAT_HASH, h)
 
 	stringArg := func(key string, required bool) string {
 		v := h.Get5(key, _UNDEF)
@@ -322,7 +322,7 @@ func (c *formatContext) FormatMap() eval.FormatMap {
 }
 
 func (c *formatContext) UnsupportedFormat(t eval.PType, supportedFormats string, actualFormat eval.Format) error {
-	return eval.Error(eval.EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
+	return eval.Error(nil, eval.EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
 }
 
 func newIndentation(indenting bool, level int) eval.Indentation {
@@ -396,7 +396,7 @@ func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerForm
 func parseFormat(origFmt string, separator string, separator2 string, containerFormats eval.FormatMap) eval.Format {
 	group := eval.FORMAT_PATTERN.FindStringSubmatch(origFmt)
 	if group == nil {
-		panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_SPEC, issue.H{`format`: origFmt}))
+		panic(eval.Error(nil, eval.EVAL_INVALID_STRING_FORMAT_SPEC, issue.H{`format`: origFmt}))
 	}
 
 	flags := group[1]
@@ -412,7 +412,7 @@ func parseFormat(origFmt string, separator string, separator2 string, containerF
 	for _, delim := range delimiters {
 		if hasDelimOnce(flags, origFmt, delim) {
 			if foundDelim != 0 {
-				panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_DELIMITER, issue.H{`delimiter`: foundDelim}))
+				panic(eval.Error(nil, eval.EVAL_INVALID_STRING_FORMAT_DELIMITER, issue.H{`delimiter`: foundDelim}))
 			}
 			foundDelim = delim
 		}
@@ -479,7 +479,7 @@ func hasDelimOnce(flags string, format string, delim byte) bool {
 	for _, b := range flags {
 		if byte(b) == delim {
 			if found {
-				panic(eval.Error(eval.EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, issue.H{`format`: format}))
+				panic(eval.Error(nil, eval.EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG, issue.H{`format`: format}))
 			}
 			found = true
 		}

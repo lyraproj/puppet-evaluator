@@ -13,8 +13,8 @@ func TestPSpecs(t *testing.T) {
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Type[Resource],String]`)
 				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
-					if node, ok := c.Evaluator().(resource.Evaluator).Node(args[0]); ok && node.Resolved() {
-						return node.Value()
+					if node, ok := c.Evaluator().(resource.Evaluator).Node(c, args[0]); ok && node.Resolved() {
+						return node.Value(c)
 					}
 					return eval.UNDEF
 				})
@@ -26,7 +26,7 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
 				d.Function(func(c eval.EvalContext, args []eval.PValue) eval.PValue {
 					re := c.Evaluator().(resource.Evaluator)
-					if from, ok := re.Node(args[0]); ok {
+					if from, ok := re.Node(c, args[0]); ok {
 						return re.Edges(from);
 					}
 					return eval.EMPTY_ARRAY
@@ -40,7 +40,7 @@ func TestPSpecs(t *testing.T) {
 					return c.Evaluator().(resource.Evaluator).Nodes().Select(func(node eval.PValue) bool {
 						return node.(resource.Node).Resolved()
 					}).Map(func(node eval.PValue) eval.PValue {
-						return node.(resource.Node).Value()
+						return node.(resource.Node).Value(c)
 					})
 				})
 			},

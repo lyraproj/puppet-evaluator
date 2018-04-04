@@ -92,16 +92,9 @@ func (systemLocation) Pos() int {
 	return 0
 }
 
-var currentContext eval.EvalContext
-
 func init() {
-	eval.CurrentContext = func() eval.EvalContext {
-		return currentContext
-	}
-
-	eval.Error = func(issueCode issue.Code, args issue.H) *issue.Reported {
+	eval.Error = func(c eval.EvalContext, issueCode issue.Code, args issue.H) *issue.Reported {
 		var location issue.Location
-		c := currentContext
 		if c == nil {
 			location = nil
 		} else {
@@ -114,16 +107,15 @@ func init() {
 		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 	}
 
-	eval.Warning = func(issueCode issue.Code, args issue.H) *issue.Reported {
+	eval.Warning = func(c eval.EvalContext, issueCode issue.Code, args issue.H) *issue.Reported {
 		var location issue.Location
 		var logger eval.Logger
-		c := currentContext
 		if c == nil {
 			location = nil
 			logger = eval.NewStdLogger()
 		} else {
 			location = c.StackTop()
-			logger = currentContext.Logger()
+			logger = c.Logger()
 		}
 		ri := issue.NewReported(issueCode, issue.SEVERITY_WARNING, args, location)
 		logger.LogIssue(ri)
@@ -175,17 +167,13 @@ func (c *context) Evaluator() eval.Evaluator {
 
 func (c *context) ParseType(typeString eval.PValue) eval.PType {
 	if sv, ok := typeString.(*types.StringValue); ok {
-		return c.ParseResolve(sv.String())
+		return c.ParseType2(sv.String())
 	}
 	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
 }
 
-func (c *context) Resolve(expr parser.Expression) eval.PValue {
-	return c.evaluator.Eval(expr, c)
-}
-
 func (c *context) ResolveType(expr parser.Expression) eval.PType {
-	resolved := c.Resolve(expr)
+	resolved := c.Evaluate(expr)
 	if pt, ok := resolved.(eval.PType); ok {
 		return pt
 	}
@@ -194,7 +182,7 @@ func (c *context) ResolveType(expr parser.Expression) eval.PType {
 
 func (c *context) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
 	tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
-	if f, ok := eval.Load(c.Loader(), tn); ok {
+	if f, ok := eval.Load(c, tn); ok {
 		return f.(eval.Function).Call(c, block, args...)
 	}
 	panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
@@ -266,7 +254,7 @@ func (c *context) ParseAndValidate(filename, str string, singleExpression bool) 
 	return expr
 }
 
-func (c *context) ParseResolve(str string) eval.PType {
+func (c *context) ParseType2(str string) eval.PType {
 	return c.ResolveType(c.ParseAndValidate(``, str, true))
 }
 
@@ -308,13 +296,11 @@ func (e *evaluator) Evaluate(expr parser.Expression, scope eval.Scope, loader ev
 	ctx := &context{e.self, loader, scope, make([]issue.Location, 0, 64)}
 	ctx.StackPush(expr)
 	e.ResolveDefinitions(ctx)
-	currentContext = ctx
 	result = e.eval(expr, ctx)
 	return
 }
 
 func (e *evaluator) Eval(expr parser.Expression, c eval.EvalContext) eval.PValue {
-	currentContext = c
 	return e.internalEval(expr, c)
 }
 
@@ -331,7 +317,7 @@ func (e *evaluator) call(funcType eval.Namespace, name string, args []eval.PValu
 		panic(`foo`)
 	}
 	tn := eval.NewTypedName2(funcType, name, c.Loader().NameAuthority())
-	f, ok := eval.Load(c.Loader(), tn)
+	f, ok := eval.Load(c, tn)
 	if !ok {
 		panic(e.evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
 	}
@@ -568,7 +554,7 @@ func (e *evaluator) eval_QualifiedReference(expr *parser.QualifiedReference, c e
 	if pt != nil {
 		return pt
 	}
-	return e.loadType(expr.Name(), c.Loader())
+	return e.loadType(expr.Name(), c)
 }
 
 func (e *evaluator) eval_RegexpExpression(expr *parser.RegexpExpression) eval.PValue {
@@ -778,9 +764,9 @@ func (e *evaluator) loaderForDir(dirName string) eval.DefiningLoader {
 	return e.defaultLoader
 }
 
-func (e *evaluator) loadType(name string, loader eval.Loader) eval.PType {
-	tn := eval.NewTypedName2(eval.TYPE, name, loader.NameAuthority())
-	found, ok := eval.Load(loader, tn)
+func (e *evaluator) loadType(name string, c eval.EvalContext) eval.PType {
+	tn := eval.NewTypedName2(eval.TYPE, name, c.Loader().NameAuthority())
+	found, ok := eval.Load(c, tn)
 	if ok {
 		return found.(eval.PType)
 	}
@@ -794,7 +780,6 @@ func (e *evaluator) ResolveDefinitions(c eval.EvalContext) {
 		e.definitions = make([]*definition, 0, 16)
 		for _, d := range defs {
 			tr := &context{e.self, d.loader, scope, c.Stack()}
-			currentContext = tr
 			switch d.definedValue.(type) {
 			case *puppetFunction:
 				d.definedValue.(*puppetFunction).Resolve(tr)

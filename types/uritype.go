@@ -113,7 +113,7 @@ func init() {
 				}
 				u, err := ParseURI2(str, strict)
 				if err != nil {
-					panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+					panic(eval.Error(c, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 				}
 				return WrapURI(u)
 			})
@@ -186,7 +186,7 @@ func NewUriType2(args ...eval.PValue) *UriType {
 func ParseURI(str string) *url.URL {
 	uri, err := url.Parse(str)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		panic(eval.Error(nil, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 	}
 	return uri
 }

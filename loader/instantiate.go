@@ -12,20 +12,19 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-type Instantiator func(loader ContentProvidingLoader, tn eval.TypedName, sources []string)
+type Instantiator func(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string)
 
-func InstantiatePuppetFunction(loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
-	instantiatePuppetFunction(loader, tn, sources)
+func InstantiatePuppetFunction(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+	instantiatePuppetFunction(ctx, loader, tn, sources)
 }
 
-func InstantiatePuppetPlan(loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
-	instantiatePuppetFunction(loader, tn, sources)
+func InstantiatePuppetPlan(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+	instantiatePuppetFunction(ctx, loader, tn, sources)
 }
 
-func instantiatePuppetFunction(loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func instantiatePuppetFunction(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	source := sources[0]
-	content := string(loader.GetContent(source))
-	ctx := eval.CurrentContext()
+	content := string(loader.GetContent(ctx, source))
 	expr := ctx.ParseAndValidate(source, content, false)
 	name := tn.Name()
 	fd, ok := getDefinition(expr, tn.Namespace(), name).(parser.NamedDefinition)
@@ -40,9 +39,8 @@ func instantiatePuppetFunction(loader ContentProvidingLoader, tn eval.TypedName,
 	e.ResolveDefinitions(ctx)
 }
 
-func InstantiatePuppetType(loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
-	content := string(loader.GetContent(sources[0]))
-	ctx := eval.CurrentContext()
+func InstantiatePuppetType(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+	content := string(loader.GetContent(ctx, sources[0]))
 	expr := ctx.ParseAndValidate(sources[0], content, false)
 	name := tn.Name()
 	def := getDefinition(expr, eval.TYPE, name)
@@ -65,7 +63,7 @@ func InstantiatePuppetType(loader ContentProvidingLoader, tn eval.TypedName, sou
 	e.ResolveDefinitions(ctx)
 }
 
-func InstantiatePuppetTask(loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+func InstantiatePuppetTask(ctx eval.EvalContext, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	name := tn.Name()
 	metadata := ``
 	taskSource := ``
@@ -75,14 +73,14 @@ func InstantiatePuppetTask(loader ContentProvidingLoader, tn eval.TypedName, sou
 		} else if taskSource == `` {
 			taskSource = sourceRef
 		} else {
-			panic(eval.Error(eval.EVAL_TASK_TOO_MANY_FILES, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
+			panic(eval.Error(ctx, eval.EVAL_TASK_TOO_MANY_FILES, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
 		}
 	}
 
 	if taskSource == `` {
-		panic(eval.Error(eval.EVAL_TASK_NO_EXECUTABLE_FOUND, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
+		panic(eval.Error(ctx, eval.EVAL_TASK_NO_EXECUTABLE_FOUND, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
 	}
-	task := createTask(eval.CurrentContext(), loader, name, taskSource, metadata)
+	task := createTask(ctx, loader, name, taskSource, metadata)
 	origin := metadata
 	if origin == `` {
 		origin = taskSource
@@ -94,17 +92,17 @@ func createTask(ctx eval.EvalContext, loader ContentProvidingLoader, name, taskS
 	if metadata == `` {
 		return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
 	}
-	jsonText := loader.GetContent(metadata)
+	jsonText := loader.GetContent(ctx, metadata)
 	var parsedValue interface{}
 	d := json.NewDecoder(bytes.NewReader(jsonText))
 	d.UseNumber()
 	if err := d.Decode(&parsedValue); err != nil {
-		panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: metadata, `detail`: err}))
+		panic(eval.Error(ctx, eval.EVAL_TASK_BAD_JSON, issue.H{`path`: metadata, `detail`: err}))
 	}
 	if jo, ok := parsedValue.(map[string]interface{}); ok {
 		return createTaskFromHash(ctx, name, taskSource, jo)
 	}
-	panic(eval.Error(eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
+	panic(eval.Error(ctx, eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
 }
 
 func createTaskFromHash(ctx eval.EvalContext, name, taskSource string, hash map[string]interface{}) eval.PValue {
@@ -118,7 +116,7 @@ func createTaskFromHash(ctx eval.EvalContext, name, taskSource string, hash map[
 					if paramHash, ok := param.(map[string]interface{}); ok {
 						if t, ok := paramHash[`type`]; ok {
 							if s, ok := t.(string); ok {
-								paramHash[`type`] = ctx.ParseResolve(s)
+								paramHash[`type`] = ctx.ParseType2(s)
 							}
 						} else {
 							paramHash[`type`] = types.DefaultDataType()
@@ -130,10 +128,10 @@ func createTaskFromHash(ctx eval.EvalContext, name, taskSource string, hash map[
 		arguments[key] = value
 	}
 
-	if taskCtor, ok := eval.Load(ctx.Loader(), eval.NewTypedName(eval.CONSTRUCTOR, `Task`)); ok {
+	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.CONSTRUCTOR, `Task`)); ok {
 		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapHash4(arguments))
 	}
-	panic(eval.Error(eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
+	panic(eval.Error(ctx, eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains
