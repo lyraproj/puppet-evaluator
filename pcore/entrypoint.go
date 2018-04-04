@@ -51,6 +51,8 @@ func InitializePuppet() {
 
 	logger := eval.NewStdLogger()
 	impl.ResolveResolvables(eval.StaticLoader().(eval.DefiningLoader), logger)
+	resource.InitBuiltinResources()
+	impl.ResolveResolvables(eval.StaticResourceLoader().(eval.DefiningLoader), logger)
 
 	p := &pcoreImpl{settings: make(map[string]eval.Setting, 32), logger: logger}
 	p.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))

@@ -161,4 +161,13 @@ Examples('resource',
         |-SRC
       Evaluates_to(`MyRes('title' => '/foo/bar')`)),
   ),
+
+  Examples(`built-in`,
+    Example(`can instantiate`,
+      Given(Format(@(SRC))),
+        file { '/foo/bar': ensure => present }
+        String(get_resource(File['/foo/bar']))
+        |-SRC
+      Evaluates_to(`File('title' => '/foo/bar', 'values' => {'ensure' => 'present'})`)),
+  ),
 )
