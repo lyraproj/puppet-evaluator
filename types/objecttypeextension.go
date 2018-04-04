@@ -63,6 +63,10 @@ func (te *objectTypeExtension) IsAssignable(t eval.PType, g eval.Guard) bool {
 	return false
 }
 
+func (te *objectTypeExtension) IsMetaType() bool {
+	return te.baseType.IsMetaType()
+}
+
 func (te *objectTypeExtension) IsParameterized() bool {
 	return true
 }

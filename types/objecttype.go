@@ -1010,6 +1010,10 @@ func (t *objectType) createNewFunction(c eval.EvalContext) {
 	var functions []eval.DispatchFunction
 	if t.creators != nil {
 		functions = t.creators
+		if functions[0] == nil {
+			// Specific instruction not to create a constructor
+			return
+		}
 	} else {
 		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.EvalContext, args []eval.PValue) eval.PValue {
 			return AllocObjectValue(t)
@@ -1387,7 +1391,7 @@ func (t *objectType) collectParameters(includeParent bool, collector *hash.Strin
 	collector.PutAll(t.parameters)
 }
 
-func AllocObjectValue(typ *objectType) eval.ObjectValue {
+func AllocObjectValue(typ eval.ObjectType) eval.ObjectValue {
 	if typ.IsMetaType() {
 		return AllocObjectType()
 	}
@@ -1420,13 +1424,13 @@ func (ov *objectValue) InitFromHash(hash eval.KeyedValue) {
 	ov.values = va
 }
 
-func NewObjectValue(typ *objectType, values []eval.PValue) eval.ObjectValue {
+func NewObjectValue(typ eval.ObjectType, values []eval.PValue) eval.ObjectValue {
 	ov := AllocObjectValue(typ)
 	ov.Initialize(values)
 	return ov
 }
 
-func NewObjectValue2(typ *objectType, hash *HashValue) eval.ObjectValue {
+func NewObjectValue2(typ eval.ObjectType, hash *HashValue) eval.ObjectValue {
 	ov := AllocObjectValue(typ)
 	ov.InitFromHash(hash)
 	return ov

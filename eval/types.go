@@ -141,6 +141,8 @@ type (
 
 		HasHashConstructor() bool
 
+		IsMetaType() bool
+
 		IsParameterized() bool
 
 		AttributesInfo() AttributesInfo
