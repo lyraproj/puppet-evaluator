@@ -34,9 +34,8 @@ func instantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, 
 	if strings.ToLower(fd.Name()) != strings.ToLower(name) {
 		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `expected`: name, `actual`: fd.Name()}))
 	}
-	e := ctx.Evaluator()
-	e.AddDefinitions(expr)
-	e.ResolveDefinitions(ctx)
+	ctx.AddDefinitions(expr)
+	ctx.ResolveDefinitions()
 }
 
 func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
@@ -58,9 +57,8 @@ func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn e
 	if strings.ToLower(tdn) != strings.ToLower(name) {
 		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.TYPE, `expected`: name, `actual`: tdn}))
 	}
-	e := ctx.Evaluator()
-	e.AddDefinitions(expr)
-	e.ResolveDefinitions(ctx)
+	ctx.AddDefinitions(expr)
+	ctx.ResolveDefinitions()
 }
 
 func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {

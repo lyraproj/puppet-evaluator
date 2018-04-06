@@ -145,8 +145,7 @@ func (fb *functionBuilder) Name() string {
 func (fb *functionBuilder) Resolve(c eval.Context) eval.Function {
 	if len(fb.localTypeBuilder.localTypes) > 0 {
 		localLoader := eval.NewParentedLoader(c.Loader())
-		localEval := NewEvaluator(localLoader, c.Logger())
-
+		c = c.WithLoader(localLoader)
 		b := bytes.NewBufferString(``)
 		for _, td := range fb.localTypeBuilder.localTypes {
 			if td.tp == nil {
@@ -162,11 +161,9 @@ func (fb *functionBuilder) Resolve(c eval.Context) eval.Function {
 
 		s := b.String()
 		if len(s) > 0 {
-			localEval.AddDefinitions(c.ParseAndValidate(``, s, false))
+			c.AddDefinitions(c.ParseAndValidate(``, s, false))
 		}
-
-		localEval.ResolveDefinitions(c)
-		c = NewEvalContext(localEval, localLoader, NewScope(), c.Stack())
+		c.ResolveDefinitions()
 	}
 	ds := make([]eval.Lambda, len(fb.dispatchers))
 	for idx, d := range fb.dispatchers {

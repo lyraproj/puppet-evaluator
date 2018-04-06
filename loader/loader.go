@@ -162,6 +162,10 @@ func (l *parentedLoader) NameAuthority() eval.URI {
 	return l.parent.NameAuthority()
 }
 
+func (l *parentedLoader) Parent() eval.Loader {
+	return l.parent
+}
+
 func (l *typeSetLoader) TypeSet() eval.PType {
 	return l.typeSet
 }

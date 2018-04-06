@@ -6,6 +6,8 @@ import (
 	"io"
 	"github.com/puppetlabs/go-evaluator/types"
 	"gonum.org/v1/gonum/graph"
+	"github.com/puppetlabs/go-parser/parser"
+	"sync"
 )
 
 var Node_Type eval.ObjectType
@@ -15,30 +17,36 @@ func init() {
 	attributes => {
 		id => Integer,
 		ref => String,
-	  value => { type => Optional[Resource], value => undef }, 
-	  resolved => { type => Boolean, kind => derived },
+	  value => Any, 
 	}
 }`)
 }
 
 type(
+	// A Node represents a Future value. It can be evaluated once all edges
+	// pointing to it has been evaluated
 	Node interface {
 		graph.Node
 		eval.PValue
 
 		Location() issue.Location
 
-		Resolved() bool
+		// Resolved returns true if all promises has been fulfilled for this
+		// value. In essence, that means that this node is not appointed by
+		// edges from any unresolved nodes.
+		Resolved(c eval.Context) bool
 
-		Value(c eval.Context) eval.PuppetObject
+		Value(c eval.Context) eval.PValue
 	}
 
 	// node represents a PuppetObject in the graph with a unique ID
 	node struct {
 		id int64
+		lock sync.Mutex
 		ref string
-		value eval.PuppetObject
-		location issue.Location
+		value eval.PValue
+		resources map[string]*handle
+		expression parser.Expression
 	}
 )
 
@@ -46,15 +54,39 @@ func (rn *node) ID() int64 {
 	return rn.id
 }
 
-func (rn *node) Resolved() bool {
+func (rn *node) Resolved(c eval.Context) bool {
 	return rn.value != nil
 }
 
-func (rn *node) Value(c eval.Context) eval.PuppetObject {
-	if rn.value == nil {
+func (rn *node) Value(c eval.Context) eval.PValue {
+	rn.lock.Lock()
+	defer rn.lock.Unlock()
+	if rn.value != nil {
+		return rn.value
+	}
+
+	if rn.expression == nil {
 		name, title, _ := SplitRef(rn.ref)
 		panic(eval.Error(c, EVAL_UNKNOWN_RESOURCE, issue.H {`type_name`: name, `title`: title}))
 	}
+
+	before := c.Evaluator().(Evaluator).Graph().To(rn.ID())
+	count := len(before)
+	if count > 0 {
+		done := make(chan bool, count)
+		for _, bn := range before {
+			go func() {
+				bn.(*node).Value(c.Fork())
+				done <- true
+			}()
+		}
+
+		// Wait for count done's to arrive
+		for i := 0; i < count; i++ {
+			<-done
+		}
+	}
+	rn.value = c.Evaluate(rn.expression)
 	return rn.value
 }
 
@@ -74,8 +106,6 @@ func (rn *node) Get(key string) (value eval.PValue, ok bool) {
 			return eval.UNDEF, false
 		}
 		return rn.value, true
-	case `resolved`:
-		return types.WrapBoolean(rn.Resolved()), true
 	}
 	return eval.UNDEF, false
 }
@@ -92,7 +122,7 @@ func (rn *node) InitHash() eval.KeyedValue {
 }
 
 func (rn *node) Location() issue.Location {
-	return rn.location
+	return rn.expression
 }
 
 func (rn *node) String() string {

@@ -3,7 +3,6 @@ package impl
 import (
 	"bytes"
 	"fmt"
-	"path"
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
@@ -58,23 +57,9 @@ var coreTypes = map[string]eval.PType{
 }
 
 type (
-	context struct {
-		evaluator eval.Evaluator
-		loader    eval.Loader
-		scope     eval.Scope
-		stack     []issue.Location
-	}
-
 	evaluator struct {
 		self          eval.Evaluator
 		logger        eval.Logger
-		definitions   []*definition
-		defaultLoader eval.DefiningLoader
-	}
-
-	definition struct {
-		definedValue interface{}
-		loader       eval.Loader
 	}
 
 	systemLocation struct{}
@@ -123,151 +108,17 @@ func init() {
 	}
 }
 
-func NewEvalContext(eval eval.Evaluator, loader eval.Loader, scope eval.Scope, stack []issue.Location) eval.Context {
-	return &context{eval, loader, scope, stack}
-}
-
-func NewEvaluator(defaultLoader eval.DefiningLoader, logger eval.Logger) eval.Evaluator {
-	e := &evaluator{logger: logger, definitions: make([]*definition, 0, 16), defaultLoader: defaultLoader}
+func NewEvaluator(logger eval.Logger) eval.Evaluator {
+	e := &evaluator{logger: logger}
 	e.self = e
 	return e
 }
 
-func NewOverriddenEvaluator(defaultLoader eval.DefiningLoader, logger eval.Logger, specialization eval.Evaluator) eval.Evaluator {
-	return &evaluator{self: specialization, logger: logger, definitions: make([]*definition, 0, 16), defaultLoader: defaultLoader}
+func NewOverriddenEvaluator(logger eval.Logger, specialization eval.Evaluator) eval.Evaluator {
+	return &evaluator{self: specialization, logger: logger}
 }
 
-func ResolveResolvables(loader eval.DefiningLoader, logger eval.Logger) {
-	loader.ResolveResolvables(&context{NewEvaluator(loader, logger), loader, NewScope(), []issue.Location{}})
-}
-
-func (c *context) StackPush(location issue.Location) {
-	c.stack = append(c.stack, location)
-}
-
-func (c *context) StackPop() {
-	c.stack = c.stack[:len(c.stack)-1]
-}
-
-func (c *context) StackTop() issue.Location {
-	s := len(c.stack)
-	if s == 0 {
-		return &systemLocation{}
-	}
-	return c.stack[s-1]
-}
-
-func (c *context) Stack() []issue.Location {
-	return c.stack
-}
-
-func (c *context) Evaluator() eval.Evaluator {
-	return c.evaluator
-}
-
-func (c *context) ParseType(typeString eval.PValue) eval.PType {
-	if sv, ok := typeString.(*types.StringValue); ok {
-		return c.ParseType2(sv.String())
-	}
-	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
-}
-
-func (c *context) ResolveType(expr parser.Expression) eval.PType {
-	resolved := c.Evaluate(expr)
-	if pt, ok := resolved.(eval.PType); ok {
-		return pt
-	}
-	panic(fmt.Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
-}
-
-func (c *context) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
-	tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
-	if f, ok := eval.Load(c, tn); ok {
-		return f.(eval.Function).Call(c, block, args...)
-	}
-	panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
-}
-
-func (c *context) Fail(message string) *issue.Reported {
-	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
-}
-
-func (c *context) Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
-	if location == nil {
-		location = c.StackTop()
-	}
-	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
-}
-
-func (c *context) Evaluate(expr parser.Expression) eval.PValue {
-	return c.evaluator.Eval(expr, c)
-}
-
-func (c *context) EvaluateIn(expr parser.Expression, scope eval.Scope) eval.PValue {
-	return c.evaluator.Eval(expr, c.WithScope(scope))
-}
-
-func (c *context) Logger() eval.Logger {
-	return c.evaluator.Logger()
-}
-
-func (c *context) WithLoader(loader eval.Loader) eval.Context {
-	return &context{c.evaluator, loader, c.scope, c.stack}
-}
-
-func (c *context) WithScope(scope eval.Scope) eval.Context {
-	return &context{c.evaluator, c.loader, scope, c.stack}
-}
-
-func (c *context) Loader() eval.Loader {
-	return c.loader
-}
-
-func (c *context) Scope() eval.Scope {
-	return c.scope
-}
-
-func (c *context) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
-	var parserOptions []parser.Option
-	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
-		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
-	}
-	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
-	if err != nil {
-		panic(err)
-	}
-	checker := validator.NewChecker(validator.STRICT_ERROR)
-	checker.Validate(expr)
-	issues := checker.Issues()
-	if len(issues) > 0 {
-		severity := issue.SEVERITY_IGNORE
-		for _, issue := range issues {
-			c.Logger().Log(eval.LogLevel(issue.Severity()), types.WrapString(issue.String()))
-			if issue.Severity() > severity {
-				severity = issue.Severity()
-			}
-		}
-		if severity == issue.SEVERITY_ERROR {
-			c.Fail(fmt.Sprintf(`Error validating %s`, filename))
-		}
-	}
-	return expr
-}
-
-func (c *context) ParseType2(str string) eval.PType {
-	return c.ResolveType(c.ParseAndValidate(``, str, true))
-}
-
-func (e *evaluator) AddDefinitions(expr parser.Expression) {
-	if prog, ok := expr.(*parser.Program); ok {
-		loader := e.loaderForFile(prog.File())
-		for _, d := range prog.Definitions() {
-			e.define(loader, d)
-		}
-	}
-}
-
-func (e *evaluator) Evaluate(expr parser.Expression, scope eval.Scope, loader eval.Loader) (result eval.PValue, err *issue.Reported) {
+func (e *evaluator) Evaluate(ctx eval.Context, expr parser.Expression) (result eval.PValue, err *issue.Reported) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch r.(type) {
@@ -290,12 +141,8 @@ func (e *evaluator) Evaluate(expr parser.Expression, scope eval.Scope, loader ev
 	}()
 
 	err = nil
-	if loader == nil {
-		loader = e.loaderForFile(expr.File())
-	}
-	ctx := &context{e.self, loader, scope, make([]issue.Location, 0, 64)}
 	ctx.StackPush(expr)
-	e.ResolveDefinitions(ctx)
+	ctx.ResolveDefinitions()
 	result = e.eval(expr, ctx)
 	return
 }
@@ -358,25 +205,6 @@ func (e *evaluator) convertCallError(err interface{}, expr parser.Expression, ar
 	default:
 		panic(err)
 	}
-}
-
-func (e *evaluator) define(loader eval.DefiningLoader, d parser.Definition) {
-	var ta interface{}
-	var tn eval.TypedName
-	switch d.(type) {
-	case *parser.PlanDefinition:
-		pe := d.(*parser.PlanDefinition)
-		tn = eval.NewTypedName2(eval.PLAN, pe.Name(), loader.NameAuthority())
-		ta = NewPuppetPlan(pe)
-	case *parser.FunctionDefinition:
-		fe := d.(*parser.FunctionDefinition)
-		tn = eval.NewTypedName2(eval.FUNCTION, fe.Name(), loader.NameAuthority())
-		ta = NewPuppetFunction(fe)
-	default:
-		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
-	}
-	loader.SetEntry(tn, eval.NewLoaderEntry(ta, d))
-	e.definitions = append(e.definitions, &definition{ta, loader})
 }
 
 func (e *evaluator) eval(expr parser.Expression, c eval.Context) eval.PValue {
@@ -752,18 +580,6 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 	}
 }
 
-func (e *evaluator) loaderForFile(fileName string) eval.DefiningLoader {
-	if fileName == `` {
-		return e.defaultLoader
-	}
-	return e.loaderForDir(path.Dir(fileName))
-}
-
-func (e *evaluator) loaderForDir(dirName string) eval.DefiningLoader {
-	// TODO: Proper handling of module loaders
-	return e.defaultLoader
-}
-
 func (e *evaluator) loadType(name string, c eval.Context) eval.PType {
 	tn := eval.NewTypedName2(eval.TYPE, name, c.Loader().NameAuthority())
 	found, ok := eval.Load(c, tn)
@@ -771,23 +587,6 @@ func (e *evaluator) loadType(name string, c eval.Context) eval.PType {
 		return found.(eval.PType)
 	}
 	return types.NewTypeReferenceType(name)
-}
-
-func (e *evaluator) ResolveDefinitions(c eval.Context) {
-	for len(e.definitions) > 0 {
-		scope := NewScope()
-		defs := e.definitions
-		e.definitions = make([]*definition, 0, 16)
-		for _, d := range defs {
-			tr := &context{e.self, d.loader, scope, c.Stack()}
-			switch d.definedValue.(type) {
-			case *puppetFunction:
-				d.definedValue.(*puppetFunction).Resolve(tr)
-			case eval.ResolvableType:
-				d.definedValue.(eval.ResolvableType).Resolve(tr)
-			}
-		}
-	}
 }
 
 func (e *evaluator) unfold(array []parser.Expression, c eval.Context, initial ...eval.PValue) []eval.PValue {

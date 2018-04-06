@@ -17,24 +17,16 @@ import (
 	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
-	setting struct {
-		name         string
-		value        eval.PValue
-		defaultValue eval.PValue
-		valueType    eval.PType
-	}
-
 	pcoreImpl struct {
 		lock              sync.RWMutex
 		logger            eval.Logger
 		systemLoader      eval.Loader
 		environmentLoader eval.Loader
 		moduleLoaders     map[string]eval.Loader
-		settings          map[string]eval.Setting
+		settings          map[string]*setting
 	}
 )
 
@@ -56,16 +48,17 @@ func InitializePuppet() {
 	}
 
 	puppet.logger = eval.NewStdLogger()
-	puppet.settings = make(map[string]eval.Setting, 32)
+	puppet.settings = make(map[string]*setting, 32)
 	puppet.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
 	puppet.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
 	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
 	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 
-	impl.ResolveResolvables(eval.StaticLoader().(eval.DefiningLoader), puppet.logger)
+	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
+	c.ResolveResolvables()
 	resource.InitBuiltinResources()
-	impl.ResolveResolvables(eval.StaticResourceLoader().(eval.DefiningLoader), puppet.logger)
+	c.WithLoader(eval.StaticResourceLoader()).ResolveResolvables()
 }
 
 func (p *pcoreImpl) Reset() {
@@ -73,7 +66,7 @@ func (p *pcoreImpl) Reset() {
 	p.systemLoader = nil
 	p.environmentLoader = nil
 	for _, s := range p.settings {
-		s.Reset()
+		s.reset()
 	}
 	p.lock.Unlock()
 }
@@ -86,7 +79,7 @@ func (p *pcoreImpl) SystemLoader() eval.Loader {
 }
 
 func (p *pcoreImpl) configuredStaticLoader() eval.Loader {
-	if p.settings[`tasks`].Get().(*types.BooleanValue).Bool() {
+	if p.settings[`tasks`].get().(*types.BooleanValue).Bool() {
 		return eval.StaticLoader()
 	}
 	return eval.StaticResourceLoader()
@@ -100,10 +93,6 @@ func (p *pcoreImpl) ensureSystemLoader() eval.Loader {
 	return p.systemLoader
 }
 
-func (p *pcoreImpl) ResolveResolvables(loader eval.DefiningLoader) {
-	impl.ResolveResolvables(loader, p.logger)
-}
-
 func (p *pcoreImpl) EnvironmentLoader() eval.Loader {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -114,8 +103,8 @@ func (p *pcoreImpl) EnvironmentLoader() eval.Loader {
 		s := p.settings[`module_path`]
 		mds := make([]eval.ModuleLoader, 0)
 		loadables := []eval.PathType{eval.PUPPET_FUNCTION_PATH, eval.PUPPET_DATA_TYPE_PATH, eval.PLAN_PATH, eval.TASK_PATH}
-		if s.IsSet() {
-			modulesPath := s.Get().String()
+		if s.isSet() {
+			modulesPath := s.get().String()
 			fis, err := ioutil.ReadDir(modulesPath)
 			if err == nil {
 				for _, fi := range fis {
@@ -149,7 +138,7 @@ func (p *pcoreImpl) Loader(key string) eval.Loader {
 func (p *pcoreImpl) DefineSetting(key string, valueType eval.PType, dflt eval.PValue) {
 	s := &setting{name: key, valueType: valueType, defaultValue: dflt}
 	if dflt != nil {
-		s.Set(dflt)
+		s.set(dflt)
 	}
 	p.lock.Lock()
 	p.settings[key] = s
@@ -162,8 +151,8 @@ func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.PValue {
 	p.lock.RUnlock()
 
 	if ok {
-		if v.IsSet() {
-			return v.Get()
+		if v.isSet() {
+			return v.get()
 		}
 		if defaultProducer == nil {
 			return eval.UNDEF
@@ -188,7 +177,7 @@ func (p *pcoreImpl) Produce(producer func(eval.Context) eval.PValue) eval.PValue
 }
 
 func (p *pcoreImpl) newContext() eval.Context {
-	return impl.NewEvalContext(p.NewEvaluator(), p.EnvironmentLoader(), impl.NewScope(), []issue.Location{})
+	return impl.NewContext(p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()))
 }
 
 func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
@@ -196,12 +185,11 @@ func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
 }
 
 func (p *pcoreImpl) NewEvaluatorWithLogger(logger eval.Logger) eval.Evaluator {
-	loader := eval.NewParentedLoader(p.EnvironmentLoader())
 	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
 		// Just script evaluator. No resource expressions
-		return impl.NewEvaluator(loader, logger)
+		return impl.NewEvaluator(logger)
 	}
-	return resource.NewEvaluator(loader, logger)
+	return resource.NewEvaluator(logger)
 }
 
 func (p *pcoreImpl) NewParser() validator.ParserValidator {
@@ -223,35 +211,8 @@ func (p *pcoreImpl) Set(key string, value eval.PValue) {
 	p.lock.RUnlock()
 
 	if ok {
-		v.Set(value)
+		v.set(value)
 		return
 	}
 	panic(fmt.Sprintf(`Attempt to assign unknown setting '%s'`, key))
-}
-
-func (s *setting) Name() string {
-	return s.name
-}
-
-func (s *setting) Get() eval.PValue {
-	return s.value
-}
-
-func (s *setting) Reset() {
-	s.value = s.defaultValue
-}
-
-func (s *setting) Set(value eval.PValue) {
-	if !eval.IsInstance(s.valueType, value) {
-		panic(eval.DescribeMismatch(fmt.Sprintf(`Setting '%s'`, s.name), s.valueType, eval.DetailedValueType(value)))
-	}
-	s.value = value
-}
-
-func (s *setting) IsSet() bool {
-	return s.value != nil // As opposed to UNDEF which is a proper value
-}
-
-func (s *setting) Type() eval.PType {
-	return s.valueType
 }

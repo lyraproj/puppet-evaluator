@@ -8,22 +8,16 @@ import (
 type (
 	URI string
 
-	Setting interface {
-		Name() string
-		Get() PValue
-		IsSet() bool
-		Reset()
-		Set(value PValue)
-		Type() PType
-	}
-
 	// Pcore is the interface to the evaluator runtime. The runtime is
-	// normally available using the global variable Puppet.
+	// a singleton available using the global variable Puppet.
 	Pcore interface {
-		// Reset clears all settings and loaders, except the system loader
+		// Reset clears all settings and loaders, except the static loaders
 		Reset()
 
-		// SystemLoader returs the loader that finds all built-ins
+		// SystemLoader returs the loader that finds all built-ins. It's parented
+		// by a static loader. The choice of parent is depending on the 'tasks'
+		// setting. When 'tasks' is enabled, all resources, including the Resource
+		// type, are excluded.
 		SystemLoader() Loader
 
 		// EnvironmentLoader returs the loader that finds things declared
@@ -44,11 +38,11 @@ type (
 		// Set changes a setting
 		Set(key string, value PValue)
 
-		// Produce executes a given function with an unparented initialized Context instance
+		// Produce executes a given function with an initialized Context instance
 		// and returns the result
 		Produce(func(Context) PValue) PValue
 
-		// Do executes a given function with an unparented initialized Context instance
+		// Do executes a given function with an initialized Context instance
 		Do(func(Context))
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
@@ -72,9 +66,6 @@ type (
 		// DefineSetting defines a new setting with a given valueType and default
 		// value.
 		DefineSetting(key string, valueType PType, dflt PValue)
-
-		// Resolve types, constructions, or functions that has been recently added
-		ResolveResolvables(loader DefiningLoader)
 	}
 )
 

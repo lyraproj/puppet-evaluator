@@ -9,11 +9,7 @@ type (
 	// An Evaluator is responsible for evaluating an Abstract Syntax Tree, typically produced by
 	// the parser. An implementation must be re-entrant.
 	Evaluator interface {
-		AddDefinitions(expression parser.Expression)
-
-		ResolveDefinitions(c Context)
-
-		Evaluate(expression parser.Expression, scope Scope, loader Loader) (PValue, *issue.Reported)
+		Evaluate(c Context, expression parser.Expression) (PValue, *issue.Reported)
 
 		Eval(expression parser.Expression, c Context) PValue
 
@@ -25,9 +21,18 @@ type (
 	// contexts share common parents for scope and loaders.
 	//
 	Context interface {
+		AddDefinitions(expression parser.Expression)
+
 		// Call calls a function known to the loader with arguments and an optional
 		// block.
 		Call(name string, args []PValue, block Lambda) PValue
+
+		// DefiningLoader returns a Loader that can receive new definitions
+		DefiningLoader() DefiningLoader
+
+		// Fork a new context from this context. The fork will have the same scope,
+		// loaders, and logger as this context but its stack will be separate.
+		Fork() Context
 
 		// Evaluate evaluates the given expression using the evaluator of the receiver.
 		Evaluate(expr parser.Expression) PValue
@@ -76,6 +81,11 @@ type (
 		// an *issue.Reported unless the parsing was succesfull and the result is evaluates
 		// to a PType
 		ParseType2(typeString string) PType
+
+		ResolveDefinitions()
+
+		// Resolve types, constructions, or functions that has been recently added
+		ResolveResolvables()
 
 		// ResolveType evaluates the given Expression into a PType. It will panic with
 		// an *issue.Reported unless the evaluation was succesfull and the result

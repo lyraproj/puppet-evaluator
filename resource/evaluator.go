@@ -32,7 +32,7 @@ type (
 
 		Edges(from Node) eval.IndexedValue
 
-		Graph() graph.Graph
+		Graph() graph.Directed
 
 		HasNode(c eval.Context, value eval.PValue) bool
 
@@ -87,31 +87,23 @@ func SplitRef(ref string) (typeName, title string, ok bool) {
 }
 
 // NewEvaluator creates a new instance of the resource.Evaluator
-func NewEvaluator(loader eval.DefiningLoader, logger eval.Logger) Evaluator {
+func NewEvaluator(logger eval.Logger) Evaluator {
 	re := &resourceEval{}
 	re.graph = simple.NewDirectedGraph()
 	re.nodes = make(map[string]*node, 17)
-	re.evaluator = impl.NewOverriddenEvaluator(loader, logger, re)
+	re.evaluator = impl.NewOverriddenEvaluator(logger, re)
 	return re
 }
 
-func (re *resourceEval) AddDefinitions(expression parser.Expression) {
-	re.evaluator.AddDefinitions(expression)
-}
-
-func (re *resourceEval) ResolveDefinitions(c eval.Context) {
-	re.evaluator.ResolveDefinitions(c)
-}
-
-func (re *resourceEval) Evaluate(expression parser.Expression, scope eval.Scope, loader eval.Loader) (eval.PValue, *issue.Reported) {
-	return re.evaluator.Evaluate(expression, scope, loader)
+func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (eval.PValue, *issue.Reported) {
+	return re.evaluator.Evaluate(c, expression)
 }
 
 func (re *resourceEval) Logger() eval.Logger {
 	return re.evaluator.Logger()
 }
 
-func (re *resourceEval) Graph() graph.Graph {
+func (re *resourceEval) Graph() graph.Directed {
 	return re.graph
 }
 
@@ -216,7 +208,7 @@ func nodeList(nodes []graph.Node) eval.IndexedValue {
 	})
 }
 
-func (re *resourceEval) node(c eval.Context, value eval.PValue, location issue.Location, create bool) *node {
+func (re *resourceEval) node(c eval.Context, value eval.PValue, expression parser.Expression, create bool) *node {
 	var resource eval.PuppetObject
 	if po, ok := value.(eval.PuppetObject); ok {
 		resource = po
@@ -230,14 +222,14 @@ func (re *resourceEval) node(c eval.Context, value eval.PValue, location issue.L
 	if node, ok := re.nodes[ref]; ok {
 		if node.value == nil {
 			node.value = resource // Resolves reference
-			node.location = location
+			node.expression = expression
 		} else if resource != nil && node.value != resource {
-			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.location)}))
+			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.expression)}))
 		}
 		return node
 	}
 	if create {
-		node := &node{int64(len(re.nodes)), ref, resource, location}
+		node := &node{id:int64(len(re.nodes)), ref:ref, value:resource, expression:expression}
 		re.nodes[ref] = node
 		re.graph.AddNode(node)
 		return node

@@ -28,6 +28,12 @@ type (
 		SetEntry(name TypedName, entry Entry) Entry
 	}
 
+	ParentedLoader interface {
+		Loader
+
+		Parent() Loader
+	}
+
 	ModuleLoader interface {
 		Loader
 
