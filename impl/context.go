@@ -16,23 +16,9 @@ type (
 		stack       []issue.Location
 		scope       eval.Scope
 		definitions []interface{}
-		vars        map[string]eval.PValue
+		vars        map[string]interface{}
 	}
 )
-
-func (c *context) DefiningLoader() eval.DefiningLoader {
-	l := c.loader
-	for {
-		if dl, ok := l.(eval.DefiningLoader); ok {
-			return dl
-		}
-		if pl, ok := l.(eval.ParentedLoader); ok {
-			l = pl.Parent()
-			continue
-		}
-		panic(`No defining loader found in context`)
-	}
-}
 
 func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
 	return &context{evaluator, loader, make([]issue.Location, 0, 8), nil, nil, nil}
@@ -57,6 +43,26 @@ func (c *context) Call(name string, args []eval.PValue, block eval.Lambda) eval.
 		return f.(eval.Function).Call(c, block, args...)
 	}
 	panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
+}
+
+func (c *context) DefiningLoader() eval.DefiningLoader {
+	l := c.loader
+	for {
+		if dl, ok := l.(eval.DefiningLoader); ok {
+			return dl
+		}
+		if pl, ok := l.(eval.ParentedLoader); ok {
+			l = pl.Parent()
+			continue
+		}
+		panic(`No defining loader found in context`)
+	}
+}
+
+func (c *context) Delete(key string) {
+	if c.vars != nil {
+		delete(c.vars, key)
+	}
 }
 
 func (c *context) Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
@@ -88,6 +94,15 @@ func (c *context) Fork() eval.Context {
 
 func (c *context) Fail(message string) *issue.Reported {
 	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
+}
+
+func (c *context) Get(key string) (interface{}, bool) {
+	if c.vars != nil {
+		if v, ok := c.vars[key]; ok {
+			return v, true
+		}
+	}
+	return nil, false
 }
 
 func (c *context) Loader() eval.Loader {
@@ -172,6 +187,14 @@ func (c *context) Scope() eval.Scope {
 		c.scope = NewScope()
 	}
 	return c.scope
+}
+
+func (c *context) Set(key string, value interface{}) {
+	if c.vars == nil {
+		c.vars = map[string]interface{}{key: value}
+	} else {
+		c.vars[key] = value
+	}
 }
 
 func (c *context) Stack() []issue.Location {

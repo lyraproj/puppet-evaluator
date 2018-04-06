@@ -27,6 +27,9 @@ type (
 		// block.
 		Call(name string, args []PValue, block Lambda) PValue
 
+		// Delete deletes the given key from the context variable map
+		Delete(key string)
+
 		// DefiningLoader returns a Loader that can receive new definitions
 		DefiningLoader() DefiningLoader
 
@@ -51,6 +54,10 @@ type (
 		// and the given message
 		// Typical use is to panic with the returned value
 		Fail(message string) *issue.Reported
+
+		// Get returns the context variable with the given key together with a bool to indicate
+		// if the key was found
+		Get(key string) (interface{}, bool)
 
 		// Loader returns the loader of the receiver.
 		Loader() Loader
@@ -91,6 +98,9 @@ type (
 		// an *issue.Reported unless the evaluation was succesfull and the result
 		// is evaluates to a PType
 		ResolveType(expr parser.Expression) PType
+
+		// Set adds or replaces the context variable for the given key with the given value
+		Set(key string, value interface{})
 
 		// StackPop pops the last pushed location from the stack
 		StackPop()
