@@ -122,7 +122,7 @@ func (t *FloatType) Generic() eval.PType {
 	return floatType_DEFAULT
 }
 
-func (t *FloatType) Get(key string) (eval.PValue, bool) {
+func (t *FloatType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -148,7 +148,7 @@ func (t *FloatType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *FloatType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *FloatType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if n, ok := toFloat(o); ok {
 		return t.min <= n && n <= t.max
 	}

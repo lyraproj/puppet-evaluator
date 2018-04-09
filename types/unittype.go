@@ -38,11 +38,11 @@ func (t *UnitType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *UnitType) IsAssignable(o eval.PType, g eval.Guard) (ok bool) {
+func (t *UnitType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return true
 }
 
-func (t *UnitType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *UnitType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return true
 }
 

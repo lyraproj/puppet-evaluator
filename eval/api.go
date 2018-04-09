@@ -33,10 +33,6 @@ type (
 		// DefiningLoader returns a Loader that can receive new definitions
 		DefiningLoader() DefiningLoader
 
-		// Fork a new context from this context. The fork will have the same scope,
-		// loaders, and logger as this context but its stack will be separate.
-		Fork() Context
-
 		// Evaluate evaluates the given expression using the evaluator of the receiver.
 		Evaluate(expr parser.Expression) PValue
 
@@ -54,6 +50,11 @@ type (
 		// and the given message
 		// Typical use is to panic with the returned value
 		Fail(message string) *issue.Reported
+
+		// Fork a new context from this context. The fork will have the same scope,
+		// loaders, and logger as this context. The stack and the map of context variables will
+		// be shallow copied
+		Fork() Context
 
 		// Get returns the context variable with the given key together with a bool to indicate
 		// if the key was found

@@ -6,7 +6,7 @@ import (
 )
 
 func assertType(c eval.Context, t eval.PType, v eval.PValue, b eval.Lambda) eval.PValue {
-	if eval.IsInstance(t, v) {
+	if eval.IsInstance(c, t, v) {
 		return v
 	}
 	vt := eval.DetailedValueType(v)

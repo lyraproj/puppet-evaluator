@@ -6,7 +6,7 @@ type (
 	PType interface {
 		PValue
 
-		IsInstance(o PValue, g Guard) bool
+		IsInstance(c Context, o PValue, g Guard) bool
 
 		IsAssignable(t PType, g Guard) bool
 
@@ -111,7 +111,7 @@ type (
 	}
 
 	ReadableObject interface {
-		Get(key string) (value PValue, ok bool)
+		Get(c Context, key string) (value PValue, ok bool)
 	}
 
 	PuppetObject interface {
@@ -161,7 +161,11 @@ type (
 	}
 )
 
-var IsInstance func(puppetType PType, value PValue) bool
+var CommonType func(a PType, b PType) PType
+
+var GenericType func(t PType) PType
+
+var IsInstance func(c Context, puppetType PType, value PValue) bool
 
 // IsAssignable answers if t is assignable to this type
 var IsAssignable func(puppetType PType, other PType) bool

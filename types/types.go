@@ -63,8 +63,8 @@ func (rt *objectTypeAndCtor) Creator() eval.DispatchFunction {
 }
 
 // isInstance answers if value is an instance of the given puppeType
-func isInstance(puppetType eval.PType, value eval.PValue) bool {
-	return GuardedIsInstance(puppetType, value, nil)
+func isInstance(c eval.Context, puppetType eval.PType, value eval.PValue) bool {
+	return GuardedIsInstance(c, puppetType, value, nil)
 }
 
 // isAssignable answers if t is assignable to this type
@@ -94,8 +94,8 @@ func normalize(t eval.PType) eval.PType {
 	return t
 }
 
-func GuardedIsInstance(a eval.PType, v eval.PValue, g eval.Guard) bool {
-	return a.IsInstance(v, g)
+func GuardedIsInstance(c eval.Context, a eval.PType, v eval.PValue, g eval.Guard) bool {
+	return a.IsInstance(c, v, g)
 }
 
 func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {

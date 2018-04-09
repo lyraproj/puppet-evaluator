@@ -49,6 +49,10 @@ func (te *objectTypeExtension) Generalize() eval.PType {
 	return te.baseType
 }
 
+func (te *objectTypeExtension) Get(c eval.Context, key string) (eval.PValue, bool) {
+	return te.baseType.Get(c, key)
+}
+
 func (te *objectTypeExtension) HasHashConstructor() bool {
 	return te.baseType.HasHashConstructor()
 }
@@ -71,8 +75,8 @@ func (te *objectTypeExtension) IsParameterized() bool {
 	return true
 }
 
-func (te *objectTypeExtension) IsInstance(v eval.PValue, g eval.Guard) bool {
-	return te.baseType.IsInstance(v, g) && te.testInstance(v, g)
+func (te *objectTypeExtension) IsInstance(c eval.Context, v eval.PValue, g eval.Guard) bool {
+	return te.baseType.IsInstance(c, v, g) && te.testInstance(c, v, g)
 }
 
 func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
@@ -134,7 +138,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	}
 
 	if namedArgs {
-		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !eval.IsInstance(c, pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
 	checkParam := func(tp *typeParameter, v eval.PValue) eval.PValue {
@@ -189,7 +193,7 @@ func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g ev
 		if v2, ok := paramValues.Get3(key); ok {
 			a := v2.(eval.PValue)
 			b := v1.(eval.PValue)
-			if eval.PuppetMatch(a, b) {
+			if eval.PuppetMatch(nil, a, b) {
 				return true
 			}
 			if at, ok := a.(eval.PType); ok {
@@ -208,9 +212,9 @@ func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g ev
 //
 // This method is only called when the given value is found to be an instance of the base type of
 // this extension.
-func (te *objectTypeExtension) testInstance(o eval.PValue, g eval.Guard) bool {
+func (te *objectTypeExtension) testInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
-		v2, ok := te.baseType.GetValue(key, o)
-		return ok && eval.PuppetMatch(v2, v1.(eval.PValue))
+		v2, ok := te.baseType.GetValue(c, key, o)
+		return ok && eval.PuppetMatch(c, v2, v1.(eval.PValue))
 	})
 }

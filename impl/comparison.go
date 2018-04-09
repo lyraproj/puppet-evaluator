@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	eval.PuppetMatch = func(a, b eval.PValue) bool {
-		return match(nil, nil, `=~`, nil, a, b)
+	eval.PuppetMatch = func(c eval.Context, a, b eval.PValue) bool {
+		return match(c, nil, nil, `=~`, false, a, b)
 	}
 }
 func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.Context) eval.PValue {
@@ -22,7 +22,7 @@ func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression,
 }
 
 func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.Context) eval.PValue {
-	return types.WrapBoolean(match(expr.Lhs(), expr.Rhs(), expr.Operator(), c.Scope(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
+	return types.WrapBoolean(match(c, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 
 func (e *evaluator) compare(expr parser.Expression, op string, a eval.PValue, b eval.PValue) eval.PValue {
@@ -117,11 +117,11 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.P
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
 }
 
-func match(lhs parser.Expression, rhs parser.Expression, operator string, scope eval.Scope, a eval.PValue, b eval.PValue) bool {
+func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.PValue, b eval.PValue) bool {
 	result := false
 	switch b.(type) {
 	case eval.PType:
-		result = eval.IsInstance(b.(eval.PType), a)
+		result = eval.IsInstance(c, b.(eval.PType), a)
 
 	case *types.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp
@@ -140,8 +140,8 @@ func match(lhs parser.Expression, rhs parser.Expression, operator string, scope 
 			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.Type()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
-			if scope != nil {
-				scope.RxSet(group)
+			if updateScope {
+				c.Scope().RxSet(group)
 			}
 			result = true
 		}

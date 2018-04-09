@@ -66,7 +66,7 @@ type (
 	Signature interface {
 		PType
 
-		CallableWith(args IndexedValue, block Lambda) bool
+		CallableWith(c Context, args IndexedValue, block Lambda) bool
 
 		ParametersType() PType
 

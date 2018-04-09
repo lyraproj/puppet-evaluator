@@ -62,7 +62,7 @@ func (t *TypeReferenceType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *TypeReferenceType) Get(key string) (eval.PValue, bool) {
+func (t *TypeReferenceType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `type_string`:
 		return WrapString(t.typeString), true
@@ -76,7 +76,7 @@ func (t *TypeReferenceType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok && t.typeString == tr.typeString
 }
 
-func (t *TypeReferenceType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TypeReferenceType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return false
 }
 

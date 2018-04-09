@@ -73,7 +73,7 @@ func (t *IterableType) Generic() eval.PType {
 	return NewIterableType(eval.GenericType(t.typ))
 }
 
-func (t *IterableType) Get(key string) (value eval.PValue, ok bool) {
+func (t *IterableType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -100,7 +100,7 @@ func (t *IterableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return GuardedIsAssignable(t.typ, et, g)
 }
 
-func (t *IterableType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *IterableType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if iv, ok := o.(eval.IterableValue); ok {
 		return GuardedIsAssignable(t.typ, iv.ElementType(), g)
 	}

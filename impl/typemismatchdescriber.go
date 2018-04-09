@@ -992,7 +992,7 @@ func init() {
 	}
 
 	eval.AssertInstance = func(c eval.Context, pfx interface{}, expected eval.PType, value eval.PValue) eval.PValue {
-		if !eval.IsInstance(expected, value) {
+		if !eval.IsInstance(c, expected, value) {
 			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, eval.DetailedValueType(value))}))
 		}
 		return value

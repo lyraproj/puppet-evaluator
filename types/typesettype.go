@@ -300,7 +300,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.annotatable.initialize(initHash.(*HashValue))
 }
 
-func (t *TypeSetType) Get(key string) (value eval.PValue, ok bool) {
+func (t *TypeSetType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case eval.KEY_PCORE_URI:
 		if t.pcoreURI == `` {
@@ -414,7 +414,7 @@ func (t *TypeSetType) initHash() map[string]eval.PValue {
 	return h
 }
 
-func (t *TypeSetType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TypeSetType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 

@@ -134,6 +134,8 @@ func (e *evaluator) Evaluate(ctx eval.Context, expr parser.Expression) (result e
 			case *errors.Return:
 				result = eval.UNDEF
 				err = e.evalError(eval.EVAL_ILLEGAL_RETURN, r.(*errors.Return).Location(), issue.NO_ARGS)
+			case *errors.ArgumentsError:
+				err = e.evalError(eval.EVAL_ARGUMENTS_ERROR, expr, issue.H{`expression`: expr, `message`: r.(*errors.ArgumentsError).Error()})
 			default:
 				panic(r)
 			}
@@ -404,12 +406,12 @@ func (e *evaluator) eval_CaseExpression(expr *parser.CaseExpression, c eval.Cont
 				case *parser.LiteralDefault:
 					the_default = co
 				case *parser.UnfoldExpression:
-					if eval.Any2(e.eval(cv, c).(eval.IndexedValue), func(v eval.PValue) bool { return match(expr.Test(), cv, `match`, scope, test, v) }) {
+					if eval.Any2(e.eval(cv, c).(eval.IndexedValue), func(v eval.PValue) bool { return match(c, expr.Test(), cv, `match`, true, test, v) }) {
 						selected = co
 						break options
 					}
 				default:
-					if match(expr.Test(), cv, `match`, scope, test, e.eval(cv, c)) {
+					if match(c, expr.Test(), cv, `match`, true, test, e.eval(cv, c)) {
 						selected = co
 						break options
 					}
@@ -440,12 +442,12 @@ func (e *evaluator) eval_SelectorExpression(expr *parser.SelectorExpression, c e
 			case *parser.LiteralDefault:
 				the_default = se
 			case *parser.UnfoldExpression:
-				if eval.Any2(e.eval(me, c).(eval.IndexedValue), func(v eval.PValue) bool { return match(expr.Lhs(), me, `match`, scope, test, v) }) {
+				if eval.Any2(e.eval(me, c).(eval.IndexedValue), func(v eval.PValue) bool { return match(c, expr.Lhs(), me, `match`, true, test, v) }) {
 					selected = se
 					break selectors
 				}
 			default:
-				if match(expr.Lhs(), me, `match`, scope, test, e.eval(me, c)) {
+				if match(c, expr.Lhs(), me, `match`, true, test, e.eval(me, c)) {
 					selected = se
 					break selectors
 				}

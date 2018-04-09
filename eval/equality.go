@@ -144,4 +144,4 @@ func GuardedReverseIndexFrom(a []Equality, b Equality, startPos int, g Guard) in
 //
 var PuppetEquals func(a, b PValue) bool
 
-var PuppetMatch func(a, b PValue) bool
+var PuppetMatch func(c Context, a, b PValue) bool

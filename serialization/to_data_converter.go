@@ -41,12 +41,12 @@ func (t *ToDataConverter) Convert(value eval.PValue) eval.PValue {
 	return t.toData(value)
 }
 
-func toJsonPath(path []eval.PValue) string {
+func (t *ToDataConverter) toJsonPath(path []eval.PValue) string {
 	s := bytes.NewBufferString(`$`)
 	for _, v := range path {
 		if v == nil {
 			s.WriteString(`[null]`)
-		} else if eval.IsInstance(types.DefaultScalarType(), v) {
+		} else if eval.IsInstance(t.context, types.DefaultScalarType(), v) {
 			s.WriteByte('[')
 			v.ToString(s, types.PROGRAM, nil)
 			s.WriteByte(']')
@@ -58,11 +58,11 @@ func toJsonPath(path []eval.PValue) string {
 }
 
 func (t *ToDataConverter) pathToString() string {
-	return fmt.Sprintf(`%s%s`, t.messagePrefix, toJsonPath(t.path)[1:])
+	return fmt.Sprintf(`%s%s`, t.messagePrefix, t.toJsonPath(t.path)[1:])
 }
 
 func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
-	if value == eval.UNDEF || eval.IsInstance(types.DefaultDataType(), value) {
+	if value == eval.UNDEF || eval.IsInstance(t.context, types.DefaultDataType(), value) {
 		return value
 	}
 	if value == types.WrapDefault() {
@@ -167,7 +167,7 @@ func (t *ToDataConverter) process(value eval.PValue, producer eval.Producer) eva
 			if hash, ok := ref.(eval.KeyedValue); ok {
 				return hash
 			}
-			jsonRef := toJsonPath(ref.([]eval.PValue))
+			jsonRef := t.toJsonPath(ref.([]eval.PValue))
 			if jsonRef == `` {
 				// Complex key and hence no way to reference the prior value. The value must therefore be
 				// duplicated which in turn introduces a risk for endless recursion in case of self

@@ -83,7 +83,7 @@ func (t *NumericType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *NumericType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *NumericType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	switch o.Type().(type) {
 	case *FloatType, *IntegerType:
 		return true

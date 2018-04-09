@@ -23,7 +23,7 @@ func (s *setting) reset() {
 }
 
 func (s *setting) set(value eval.PValue) {
-	if !eval.IsInstance(s.valueType, value) {
+	if !eval.IsInstance(nil, s.valueType, value) {
 		panic(eval.DescribeMismatch(fmt.Sprintf(`Setting '%s'`, s.name), s.valueType, eval.DetailedValueType(value)))
 	}
 	s.value = value

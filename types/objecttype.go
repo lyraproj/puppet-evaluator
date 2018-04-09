@@ -413,7 +413,7 @@ func (a *attribute) initialize(c eval.Context, name string, container *objectTyp
 		if a.kind == DERIVED || a.kind == GIVEN_OR_DERIVED {
 			panic(eval.Error(c, eval.EVAL_ILLEGAL_KIND_VALUE_COMBINATION, issue.H{`label`: a.Label(), `kind`: a.kind}))
 		}
-		if _, ok := v.(*DefaultValue); ok || eval.IsInstance(a.typ, v) {
+		if _, ok := v.(*DefaultValue); ok || eval.IsInstance(c, a.typ, v) {
 			a.value = v
 		} else {
 			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(a.Label(), a.typ, eval.DetailedValueType(v))}))
@@ -476,7 +476,7 @@ func (a *attribute) Get(c eval.Context, instance eval.PValue) eval.PValue {
 	if a.kind == CONSTANT {
 		return a.value
 	}
-	if v, ok := a.container.GetValue(a.name, instance); ok {
+	if v, ok := a.container.GetValue(c, a.name, instance); ok {
 		return v
 	}
 	panic(eval.Error(c, eval.EVAL_NO_ATTRIBUTE_READER, issue.H{`label`: a.Label()}))
@@ -645,9 +645,9 @@ func (t *objectType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *objectType) GetValue(key string, o eval.PValue) (value eval.PValue, ok bool) {
+func (t *objectType) GetValue(c eval.Context, key string, o eval.PValue) (value eval.PValue, ok bool) {
 	if pu, ok := o.(eval.ReadableObject); ok {
-		return pu.Get(key)
+		return pu.Get(c, key)
 	}
 
 	// TODO: Perhaps use other ways of extracting attributes with reflection
@@ -702,7 +702,7 @@ func (t *objectType) String() string {
 	return eval.ToString2(t, EXPANDED)
 }
 
-func (t *objectType) Get(key string) (value eval.PValue, ok bool) {
+func (t *objectType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	if key == `_pcore_init_hash` {
 		return t.InitHash(), true
 	}
@@ -713,7 +713,7 @@ func (t *objectType) InitHash() eval.KeyedValue {
 	return WrapHash3(t.initHash(true))
 }
 
-func (t *objectType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *objectType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return isAssignable(t, o.Type())
 }
 
@@ -1413,7 +1413,7 @@ func (ov *objectValue) InitFromHash(c eval.Context, hash eval.KeyedValue) {
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
 		typ.typeParameters(true).EachPair(func(k string, v interface{}) {
-			if pv, ok := hash.Get4(k); ok && eval.IsInstance(v.(*typeParameter).typ, pv) {
+			if pv, ok := hash.Get4(k); ok && eval.IsInstance(c, v.(*typeParameter).typ, pv) {
 				params = append(params, WrapHashEntry2(k, pv))
 			}
 		})
@@ -1449,13 +1449,13 @@ func fillValueSlice(c eval.Context, values []eval.PValue, attrs []eval.Attribute
 	}
 }
 
-func (o *objectValue) Get(key string) (eval.PValue, bool) {
+func (o *objectValue) Get(c eval.Context, key string) (eval.PValue, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
 			return o.values[idx], ok
 		}
-		return pi.Attributes()[idx].Value(nil), ok
+		return pi.Attributes()[idx].Value(c), ok
 	}
 	return nil, false
 }

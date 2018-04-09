@@ -78,7 +78,7 @@ func (t *BooleanType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *BooleanType) Get(key string) (eval.PValue, bool) {
+func (t *BooleanType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `value`:
 		switch t.value {
@@ -113,7 +113,7 @@ func (t *BooleanType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *BooleanType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *BooleanType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanValue); ok {
 		return t.value == -1 || t.value == bo.value
 	}

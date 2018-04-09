@@ -7,6 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"sync"
 )
 
 type (
@@ -16,16 +17,17 @@ type (
 		stack       []issue.Location
 		scope       eval.Scope
 		definitions []interface{}
+		varsLock    sync.RWMutex
 		vars        map[string]interface{}
 	}
 )
 
 func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
-	return &context{evaluator, loader, make([]issue.Location, 0, 8), nil, nil, nil}
+	return &context{evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8)}
 }
 
 func NewContext2(evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
-	return &context{evaluator, loader, make([]issue.Location, 0, 8), scope, nil, nil}
+	return &context{evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope}
 }
 
 func (c *context) AddDefinitions(expr parser.Expression) {
@@ -89,6 +91,14 @@ func (c *context) Fork() eval.Context {
 	copy(s, c.stack)
 	clone := c.clone()
 	clone.stack = s
+
+	if c.vars != nil {
+		cv := make(map[string]interface{}, len(c.vars))
+		for k, v := range c.vars {
+			cv[k] = v
+		}
+		clone.vars = cv
+	}
 	return clone
 }
 
@@ -233,7 +243,7 @@ func (c *context) WithScope(scope eval.Scope) eval.Context {
 // internally by methods like Fork, WithLoader, and WithScope to prevent them
 // from creating specific implementations.
 func (c *context) clone() *context {
-	return &context{c.evaluator, c.loader, c.stack, c.scope, c.definitions, c.vars}
+	return &context{c.evaluator, c.loader, c.stack, c.scope, c.definitions, c.varsLock, c.vars}
 }
 
 func (c *context) define(loader eval.DefiningLoader, d parser.Definition) {

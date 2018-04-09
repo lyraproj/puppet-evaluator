@@ -141,7 +141,7 @@ func (t *ArrayType) Generic() eval.PType {
 	return NewArrayType(eval.Generalize(t.typ), nil)
 }
 
-func (t *ArrayType) Get(key string) (value eval.PValue, ok bool) {
+func (t *ArrayType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `element_type`:
 		return t.typ, true
@@ -169,7 +169,7 @@ func (t *ArrayType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return true
 }
 
-func (t *ArrayType) IsInstance(v eval.PValue, g eval.Guard) bool {
+func (t *ArrayType) IsInstance(c eval.Context, v eval.PValue, g eval.Guard) bool {
 	iv, ok := v.(*ArrayValue)
 	if !ok {
 		return false
@@ -185,7 +185,7 @@ func (t *ArrayType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	}
 
 	for idx := 0; idx < osz; idx++ {
-		if !GuardedIsInstance(t.typ, iv.At(idx), g) {
+		if !GuardedIsInstance(c, t.typ, iv.At(idx), g) {
 			return false
 		}
 	}

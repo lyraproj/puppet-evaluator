@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"bytes"
 )
 
 const (
@@ -49,7 +50,9 @@ const (
 	EVAL_MISSING_MULTI_ASSIGNMENT_KEY              = `EVAL_MISSING_MULTI_ASSIGNMENT_KEY`
 	EVAL_MISSING_REGEXP_IN_TYPE                    = `EVAL_MISSING_REGEXP_IN_TYPE`
 	EVAL_MISSING_REQUIRED_ATTRIBUTE                = `EVAL_MISSING_REQUIRED_ATTRIBUTE`
+	EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE         = `EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE`
 	EVAL_MISSING_TYPE_PARAMETER                    = `EVAL_MISSING_TYPE_PARAMETER`
+	EVAL_MULTI_ERROR                               = `EVAL_MULTI_ERROR`
 	EVAL_NO_ATTRIBUTE_READER                       = `EVAL_NO_ATTRIBUTE_READER`
 	EVAL_NO_DEFINITION                             = `EVAL_NO_DEFINITION`
 	EVAL_NOT_COLLECTION_AT                         = `EVAL_NOT_COLLECTION_AT`
@@ -106,6 +109,15 @@ const (
 	EVAL_UNSUPPORTED_STRING_FORMAT                 = `EVAL_UNSUPPORTED_STRING_FORMAT`
 	EVAL_WRONG_DEFINITION                          = `EVAL_WRONG_DEFINITION`
 )
+
+func joinErrors(e interface{}) string {
+	b := bytes.NewBufferString(``)
+	for _, error := range e.([]*issue.Reported) {
+		b.WriteString("\n")
+		error.ErrorTo(b)
+	}
+	return b.String()
+}
 
 func init() {
 	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: parser.A_an})
@@ -201,7 +213,11 @@ func init() {
 
 	issue.Hard(EVAL_MISSING_REQUIRED_ATTRIBUTE, `%{label} requires a value but none was provided`)
 
+	issue.Hard(EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, `Missing required context variable '%{key}'`)
+
 	issue.Hard(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
+
+	issue.Hard2(EVAL_MULTI_ERROR, `Multiple errors: %{errors}`, issue.HF{`errors`: joinErrors})
 
 	issue.Hard(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 

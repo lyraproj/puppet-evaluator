@@ -95,9 +95,9 @@ func (t *VariantType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *VariantType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *VariantType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	for _, v := range t.types {
-		if GuardedIsInstance(v, o, g) {
+		if GuardedIsInstance(c, v, o, g) {
 			return true
 		}
 	}

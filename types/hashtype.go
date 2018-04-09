@@ -247,7 +247,7 @@ func (t *HashType) Generic() eval.PType {
 	return NewHashType(eval.GenericType(t.keyType), eval.GenericType(t.valueType), nil)
 }
 
-func (t *HashType) Get(key string) (value eval.PValue, ok bool) {
+func (t *HashType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `key_type`:
 		return t.keyType, true
@@ -283,10 +283,10 @@ func (t *HashType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *HashType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *HashType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if v, ok := o.(*HashValue); ok && t.size.IsInstance3(v.Len()) {
 		for _, entry := range v.entries {
-			if !(GuardedIsInstance(t.keyType, entry.key, g) && GuardedIsInstance(t.valueType, entry.value, g)) {
+			if !(GuardedIsInstance(c, t.keyType, entry.key, g) && GuardedIsInstance(c, t.valueType, entry.value, g)) {
 				return false
 			}
 		}

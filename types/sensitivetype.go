@@ -91,9 +91,9 @@ func (t *SensitiveType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *SensitiveType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *SensitiveType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if sv, ok := o.(*SensitiveValue); ok {
-		return GuardedIsInstance(t.typ, sv.Unwrap(), g)
+		return GuardedIsInstance(c, t.typ, sv.Unwrap(), g)
 	}
 	return false
 }

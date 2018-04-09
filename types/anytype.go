@@ -33,7 +33,7 @@ func (t *AnyType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return true
 }
 
-func (t *AnyType) IsInstance(v eval.PValue, g eval.Guard) bool {
+func (t *AnyType) IsInstance(c eval.Context, v eval.PValue, g eval.Guard) bool {
 	return true
 }
 

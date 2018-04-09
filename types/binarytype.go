@@ -91,7 +91,7 @@ func (t *BinaryType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok
 }
 
-func (t *BinaryType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *BinaryType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*BinaryValue)
 	return ok
 }

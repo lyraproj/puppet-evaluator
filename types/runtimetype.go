@@ -133,7 +133,7 @@ func (t *RuntimeType) Generic() eval.PType {
 	return runtimeType_DEFAULT
 }
 
-func (t *RuntimeType) Get(key string) (eval.PValue, bool) {
+func (t *RuntimeType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `runtime`:
 		if t.runtime == `` {
@@ -177,7 +177,7 @@ func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *RuntimeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	rt, ok := o.(*RuntimeValue)
 	if !ok {
 		return false

@@ -87,7 +87,7 @@ func (t *TypeType) Generic() eval.PType {
 	return NewTypeType(eval.GenericType(t.typ))
 }
 
-func (t *TypeType) Get(key string) (value eval.PValue, ok bool) {
+func (t *TypeType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -102,7 +102,7 @@ func (t *TypeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *TypeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TypeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if ot, ok := o.(eval.PType); ok {
 		return GuardedIsAssignable(t.typ, ot, g)
 	}

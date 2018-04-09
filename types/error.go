@@ -1,5 +1,10 @@
 package types
 
+import (
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-parser/issue"
+)
+
 func init() {
 	newObjectType(`Error`, `{
 	type_parameters => {
@@ -14,4 +19,11 @@ func init() {
 	  details => { type => Optional[Hash[String[1],Data]], value => undef },
 	}
 }`)
+}
+
+func NewError(c eval.Context, args...eval.PValue) eval.PuppetObject {
+	if ctor, ok := eval.Load(c, eval.NewTypedName(eval.CONSTRUCTOR, `Error`)); ok {
+		return ctor.(eval.Function).Call(c, nil, args...).(eval.PuppetObject)
+	}
+	panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: `Error.new not found`}))
 }

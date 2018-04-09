@@ -203,7 +203,7 @@ func (t *TimestampType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *TimestampType) Get(key string) (eval.PValue, bool) {
+func (t *TimestampType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -222,7 +222,7 @@ func (t *TimestampType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *TimestampType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TimestampType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 

@@ -196,7 +196,7 @@ func (t *IntegerType) Generic() eval.PType {
 	return integerType_DEFAULT
 }
 
-func (t *IntegerType) Get(key string) (eval.PValue, bool) {
+func (t *IntegerType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -222,7 +222,7 @@ func (t *IntegerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *IntegerType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *IntegerType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	if n, ok := toInt(o); ok {
 		return t.IsInstance2(n)
 	}

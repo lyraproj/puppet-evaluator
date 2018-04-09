@@ -232,7 +232,7 @@ func (t *TimespanType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *TimespanType) Get(key string) (eval.PValue, bool) {
+func (t *TimespanType) Get(c eval.Context, key string) (eval.PValue, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -280,7 +280,7 @@ func (t *TimespanType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func (t *TimespanType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TimespanType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 

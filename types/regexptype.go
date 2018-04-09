@@ -91,7 +91,7 @@ func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 	return ok && t.patternString == ot.patternString
 }
 
-func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
+func (t *RegexpType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `pattern`:
 		if t.patternString == `` {
@@ -107,7 +107,7 @@ func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok && (t.patternString == `` || t.patternString == rx.patternString)
 }
 
-func (t *RegexpType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *RegexpType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
 	return ok && (t.patternString == `` || t.patternString == rx.PatternString())
 }

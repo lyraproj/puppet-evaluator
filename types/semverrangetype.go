@@ -122,7 +122,7 @@ func (t *SemVerRangeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok
 }
 
-func (t *SemVerRangeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *SemVerRangeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeValue)
 	return ok
 }
