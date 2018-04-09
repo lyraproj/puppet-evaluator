@@ -1,9 +1,6 @@
 package resource
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
@@ -11,108 +8,99 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 )
 
 type (
 	resourceEval struct {
 		evaluator eval.Evaluator
-
-		maxNode int64
-
-		graph *simple.DirectedGraph
-
-		nodes map[string]*node
 	}
 
 	// Evaluator is capable of evaluating resource expressions and resource operators. The
 	// evaluator builds a graph which can be accessed by functions during evaluation.
 	Evaluator interface {
 		eval.Evaluator
-
-		Edges(from Node) eval.IndexedValue
-
-		Graph() graph.Directed
-
-		HasNode(c eval.Context, value eval.PValue) bool
-
-		Node(c eval.Context, value eval.PValue) (Node, bool)
-
-		Nodes() eval.IndexedValue
-
-		From(node Node) eval.IndexedValue
 	}
 )
-
-// NodeName returns the string T[<title>] where T is the lower case name of a resourc type
-// and <title> is the unique title of the instance that is referenced
-func NodeName(c eval.Context, value eval.PValue) (string, *issue.Reported) {
-	switch value.(type) {
-	case eval.PuppetObject:
-		resource := value.(eval.PuppetObject)
-		if title, ok := resource.Get(`title`); ok {
-			return fmt.Sprintf(`%s[%s]`, strings.ToLower(resource.Type().Name()), title.String()), nil
-		}
-		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
-	case eval.ParameterizedType:
-		pt := value.(eval.ParameterizedType)
-		params := pt.Parameters()
-		if len(params) == 1 {
-			if p0, ok := params[0].(*types.StringValue); ok {
-				return fmt.Sprintf(`%s[%s]`, strings.ToLower(pt.Name()), p0.String()), nil
-			}
-		}
-	case *types.StringValue:
-		if name, title, ok := SplitRef(value.String()); ok {
-			return fmt.Sprintf(`%s[%s]`, strings.ToLower(name), title), nil
-		}
-		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
-	}
-	return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
-}
-
-// SplitRef splits a reference in the form `<name> '[' <title> ']'` into a name and
-// a title string and returns them.
-// The method returns two empty strings and boolean false if the string cannot be
-// parsed into a name and a title.
-func SplitRef(ref string) (typeName, title string, ok bool) {
-	end := len(ref) - 1
-	if end >= 3 && ref[end] == ']' {
-		titleStart := strings.IndexByte(ref, '[')
-		if titleStart > 0 && titleStart+1 < end {
-			return ref[:titleStart], ref[titleStart+1 : end], true
-		}
-	}
-	return ``, ``, false
-}
 
 // NewEvaluator creates a new instance of the resource.Evaluator
 func NewEvaluator(logger eval.Logger) Evaluator {
 	re := &resourceEval{}
-	re.graph = simple.NewDirectedGraph()
-	re.nodes = make(map[string]*node, 17)
 	re.evaluator = impl.NewOverriddenEvaluator(logger, re)
 	return re
 }
 
-func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (eval.PValue, *issue.Reported) {
-	return re.evaluator.Evaluate(c, expression)
+func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err *issue.Reported) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			if err, ok = r.(*issue.Reported); !ok {
+				panic(r)
+			}
+		}
+	}()
+
+	// Create the node resolution workers
+	nodeJobs := make(chan *nodeJob, 50)
+	for w := 1; w <= 5; w++ {
+		go nodeWorker(nodeJobs)
+	}
+
+	// Add a shared map. Must be considered immutable from this point on as there will
+	// be concurrent reads
+	c.Set(SHARED_MAP, map[string]interface{} {
+		NODE_GRAPH: NewConcurrentGraph(),
+		NODE_JOBS: nodeJobs,
+	})
+
+	value, err = re.evaluateTopExpression(c, expression)
+	if edge, ok := value.(Edge); ok {
+		value = edge.To().(Node).Value(c)
+	}
+	return
+}
+
+func (re *resourceEval) evaluateTopExpression(c eval.Context, expression parser.Expression) (eval.PValue, *issue.Reported) {
+	setCurrentNode(c, nil)
+	setResources(c, map[string]*handle{})
+
+	value, err := re.evaluator.Evaluate(c, expression)
+	if err != nil {
+		return nil, err
+	}
+
+	resources := getResources(c)
+	if len(resources) > 0 {
+		// TODO: Block on apply of all resources here.
+	}
+
+	scheduleNodes(c, GetGraph(c).RootNodes())
+	return value, nil
+}
+
+func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, *issue.Reported) {
+	setCurrentNode(c, rn)
+	g := GetGraph(c)
+	extEdges := g.From(rn.ID())
+	setExternalEdgesTo(c, extEdges)
+	setResources(c, map[string]*handle{})
+	value, err := re.evaluator.Evaluate(c, rn.expression)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(extEdges) < len(g.From(rn.ID())) {
+		// Original externa edges are no longer needed since they now describe paths
+		// that are reached using children
+		r := g.(graph.EdgeRemover)
+		for _, en := range extEdges {
+			r.RemoveEdge(g.Edge(rn.ID(), en.ID()))
+		}
+	}
+	return value, nil
 }
 
 func (re *resourceEval) Logger() eval.Logger {
 	return re.evaluator.Logger()
-}
-
-func (re *resourceEval) Graph() graph.Directed {
-	return re.graph
-}
-
-func (re *resourceEval) HasNode(c eval.Context, value eval.PValue) bool {
-	ok := false
-	if ref, err := NodeName(c, value); err == nil {
-		_, ok = re.nodes[ref]
-	}
-	return ok
 }
 
 func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue {
@@ -127,19 +115,31 @@ func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue
 }
 
 func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {
-	lhs := re.Eval(expr.Lhs(), c)
-	rhs := re.Eval(expr.Rhs(), c)
+	var e *edge
 	switch expr.Operator() {
 	case `->`:
-		re.addEdge(&edge{re.node(c, lhs, expr.Lhs(), true), re.node(c, rhs, expr.Rhs(), true), false})
+		e = &edge{newNode(c, expr.Lhs(), nil), newNode(c, expr.Rhs(), nil), false}
 	case `~>`:
-		re.addEdge(&edge{re.node(c, lhs, expr.Lhs(), true), re.node(c, rhs, expr.Rhs(), true), true})
+		e = &edge{newNode(c, expr.Lhs(), nil), newNode(c, expr.Rhs(), nil), true}
 	case `<-`:
-		re.addEdge(&edge{re.node(c, rhs, expr.Rhs(), true), re.node(c, lhs, expr.Lhs(), true), false})
+		e = &edge{newNode(c, expr.Rhs(), nil), newNode(c, expr.Lhs(), nil), false}
 	default:
-		re.addEdge(&edge{re.node(c, rhs, expr.Rhs(), true), re.node(c, lhs, expr.Lhs(), true), true})
+		e = &edge{newNode(c, expr.Rhs(), nil), newNode(c, expr.Lhs(), nil), true}
 	}
-	return lhs
+	cn := getCurrentNode(c)
+	g := GetGraph(c).(graph.DirectedBuilder)
+	if cn != nil {
+		for _, cnTo := range getExternalEdgesTo(c) {
+			// RHS of edge must evaluate before any edges external to the current node evaluates
+			exEdge := g.Edge(cn.ID(), cnTo.ID()).(Edge)
+			g.SetEdge(&edge{e.to, cnTo.(*node), exEdge.Subscribe()})
+		}
+
+		// Create edge from current to LHS of edge
+		g.SetEdge(&edge{cn, e.from, false})
+	}
+	g.SetEdge(e)
+	return e
 }
 
 func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.Context) eval.PValue {
@@ -159,86 +159,6 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 		return types.WrapArray(result).Flatten()
 	}
 	return eval.UNDEF
-}
-
-// Node returns the node for the given value
-func (re *resourceEval) Node(c eval.Context, value eval.PValue) (Node, bool) {
-	n := re.node(c, value, nil, false)
-	if n == nil {
-		return nil, false
-	}
-	return n, true
-}
-
-// Nodes returns all resource nodes, sorted by file, line, pos
-func (re *resourceEval) Nodes() eval.IndexedValue {
-	return nodeList(re.graph.Nodes())
-}
-
-// FromNode returns all resource nodes extending from the given node, sorted by file, line, pos
-func (re *resourceEval) From(node Node) eval.IndexedValue {
-	return nodeList(re.graph.From(node.ID()))
-}
-
-// Edges returns all edges extending from the given node, sorted by file, line, pos of the
-// node appointed by the edge
-func (re *resourceEval) Edges(from Node) eval.IndexedValue {
-	g := re.graph
-	return re.From(from).Map(func(to eval.PValue) eval.PValue {
-		return g.Edge(from.ID(), to.(Node).ID()).(Edge)
-	})
-}
-
-func nodeList(nodes []graph.Node) eval.IndexedValue {
-	rs := make([]eval.PValue, len(nodes))
-	for i, n := range nodes {
-		rs[i] = n.(eval.PValue)
-	}
-	return types.WrapArray(rs).Sort(func(a, b eval.PValue) bool {
-		l1 := a.(Node).Location()
-		l2 := b.(Node).Location()
-		if l1.File() == l2.File() {
-			ld := l1.Line() - l2.Line()
-			if ld == 0 {
-				return l1.Pos() < l2.Pos()
-			}
-			return ld < 0
-		}
-		return l1.File() < l2.File()
-	})
-}
-
-func (re *resourceEval) node(c eval.Context, value eval.PValue, expression parser.Expression, create bool) *node {
-	var resource eval.PuppetObject
-	if po, ok := value.(eval.PuppetObject); ok {
-		resource = po
-	}
-
-	ref, err := NodeName(c, value)
-	if err != nil {
-		panic(err)
-	}
-
-	if node, ok := re.nodes[ref]; ok {
-		if node.value == nil {
-			node.value = resource // Resolves reference
-			node.expression = expression
-		} else if resource != nil && node.value != resource {
-			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(node.expression)}))
-		}
-		return node
-	}
-	if create {
-		node := &node{id:int64(len(re.nodes)), ref:ref, value:resource, expression:expression}
-		re.nodes[ref] = node
-		re.graph.AddNode(node)
-		return node
-	}
-	return nil
-}
-
-func (re *resourceEval) addEdge(edge *edge) {
-	re.graph.SetEdge(edge)
 }
 
 func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.Context) eval.PValue {
@@ -267,24 +187,9 @@ func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expressio
 func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Expression, title eval.PValue, body *parser.ResourceBody, c eval.Context) eval.PValue {
 	entries := make([]*types.HashEntry, 0)
 	entries = append(entries, types.WrapHashEntry2(`title`, title))
-	fromHere := make([]*edge, 0)
-	toHere := make([]*edge, 0)
 	for _, op := range body.Operations() {
 		if attr, ok := op.(*parser.AttributeOperation); ok {
-			vexpr := attr.Value()
-			v := re.Eval(vexpr, c)
-			switch attr.Name() {
-			case `before`:
-				fromHere = append(fromHere, &edge{nil, re.node(c, v, vexpr, true), false})
-			case `notify`:
-				fromHere = append(fromHere, &edge{nil, re.node(c, v, vexpr, true), true})
-			case `after`:
-				toHere = append(toHere, &edge{re.node(c, v, vexpr, true), nil, false})
-			case `subscribe`:
-				toHere = append(toHere, &edge{re.node(c, v, vexpr, true), nil, true})
-			default:
-				entries = append(entries, types.WrapHashEntry2(attr.Name(), v))
-			}
+			entries = append(entries, types.WrapHashEntry2(attr.Name(), re.Eval(attr.Value(), c)))
 		} else {
 			ops := op.(*parser.AttributesOperation)
 			attrOps := re.Eval(ops.Expr(), c)
@@ -293,14 +198,7 @@ func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Express
 			}
 		}
 	}
-	obj := re.node(c, ctor.Call(c, nil, types.WrapHash(entries)), titleExpr, true)
-	for _, edge := range fromHere {
-		edge.from = obj
-		re.addEdge(edge)
-	}
-	for _, edge := range toHere {
-		edge.to = obj
-		re.addEdge(edge)
-	}
-	return obj.value
+	obj := ctor.Call(c, nil, types.WrapHash(entries)).(eval.PuppetObject)
+	defineResource(c, obj, titleExpr)
+	return obj
 }

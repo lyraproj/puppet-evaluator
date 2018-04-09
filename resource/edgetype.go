@@ -14,7 +14,7 @@ func init() {
 	attributes => {
 		from => ResourceNode,
 		to => ResourceNode,
-		subscribe => Boolean
+		subscribe => Boolean,
 	}
 }`)
 }
@@ -24,6 +24,7 @@ type(
 		graph.Edge
 		eval.PValue
 		Subscribe() bool
+		Value(c eval.Context) eval.PValue
 	}
 
 	// edge denotes a relationship between two ResourceNodes
@@ -45,7 +46,7 @@ func (re *edge) From() graph.Node {
 	return re.from
 }
 
-func (re *edge) Get(key string) (value eval.PValue, ok bool) {
+func (re *edge) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `from`:
 		return re.from, true
@@ -83,4 +84,8 @@ func (re *edge) To() graph.Node {
 
 func (re *edge) Type() eval.PType {
 	return Edge_Type
+}
+
+func (re *edge) Value(c eval.Context) eval.PValue {
+	return re.to.Value(c)
 }

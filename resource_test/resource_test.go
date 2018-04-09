@@ -5,6 +5,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-pspec/pspec"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
 func TestPSpecs(t *testing.T) {
@@ -13,8 +14,12 @@ func TestPSpecs(t *testing.T) {
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Type[Resource],String]`)
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-					if node, ok := c.Evaluator().(resource.Evaluator).Node(c, args[0]); ok && node.Resolved(c) {
-						return node.Value(c)
+					ref := types.WrapString(resource.Reference(c, args[0]))
+					if r, ok := resource.Resources(c).Get(ref); ok {
+						return r
+					}
+					if node, ok := resource.FindNode(c, ref); ok {
+						return node.Resources(c).Get2(ref, eval.UNDEF)
 					}
 					return eval.UNDEF
 				})
@@ -25,9 +30,8 @@ func TestPSpecs(t *testing.T) {
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-					re := c.Evaluator().(resource.Evaluator)
-					if from, ok := re.Node(c, args[0]); ok {
-						return re.Edges(from);
+					if from, ok := resource.FindNode(c, args[0]); ok {
+						return resource.GetGraph(c).Edges(from);
 					}
 					return eval.EMPTY_ARRAY
 				})
@@ -37,11 +41,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`get_resources`,
 			func(d eval.Dispatch) {
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-					return c.Evaluator().(resource.Evaluator).Nodes().Select(func(node eval.PValue) bool {
-						return node.(resource.Node).Resolved(c)
-					}).Map(func(node eval.PValue) eval.PValue {
-						return node.(resource.Node).Value(c)
-					})
+					return resource.Resources(c)
 				})
 			},
 		)
