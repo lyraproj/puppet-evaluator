@@ -234,7 +234,9 @@ func (rn *node) evaluate(c eval.Context) (errs []*issue.Reported) {
 
 	resources := rn.Resources(c)
 	if resources.Len() > 0 {
-		// TODO: Block on apply of all resources here.
+		handles := make([]Handle, 0, resources.Len())
+		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle))})
+		getApplyFunction(c)(c, handles)
 	}
 
 	scheduleNodes(c, GetGraph(c).FromNode(rn))

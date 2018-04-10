@@ -90,6 +90,14 @@ Examples('resource evaluator',
         |-SRC
       Evaluates_to([[['myres[/foo/bar]'], ['myres[/foo/baz]'], true]])),
 
+    Example('resources are applied',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/foo/bar': } ->
+        myres { '/foo/baz': }
+        |-SRC
+      Evaluates_with(Notice('Applying myres[/foo/bar]', 'Applying myres[/foo/baz]'))),
+
     Example('can be ordered using <~"',
       Given(Format(@(SRC), Get('resourceType'))),
         %s

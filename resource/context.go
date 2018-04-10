@@ -5,9 +5,11 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"gonum.org/v1/gonum/graph"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-parser/parser"
 )
 
 const (
+	APPLY_FUNCTION = `applyFunction`
 	SHARED_MAP = `sharedMap`
 	NODE_GRAPH = `nodeGraph`
 	NODE_JOBS = `nodeJobs`
@@ -16,6 +18,8 @@ const (
 	CURRENT_NODE = `currentNode`
 	EXTERNAL_EDGES_TO = `externalTo`
 )
+
+type ApplyFunction func(eval.Context, []Handle)
 
 // GetGraph returns concurrent graph that is shared between all contexts
 func GetGraph(c eval.Context) Graph {
@@ -35,6 +39,11 @@ func Resources(c eval.Context) eval.KeyedValue {
 	}
 	sortByEntriesLocation(entries)
 	return types.WrapHash(entries)
+}
+
+func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction ApplyFunction) eval.PValue {
+	c.Set(APPLY_FUNCTION, applyFunction) // Propagated to shared map in Evaluate
+	return c.Evaluate(expr)
 }
 
 func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) {
@@ -67,6 +76,13 @@ func getExternalEdgesTo(c eval.Context) []graph.Node {
 		return rs.([]graph.Node)
 	}
 	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: EXTERNAL_EDGES_TO}))
+}
+
+func getApplyFunction(c eval.Context) ApplyFunction {
+	if rs, ok := getSharedMap(c)[APPLY_FUNCTION]; ok {
+		return rs.(ApplyFunction)
+	}
+	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: APPLY_FUNCTION}))
 }
 
 func getJobCounter(c eval.Context) *jobCounter {

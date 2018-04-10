@@ -8,6 +8,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"gonum.org/v1/gonum/graph"
+	"fmt"
 )
 
 type resourceEval struct {
@@ -25,6 +26,12 @@ func NewEvaluator(logger eval.Logger) Evaluator {
 	re := &resourceEval{}
 	re.evaluator = impl.NewOverriddenEvaluator(logger, re)
 	return re
+}
+
+func defaultApplyFunc(c eval.Context, handles []Handle) {
+	for _, h := range handles {
+		c.Logger().Log(eval.NOTICE, types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h))))
+	}
 }
 
 func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err *issue.Reported) {
@@ -46,10 +53,18 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 
 	// Add a shared map. Must be considered immutable from this point on as there will
 	// be concurrent reads
+	var applyFunction ApplyFunction
+	if af, ok := c.Get(APPLY_FUNCTION); ok {
+		applyFunction = af.(ApplyFunction)
+	} else {
+		applyFunction = defaultApplyFunc
+	}
+
 	c.Set(SHARED_MAP, map[string]interface{} {
 		NODE_GRAPH: NewConcurrentGraph(),
 		NODE_JOBS: nodeJobs,
 		JOB_COUNTER: &jobCounter{0},
+		APPLY_FUNCTION: applyFunction,
 	})
 
 	topNode := newNode(c, expression, nil)
