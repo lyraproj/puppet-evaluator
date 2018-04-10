@@ -7,30 +7,30 @@ import (
 	"github.com/puppetlabs/go-parser/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"sync"
+	"context"
 )
 
 type (
-	context struct {
+	evalCtx struct {
+		context.Context
 		evaluator   eval.Evaluator
 		loader      eval.Loader
 		stack       []issue.Location
 		scope       eval.Scope
 		definitions []interface{}
-		varsLock    sync.RWMutex
 		vars        map[string]interface{}
 	}
 )
 
-func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
-	return &context{evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8)}
+func NewContext(evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
+	return WithParent(context.Background(), evaluator, loader, scope)
 }
 
-func NewContext2(evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
-	return &context{evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope}
+func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
+	return &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope}
 }
 
-func (c *context) AddDefinitions(expr parser.Expression) {
+func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 	if prog, ok := expr.(*parser.Program); ok {
 		loader := c.DefiningLoader()
 		for _, d := range prog.Definitions() {
@@ -39,7 +39,7 @@ func (c *context) AddDefinitions(expr parser.Expression) {
 	}
 }
 
-func (c *context) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
+func (c *evalCtx) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
 	tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
 	if f, ok := eval.Load(c, tn); ok {
 		return f.(eval.Function).Call(c, block, args...)
@@ -47,7 +47,7 @@ func (c *context) Call(name string, args []eval.PValue, block eval.Lambda) eval.
 	panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
 }
 
-func (c *context) DefiningLoader() eval.DefiningLoader {
+func (c *evalCtx) DefiningLoader() eval.DefiningLoader {
 	l := c.loader
 	for {
 		if dl, ok := l.(eval.DefiningLoader); ok {
@@ -61,32 +61,32 @@ func (c *context) DefiningLoader() eval.DefiningLoader {
 	}
 }
 
-func (c *context) Delete(key string) {
+func (c *evalCtx) Delete(key string) {
 	if c.vars != nil {
 		delete(c.vars, key)
 	}
 }
 
-func (c *context) Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
+func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
 	if location == nil {
 		location = c.StackTop()
 	}
 	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 }
 
-func (c *context) Evaluate(expr parser.Expression) eval.PValue {
+func (c *evalCtx) Evaluate(expr parser.Expression) eval.PValue {
 	return c.evaluator.Eval(expr, c)
 }
 
-func (c *context) EvaluateIn(expr parser.Expression, scope eval.Scope) eval.PValue {
+func (c *evalCtx) EvaluateIn(expr parser.Expression, scope eval.Scope) eval.PValue {
 	return c.evaluator.Eval(expr, c.WithScope(scope))
 }
 
-func (c *context) Evaluator() eval.Evaluator {
+func (c *evalCtx) Evaluator() eval.Evaluator {
 	return c.evaluator
 }
 
-func (c *context) Fork() eval.Context {
+func (c *evalCtx) Fork() eval.Context {
 	s := make([]issue.Location, len(c.stack))
 	copy(s, c.stack)
 	clone := c.clone()
@@ -102,11 +102,11 @@ func (c *context) Fork() eval.Context {
 	return clone
 }
 
-func (c *context) Fail(message string) *issue.Reported {
+func (c *evalCtx) Fail(message string) *issue.Reported {
 	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
 }
 
-func (c *context) Get(key string) (interface{}, bool) {
+func (c *evalCtx) Get(key string) (interface{}, bool) {
 	if c.vars != nil {
 		if v, ok := c.vars[key]; ok {
 			return v, true
@@ -115,15 +115,15 @@ func (c *context) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (c *context) Loader() eval.Loader {
+func (c *evalCtx) Loader() eval.Loader {
 	return c.loader
 }
 
-func (c *context) Logger() eval.Logger {
+func (c *evalCtx) Logger() eval.Logger {
 	return c.evaluator.Logger()
 }
 
-func (c *context) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
+func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
 	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
@@ -150,18 +150,18 @@ func (c *context) ParseAndValidate(filename, str string, singleExpression bool) 
 	return expr
 }
 
-func (c *context) ParseType(typeString eval.PValue) eval.PType {
+func (c *evalCtx) ParseType(typeString eval.PValue) eval.PType {
 	if sv, ok := typeString.(*types.StringValue); ok {
 		return c.ParseType2(sv.String())
 	}
 	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
 }
 
-func (c *context) ParseType2(str string) eval.PType {
+func (c *evalCtx) ParseType2(str string) eval.PType {
 	return c.ResolveType(c.ParseAndValidate(``, str, true))
 }
 
-func (c *context) ResolveDefinitions() {
+func (c *evalCtx) ResolveDefinitions() {
 	if c.definitions == nil {
 		return
 	}
@@ -180,11 +180,11 @@ func (c *context) ResolveDefinitions() {
 	}
 }
 
-func (c *context) ResolveResolvables() {
+func (c *evalCtx) ResolveResolvables() {
 	c.Loader().(eval.DefiningLoader).ResolveResolvables(c)
 }
 
-func (c *context) ResolveType(expr parser.Expression) eval.PType {
+func (c *evalCtx) ResolveType(expr parser.Expression) eval.PType {
 	resolved := c.Evaluate(expr)
 	if pt, ok := resolved.(eval.PType); ok {
 		return pt
@@ -192,14 +192,14 @@ func (c *context) ResolveType(expr parser.Expression) eval.PType {
 	panic(fmt.Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
 }
 
-func (c *context) Scope() eval.Scope {
+func (c *evalCtx) Scope() eval.Scope {
 	if c.scope == nil {
 		c.scope = NewScope()
 	}
 	return c.scope
 }
 
-func (c *context) Set(key string, value interface{}) {
+func (c *evalCtx) Set(key string, value interface{}) {
 	if c.vars == nil {
 		c.vars = map[string]interface{}{key: value}
 	} else {
@@ -207,19 +207,19 @@ func (c *context) Set(key string, value interface{}) {
 	}
 }
 
-func (c *context) Stack() []issue.Location {
+func (c *evalCtx) Stack() []issue.Location {
 	return c.stack
 }
 
-func (c *context) StackPop() {
+func (c *evalCtx) StackPop() {
 	c.stack = c.stack[:len(c.stack)-1]
 }
 
-func (c *context) StackPush(location issue.Location) {
+func (c *evalCtx) StackPush(location issue.Location) {
 	c.stack = append(c.stack, location)
 }
 
-func (c *context) StackTop() issue.Location {
+func (c *evalCtx) StackTop() issue.Location {
 	s := len(c.stack)
 	if s == 0 {
 		return &systemLocation{}
@@ -227,13 +227,13 @@ func (c *context) StackTop() issue.Location {
 	return c.stack[s-1]
 }
 
-func (c *context) WithLoader(loader eval.Loader) eval.Context {
+func (c *evalCtx) WithLoader(loader eval.Loader) eval.Context {
 	clone := c.clone()
 	clone.loader = loader
 	return clone
 }
 
-func (c *context) WithScope(scope eval.Scope) eval.Context {
+func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {
 	clone := c.clone()
 	clone.scope = scope
 	return clone
@@ -242,11 +242,11 @@ func (c *context) WithScope(scope eval.Scope) eval.Context {
 // clone a new context from this context which is an exact copy. It is used
 // internally by methods like Fork, WithLoader, and WithScope to prevent them
 // from creating specific implementations.
-func (c *context) clone() *context {
-	return &context{c.evaluator, c.loader, c.stack, c.scope, c.definitions, c.varsLock, c.vars}
+func (c *evalCtx) clone() *evalCtx {
+	return &evalCtx{c, c.evaluator, c.loader, c.stack, c.scope, c.definitions, c.vars}
 }
 
-func (c *context) define(loader eval.DefiningLoader, d parser.Definition) {
+func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	var ta interface{}
 	var tn eval.TypedName
 	switch d.(type) {

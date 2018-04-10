@@ -309,7 +309,7 @@ func (e *evaluator) eval_KeyedEntry(expr *parser.KeyedEntry, c eval.Context) eva
 }
 
 func (e *evaluator) eval_LambdaExpression(expr *parser.LambdaExpression, c eval.Context) eval.PValue {
-	return NewPuppetLambda(expr, c.(*context))
+	return NewPuppetLambda(expr, c)
 }
 
 func (e *evaluator) eval_LiteralHash(expr *parser.LiteralHash, c eval.Context) eval.PValue {

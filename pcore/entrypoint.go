@@ -17,6 +17,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"context"
 )
 
 type (
@@ -55,7 +56,7 @@ func InitializePuppet() {
 	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 
-	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
+	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader), nil)
 	c.ResolveResolvables()
 	resource.InitBuiltinResources()
 	c.WithLoader(eval.StaticResourceLoader()).ResolveResolvables()
@@ -168,16 +169,16 @@ func (p *pcoreImpl) Logger() eval.Logger {
 
 func (p *pcoreImpl) Do(actor func(eval.Context)) {
 	InitializePuppet()
-	actor(p.newContext())
+	actor(p.newContext(context.Background()))
 }
 
 func (p *pcoreImpl) Produce(producer func(eval.Context) eval.PValue) eval.PValue {
 	InitializePuppet()
-	return producer(p.newContext())
+	return producer(p.newContext(context.Background()))
 }
 
-func (p *pcoreImpl) newContext() eval.Context {
-	return impl.NewContext(p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()))
+func (p *pcoreImpl) newContext(parent context.Context) eval.Context {
+	return impl.WithParent(parent, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
 }
 
 func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
