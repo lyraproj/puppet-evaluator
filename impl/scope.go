@@ -11,10 +11,25 @@ type (
 	BasicScope struct {
 		scopes []map[string]eval.PValue
 	}
+
+	parentedScope struct {
+		BasicScope
+		parent eval.Scope
+	}
 )
 
+// NewScope creates a new Scope instance that in turn consists of a stack of ephemeral scopes
 func NewScope() eval.Scope {
 	return &BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}}
+}
+
+// NewParentedScope creates a scope that will override its parent. When a value isn't found in this
+// scope, the search continues in the parent scope.
+//
+// All new or updated values will end up in this scope, i.e. no modifications are ever propagated to
+// the parent scope.
+func NewParentedScope(parent eval.Scope) eval.Scope {
+	return &parentedScope{BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}}, parent}
 }
 
 func NewScope2(h *types.HashValue) eval.Scope {
@@ -39,9 +54,13 @@ func (e *BasicScope) RxGet(index int) (value eval.PValue, found bool) {
 }
 
 func (e *BasicScope) WithLocalScope(producer eval.ValueProducer) eval.PValue {
-	local := make([]map[string]eval.PValue, len(e.scopes)+1)
-	copy(local, e.scopes)
-	return producer(&BasicScope{append(local, make(map[string]eval.PValue, 8))})
+	epCount := len(e.scopes)
+	defer func() {
+		// Pop all ephemerals
+		e.scopes = e.scopes[:epCount]
+	}()
+	e.scopes = append(e.scopes, make(map[string]eval.PValue, 8))
+	return producer(e)
 }
 
 func (e *BasicScope) Get(name string) (value eval.PValue, found bool) {
@@ -83,4 +102,12 @@ func (e *BasicScope) Set(name string, value eval.PValue) bool {
 		return true
 	}
 	return false
+}
+
+func (e *parentedScope) Get(name string) (value eval.PValue, found bool) {
+	value, found = e.BasicScope.Get(name)
+	if !found {
+		value, found = e.parent.Get(name)
+	}
+	return value, found
 }

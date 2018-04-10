@@ -90,6 +90,8 @@ func (c *evalCtx) Fork() eval.Context {
 	s := make([]issue.Location, len(c.stack))
 	copy(s, c.stack)
 	clone := c.clone()
+	clone.scope = NewParentedScope(clone.scope)
+	clone.loader = eval.NewParentedLoader(clone.loader)
 	clone.stack = s
 
 	if c.vars != nil {
