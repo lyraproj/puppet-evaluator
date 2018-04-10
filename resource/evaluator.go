@@ -10,17 +10,15 @@ import (
 	"gonum.org/v1/gonum/graph"
 )
 
-type (
-	resourceEval struct {
-		evaluator eval.Evaluator
-	}
+type resourceEval struct {
+	evaluator eval.Evaluator
+}
 
-	// Evaluator is capable of evaluating resource expressions and resource operators. The
-	// evaluator builds a graph which can be accessed by functions during evaluation.
-	Evaluator interface {
-		eval.Evaluator
-	}
-)
+// Evaluator is capable of evaluating resource expressions and resource operators. The
+// evaluator builds a graph which can be accessed by functions during evaluation.
+type	Evaluator interface {
+	eval.Evaluator
+}
 
 // NewEvaluator creates a new instance of the resource.Evaluator
 func NewEvaluator(logger eval.Logger) Evaluator {
@@ -41,8 +39,9 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 
 	// Create the node resolution workers
 	nodeJobs := make(chan *nodeJob, 50)
+	done := make(chan bool)
 	for w := 1; w <= 5; w++ {
-		go nodeWorker(nodeJobs)
+		go nodeWorker(w, nodeJobs, done)
 	}
 
 	// Add a shared map. Must be considered immutable from this point on as there will
@@ -50,31 +49,17 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	c.Set(SHARED_MAP, map[string]interface{} {
 		NODE_GRAPH: NewConcurrentGraph(),
 		NODE_JOBS: nodeJobs,
+		JOB_COUNTER: &jobCounter{0},
 	})
 
-	value, err = re.evaluateTopExpression(c, expression)
-	if edge, ok := value.(Edge); ok {
-		value = edge.To().(Node).Value(c)
+	topNode := newNode(c, expression, nil)
+	scheduleNodes(c, types.SingletonArray(topNode))
+
+	<-done
+	if err := topNode.Error(); err != nil {
+		return eval.UNDEF, err
 	}
-	return
-}
-
-func (re *resourceEval) evaluateTopExpression(c eval.Context, expression parser.Expression) (eval.PValue, *issue.Reported) {
-	setCurrentNode(c, nil)
-	setResources(c, map[string]*handle{})
-
-	value, err := re.evaluator.Evaluate(c, expression)
-	if err != nil {
-		return nil, err
-	}
-
-	resources := getResources(c)
-	if len(resources) > 0 {
-		// TODO: Block on apply of all resources here.
-	}
-
-	scheduleNodes(c, GetGraph(c).RootNodes())
-	return value, nil
+	return topNode.Value(c), nil
 }
 
 func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, *issue.Reported) {

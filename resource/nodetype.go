@@ -29,6 +29,10 @@ type(
 		graph.Node
 		eval.PValue
 
+		// Error returns an error if the evaluation of the node was unsuccessful, otherwise
+		// nil is returned
+		Error() *issue.Reported
+
 		Location() issue.Location
 
 		// Resolved returns true if all promises has been fulfilled for this
@@ -63,6 +67,9 @@ type(
 
 		// resource expression or a type reference expression
 		expression parser.Expression
+
+		// Set in case node evaluation ended in error
+		error *issue.Reported
 	}
 )
 
@@ -92,6 +99,10 @@ func (rn *node) InitHash() eval.KeyedValue {
 	hash[`value`] = rn.value
 	rn.lock.RUnlock()
 	return types.WrapHash3(hash)
+}
+
+func (rn *node) Error() *issue.Reported {
+	return rn.error
 }
 
 func (rn *node) Location() issue.Location {
@@ -212,6 +223,7 @@ func (rn *node) evaluate(c eval.Context) (errs []*issue.Reported) {
 		}
 
 		rn.value = types.NewError(c, types.WrapString(err.String()), eval.UNDEF, types.WrapString(string(err.Code())))
+		rn.error = err
 		return err
 	}()
 

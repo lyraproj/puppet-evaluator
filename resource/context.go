@@ -11,6 +11,7 @@ const (
 	SHARED_MAP = `sharedMap`
 	NODE_GRAPH = `nodeGraph`
 	NODE_JOBS = `nodeJobs`
+	JOB_COUNTER = `jobCounter`
 	RESOURCES = `resources`
 	CURRENT_NODE = `currentNode`
 	EXTERNAL_EDGES_TO = `externalTo`
@@ -66,6 +67,13 @@ func getExternalEdgesTo(c eval.Context) []graph.Node {
 		return rs.([]graph.Node)
 	}
 	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: EXTERNAL_EDGES_TO}))
+}
+
+func getJobCounter(c eval.Context) *jobCounter {
+	if rs, ok := getSharedMap(c)[JOB_COUNTER]; ok {
+		return rs.(*jobCounter)
+	}
+	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: JOB_COUNTER}))
 }
 
 func setExternalEdgesTo(c eval.Context, edges []graph.Node) {
