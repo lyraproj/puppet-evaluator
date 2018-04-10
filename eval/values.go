@@ -49,7 +49,7 @@ type (
 
 	IteratorValue interface {
 		PValue
-		DynamicValue() Iterator
+		AsArray() IndexedValue
 	}
 
 	// IndexedValue represents an Array. The iterative methods will not catch break exceptions. If

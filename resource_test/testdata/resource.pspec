@@ -1,4 +1,4 @@
-Examples('resource',
+Examples('resource evaluator',
   Let('resourceType', @(SRC)),
   type MyRes = Resource {
     attributes => {
@@ -7,7 +7,15 @@ Examples('resource',
   }
   |-SRC
 
-  Examples('when instantiated',
+  Examples('when evaluating nodes',
+    Example('evaluates in the right order',
+      Given(@(SRC)),
+        notice($x) <- $x = 'hello'
+        |-SRC
+      Evaluates_with(Notice('hello'))),
+  ),
+
+  Examples('when creating resources',
     Example('returns array of objects',
       Given(Format(@(SRC), Get('resourceType'))),
         %s

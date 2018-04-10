@@ -60,7 +60,8 @@ func (e *BasicScope) WithLocalScope(producer eval.ValueProducer) eval.PValue {
 		e.scopes = e.scopes[:epCount]
 	}()
 	e.scopes = append(e.scopes, make(map[string]eval.PValue, 8))
-	return producer(e)
+	result := producer(e)
+	return result
 }
 
 func (e *BasicScope) Get(name string) (value eval.PValue, found bool) {

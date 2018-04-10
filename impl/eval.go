@@ -210,12 +210,7 @@ func (e *evaluator) convertCallError(err interface{}, expr parser.Expression, ar
 }
 
 func (e *evaluator) eval(expr parser.Expression, c eval.Context) eval.PValue {
-	v := e.self.Eval(expr, c)
-	if iv, ok := v.(eval.IteratorValue); ok {
-		// Iterators are never returned. Convert to Array
-		return iv.DynamicValue().AsArray()
-	}
-	return v
+	return e.self.Eval(expr, c)
 }
 
 func (e *evaluator) eval_AndExpression(expr *parser.AndExpression, c eval.Context) eval.PValue {
@@ -492,7 +487,7 @@ func (e *evaluator) eval_UnfoldExpression(expr *parser.UnfoldExpression, c eval.
 	case *types.HashValue:
 		return types.WrapArray3(candidate.(*types.HashValue))
 	case eval.IteratorValue:
-		return candidate.(eval.IteratorValue).DynamicValue().AsArray()
+		return candidate.(eval.IteratorValue).AsArray()
 	default:
 		return types.SingletonArray(candidate)
 	}

@@ -5,23 +5,23 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func mapIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.PValue {
-	return arg.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue { return block.Call(c, nil, v) })
+func mapIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.IndexedValue {
+	return arg.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue { return block.Call(c, nil, v) }).AsArray()
 }
 
-func mapIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+func mapIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
 	index := int64(-1)
 	return iter.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue {
 		index++
 		return block.Call(c, nil, types.WrapInteger(index), v)
-	})
+	}).AsArray()
 }
 
-func mapHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+func mapHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
 	return iter.Iterator().Map(block.Signature().ReturnType(), func(v eval.PValue) eval.PValue {
 		vi := v.(eval.IndexedValue)
 		return block.Call(c, nil, vi.At(0), vi.At(1))
-	})
+	}).AsArray()
 }
 
 func init() {

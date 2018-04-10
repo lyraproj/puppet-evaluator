@@ -5,23 +5,23 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func selectIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.PValue {
-	return arg.Iterator().Select(func(v eval.PValue) bool { return eval.IsTruthy(block.Call(c, nil, v)) })
+func selectIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.IndexedValue {
+	return arg.Iterator().Select(func(v eval.PValue) bool { return eval.IsTruthy(block.Call(c, nil, v)) }).AsArray()
 }
 
-func selectIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+func selectIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
 	index := int64(-1)
 	return iter.Iterator().Select(func(v eval.PValue) bool {
 		index++
 		return eval.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
-	})
+	}).AsArray()
 }
 
-func selectHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+func selectHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
 	return iter.Iterator().Select(func(v eval.PValue) bool {
 		vi := v.(eval.IndexedValue)
 		return eval.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
-	})
+	}).AsArray()
 }
 
 func init() {

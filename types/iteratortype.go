@@ -171,10 +171,6 @@ func (it *iteratorValue) Type() eval.PType {
 	return NewIteratorType(it.iterator.ElementType())
 }
 
-func (it *iteratorValue) DynamicValue() eval.Iterator {
-	return it.iterator
-}
-
 func (it *iteratorValue) String() string {
 	return eval.ToString2(it, NONE)
 }
@@ -318,7 +314,7 @@ func asArray(iter eval.Iterator) (result eval.IndexedValue) {
 			break
 		}
 		if it, ok := v.(eval.IteratorValue); ok {
-			v = asArray(it.DynamicValue())
+			v = it.AsArray()
 		}
 		el = append(el, v)
 	}
