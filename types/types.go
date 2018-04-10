@@ -344,7 +344,7 @@ func init() {
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
-	eval.WrapUnknown = wrap
+	eval.Wrap = wrap
 }
 
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {

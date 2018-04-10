@@ -58,7 +58,7 @@ func JsonToData(c eval.Context, path string, in io.Reader) eval.PValue {
 }
 
 func NativeToData(value interface{}) eval.PValue {
-	return eval.WrapUnknown(value)
+	return eval.Wrap(value)
 }
 
 func assertString(c eval.Context, value eval.PValue) string {

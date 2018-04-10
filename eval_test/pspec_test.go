@@ -20,7 +20,7 @@ func TestPSpecs(t *testing.T) {
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					planName := args[0].String()
 					if plan, ok := eval.Load(c, eval.NewTypedName(eval.PLAN, planName)); ok {
-						return eval.WrapUnknown(plan)
+						return eval.Wrap(plan)
 					}
 					panic(eval.Error(c, eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
 				})
