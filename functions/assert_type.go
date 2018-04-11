@@ -2,7 +2,7 @@ package functions
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 func assertType(c eval.Context, t eval.PType, v eval.PValue, b eval.Lambda) eval.PValue {

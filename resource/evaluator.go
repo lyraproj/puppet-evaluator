@@ -4,7 +4,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"gonum.org/v1/gonum/graph"
@@ -37,11 +37,11 @@ func defaultApplyFunc(c eval.Context, handles []Handle) {
 	}
 }
 
-func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err *issue.Reported) {
+func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err issue.Reported) {
 	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
-			if err, ok = r.(*issue.Reported); !ok {
+			if err, ok = r.(issue.Reported); !ok {
 				panic(r)
 			}
 		}
@@ -74,7 +74,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	scheduleNodes(c, types.SingletonArray(topNode))
 
 	<-done
-	errors := []*issue.Reported{}
+	errors := []issue.Reported{}
 	for _, n := range GetGraph(c).Nodes() {
 		if err := n.(Node).Error(); err != nil {
 			errors = append(errors, err)
@@ -90,7 +90,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	}
 }
 
-func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, *issue.Reported) {
+func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, issue.Reported) {
 	setCurrentNode(c, rn)
 	g := GetGraph(c)
 	extEdges := g.From(rn.ID())

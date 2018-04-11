@@ -6,7 +6,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )
 
@@ -90,7 +90,7 @@ func getTitles(c eval.Context, expr parser.Expression, titles []string) []string
 	return titles
 }
 
-func reference(c eval.Context, value eval.PValue) (string, *issue.Reported) {
+func reference(c eval.Context, value eval.PValue) (string, issue.Reported) {
 	switch value.(type) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)

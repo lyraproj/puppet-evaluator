@@ -12,7 +12,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (
@@ -140,7 +140,7 @@ func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.Form
 	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
-			if err, ok = r.(*issue.Reported); !ok {
+			if err, ok = r.(issue.Reported); !ok {
 				panic(r)
 			}
 		}

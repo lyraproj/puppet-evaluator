@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"io"
 	"github.com/puppetlabs/go-evaluator/types"
 	"gonum.org/v1/gonum/graph"
@@ -31,7 +31,7 @@ type(
 
 		// Error returns an error if the evaluation of the node was unsuccessful, otherwise
 		// nil is returned
-		Error() *issue.Reported
+		Error() issue.Reported
 
 		Location() issue.Location
 
@@ -69,7 +69,7 @@ type(
 		expression parser.Expression
 
 		// Set in case node evaluation ended in error
-		error *issue.Reported
+		error issue.Reported
 	}
 )
 
@@ -101,7 +101,7 @@ func (rn *node) InitHash() eval.KeyedValue {
 	return types.WrapHash3(hash)
 }
 
-func (rn *node) Error() *issue.Reported {
+func (rn *node) Error() issue.Reported {
 	return rn.error
 }
 

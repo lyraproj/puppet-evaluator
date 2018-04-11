@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (
@@ -17,7 +17,7 @@ type (
 
 		Logf(level LogLevel, format string, args ...interface{})
 
-		LogIssue(issue *issue.Reported)
+		LogIssue(issue issue.Reported)
 	}
 
 	stdlog struct {
@@ -35,7 +35,7 @@ type (
 	}
 
 	ReportedEntry struct {
-		issue *issue.Reported
+		issue issue.Reported
 	}
 
 	TextEntry struct {
@@ -96,7 +96,7 @@ func (l *stdlog) writerFor(level LogLevel) io.Writer {
 	}
 }
 
-func (l *stdlog) LogIssue(issue *issue.Reported) {
+func (l *stdlog) LogIssue(issue issue.Reported) {
 	fmt.Fprintln(l.err, issue.String())
 }
 
@@ -126,7 +126,7 @@ func (l *ArrayLogger) Logf(level LogLevel, format string, args ...interface{}) {
 	l.entries = append(l.entries, &TextEntry{level, fmt.Sprintf(format, args...)})
 }
 
-func (l *ArrayLogger) LogIssue(i *issue.Reported) {
+func (l *ArrayLogger) LogIssue(i issue.Reported) {
 	if i.Severity() != issue.SEVERITY_IGNORE {
 		l.entries = append(l.entries, &ReportedEntry{i})
 	}
@@ -148,7 +148,7 @@ func (re *ReportedEntry) Message() string {
 	return re.issue.String()
 }
 
-func (re *ReportedEntry) Issue() *issue.Reported {
+func (re *ReportedEntry) Issue() issue.Reported {
 	return re.issue
 }
 

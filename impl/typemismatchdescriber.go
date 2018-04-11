@@ -10,8 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
-	"github.com/puppetlabs/go-parser/issue"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (
@@ -436,7 +435,7 @@ func (tm *typeMismatch) text() string {
 	if multi {
 		return fmt.Sprintf(`expects a value of type %s, got %s`, es, as)
 	}
-	return fmt.Sprintf(`expects %s %s value, got %s`, parser.Article(es), es, as)
+	return fmt.Sprintf(`expects %s %s value, got %s`, issue.Article(es), es, as)
 }
 
 func shortName(t eval.PType) string {

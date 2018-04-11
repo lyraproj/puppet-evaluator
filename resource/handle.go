@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"io"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type(

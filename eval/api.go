@@ -1,7 +1,7 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )
 
@@ -9,7 +9,7 @@ type (
 	// An Evaluator is responsible for evaluating an Abstract Syntax Tree, typically produced by
 	// the parser. An implementation must be re-entrant.
 	Evaluator interface {
-		Evaluate(c Context, expression parser.Expression) (PValue, *issue.Reported)
+		Evaluate(c Context, expression parser.Expression) (PValue, issue.Reported)
 
 		// Eval should be considered internal. The only reason it is public is to allow
 		// the evaluator to be extended. This is subject to change. Don't use
@@ -46,12 +46,12 @@ type (
 
 		// Error creates a Reported with the given issue code, location, and arguments
 		// Typical use is to panic with the returned value
-		Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported
+		Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported
 
 		// Fail creates a Reported with the EVAL_FAILURE issue code, location from stack top,
 		// and the given message
 		// Typical use is to panic with the returned value
-		Fail(message string) *issue.Reported
+		Fail(message string) issue.Reported
 
 		// Fork a new context from this context. The fork will have the same scope,
 		// loaders, and logger as this context. The stack and the map of context variables will
@@ -78,17 +78,17 @@ type (
 		WithScope(scope Scope) Context
 
 		// ParseAndValidate parses and evaluates the given content. It will panic with
-		// an *issue.Reported unless the parsing and evaluation was succesful.
+		// an issue.Reported unless the parsing and evaluation was succesful.
 		ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
 
 
 		// ParseType parses and evaluates the given PValue into a PType. It will panic with
-		// an *issue.Reported unless the parsing was succesfull and the result is evaluates
+		// an issue.Reported unless the parsing was succesfull and the result is evaluates
 		// to a PType
 		ParseType(str PValue) PType
 
 		// ParseType2 parses and evaluates the given string into a PType. It will panic with
-		// an *issue.Reported unless the parsing was succesfull and the result is evaluates
+		// an issue.Reported unless the parsing was succesfull and the result is evaluates
 		// to a PType
 		ParseType2(typeString string) PType
 
@@ -98,7 +98,7 @@ type (
 		ResolveResolvables()
 
 		// ResolveType evaluates the given Expression into a PType. It will panic with
-		// an *issue.Reported unless the evaluation was succesfull and the result
+		// an issue.Reported unless the evaluation was succesfull and the result
 		// is evaluates to a PType
 		ResolveType(expr parser.Expression) PType
 
@@ -125,12 +125,12 @@ type (
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error func(c Context, issueCode issue.Code, args issue.H) *issue.Reported
+var Error func(c Context, issueCode issue.Code, args issue.H) issue.Reported
 
 // Error2 creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported
+var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported
 
 // Warning creates a Reported with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
-var Warning func(c Context, issueCode issue.Code, args issue.H) *issue.Reported
+var Warning func(c Context, issueCode issue.Code, args issue.H) issue.Reported

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"context"
@@ -67,7 +67,7 @@ func (c *evalCtx) Delete(key string) {
 	}
 }
 
-func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
+func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 	if location == nil {
 		location = c.StackTop()
 	}
@@ -104,7 +104,7 @@ func (c *evalCtx) Fork() eval.Context {
 	return clone
 }
 
-func (c *evalCtx) Fail(message string) *issue.Reported {
+func (c *evalCtx) Fail(message string) issue.Reported {
 	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
 }
 

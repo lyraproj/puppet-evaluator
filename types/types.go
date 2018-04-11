@@ -14,7 +14,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )
 
@@ -561,7 +561,7 @@ func newObjectType2(name string, parent eval.PType, initHash *HashValue, creator
 }
 
 func convertReported(err error, fileName string, lineOffset int) error {
-	if ri, ok := err.(*issue.Reported); ok {
+	if ri, ok := err.(issue.Reported); ok {
 		return ri.OffsetByLocation(issue.NewLocation(fileName, lineOffset, 0))
 	}
 	return err

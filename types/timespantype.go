@@ -11,7 +11,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"regexp"
 	"strconv"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"sync"
 	"unicode"
@@ -718,7 +718,7 @@ func appendLiteral(bld []segment, c rune) []segment {
 	return append(bld, newLiteralSegment(s))
 }
 
-func badFormatSpecifier(str string, start, pos int) *issue.Reported {
+func badFormatSpecifier(str string, start, pos int) issue.Reported {
   return eval.Error(nil, eval.EVAL_TIMESPAN_BAD_FSPEC, issue.H{`expression`: str[start:pos], `format`: str, `position`: pos})
 }
 

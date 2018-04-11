@@ -8,7 +8,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"sync"
 )
 
@@ -711,7 +711,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 	}
 }
 
-func notSupportedByGoTimeLayout(str string, start, pos int, description string) *issue.Reported {
+func notSupportedByGoTimeLayout(str string, start, pos int, description string) issue.Reported {
 	return eval.Error(nil, eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start:pos+1], `description`: description})
 }
 

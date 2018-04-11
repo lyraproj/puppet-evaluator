@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 )
@@ -78,7 +78,7 @@ func (systemLocation) Pos() int {
 }
 
 func init() {
-	eval.Error = func(c eval.Context, issueCode issue.Code, args issue.H) *issue.Reported {
+	eval.Error = func(c eval.Context, issueCode issue.Code, args issue.H) issue.Reported {
 		var location issue.Location
 		if c == nil {
 			location = nil
@@ -88,11 +88,11 @@ func init() {
 		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 	}
 
-	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) *issue.Reported {
+	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 	}
 
-	eval.Warning = func(c eval.Context, issueCode issue.Code, args issue.H) *issue.Reported {
+	eval.Warning = func(c eval.Context, issueCode issue.Code, args issue.H) issue.Reported {
 		var location issue.Location
 		var logger eval.Logger
 		if c == nil {
@@ -118,13 +118,13 @@ func NewOverriddenEvaluator(logger eval.Logger, specialization eval.Evaluator) e
 	return &evaluator{self: specialization, logger: logger}
 }
 
-func (e *evaluator) Evaluate(ctx eval.Context, expr parser.Expression) (result eval.PValue, err *issue.Reported) {
+func (e *evaluator) Evaluate(ctx eval.Context, expr parser.Expression) (result eval.PValue, err issue.Reported) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch r.(type) {
-			case *issue.Reported:
+			case issue.Reported:
 				result = eval.UNDEF
-				err = r.(*issue.Reported)
+				err = r.(issue.Reported)
 			case *errors.StopIteration:
 				result = eval.UNDEF
 				err = e.evalError(eval.EVAL_ILLEGAL_BREAK, r.(*errors.StopIteration).Location(), issue.NO_ARGS)
@@ -493,7 +493,7 @@ func (e *evaluator) eval_UnfoldExpression(expr *parser.UnfoldExpression, c eval.
 	}
 }
 
-func (e *evaluator) evalError(code issue.Code, location issue.Location, args issue.H) *issue.Reported {
+func (e *evaluator) evalError(code issue.Code, location issue.Location, args issue.H) issue.Reported {
 	return issue.NewReported(code, issue.SEVERITY_ERROR, args, location)
 }
 

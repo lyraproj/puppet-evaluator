@@ -1,16 +1,16 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-parser/parser"
 	"strings"
 	"bytes"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (
 	Namespace string
 
 	TypedName interface {
-		parser.Named
+		issue.Named
 
 		IsQualified() bool
 

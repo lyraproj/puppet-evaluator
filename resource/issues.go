@@ -1,8 +1,7 @@
 package resource
 
 import (
-	"github.com/puppetlabs/go-parser/issue"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 const (
@@ -21,7 +20,7 @@ func init() {
 
 	issue.Hard(EVAL_ILLEGAL_HANDLE_REPLACE, `Illegal replacement of Handle value. Expected value type '%{expected_type}', got '%{actual_type}'`)
 
-	issue.Hard2(EVAL_ILLEGAL_RESOURCE, `%{value_type} cannot be used as a resource`, issue.HF{ `value_type`: parser.A_anUc})
+	issue.Hard2(EVAL_ILLEGAL_RESOURCE, `%{value_type} cannot be used as a resource`, issue.HF{ `value_type`: issue.A_anUc})
 
 	issue.Hard(EVAL_ILLEGAL_RESOURCE_REFERENCE, `'%{str}' is not a valid resource reference. Must be in the form 'type_name[title]'`)
 
@@ -32,5 +31,5 @@ func init() {
 	issue.Hard(EVAL_UNRESOLVED_GRAPH_NODE, `Attempt to access value of not yet evaluated source '%{source}'`)
 
 	issue.Hard2(EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, `%{value_type} is not a valid resource or resource reference`,
-		issue.HF{ `value_type`: parser.A_anUc})
+		issue.HF{ `value_type`: issue.A_anUc})
 }

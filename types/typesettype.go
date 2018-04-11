@@ -9,7 +9,7 @@ import (
 	"math"
 	"fmt"
 	"sync/atomic"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 	"strings"
 )
 
@@ -531,7 +531,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash)
 					if !(name == `Object` || name == `TypeSet`) {
 						// the name `parent` is not allowed here
 						for _, op := range rde.Operations() {
-							if op.(parser.Named).Name() == KEY_PARENT {
+							if op.(issue.Named).Name() == KEY_PARENT {
 								panic(eval.Error2(op, eval.EVAL_DUPLICATE_KEY, issue.H{`key`: KEY_PARENT}))
 							}
 						}

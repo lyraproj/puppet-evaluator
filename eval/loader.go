@@ -2,7 +2,7 @@ package eval
 
 import (
 	"regexp"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (

@@ -18,7 +18,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"context"
-	"github.com/puppetlabs/go-parser/issue"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (
@@ -175,7 +175,7 @@ func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
 func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if ri, ok := r.(*issue.Reported); ok {
+			if ri, ok := r.(issue.Reported); ok {
 				err = ri
 			} else {
 				panic(r)
@@ -194,7 +194,7 @@ func (p *pcoreImpl) Produce(producer func(eval.Context) (eval.PValue, error)) (v
 func (p *pcoreImpl) ProduceWithParent(parentCtx context.Context, producer func(eval.Context) (eval.PValue, error)) (value eval.PValue, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if ri, ok := r.(*issue.Reported); ok {
+			if ri, ok := r.(issue.Reported); ok {
 				err = ri
 			} else {
 				panic(r)
