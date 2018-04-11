@@ -23,8 +23,11 @@ type (
 		// node appointed by the edge
 		Edges(from Node) eval.IndexedValue
 
-		// FromNode returns all resource nodes extending from the given node, sorted by file, line, pos
+		// FromNode returns all nodes that the given node has edges to, sorted by file, line, pos
 		FromNode(Node) eval.IndexedValue
+
+		// ToNode returns all nodes that has edges to the given node, sorted by file, line, pos
+		ToNode(Node) eval.IndexedValue
 	}
 
 	concurrentGraph struct {
@@ -116,6 +119,10 @@ func (cg *concurrentGraph) To(id int64) []graph.Node {
 	copy(result, nodes)
 	cg.lock.RUnlock()
 	return result
+}
+
+func (cg *concurrentGraph) ToNode(n Node) eval.IndexedValue {
+	return nodeList(cg.To(n.ID()))
 }
 
 func (cg *concurrentGraph) NewNode() graph.Node {

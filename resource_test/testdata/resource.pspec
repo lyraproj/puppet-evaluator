@@ -106,6 +106,27 @@ Examples('resource evaluator',
         get_edges(MyRes['/foo/baz']).map |$e| { [$e.from.resources.keys, $e.to.resources.keys, $e.subscribe] }
         |-SRC
       Evaluates_to([[['myres[/foo/baz]'], ['myres[/foo/bar]'], true]])),
+
+    Example('arrays can be ordered using ->"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        [ myres { '/a/a': }, myres { '/a/b': }, myres { '/a/c': } ] ->
+        [ myres { '/b/a': }, myres { '/b/b': }, myres { '/b/c': } ] ->
+        ['/a/a', '/a/b', '/a/c' ].map |$r| {
+          nodes_from(MyRes[$r]).map |$n| { $n.resources.keys }.flatten
+        } +
+        ['/b/a', '/b/b', '/b/c' ].map |$r| {
+          nodes_to(MyRes[$r]).map |$n| { $n.resources.keys }.flatten
+        }
+        |-SRC
+      Evaluates_to([
+        ['myres[/b/a]', 'myres[/b/b]', 'myres[/b/c]'],
+        ['myres[/b/a]', 'myres[/b/b]', 'myres[/b/c]'],
+        ['myres[/b/a]', 'myres[/b/b]', 'myres[/b/c]'],
+        ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
+        ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
+        ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
+        ])),
   ),
 
   Examples('when referenced',

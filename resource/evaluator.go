@@ -9,6 +9,7 @@ import (
 	"github.com/puppetlabs/go-parser/validator"
 	"gonum.org/v1/gonum/graph"
 	"fmt"
+	"log"
 )
 
 type resourceEval struct {
@@ -30,7 +31,9 @@ func NewEvaluator(logger eval.Logger) Evaluator {
 
 func defaultApplyFunc(c eval.Context, handles []Handle) {
 	for _, h := range handles {
-		c.Logger().Log(eval.NOTICE, types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h))))
+		text := types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h)))
+		log.Println(text)
+		c.Logger().Log(eval.NOTICE, text)
 	}
 }
 
@@ -71,10 +74,20 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	scheduleNodes(c, types.SingletonArray(topNode))
 
 	<-done
-	if err := topNode.Error(); err != nil {
-		return eval.UNDEF, err
+	errors := []*issue.Reported{}
+	for _, n := range GetGraph(c).Nodes() {
+		if err := n.(Node).Error(); err != nil {
+			errors = append(errors, err)
+		}
 	}
-	return topNode.Value(c), nil
+	switch len(errors) {
+	case 0:
+		return topNode.Value(c), nil
+	case 1:
+		return eval.UNDEF, errors[0]
+	default:
+		return eval.UNDEF, eval.Error(c, eval.EVAL_MULTI_ERROR, issue.H{`errors`: errors})
+	}
 }
 
 func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, *issue.Reported) {
@@ -115,31 +128,57 @@ func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue
 }
 
 func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {
-	var e *edge
+	edges := []Edge{}
 	switch expr.Operator() {
 	case `->`:
-		e = &edge{newNode(c, expr.Lhs(), nil), newNode(c, expr.Rhs(), nil), false}
+		edges = createEdges(c, expr.Lhs(), expr.Rhs(), false, edges)
 	case `~>`:
-		e = &edge{newNode(c, expr.Lhs(), nil), newNode(c, expr.Rhs(), nil), true}
+		edges = createEdges(c, expr.Lhs(), expr.Rhs(), true, edges)
 	case `<-`:
-		e = &edge{newNode(c, expr.Rhs(), nil), newNode(c, expr.Lhs(), nil), false}
+		edges = createEdges(c, expr.Rhs(), expr.Lhs(), false, edges)
 	default:
-		e = &edge{newNode(c, expr.Rhs(), nil), newNode(c, expr.Lhs(), nil), true}
+		edges = createEdges(c, expr.Rhs(), expr.Lhs(), true, edges)
 	}
 	cn := getCurrentNode(c)
 	g := GetGraph(c).(graph.DirectedBuilder)
-	if cn != nil {
-		for _, cnTo := range getExternalEdgesTo(c) {
+
+	extEdges := getExternalEdgesTo(c)
+	for _, e := range edges {
+		for _, cnTo := range extEdges {
 			// RHS of edge must evaluate before any edges external to the current node evaluates
 			exEdge := g.Edge(cn.ID(), cnTo.ID()).(Edge)
-			g.SetEdge(&edge{e.to, cnTo.(*node), exEdge.Subscribe()})
+			g.SetEdge(newEdge(e.To().(Node), cnTo.(Node), exEdge.Subscribe()))
 		}
 
 		// Create edge from current to LHS of edge
-		g.SetEdge(&edge{cn, e.from, false})
+		g.SetEdge(newEdge(cn, e.From().(Node), false))
+		g.SetEdge(e)
 	}
-	g.SetEdge(e)
-	return e
+	if len(edges) == 1 {
+		return edges[0]
+	}
+	return eval.UNDEF
+}
+
+func createEdges(c eval.Context, lhs, rhs parser.Expression, subscribe bool, edges []Edge) []Edge {
+	rhsNodes := createNodes(c, rhs, []Node{})
+	for _, lhsNode := range createNodes(c, lhs, []Node{}) {
+		for _, rhsNode := range rhsNodes {
+			edges = append(edges, newEdge(lhsNode, rhsNode, subscribe))
+		}
+	}
+	return edges
+}
+
+func createNodes(c eval.Context, expr parser.Expression, nodes []Node) []Node {
+	if exprArr, ok := expr.(*parser.LiteralList); ok {
+		for _, el := range exprArr.Elements() {
+			nodes = createNodes(c, el, nodes)
+		}
+	} else {
+		nodes = append(nodes, newNode(c, expr, nil))
+	}
+	return nodes
 }
 
 func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.Context) eval.PValue {

@@ -29,15 +29,19 @@ type(
 
 	// edge denotes a relationship between two ResourceNodes
 	edge struct {
-		from *node
-		to *node
+		from Node
+		to Node
 		subscribe bool
 	}
 )
 
+func newEdge(from, to Node, subscribe bool) Edge {
+	return &edge{from, to, subscribe}
+}
+
 func (re *edge) Equals(other interface{}, guard eval.Guard) bool {
 	if oe, ok := other.(*edge); ok {
-		return re.from.id == oe.from.id && re.to.id == oe.to.id
+		return re.from.ID() == oe.from.ID() && re.to.ID() == oe.to.ID()
 	}
 	return false
 }

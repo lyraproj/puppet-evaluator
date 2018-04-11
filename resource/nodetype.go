@@ -188,29 +188,20 @@ func (rn *node) ID() int64 {
 	return rn.id
 }
 
-func (rn *node) evaluate(c eval.Context) (errs []*issue.Reported) {
-	defer func() {
-		if r := recover(); r != nil {
-			if err, ok := r.(*issue.Reported); ok {
-				errs = []*issue.Reported{err}
-			} else {
-				panic(r)
-			}
-		}
-	}()
-
-	error := func() *issue.Reported {
+func (rn *node) evaluate(c eval.Context) {
+	done := func() bool {
 		rn.resolveLock.Lock()
+		if rn.value != nil {
+			rn.resolveLock.Unlock()
+			return true
+		}
+
 		defer func() {
 			// Closing the resolved channel will notify everyone that awaits its value, i.e.
 			// everyone that waited for this node to be resolved.
 			close(rn.resolved)
 			rn.resolveLock.Unlock()
 		}()
-
-		if rn.value != nil {
-			return nil
-		}
 
 		// Ensure that all nodes that has an edge to this node have been
 		// fully resolved.
@@ -219,16 +210,15 @@ func (rn *node) evaluate(c eval.Context) (errs []*issue.Reported) {
 		value, err := c.Evaluator().(*resourceEval).evaluateNodeExpression(c, rn)
 		if err == nil {
 			rn.update(c, value, getResources(c))
-			return nil
+			return false
 		}
 
-		rn.value = types.NewError(c, types.WrapString(err.String()), eval.UNDEF, types.WrapString(string(err.Code())))
+		rn.value = eval.UNDEF
 		rn.error = err
-		return err
+		return true
 	}()
 
-	if error != nil {
-		errs = []*issue.Reported{error}
+	if done {
 		return
 	}
 
