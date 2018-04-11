@@ -41,9 +41,9 @@ func Resources(c eval.Context) eval.KeyedValue {
 	return types.WrapHash(entries)
 }
 
-func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction ApplyFunction) eval.PValue {
+func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction ApplyFunction) (eval.PValue, error) {
 	c.Set(APPLY_FUNCTION, applyFunction) // Propagated to shared map in Evaluate
-	return c.Evaluate(expr)
+	return c.Evaluator().Evaluate(c, expr)
 }
 
 func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) {
