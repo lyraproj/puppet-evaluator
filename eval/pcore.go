@@ -50,11 +50,11 @@ type (
 
 		// Do executes a given function with an initialized Context instance. The
 		// Context will be parented by the Go context returned by context.Background()
-		Do(func(Context)) error
+		Do(func(Context) error) error
 
 		// DoWithParent executes a given function with an initialized Context instance. The
 		// context will be parented by the given Go context
-		DoWithParent(context.Context, func(Context)) error
+		DoWithParent(context.Context, func(Context) error) error
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured

@@ -168,11 +168,11 @@ func (p *pcoreImpl) Logger() eval.Logger {
 	return p.logger
 }
 
-func (p *pcoreImpl) Do(actor func(eval.Context)) (err error) {
+func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
 	return p.DoWithParent(context.Background(), actor)
 }
 
-func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context)) (err error) {
+func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if ri, ok := r.(*issue.Reported); ok {
@@ -183,7 +183,7 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 		}
 	}()
 	InitializePuppet()
-	actor(p.newContext(parentCtx))
+	err = actor(p.newContext(parentCtx))
 	return
 }
 

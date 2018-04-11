@@ -56,19 +56,21 @@ func ExampleWrap_hash() {
 }
 
 func ExamplePcore_ParseType() {
-	eval.Puppet.Do(func(ctx eval.Context) {
+	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Printf("%s is an instance of %s\n", pcoreType, pcoreType.Type())
+		return nil
 	})
 	// Output:
 	// Enum['foo', 'fee', 'fum'] is an instance of Type[Enum['foo', 'fee', 'fum']]
 }
 
 func ExamplePcore_IsInstance() {
-	eval.Puppet.Do(func(ctx eval.Context) {
+	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Println(eval.IsInstance(ctx, pcoreType, eval.Wrap("foo")))
 		fmt.Println(eval.IsInstance(ctx, pcoreType, eval.Wrap("bar")))
+		return nil
 	})
 	// Output:
 	// true
@@ -76,8 +78,9 @@ func ExamplePcore_IsInstance() {
 }
 
 func ExamplePcore_ParseType_error() {
-	err := eval.Puppet.Do(func(ctx eval.Context) {
+	err := eval.Puppet.Do(func(ctx eval.Context) error {
 		ctx.ParseType2("Enum[foo") // Missing end bracket
+		return nil
 	})
 	if err != nil {
 		fmt.Println(err)
