@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/puppetlabs/go-evaluator/semver"
 	"github.com/puppetlabs/go-parser/validator"
+	"context"
 )
 
 type (
@@ -39,11 +40,21 @@ type (
 		Set(key string, value PValue)
 
 		// Produce executes a given function with an initialized Context instance
-		// and returns the result
-		Produce(func(Context) PValue) PValue
+		// and returns the result. The Context will be parented by the Go context
+		// returned by context.Background()
+		Produce(func(Context) (PValue, error)) (PValue, error)
 
-		// Do executes a given function with an initialized Context instance
-		Do(func(Context))
+		// ProduceWithParent executes a given function with an initialized Context instance
+		// and returns the result. The context will be parented by the given Go context
+		ProduceWithParent(context.Context, func(Context) (PValue, error)) (PValue, error)
+
+		// Do executes a given function with an initialized Context instance. The
+		// Context will be parented by the Go context returned by context.Background()
+		Do(func(Context)) error
+
+		// DoWithParent executes a given function with an initialized Context instance. The
+		// context will be parented by the given Go context
+		DoWithParent(context.Context, func(Context)) error
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured

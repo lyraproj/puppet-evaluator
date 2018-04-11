@@ -18,6 +18,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"context"
+	"github.com/puppetlabs/go-parser/issue"
 )
 
 type (
@@ -167,14 +168,42 @@ func (p *pcoreImpl) Logger() eval.Logger {
 	return p.logger
 }
 
-func (p *pcoreImpl) Do(actor func(eval.Context)) {
-	InitializePuppet()
-	actor(p.newContext(context.Background()))
+func (p *pcoreImpl) Do(actor func(eval.Context)) (err error) {
+	return p.DoWithParent(context.Background(), actor)
 }
 
-func (p *pcoreImpl) Produce(producer func(eval.Context) eval.PValue) eval.PValue {
+func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context)) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if ri, ok := r.(*issue.Reported); ok {
+				err = ri
+			} else {
+				panic(r)
+			}
+		}
+	}()
 	InitializePuppet()
-	return producer(p.newContext(context.Background()))
+	actor(p.newContext(parentCtx))
+	return
+}
+
+func (p *pcoreImpl) Produce(producer func(eval.Context) (eval.PValue, error)) (value eval.PValue, err error) {
+	return p.ProduceWithParent(context.Background(), producer)
+}
+
+func (p *pcoreImpl) ProduceWithParent(parentCtx context.Context, producer func(eval.Context) (eval.PValue, error)) (value eval.PValue, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if ri, ok := r.(*issue.Reported); ok {
+				err = ri
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	InitializePuppet()
+	value, err = producer(p.newContext(parentCtx))
+	return
 }
 
 func (p *pcoreImpl) newContext(parent context.Context) eval.Context {

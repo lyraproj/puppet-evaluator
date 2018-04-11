@@ -3,8 +3,6 @@ package eval_test
 import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/issue"
-
 	// Initialize pcore
 	_ "github.com/puppetlabs/go-evaluator/pcore"
 )
@@ -78,17 +76,11 @@ func ExamplePcore_IsInstance() {
 }
 
 func ExamplePcore_ParseType_error() {
-	eval.Puppet.Do(func(ctx eval.Context) {
-		defer func() {
-			if r := recover(); r != nil {
-				if ri, ok := r.(*issue.Reported); ok {
-					fmt.Println(ri)
-				} else {
-					panic(r) // fatal
-				}
-			}
-		}()
+	err := eval.Puppet.Do(func(ctx eval.Context) {
 		ctx.ParseType2("Enum[foo") // Missing end bracket
 	})
+	if err != nil {
+		fmt.Println(err)
+	}
 	// Output: expected one of ',' or ']', got 'EOF' (line: 1, column: 9)
 }

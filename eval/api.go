@@ -11,6 +11,8 @@ type (
 	Evaluator interface {
 		Evaluate(c Context, expression parser.Expression) (PValue, *issue.Reported)
 
+		// Eval should be considered internal. The only reason it is public is to allow
+		// the evaluator to be extended. This is subject to change. Don't use
 		Eval(expression parser.Expression, c Context) PValue
 
 		Logger() Logger
