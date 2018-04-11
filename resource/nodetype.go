@@ -1,13 +1,14 @@
 package resource
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
 	"io"
-	"github.com/puppetlabs/go-evaluator/types"
-	"gonum.org/v1/gonum/graph"
-	"github.com/puppetlabs/go-parser/parser"
 	"sync"
+
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-issues/issue"
+	"github.com/puppetlabs/go-parser/parser"
+	"gonum.org/v1/gonum/graph"
 )
 
 var Node_Type eval.ObjectType
@@ -22,7 +23,7 @@ func init() {
 }`)
 }
 
-type(
+type (
 	// A Node represents a Future value. It can be evaluated once all edges
 	// pointing to it has been evaluated
 	Node interface {
@@ -55,14 +56,14 @@ type(
 
 	// node represents a PuppetObject in the graph with a unique ID
 	node struct {
-		id int64
+		id          int64
 		resolveLock sync.Mutex
-		lock sync.RWMutex
+		lock        sync.RWMutex
 
 		// Broadcast channel. Will be closed when node is resolved
 		resolved chan bool
 
-		value eval.PValue
+		value     eval.PValue
 		resources map[string]*handle
 
 		// resource expression or a type reference expression
@@ -83,7 +84,7 @@ func (rn *node) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	case `id`:
 		return types.WrapInteger(rn.id), true
 	case `resources`:
-		return rn.Resources(c), true
+		return rn.Resources(), true
 	case `value`:
 		return rn.Value(c), true
 	}
@@ -93,7 +94,7 @@ func (rn *node) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 func (rn *node) InitHash() eval.KeyedValue {
 	<-rn.resolved
 	rn.lock.RLock()
-	hash := map[string]eval.PValue {
+	hash := map[string]eval.PValue{
 		`id`: types.WrapInteger(rn.id),
 	}
 	hash[`value`] = rn.value
@@ -116,7 +117,7 @@ func (rn *node) Resolved() bool {
 	return resolved
 }
 
-func (rn *node) Resources(c eval.Context) eval.KeyedValue {
+func (rn *node) Resources() eval.KeyedValue {
 	<-rn.resolved
 	rn.lock.RLock()
 	entries := make([]*types.HashEntry, 0, len(rn.resources))
@@ -173,8 +174,7 @@ func newNode(c eval.Context, expression parser.Expression, value eval.PValue) *n
 	return node
 }
 
-
-func (rn* node) Resource(ref string) (eval.PuppetObject, bool) {
+func (rn *node) Resource(ref string) (eval.PuppetObject, bool) {
 	rn.lock.RLock()
 	if h, ok := rn.resources[ref]; ok {
 		rn.lock.RUnlock()
@@ -225,7 +225,7 @@ func (rn *node) evaluate(c eval.Context) {
 	resources := rn.Resources(c)
 	if resources.Len() > 0 {
 		handles := make([]Handle, 0, resources.Len())
-		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle))})
+		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle)) })
 		getApplyFunction(c)(c, handles)
 	}
 
