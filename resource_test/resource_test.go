@@ -19,7 +19,7 @@ func TestPSpecs(t *testing.T) {
 						return r
 					}
 					if node, ok := resource.FindNode(c, ref); ok {
-						return node.Resources(c).Get2(ref, eval.UNDEF)
+						return node.Resources().Get2(ref, eval.UNDEF)
 					}
 					return eval.UNDEF
 				})

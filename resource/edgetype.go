@@ -24,7 +24,7 @@ type(
 		graph.Edge
 		eval.PValue
 		Subscribe() bool
-		Value(c eval.Context) eval.PValue
+		Value() eval.PValue
 	}
 
 	// edge denotes a relationship between two ResourceNodes
@@ -90,6 +90,6 @@ func (re *edge) Type() eval.PType {
 	return Edge_Type
 }
 
-func (re *edge) Value(c eval.Context) eval.PValue {
-	return re.to.Value(c)
+func (re *edge) Value() eval.PValue {
+	return re.to.Value()
 }

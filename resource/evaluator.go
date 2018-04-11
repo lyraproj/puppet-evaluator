@@ -82,7 +82,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	}
 	switch len(errors) {
 	case 0:
-		return topNode.Value(c), nil
+		return topNode.Value(), nil
 	case 1:
 		return eval.UNDEF, errors[0]
 	default:

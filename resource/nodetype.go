@@ -46,12 +46,12 @@ type (
 		Resource(ref string) (eval.PuppetObject, bool)
 
 		// Resource returns the resources kept by this node that corresponds to the given ref
-		Resources(c eval.Context) eval.KeyedValue
+		Resources() eval.KeyedValue
 
 		// Value returns the value of this node. This is a potentially blocking operation. In
 		// all nodes appointing this node must be resolved and the contained expression must
 		// be evaluated before the value can be produced.
-		Value(c eval.Context) eval.PValue
+		Value() eval.PValue
 	}
 
 	// node represents a PuppetObject in the graph with a unique ID
@@ -86,7 +86,7 @@ func (rn *node) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	case `resources`:
 		return rn.Resources(), true
 	case `value`:
-		return rn.Value(c), true
+		return rn.Value(), true
 	}
 	return eval.UNDEF, false
 }
@@ -141,13 +141,13 @@ func (rn *node) Type() eval.PType {
 	return Node_Type
 }
 
-func (rn *node) Value(c eval.Context) eval.PValue {
+func (rn *node) Value() eval.PValue {
 	<-rn.resolved
 	rn.lock.RLock()
 	value := rn.value
 	rn.lock.RUnlock()
 	if edge, ok := value.(Edge); ok {
-		value = edge.To().(Node).Value(c)
+		value = edge.To().(Node).Value()
 	}
 	return value
 }
@@ -222,7 +222,7 @@ func (rn *node) evaluate(c eval.Context) {
 		return
 	}
 
-	resources := rn.Resources(c)
+	resources := rn.Resources()
 	if resources.Len() > 0 {
 		handles := make([]Handle, 0, resources.Len())
 		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle)) })
