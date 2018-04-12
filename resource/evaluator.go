@@ -29,12 +29,13 @@ func NewEvaluator(logger eval.Logger) Evaluator {
 	return re
 }
 
-func defaultApplyFunc(c eval.Context, handles []Handle) {
+func defaultApplyFunc(c eval.Context, handles []Handle) error {
 	for _, h := range handles {
 		text := types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h)))
 		log.Println(text)
 		c.Logger().Log(eval.NOTICE, text)
 	}
+	return nil
 }
 
 func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err issue.Reported) {

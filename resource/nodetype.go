@@ -226,7 +226,15 @@ func (rn *node) evaluate(c eval.Context) {
 	if resources.Len() > 0 {
 		handles := make([]Handle, 0, resources.Len())
 		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle)) })
-		getApplyFunction(c)(c, handles)
+		err := getApplyFunction(c)(c, handles)
+		if err != nil {
+			if ir, ok := err.(issue.Reported); ok {
+				rn.error = ir
+			} else {
+				rn.error = eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()})
+			}
+			return
+		}
 	}
 
 	scheduleNodes(c, GetGraph(c).FromNode(rn))

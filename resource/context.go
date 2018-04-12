@@ -19,7 +19,7 @@ const (
 	EXTERNAL_EDGES_TO = `externalTo`
 )
 
-type ApplyFunction func(eval.Context, []Handle)
+type ApplyFunction func(eval.Context, []Handle) error
 
 // GetGraph returns concurrent graph that is shared between all contexts
 func GetGraph(c eval.Context) Graph {
