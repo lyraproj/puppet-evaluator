@@ -198,7 +198,9 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 		}
 		return types.WrapArray(result).Flatten()
 	}
-	return eval.UNDEF
+
+	// The resource type is unknown when no constructor for it is found
+	panic(eval.Error2(expr, EVAL_UNKNOWN_RESOURCE_TYPE, issue.H{`res_type`: typeName.String()}))
 }
 
 func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.Context) eval.PValue {
