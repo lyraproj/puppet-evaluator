@@ -6,24 +6,32 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/semver"
 	"github.com/puppetlabs/go-evaluator/types"
-	"testing"
 
 	_ "github.com/puppetlabs/go-evaluator/pcore"
 )
 
-func TestRichDataRoundtrip(t *testing.T) {
-	ver, _ := semver.NewVersion(1, 0, 0)
-	v := types.WrapSemVer(ver)
-	buf := bytes.NewBufferString(``)
-	var v2 eval.PValue
+func ExampleDataRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		DataToJson(ctx, NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(v), buf, eval.EMPTY_MAP)
-		v2 = NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(JsonToData(ctx, ``, buf))
+		ver, _ := semver.NewVersion(1, 0, 0)
+		v := types.WrapSemVer(ver)
+		fmt.Printf("%T '%s'\n", v, v)
+
+		dc := NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		data := dc.Convert(v)
+
+		buf := bytes.NewBufferString(``)
+		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
+
+		fc := NewFromDataConverter(ctx, eval.EMPTY_MAP)
+		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
+		v2 := fc.Convert(data2)
+
+		fmt.Printf("%T '%s'\n", v2, v2)
 		return nil
 	})
-	if !eval.Equals(v, v2) {
-		t.Errorf(`Expected %T '%s', got %T '%s'`, v, v, v2, v2)
-	}
+	// Output:
+	// *types.SemVerValue '1.0.0'
+	// *types.SemVerValue '1.0.0'
 }
 
 func ExampleToDataConverter_Convert() {
@@ -57,13 +65,12 @@ func ExampleJsonToData() {
 
 func ExampleFromDataConverter_Convert() {
 	data := types.WrapHash4(map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`})
-	var ver eval.PValue
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		ver = NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
+		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
+		fmt.Printf("%T\n", ver)
+		fmt.Println(ver)
 		return nil
 	})
-	fmt.Printf("%T\n", ver)
-	fmt.Println(ver)
 	// Output:
 	// *types.SemVerValue
 	// 1.0.0
