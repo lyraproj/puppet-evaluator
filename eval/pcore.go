@@ -39,15 +39,6 @@ type (
 		// Set changes a setting
 		Set(key string, value PValue)
 
-		// Produce executes a given function with an initialized Context instance
-		// and returns the result. The Context will be parented by the Go context
-		// returned by context.Background()
-		Produce(func(Context) (PValue, error)) (PValue, error)
-
-		// ProduceWithParent executes a given function with an initialized Context instance
-		// and returns the result. The context will be parented by the given Go context
-		ProduceWithParent(context.Context, func(Context) (PValue, error)) (PValue, error)
-
 		// Do executes a given function with an initialized Context instance. The
 		// Context will be parented by the Go context returned by context.Background()
 		Do(func(Context) error) error

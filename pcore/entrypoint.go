@@ -187,25 +187,6 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	return
 }
 
-func (p *pcoreImpl) Produce(producer func(eval.Context) (eval.PValue, error)) (value eval.PValue, err error) {
-	return p.ProduceWithParent(context.Background(), producer)
-}
-
-func (p *pcoreImpl) ProduceWithParent(parentCtx context.Context, producer func(eval.Context) (eval.PValue, error)) (value eval.PValue, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if ri, ok := r.(issue.Reported); ok {
-				err = ri
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	InitializePuppet()
-	value, err = producer(p.newContext(parentCtx))
-	return
-}
-
 func (p *pcoreImpl) newContext(parent context.Context) eval.Context {
 	return impl.WithParent(parent, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
 }
