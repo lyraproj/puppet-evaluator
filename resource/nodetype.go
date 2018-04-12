@@ -225,7 +225,12 @@ func (rn *node) evaluate(c eval.Context) {
 	resources := rn.Resources()
 	if resources.Len() > 0 {
 		handles := make([]Handle, 0, resources.Len())
-		resources.EachValue(func(r eval.PValue) { handles = append(handles, r.(Handle)) })
+		resources.EachValue(func(r eval.PValue) {
+			h := r.(*handle)
+			if h.value != nil {
+				handles = append(handles, h)
+			}
+		})
 		err := getApplyFunction(c)(c, handles)
 		if err != nil {
 			if ir, ok := err.(issue.Reported); ok {
