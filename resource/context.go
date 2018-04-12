@@ -129,7 +129,13 @@ func sortByEntriesLocation(entries []*types.HashEntry) {
 	}
 	types.WrapArray(v).Sort(func(a, b eval.PValue) bool {
 		l1 := a.(*types.HashEntry).Value().(issue.Located).Location()
+		if l1 == nil {
+			return true
+		}
 		l2 := b.(*types.HashEntry).Value().(issue.Located).Location()
+		if l2 == nil {
+			return false
+		}
 		if l1.File() == l2.File() {
 			ld := l1.Line() - l2.Line()
 			if ld == 0 {
