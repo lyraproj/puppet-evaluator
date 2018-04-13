@@ -183,7 +183,13 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 		}
 	}()
 	InitializePuppet()
-	err = actor(p.newContext(parentCtx))
+	var ctx eval.Context
+	if ec, ok := parentCtx.(eval.Context); ok {
+		ctx = ec.Fork()
+	} else {
+		ctx = p.newContext(parentCtx)
+	}
+	err = actor(ctx)
 	return
 }
 
