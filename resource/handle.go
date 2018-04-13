@@ -1,12 +1,13 @@
 package resource
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
 	"io"
+
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 )
 
-type(
+type (
 	Handle interface {
 		eval.PuppetObject
 
@@ -16,7 +17,7 @@ type(
 	}
 
 	handle struct {
-		value eval.PuppetObject
+		value    eval.PuppetObject
 		location issue.Location
 	}
 )
@@ -42,8 +43,8 @@ func (h *handle) Equals(other interface{}, guard eval.Guard) bool {
 }
 
 func (h *handle) Replace(value eval.PuppetObject) {
-	if h.value.Type() != value.Type() {
-		panic(eval.Error(nil, EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{ `expected_type`: h.value.Type().String(), `actual_type`: value.Type().String()}))
+	if !eval.Equals(h.value.Type(), value.Type()) {
+		panic(eval.Error(nil, EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{`expected_type`: h.value.Type().String(), `actual_type`: value.Type().String()}))
 	}
 	h.value = value
 }
