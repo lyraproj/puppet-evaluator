@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-evaluator/errors"
 )
@@ -13,7 +13,9 @@ import (
 type (
 	SemVerRangeType struct{}
 
-	SemVerRangeValue semver.VersionRange
+	SemVerRangeValue struct {
+		rng semver.VersionRange
+	}
 )
 
 var semVerRangeType_DEFAULT = &SemVerRangeType{}
@@ -47,15 +49,15 @@ func init() {
 			d.Param(`Variant[Default,SemVer]`)
 			d.OptionalParam(`Boolean`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				var start *semver.Version
+				var start semver.Version
 				if _, ok := args[0].(*DefaultValue); ok {
-					start = semver.MIN
+					start = semver.Min
 				} else {
 					start = args[0].(*SemVerValue).Version()
 				}
-				var end *semver.Version
+				var end semver.Version
 				if _, ok := args[1].(*DefaultValue); ok {
-					end = semver.MAX
+					end = semver.Max
 				} else {
 					end = args[1].(*SemVerValue).Version()
 				}
@@ -73,10 +75,10 @@ func init() {
 				hash := args[0].(*HashValue)
 				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
 
-				var end *semver.Version
+				var end semver.Version
 				ev := hash.Get5(`max`, nil)
 				if ev == nil {
-					end = semver.MAX
+					end = semver.Max
 				} else {
 					end = ev.(*SemVerValue).Version()
 				}
@@ -135,17 +137,17 @@ func (t *SemVerRangeType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func WrapSemVerRange(val *semver.VersionRange) *SemVerRangeValue {
-	return (*SemVerRangeValue)(val)
+func WrapSemVerRange(val semver.VersionRange) *SemVerRangeValue {
+	return &SemVerRangeValue{val}
 }
 
-func (bv *SemVerRangeValue) VersionRange() *semver.VersionRange {
-	return (*semver.VersionRange)(bv)
+func (bv *SemVerRangeValue) VersionRange() semver.VersionRange {
+	return bv.rng
 }
 
 func (bv *SemVerRangeValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*SemVerRangeValue); ok {
-		return (*semver.VersionRange)(bv).Equals((*semver.VersionRange)(ov))
+		return bv.rng.Equals(ov.rng)
 	}
 	return false
 }
@@ -160,7 +162,7 @@ func (bv *SemVerRangeValue) String() string {
 
 func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), bv.Type())
-	vr := (*semver.VersionRange)(bv)
+	vr := bv.rng
 	switch f.FormatChar() {
 	case 'p':
 		if f.IsAlt() {
@@ -182,7 +184,7 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 func (bv *SemVerRangeValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
 	b.WriteByte(HK_VERSION_RANGE)
-	(*semver.VersionRange)(bv).ToString(b)
+	bv.rng.ToString(b)
 }
 
 func (bv *SemVerRangeValue) Type() eval.PType {

@@ -13,7 +13,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )
@@ -441,10 +441,10 @@ func wrap(v interface{}) (pv eval.PValue) {
 		pv = WrapRegexp2(v.(*regexp.Regexp))
 	case []byte:
 		pv = WrapBinary(v.([]byte))
-	case *semver.Version:
-		pv = WrapSemVer(v.(*semver.Version))
-	case *semver.VersionRange:
-		pv = WrapSemVerRange(v.(*semver.VersionRange))
+	case semver.Version:
+		pv = WrapSemVer(v.(semver.Version))
+	case semver.VersionRange:
+		pv = WrapSemVerRange(v.(semver.VersionRange))
 	case time.Duration:
 		pv = WrapTimespan(v.(time.Duration))
 	case time.Time:

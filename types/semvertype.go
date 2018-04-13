@@ -6,18 +6,18 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 type (
 	SemVerType struct {
-		vRange *semver.VersionRange
+		vRange semver.VersionRange
 	}
 
 	SemVerValue SemVerType
 )
 
-var semVerType_DEFAULT = &SemVerType{semver.MATCH_ALL}
+var semVerType_DEFAULT = &SemVerType{semver.MatchAll}
 
 var SemVer_Type eval.ObjectType
 
@@ -111,8 +111,8 @@ func DefaultSemVerType() *SemVerType {
 	return semVerType_DEFAULT
 }
 
-func NewSemVerType(vr *semver.VersionRange) *SemVerType {
-	if vr.Equals(semver.MATCH_ALL) {
+func NewSemVerType(vr semver.VersionRange) *SemVerType {
+	if vr.Equals(semver.MatchAll) {
 		return DefaultSemVerType()
 	}
 	return &SemVerType{vr}
@@ -134,9 +134,9 @@ func NewSemVerType3(limits eval.IndexedValue) *SemVerType {
 		}
 	}
 
-	var finalRange *semver.VersionRange
+	var finalRange semver.VersionRange
 	limits.EachWithIndex(func(arg eval.PValue, idx int) {
-		var rng *semver.VersionRange
+		var rng semver.VersionRange
 		str, ok := arg.(*StringValue)
 		if ok {
 			var err error
@@ -209,7 +209,7 @@ func (t *SemVerType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) boo
 }
 
 func (t *SemVerType) Parameters() []eval.PValue {
-	if t.vRange.Equals(semver.MATCH_ALL) {
+	if t.vRange.Equals(semver.MatchAll) {
 		return eval.EMPTY_VALUES
 	}
 	return []eval.PValue{WrapString(t.vRange.String())}
@@ -223,11 +223,11 @@ func (t *SemVerType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-func WrapSemVer(val *semver.Version) *SemVerValue {
+func WrapSemVer(val semver.Version) *SemVerValue {
 	return (*SemVerValue)(NewSemVerType(semver.ExactVersionRange(val)))
 }
 
-func (v *SemVerValue) Version() *semver.Version {
+func (v *SemVerValue) Version() semver.Version {
 	return v.vRange.StartVersion()
 }
 

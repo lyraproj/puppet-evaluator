@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-parser/parser"
 	"math"
 	"fmt"
@@ -74,7 +74,7 @@ type (
 		name          string
 		owner         *TypeSetType
 		nameAuthority eval.URI
-		versionRange  *semver.VersionRange
+		versionRange  semver.VersionRange
 		typeSet       *TypeSetType
 	}
 
@@ -85,8 +85,8 @@ type (
 		name               string
 		nameAuthority      eval.URI
 		pcoreURI           eval.URI
-		pcoreVersion       *semver.Version
-		version            *semver.Version
+		pcoreVersion       semver.Version
+		version            semver.Version
 		types              *HashValue
 		references         map[string]*typeSetReference
 		loader             eval.Loader
@@ -158,7 +158,7 @@ var typeSetType_DEFAULT = &TypeSetType{
 	nameAuthority: eval.RUNTIME_NAME_AUTHORITY,
 	pcoreURI:      eval.PCORE_URI,
 	pcoreVersion:  eval.PCORE_VERSION,
-	version:       semver.NewVersion4(0, 0, 0, ``, ``),
+	version:       semver.Zero,
 }
 
 var typeSetId = int64(0)
@@ -257,7 +257,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	refs := hashArg(initHash, KEY_REFERENCES)
 	if !refs.IsEmpty() {
 		refMap := make(map[string]*typeSetReference, 7)
-		rootMap  := make(map[eval.URI]map[string][]*semver.VersionRange, 7)
+		rootMap  := make(map[eval.URI]map[string][]semver.VersionRange, 7)
 		refs.EachPair(func(k, v eval.PValue) {
 			refAlias := k.String()
 
@@ -276,7 +276,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			refNA := ref.nameAuthority
 			naRoots, found := rootMap[refNA]
 			if !found {
-				naRoots = make(map[string][]*semver.VersionRange, 3)
+				naRoots = make(map[string][]semver.VersionRange, 3)
 				rootMap[refNA] = naRoots
 			}
 
@@ -289,7 +289,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				}
 				naRoots[refName] = append(ranges, ref.versionRange)
 			} else {
-				naRoots[refName] = []*semver.VersionRange{ ref.versionRange }
+				naRoots[refName] = []semver.VersionRange{ ref.versionRange }
 			}
 
 			refMap[refAlias] = ref

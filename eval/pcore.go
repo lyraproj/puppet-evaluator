@@ -1,7 +1,7 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-parser/validator"
 	"context"
 )
@@ -79,7 +79,7 @@ const(
 	PCORE_URI = URI(`http://puppet.com/2016.1/pcore`)
 )
 
-var PCORE_VERSION = semver.NewVersion4(1, 0, 0, ``, ``)
+var PCORE_VERSION, _ = semver.NewVersion3(1, 0, 0, ``, ``)
 var PARSABLE_PCORE_VERSIONS, _ = semver.ParseVersionRange(`1.x`)
 
 var Puppet Pcore = nil

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
@@ -147,7 +147,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 		}
 
 	case *types.SemVerValue, *types.SemVerRangeValue:
-		var version *semver.Version
+		var version semver.Version
 
 		if v, ok := a.(*types.SemVerValue); ok {
 			version = v.Version()

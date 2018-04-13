@@ -12,7 +12,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-evaluator/semver"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 var Object_Type eval.ObjectType
@@ -249,7 +249,7 @@ func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.U
 	panic(argError(DefaultUriType(), v))
 }
 
-func versionArg(c eval.Context, hash eval.KeyedValue, key string, d *semver.Version) *semver.Version {
+func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Version) semver.Version {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -267,7 +267,7 @@ func versionArg(c eval.Context, hash eval.KeyedValue, key string, d *semver.Vers
 	panic(argError(DefaultSemVerType(), v))
 }
 
-func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d *semver.VersionRange) *semver.VersionRange {
+func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d semver.VersionRange) semver.VersionRange {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
