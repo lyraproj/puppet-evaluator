@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"context"
 )
 
 type (
@@ -23,6 +24,8 @@ type (
 	// contexts share common parents for scope and loaders.
 	//
 	Context interface {
+		context.Context
+
 		AddDefinitions(expression parser.Expression)
 
 		// Call calls a function known to the loader with arguments and an optional
