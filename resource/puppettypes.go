@@ -88,4 +88,20 @@ func InitBuiltinResources() {
 				})
 			}(br)
 		}
-	}
+
+	eval.NewGoFunction(`get_resource`,
+		func(d eval.Dispatch) {
+			d.Param(`Variant[Type[Resource],String]`)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				ref := types.WrapString(Reference(c, args[0]))
+				if r, ok := Resources(c).Get(ref); ok {
+					return r
+				}
+				if node, ok := FindNode(c, ref); ok {
+					return node.Resources().Get2(ref, eval.UNDEF)
+				}
+				return eval.UNDEF
+			})
+		},
+	)
+}
