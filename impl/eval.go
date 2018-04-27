@@ -66,7 +66,7 @@ type (
 )
 
 func (systemLocation) File() string {
-	return `System`
+	return ``
 }
 
 func (systemLocation) Line() int {
