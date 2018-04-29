@@ -8,7 +8,7 @@ import (
 )
 
 func (e *evaluator) eval_AssignmentExpression(expr *parser.AssignmentExpression, c eval.Context) eval.PValue {
-	return e.assign(expr, c.Scope(), e.lvalue(expr.Lhs()), e.Eval(expr.Rhs(), c))
+	return e.assign(expr, c.Scope(), e.lvalue(expr.Lhs()), e.eval(expr.Rhs(), c))
 }
 
 func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.PValue, rv eval.PValue) eval.PValue {

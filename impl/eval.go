@@ -173,7 +173,7 @@ func (e *evaluator) call(funcType eval.Namespace, name string, args []eval.PValu
 
 	var block eval.Lambda
 	if call.Lambda() != nil {
-		block = e.Eval(call.Lambda(), c).(eval.Lambda)
+		block = e.eval(call.Lambda(), c).(eval.Lambda)
 	}
 
 	fn := f.(eval.Function)
@@ -258,7 +258,7 @@ func (e *evaluator) eval_CallMethodExpression(call *parser.CallMethodExpression,
 		if mbr, ok := tem.Member(qn.Name()); ok {
 			var block eval.Lambda
 			if call.Lambda() != nil {
-				block = e.Eval(call.Lambda(), c).(eval.Lambda)
+				block = e.eval(call.Lambda(), c).(eval.Lambda)
 			}
 			return mbr.Call(c, obj, block, e.unfold(call.Arguments(), c))
 		}
