@@ -53,14 +53,14 @@ func (e *BasicScope) RxGet(index int) (value eval.PValue, found bool) {
 	return eval.UNDEF, false
 }
 
-func (e *BasicScope) WithLocalScope(producer eval.ValueProducer) eval.PValue {
+func (e *BasicScope) WithLocalScope(producer eval.Producer) eval.PValue {
 	epCount := len(e.scopes)
 	defer func() {
 		// Pop all ephemerals
 		e.scopes = e.scopes[:epCount]
 	}()
 	e.scopes = append(e.scopes, make(map[string]eval.PValue, 8))
-	result := producer(e)
+	result := producer()
 	return result
 }
 
@@ -110,5 +110,5 @@ func (e *parentedScope) Get(name string) (value eval.PValue, found bool) {
 	if !found {
 		value, found = e.parent.Get(name)
 	}
-	return value, found
+	return
 }

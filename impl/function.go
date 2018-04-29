@@ -432,12 +432,12 @@ func (f *puppetFunction) Signature() eval.Signature {
 }
 
 func doCall(c eval.Context, name string, parameters []*parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
-	return c.Scope().WithLocalScope(func(functionScope eval.Scope) (v eval.PValue) {
+	return c.Scope().WithLocalScope(func() (v eval.PValue) {
 		na := len(args)
 		np := len(parameters)
 		if np > na {
 			// Resolve parameter defaults in special parameter scope and assign values to function scope
-			c.Scope().WithLocalScope(func(paramScope eval.Scope) eval.PValue {
+			c.Scope().WithLocalScope(func() eval.PValue {
 				ap := make([]eval.PValue, np)
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
@@ -446,7 +446,7 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 						ap[idx] = eval.UNDEF
 						continue
 					}
-					d := c.EvaluateIn(p.pExpr.Value(), paramScope)
+					d := c.Evaluate(p.pExpr.Value())
 					if !eval.IsInstance(c, p.pType, d) {
 						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.pType, d.Type())))
 					}
@@ -461,10 +461,11 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 			AssertArgument(c, name, idx, parameters[idx].pType, arg)
 		}
 
+		scope := c.Scope()
 		for idx, p := range parameters {
-			functionScope.Set(p.pExpr.Name(), args[idx])
+			scope.Set(p.pExpr.Name(), args[idx])
 		}
-		v = c.EvaluateIn(body, functionScope)
+		v = c.Evaluate(body)
 		if !eval.IsInstance(c, signature.ReturnType(), v) {
 			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`,
 				name, signature.ReturnType().String(), eval.DetailedValueType(v).String()))

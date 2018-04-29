@@ -1,9 +1,6 @@
 package eval
 
 type (
-	// ValueProducer is the function type to pass to the Scope.WithLocalScope method
-	ValueProducer func(scope Scope) PValue
-
 	// A Scope is the container for Puppet variables. It is constituted of
 	// a stack of ephemeral scopes where each ephemeral scope represents a local
 	// variable container that overrides the previous entry.
@@ -20,7 +17,7 @@ type (
 	Scope interface {
 		// WithLocalScope pushes an ephemeral scope and calls the producer. The
 		// ephemeral scope is quaraneed to be popped before this method returns.
-		WithLocalScope(producer ValueProducer) PValue
+		WithLocalScope(producer Producer) PValue
 
 		// Get returns a named variable from this scope together with a boolean indicating
 		// if the variable was found or not

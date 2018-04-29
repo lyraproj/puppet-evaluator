@@ -280,8 +280,7 @@ func (e *evaluator) eval_CallNamedFunctionExpression(call *parser.CallNamedFunct
 }
 
 func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func(s eval.Scope) eval.PValue {
-		c = c.WithScope(s)
+	return c.Scope().WithLocalScope(func() eval.PValue {
 		if eval.IsTruthy(e.eval(expr.Test(), c)) {
 			return e.eval(expr.Then(), c)
 		}
@@ -290,8 +289,7 @@ func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context)
 }
 
 func (e *evaluator) eval_UnlessExpression(expr *parser.UnlessExpression, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func(s eval.Scope) eval.PValue {
-		c = c.WithScope(s)
+	return c.Scope().WithLocalScope(func() eval.PValue {
 		if !eval.IsTruthy(e.eval(expr.Test(), c)) {
 			return e.eval(expr.Then(), c)
 		}
@@ -387,8 +385,7 @@ func (e *evaluator) eval_RegexpExpression(expr *parser.RegexpExpression) eval.PV
 }
 
 func (e *evaluator) eval_CaseExpression(expr *parser.CaseExpression, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func(scope eval.Scope) eval.PValue {
-		c = c.WithScope(scope)
+	return c.Scope().WithLocalScope(func() eval.PValue {
 		test := e.eval(expr.Test(), c)
 		var the_default *parser.CaseOption
 		var selected *parser.CaseOption
@@ -424,8 +421,7 @@ func (e *evaluator) eval_CaseExpression(expr *parser.CaseExpression, c eval.Cont
 }
 
 func (e *evaluator) eval_SelectorExpression(expr *parser.SelectorExpression, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func(scope eval.Scope) eval.PValue {
-		c = c.WithScope(scope)
+	return c.Scope().WithLocalScope(func() eval.PValue {
 		test := e.eval(expr.Lhs(), c)
 		var the_default *parser.SelectorEntry
 		var selected *parser.SelectorEntry

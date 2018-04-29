@@ -127,6 +127,17 @@ Examples('resource evaluator',
         ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
         ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
         ])),
+
+    Example('resources can be assigned to variables"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        $r1 = myres { '/a/a': ensure => present } ->
+        with || {
+          $r2 = myres { '/b/a': ensure => $r1[0].ensure }
+          $r2[0].ensure
+        }
+        |-SRC
+      Evaluates_to('present')),
   ),
 
   Examples('when referenced',
