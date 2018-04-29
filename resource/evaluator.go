@@ -241,6 +241,5 @@ func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Express
 		}
 	}
 	obj := ctor.Call(c, nil, types.WrapHash(entries)).(eval.PuppetObject)
-	defineResource(c, obj, titleExpr)
-	return obj
+	return defineResource(c, obj, titleExpr)
 }

@@ -46,18 +46,21 @@ func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction Appl
 	return c.Evaluator().Evaluate(c, expr)
 }
 
-func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) {
+func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) eval.PuppetObject {
 	rs := getResources(c)
 	ref := Reference(c, resource)
-	if oh, ok := rs[ref]; ok {
+	oh, ok := rs[ref]
+	if ok {
 		if oh.value != nil {
 			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(oh.location)}))
 		}
 		oh.value = resource
 		oh.location = location
 	} else {
-		rs[ref] = &handle{resource, location}
+		oh = &handle{resource, location}
+		rs[ref] = oh
 	}
+	return oh
 }
 
 func getCurrentNode(c eval.Context) *node {
