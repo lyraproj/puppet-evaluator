@@ -104,7 +104,7 @@ func (t *CallableType) BlockType() eval.PType {
 	return t.blockType
 }
 
-func (t *CallableType) CallableWith(c eval.Context, args eval.IndexedValue, block eval.Lambda) bool {
+func (t *CallableType) CallableWith(c eval.Context, args []eval.PValue, block eval.Lambda) bool {
 	if block != nil {
 		cb := t.blockType
 		switch cb.(type) {
@@ -123,7 +123,7 @@ func (t *CallableType) CallableWith(c eval.Context, args eval.IndexedValue, bloc
 		// Required block but non provided
 		return false
 	}
-	return t.paramsType.IsInstance2(c, args, nil)
+	return t.paramsType.IsInstance3(c, args, nil)
 }
 
 func (t *CallableType) Accept(v eval.Visitor, g eval.Guard) {
@@ -183,6 +183,10 @@ func (t *CallableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if !ok {
 		return false
 	}
+	if t.returnType == nil && t.paramsType == nil && t.blockType == nil {
+		return true
+	}
+
 	if t.returnType != nil {
 		or := oc.returnType
 		if or == nil {

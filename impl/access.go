@@ -8,43 +8,51 @@ import (
 )
 
 func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.PValue) {
-	op := expr.Operand()
 	keys := expr.Keys()
-	nArgs := len(keys)
-	args := make([]eval.PValue, nArgs)
+	args := make([]eval.PValue, len(keys))
 	for idx, key := range keys {
 		args[idx] = e.eval(key, c)
 	}
 
+	op := expr.Operand()
 	if qr, ok := op.(*parser.QualifiedReference); ok {
 		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 
 	lhs := e.eval(op, c)
 
-	var opV eval.SizedValue
-	if sv, ok := lhs.(eval.SizedValue); ok {
-		opV = sv
-	} else {
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
+	switch lhs.(type) {
+	case eval.IndexedValue:
+		return e.accessIndexedValue(expr, lhs.(eval.IndexedValue), args, c)
+	default:
+		if tem, ok := lhs.Type().(eval.TypeWithCallableMembers); ok {
+			if mbr, ok := tem.Member(`[]`); ok {
+				return mbr.Call(c, lhs, nil, args)
+			}
+		}
 	}
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
+}
+
+func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.IndexedValue, args []eval.PValue, c eval.Context) (result eval.PValue) {
+	nArgs := len(args)
 
 	intArg := func(index int) int {
 		key := args[index]
 		if arg, ok := eval.ToInt(key); ok {
 			return int(arg)
 		}
-		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, keys[index],
-			issue.H{`expression`: opV.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
+		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, expr.Keys()[index],
+			issue.H{`expression`: lhs.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
 	indexArg := func(argIndex int) int {
 		index := intArg(argIndex)
 		if index < 0 {
-			index = opV.Len() + index
+			index = lhs.Len() + index
 		}
-		if index > opV.Len() {
-			index = opV.Len()
+		if index > lhs.Len() {
+			index = lhs.Len()
 		}
 		return index
 	}
@@ -61,24 +69,22 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 			start = 0
 		}
 		if count < 0 {
-			count = 1 + (opV.Len() + count) - start
+			count = 1 + (lhs.Len() + count) - start
 			if count < 0 {
 				count = 0
 			}
-		} else if start+count > opV.Len() {
-			count = opV.Len() - start
+		} else if start+count > lhs.Len() {
+			count = lhs.Len() - start
 		}
 		return
 	}
 
-	switch opV.(type) {
-	case *types.HashValue:
-		if opV.Len() == 0 {
+	if hv, ok := lhs.(*types.HashValue); ok {
+		if hv.Len() == 0 {
 			return eval.UNDEF
 		}
-		hv := opV.(*types.HashValue)
 		if nArgs == 0 {
-			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: opV.Type(), `expected`: `at least one`, `actual`: nArgs}))
+			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.Type(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
@@ -93,40 +99,36 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 			}
 		}
 		return types.WrapArray(el)
+	}
 
-	case eval.IndexedValue:
-		if nArgs == 0 || nArgs > 2 {
-			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: opV.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
+	if nArgs == 0 || nArgs > 2 {
+		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
+	}
+	if nArgs == 2 {
+		start := indexArg(0)
+		count := countArg(1, start)
+		if start < 0 {
+			start = 0
 		}
-		if nArgs == 2 {
-			start := indexArg(0)
-			count := countArg(1, start)
-			if start < 0 {
-				start = 0
+		if start == lhs.Len() || count == 0 {
+			if _, ok := lhs.(*types.StringValue); ok {
+				return eval.EMPTY_STRING
 			}
-			if start == opV.Len() || count == 0 {
-				if _, ok := opV.(*types.StringValue); ok {
-					return eval.EMPTY_STRING
-				}
-				return eval.EMPTY_ARRAY
-			}
-			return opV.(eval.IndexedValue).Slice(start, start+count)
+			return eval.EMPTY_ARRAY
 		}
-		pos := intArg(0)
+		return lhs.Slice(start, start+count)
+	}
+	pos := intArg(0)
+	if pos < 0 {
+		pos = lhs.Len() + pos
 		if pos < 0 {
-			pos = opV.Len() + pos
-			if pos < 0 {
-				return eval.UNDEF
-			}
-		}
-		if pos >= opV.Len() {
 			return eval.UNDEF
 		}
-		return opV.(eval.IndexedValue).At(pos)
-
-	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: opV.Type()}))
 	}
+	if pos >= lhs.Len() {
+		return eval.UNDEF
+	}
+	return lhs.At(pos)
 }
 
 func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.PValue, expr *parser.AccessExpression, c eval.Context) (tp eval.PType) {

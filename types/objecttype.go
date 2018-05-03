@@ -101,7 +101,7 @@ var TYPE_MEMBER_NAMES = NewArrayType2(TYPE_MEMBER_NAME)
 var TYPE_PARAMETERS = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
 var TYPE_ATTRIBUTES = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
 var TYPE_CONSTANTS = NewHashType(TYPE_MEMBER_NAME, DefaultAnyType(), nil)
-var TYPE_FUNCTIONS = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
+var TYPE_FUNCTIONS = NewHashType(NewVariantType2(TYPE_MEMBER_NAME, NewPatternType2(NewRegexpTypeR(regexp.MustCompile(`^\[\]$`)))), DefaultNotUndefType(), nil)
 var TYPE_EQUALITY = NewVariantType2(TYPE_MEMBER_NAME, TYPE_MEMBER_NAMES)
 var TYPE_CHECKS = DefaultAnyType()
 
@@ -529,6 +529,19 @@ func newFunction(c eval.Context, name string, container *objectType, initHash *H
 func (f *function) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
 	f.annotatedMember.initialize(name, container, initHash)
 	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for %s`, f.Label()) }, TYPE_FUNCTION, initHash)
+}
+
+func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+	if a.CallableType().(*CallableType).CallableWith(c, args, block) {
+		if co, ok := receiver.(eval.CallableObject); ok {
+			if result, ok := co.Call(a.name, args, block); ok {
+				return result
+			}
+		}
+		panic(eval.Error(c, eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
+	}
+	panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(args...), block)}))
 }
 
 func (f *function) Equals(other interface{}, g eval.Guard) bool {

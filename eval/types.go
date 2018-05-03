@@ -114,6 +114,10 @@ type (
 		Get(c Context, key string) (value PValue, ok bool)
 	}
 
+	CallableObject interface {
+		Call(method string, args []PValue, block Lambda) (result PValue, ok bool)
+	}
+
 	PuppetObject interface {
 		PValue
 		ReadableObject

@@ -276,6 +276,29 @@ func (t *TupleType) IsInstance2(c eval.Context, vs eval.IndexedValue, g eval.Gua
 	return true
 }
 
+func (t *TupleType) IsInstance3(c eval.Context, vs []eval.PValue, g eval.Guard) bool {
+	osz := len(vs)
+	if !t.givenOrActualSize.IsInstance3(osz) {
+		return false
+	}
+
+	last := len(t.types) - 1
+	if last < 0 {
+		return true
+	}
+
+	tdx := 0
+	for idx := 0; idx < osz; idx++ {
+		if !GuardedIsInstance(c, t.types[tdx], vs[idx], g) {
+			return false
+		}
+		if tdx < last {
+			tdx++
+		}
+	}
+	return true
+}
+
 func (t *TupleType) MetaType() eval.ObjectType {
 	return Tuple_Type
 }

@@ -33,6 +33,7 @@ const (
 	EVAL_ILLEGAL_RETURN                            = `EVAL_ILLEGAL_RETURN`
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE             = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
+	EVAL_INSTANCE_DOES_NOT_RESPOND                 = `EVAL_INSTANCE_DOES_NOT_RESPOND`
 	EVAL_INVALID_REGEXP                            = `EVAL_INVALID_REGEXP`
 	EVAL_INVALID_STRING_FORMAT_SPEC                = `EVAL_INVALID_STRING_FORMAT_SPEC`
 	EVAL_INVALID_STRING_FORMAT_DELIMITER           = `EVAL_INVALID_STRING_FORMAT_DELIMITER`
@@ -179,6 +180,8 @@ func init() {
 	issue.Hard(EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, `Mismatched number of assignable entries and values, expected %{expected}, got %{actual}`)
 
 	issue.Hard(EVAL_ILLEGAL_REASSIGNMENT, `Cannot reassign variable '$%{var}'`)
+
+	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
 
 	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '${pattern}': %{detail}`)
 
