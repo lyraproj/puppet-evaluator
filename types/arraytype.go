@@ -471,21 +471,33 @@ func (av *ArrayValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) 
 }
 
 func (av *ArrayValue) Reject(predicate eval.Predicate) eval.IndexedValue {
+	all := true
 	selected := make([]eval.PValue, 0)
 	for _, e := range av.elements {
 		if !predicate(e) {
 			selected = append(selected, e)
+		} else {
+			all = false
 		}
+	}
+	if all {
+		return av
 	}
 	return WrapArray(selected)
 }
 
 func (av *ArrayValue) Select(predicate eval.Predicate) eval.IndexedValue {
+	all := true
 	selected := make([]eval.PValue, 0)
 	for _, e := range av.elements {
 		if predicate(e) {
 			selected = append(selected, e)
+		} else {
+			all = false
 		}
+	}
+	if all {
+		return av
 	}
 	return WrapArray(selected)
 }
