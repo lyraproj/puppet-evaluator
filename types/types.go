@@ -273,7 +273,15 @@ var richKeyType_DEFAULT = &VariantType{[]eval.PType{stringType_DEFAULT, numericT
 var richDataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`RichData`}}
 var richDataHashType_DEFAULT = &HashType{integerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
-	[]eval.PType{scalarType_DEFAULT, binaryType_DEFAULT, defaultType_DEFAULT, typeType_DEFAULT, undefType_DEFAULT, richDataArrayType_DEFAULT, richDataHashType_DEFAULT}}, nil}
+	[]eval.PType{scalarType_DEFAULT,
+	binaryType_DEFAULT,
+	defaultType_DEFAULT,
+	objectType_DEFAULT,
+	typeType_DEFAULT,
+	typeSetType_DEFAULT,
+	undefType_DEFAULT,
+	richDataArrayType_DEFAULT,
+	richDataHashType_DEFAULT}}, nil}
 
 var resolvableTypes = make([]eval.ResolvableType, 0, 16)
 var resolvableTypesLock sync.Mutex
