@@ -168,6 +168,10 @@ func (p *pcoreImpl) Logger() eval.Logger {
 	return p.logger
 }
 
+func (p *pcoreImpl) RootContext() eval.Context {
+	return impl.NewContext(p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
+}
+
 func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
 	return p.DoWithParent(context.Background(), actor)
 }

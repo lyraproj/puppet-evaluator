@@ -32,6 +32,11 @@ type (
 		// Logger returns the logger that this instance was created with
 		Logger() Logger
 
+		// RootContext returns a new Context that is parented by the context.Background()
+		// and is initialized with a loader that is parented by the EnvironmentLoader.
+		//
+		RootContext() Context
+
 		// Get returns a setting or calls the given defaultProducer
 		// function if the setting does not exist
 		Get(key string, defaultProducer Producer) PValue
