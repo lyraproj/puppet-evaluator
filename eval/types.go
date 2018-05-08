@@ -1,5 +1,7 @@
 package eval
 
+import "github.com/puppetlabs/go-issues/issue"
+
 type (
 	Visitor func(t PType)
 
@@ -123,6 +125,27 @@ type (
 		ReadableObject
 
 		InitHash() KeyedValue
+	}
+
+	ErrorObject interface {
+		PuppetObject
+
+		// Kind returns the error kind
+		Kind() string
+
+		// Message returns the error message
+		Message() string
+
+		// IssueCode returns the issue code
+		IssueCode() string
+
+		// PartialResult returns the optional partial result. It returns
+		// eval.UNDEF if no partial result exists
+		PartialResult() PValue
+
+		// Details returns the optional details. It returns
+		// an empty map when o details exist
+		Details() KeyedValue
 	}
 
 	AttributesInfo interface {
@@ -346,3 +369,7 @@ var AssertType func(c Context, pfx interface{}, expected, actual PType) PType
 var AssertInstance func(c Context, pfx interface{}, expected PType, value PValue) PValue
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
+
+var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
+
+var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
