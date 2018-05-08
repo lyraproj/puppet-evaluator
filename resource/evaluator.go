@@ -29,13 +29,13 @@ func NewEvaluator(logger eval.Logger) Evaluator {
 	return re
 }
 
-func defaultApplyFunc(c eval.Context, handles []Handle) error {
-	for _, h := range handles {
+func defaultApplyFunc(c eval.Context, resources []eval.PuppetObject) ([]eval.PuppetObject, error) {
+	for _, h := range resources {
 		text := types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h)))
 		log.Println(text)
 		c.Logger().Log(eval.NOTICE, text)
 	}
-	return nil
+	return resources, nil
 }
 
 func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err issue.Reported) {
@@ -71,7 +71,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 		APPLY_FUNCTION: applyFunction,
 	})
 
-	topNode := newNode(c, expression, nil)
+	topNode := newNode(c, expression)
 	scheduleNodes(c, types.SingletonArray(topNode))
 
 	<-done
@@ -158,7 +158,11 @@ func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExp
 	if len(edges) == 1 {
 		return edges[0]
 	}
-	return eval.UNDEF
+	evs := make([]eval.PValue, len(edges))
+	for i, e := range edges {
+		evs[i] = e
+	}
+	return types.WrapArray(evs)
 }
 
 func createEdges(c eval.Context, lhs, rhs parser.Expression, subscribe bool, edges []Edge) []Edge {
@@ -177,7 +181,7 @@ func createNodes(c eval.Context, expr parser.Expression, nodes []Node) []Node {
 			nodes = createNodes(c, el, nodes)
 		}
 	} else {
-		nodes = append(nodes, newNode(c, expr, nil))
+		nodes = append(nodes, newNode(c, expr))
 	}
 	return nodes
 }
@@ -241,5 +245,6 @@ func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Express
 		}
 	}
 	obj := ctor.Call(c, nil, types.WrapHash(entries)).(eval.PuppetObject)
-	return defineResource(c, obj, titleExpr)
+	defineResource(c, obj, titleExpr)
+	return obj
 }

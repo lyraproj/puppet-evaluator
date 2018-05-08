@@ -17,7 +17,7 @@ func init() {
 	Node_Type = eval.NewObjectType(`ResourceNode`, `{
 	attributes => {
 		id => Integer,
-	  value => Any,
+	  value => RichData,
 		resources => Hash[String,Resource]
 	}
 }`)
@@ -48,9 +48,9 @@ type (
 		// Resource returns the resources kept by this node that corresponds to the given ref
 		Resources() eval.KeyedValue
 
-		// Value returns the value of this node. This is a potentially blocking operation. In
-		// all nodes appointing this node must be resolved and the contained expression must
-		// be evaluated before the value can be produced.
+		// Value returns the result of evaluating the node expression. This is a potentially blocking
+		// operation. In all nodes appointing this node must be resolved and the contained expression must
+		// be evaluated before the result can be produced.
 		Value() eval.PValue
 	}
 
@@ -71,6 +71,8 @@ type (
 
 		// Set in case node evaluation ended in error
 		error issue.Reported
+
+		results []eval.PValue
 	}
 )
 
@@ -148,12 +150,45 @@ func (rn *node) Value() eval.PValue {
 	rn.lock.RUnlock()
 	if edge, ok := value.(Edge); ok {
 		value = edge.To().(Node).Value()
+	} else if maybeEdges, ok := value.(*types.ArrayValue); ok && maybeEdges.All(func(e eval.PValue) bool {
+		_, ok := e.(Edge)
+		return ok
+	}) {
+		toUnique := make(map[int64]bool, maybeEdges.Len())
+		toValues := make([]eval.PValue, 0)
+		maybeEdges.Each(func(e eval.PValue) {
+			n := e.(Edge).To()
+			if !toUnique[n.ID()] {
+				toUnique[n.ID()] = true
+				toValues = append(toValues, n.(Node).Value())
+			}
+		})
+		if len(toValues) == 1 {
+			value = toValues[0]
+		} else {
+			value = types.WrapArray(toValues)
+		}
 	}
 	return value
 }
 
+func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
+	switch nv.(type) {
+	case ResultSet:
+		results = nv.(ResultSet).Results().AppendTo(results)
+	case Result:
+		results = append(results, nv)
+	case *types.ArrayValue:
+		nv.(eval.IndexedValue).Each(func(e eval.PValue) {
+			results = appendResults(results, e)
+		})
+	}
+	return results
+}
+
+
 // Creates an unevaluated node, aware of all resources that uses static titles
-func newNode(c eval.Context, expression parser.Expression, value eval.PValue) *node {
+func newNode(c eval.Context, expression parser.Expression) *node {
 	var handles map[string]*handle
 	if expression == nil {
 		// Root node
@@ -169,7 +204,7 @@ func newNode(c eval.Context, expression parser.Expression, value eval.PValue) *n
 	node := g.NewNode().(*node)
 	node.expression = expression
 	node.resources = handles
-	node.value = value
+	node.value = nil
 	g.AddNode(node)
 	return node
 }
@@ -205,7 +240,7 @@ func (rn *node) evaluate(c eval.Context) {
 
 		// Ensure that all nodes that has an edge to this node have been
 		// fully resolved.
-		rn.waitForEdgesTo(c)
+		c.Scope().Set(`pnr`, rn.waitForEdgesTo(c))
 
 		value, err := c.Evaluator().(*resourceEval).evaluateNodeExpression(c, rn)
 		if err == nil {
@@ -213,7 +248,7 @@ func (rn *node) evaluate(c eval.Context) {
 			return false
 		}
 
-		rn.value = eval.UNDEF
+		rn.value = NewErrorResult(types.WrapInteger(rn.ID()), eval.ErrorFromReported(c, err))
 		rn.error = err
 		return true
 	}()
@@ -223,24 +258,36 @@ func (rn *node) evaluate(c eval.Context) {
 	}
 
 	resources := rn.Resources()
-	if resources.Len() > 0 {
-		handles := make([]Handle, 0, resources.Len())
+	rcount := resources.Len()
+	results := appendResults(make([]eval.PValue, 0, rcount + 1), rn.value)
+	if rcount > 0 {
+		rs := make([]eval.PuppetObject, 0, rcount)
 		resources.EachValue(func(r eval.PValue) {
 			h := r.(*handle)
 			if h.value != nil {
-				handles = append(handles, h)
+				rs = append(rs, h.value)
 			}
 		})
-		err := getApplyFunction(c)(c, handles)
+
+		applyResults, err := getApplyFunction(c)(c, rs)
 		if err != nil {
-			if ir, ok := err.(issue.Reported); ok {
-				rn.error = ir
-			} else {
-				rn.error = eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()})
+			ir, ok := err.(issue.Reported)
+			if !ok {
+				ir = eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()})
 			}
-			return
+			results = append(results, NewErrorResult(types.WrapInteger(rn.ID()), eval.ErrorFromReported(c, ir)))
+			rn.error = ir
+		} else {
+			for ix, ar := range applyResults {
+				if err, ok := ar.(eval.ErrorObject); ok {
+					results = append(results, NewErrorResult(types.WrapString(Reference(c, rs[ix])), err))
+				} else {
+					results = append(results, NewResult(types.WrapString(Reference(c, rs[ix])), ar, ``))
+				}
+			}
 		}
 	}
+	rn.results = results
 
 	scheduleNodes(c, GetGraph(c).FromNode(rn))
 	return
@@ -294,7 +341,7 @@ func (rn *node) findChildWithResource(c eval.Context, ref string) (*node, bool) 
 
 // Ensure that all nodes that has an edge to this node have been
 // fully resolved.
-func (rn *node) waitForEdgesTo(c eval.Context) {
+func (rn *node) waitForEdgesTo(c eval.Context) ResultSet {
 	g := GetGraph(c)
 	parents := g.To(rn.ID())
 	for {
@@ -305,7 +352,11 @@ func (rn *node) waitForEdgesTo(c eval.Context) {
 		// A new chech must be made if the list of nodes have changed
 		parentsNow := g.To(rn.ID())
 		if sameNodes(parents, parentsNow) {
-			return
+			results := make([]eval.PValue, 0)
+			for _, before := range parents {
+				results = append(results, before.(*node).results...)
+			}
+			return NewResultSet(types.WrapArray(results))
 		}
 		parents = parentsNow
 	}

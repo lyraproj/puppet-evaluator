@@ -18,9 +18,9 @@ func init() {
       'ok' => { type => Boolean, kind => derived }
     }
   }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResult2(ctx, args...)
+		return NewResult2(args...)
 	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultFromHash(ctx, args[0].(*types.HashValue))
+		return NewResultFromHash(args[0].(*types.HashValue))
 	})
 
 	resultSetType = eval.NewObjectType(`ResultSet`, `{
@@ -38,31 +38,75 @@ func init() {
       '[]' => Callable[[ScalarData], Optional[Result]],
     }
   }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultSet(ctx, args...)
+		return NewResultSet(args...)
 	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultSetFromHash(ctx, args[0].(*types.HashValue))
+		return NewResultSetFromHash(args[0].(*types.HashValue))
 	})
 }
 
-type Result struct {
+type Result interface {
+	eval.PuppetObject
+
+	// Id() returns the identifier for this result
+	Id() eval.PValue
+
+	// Message returns an optional message associated with the result
+	Message() string
+
+	// Ok() returns false if the Value() method returns a *types.error and
+	// true for any other value
+	Ok() bool
+
+	// Value returns the result value. It will be a *types.error when
+	// the Ok() method returns false
+	Value() eval.PValue
+}
+
+type ResultSet interface {
+	eval.PuppetObject
+
+	// At returns the result for a given key together with a boolean
+	// indicating if the value was found or not
+	At(eval.PValue) (eval.PValue, bool)
+
+	// ErrorSet returns the subset of the receiver that contains only
+	// error results
+	ErrorSet() ResultSet
+
+	// First returns the first entry in the result set. It will return
+	// eval.UNDEF for an empty set
+	First() eval.PValue
+
+	// Ok returns true if the receiver contains no errors, false otherwise
+	Ok() bool
+
+	// OkSet returns the subset of the receiver that contains only
+	// ok results
+	OkSet() ResultSet
+
+	// Results returns all the results contained in this set
+	Results() eval.IndexedValue
+}
+
+type result struct {
 	id eval.PValue
 	message string
 	value eval.PValue
 }
 
-type ResultSet struct {
-	results *types.ArrayValue
+type resultSet struct {
+	results eval.IndexedValue
 }
 
-func NewResult(id, value eval.PValue, message string) *Result {
-	return &Result{id, message, value}
+func NewResult(id, value eval.PValue, message string) Result {
+	return &result{id, message, value}
 }
 
-func NewErrorResult(id eval.PValue, error *types.Error) *Result {
-	return &Result{id, ``, error}
+func NewErrorResult(id eval.PValue, error  eval.ErrorObject) Result {
+	return &result{id, ``, error}
 }
 
-func NewResult2(c eval.Context, args...eval.PValue) eval.PuppetObject {
+func NewResult2(args...eval.PValue) Result {
 	value := eval.UNDEF
 	var message string
 	if len(args) > 1 {
@@ -74,21 +118,21 @@ func NewResult2(c eval.Context, args...eval.PValue) eval.PuppetObject {
 	return NewResult(args[0], value, message)
 }
 
-func NewResultFromHash(c eval.Context, hash *types.HashValue) eval.PuppetObject {
+func NewResultFromHash(hash *types.HashValue) Result {
 	return NewResult(
 		hash.Get5(`id`, eval.UNDEF),
 		hash.Get6(`value`, func() eval.PValue { return hash.Get5(`error`, eval.UNDEF) }),
 		hash.Get5(`message`, eval.EMPTY_STRING).String())
 }
 
-func (r *Result) Equals(other interface{}, guard eval.Guard) bool {
-	if o, ok := other.(*Result); ok {
+func (r *result) Equals(other interface{}, guard eval.Guard) bool {
+	if o, ok := other.(*result); ok {
 		return r.id.Equals(o.id, guard) && r.message == o.message && r.value.Equals(o.value, guard)
 	}
 	return false
 }
 
-func (r *Result) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (r *result) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `error`:
 		if err, ok := r.Error(); ok {
@@ -98,7 +142,7 @@ func (r *Result) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	case `id`:
 		return r.Id(), true
 	case `message`:
-		msg := r.Message(c)
+		msg := r.Message()
 		if msg == `` {
 			return eval.UNDEF, true
 		}
@@ -112,13 +156,13 @@ func (r *Result) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	}
 }
 
-func (r *Result) Id() eval.PValue {
+func (r *result) Id() eval.PValue {
 	return r.id
 }
 
-func (r *Result) InitHash() eval.KeyedValue {
+func (r *result) InitHash() eval.KeyedValue {
 	v := map[string]eval.PValue{`id`: r.id}
-	if err, ok := r.value.(*types.Error); ok {
+	if err, ok := r.value.(eval.ErrorObject); ok {
 		v[`error`] = err
 	} else {
 		if r.message != `` {
@@ -131,47 +175,50 @@ func (r *Result) InitHash() eval.KeyedValue {
 	return types.WrapHash3(v)
 }
 
-func (r *Result) Error() (*types.Error, bool) {
-	if e, ok := r.value.(*types.Error); ok {
+func (r *result) Error() (eval.ErrorObject, bool) {
+	if e, ok := r.value.(eval.ErrorObject); ok {
 		return e, true
 	}
 	return nil, false
 }
 
-func (r *Result) Message(c eval.Context) string {
+func (r *result) Message() string {
 	return r.message
 }
 
-func (r *Result) Ok() bool {
-	_, isError := r.value.(*types.Error)
+func (r *result) Ok() bool {
+	_, isError := r.value.(eval.ErrorObject)
 	return !isError
 }
 
-func (r *Result) String() string {
+func (r *result) String() string {
 	return eval.ToString(r)
 }
 
-func (r *Result) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (r *result) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	types.ObjectToString(r, s, b, g)
 }
 
-func (r *Result) Type() eval.PType {
+func (r *result) Type() eval.PType {
 	return resultType
 }
 
-func (r *Result) Value() eval.PValue {
+func (r *result) Value() eval.PValue {
 	return r.value
 }
 
-func NewResultSet(c eval.Context, args...eval.PValue) eval.PuppetObject {
-	return &ResultSet{args[0].(*types.ArrayValue)}
+func NewResultSet(args...eval.PValue) ResultSet {
+	if len(args) == 0 {
+		return &resultSet{eval.EMPTY_ARRAY}
+	}
+	return &resultSet{args[0].(*types.ArrayValue)}
 }
 
-func NewResultSetFromHash(c eval.Context, hash *types.HashValue) eval.PuppetObject {
-	return &ResultSet{hash.Get5(`results`, eval.EMPTY_ARRAY).(*types.ArrayValue)}
+func NewResultSetFromHash(hash *types.HashValue) ResultSet {
+	return &resultSet{hash.Get5(`results`, eval.EMPTY_ARRAY).(*types.ArrayValue)}
 }
 
-func (rs *ResultSet) Call(method string, args []eval.PValue, block eval.Lambda) (result eval.PValue, ok bool) {
+func (rs *resultSet) Call(method string, args []eval.PValue, block eval.Lambda) (result eval.PValue, ok bool) {
 	switch method {
 	case `ok`:
 		return types.WrapBoolean(rs.Ok()), true
@@ -187,67 +234,68 @@ func (rs *ResultSet) Call(method string, args []eval.PValue, block eval.Lambda) 
 		}
 		return eval.UNDEF, true
 	case `first`:
-		if found, ok := rs.First(); ok {
-			return found, true
-		}
-		return eval.UNDEF, true
+		return rs.First(), true
 	case `ids`:
-		return rs.results.Map(func(r eval.PValue) eval.PValue { return r.(*Result).Id() }), true
+		return rs.results.Map(func(r eval.PValue) eval.PValue { return r.(Result).Id() }), true
 	case `ok_set`:
 		return rs.OkSet(), true
 	}
 	return nil, false
 }
 
-func (rs *ResultSet) ErrorSet() *ResultSet {
-	return &ResultSet{rs.results.Reject(func(r eval.PValue) bool { return r.(*Result).Ok() }).(*types.ArrayValue)}
+func (rs *resultSet) ErrorSet() ResultSet {
+	return &resultSet{rs.results.Reject(func(r eval.PValue) bool { return r.(Result).Ok() }).(*types.ArrayValue)}
 }
 
-func (rs *ResultSet) At(id eval.PValue) (eval.PValue, bool) {
-	return rs.results.Find(func(r eval.PValue) bool { return eval.Equals(id, r.(*Result).Id()) })
+func (rs *resultSet) At(id eval.PValue) (eval.PValue, bool) {
+	return rs.results.Find(func(r eval.PValue) bool { return eval.Equals(id, r.(Result).Id()) })
 }
 
-func (rs *ResultSet) First() (eval.PValue, bool) {
+func (rs *resultSet) First() eval.PValue {
 	if rs.results.Len() > 0 {
-		return rs.results.At(0), true
+		return rs.results.At(0)
 	}
-	return eval.UNDEF, false
+	return eval.UNDEF
 }
 
-func (rs *ResultSet) Ok() bool {
-	return rs.results.All(func(r eval.PValue) bool { return r.(*Result).Ok() })
+func (rs *resultSet) Ok() bool {
+	return rs.results.All(func(r eval.PValue) bool { return r.(Result).Ok() })
 }
 
-func (rs *ResultSet) OkSet() *ResultSet {
-	return &ResultSet{rs.results.Select(func(r eval.PValue) bool { return r.(*Result).Ok() }).(*types.ArrayValue)}
+func (rs *resultSet) OkSet() ResultSet {
+	return &resultSet{rs.results.Select(func(r eval.PValue) bool { return r.(Result).Ok() }).(*types.ArrayValue)}
 }
 
-func (rs *ResultSet) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (rs *resultSet) Results() eval.IndexedValue {
+	return rs.results
+}
+
+func (rs *resultSet) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	if key == `results` {
 		return rs.results, true
 	}
 	return nil, false
 }
 
-func (rs *ResultSet) InitHash() eval.KeyedValue {
-	return types.WrapHash3(map[string]eval.PValue{`results`: rs.results})
+func (rs *resultSet) InitHash() eval.KeyedValue {
+	return types.SingletonHash2(`results`, rs.results)
 }
 
-func (rs *ResultSet) String() string {
+func (rs *resultSet) String() string {
 	return eval.ToString(rs)
 }
 
-func (rs *ResultSet) Equals(other interface{}, guard eval.Guard) bool {
-	if o, ok := other.(*ResultSet); ok {
+func (rs *resultSet) Equals(other interface{}, guard eval.Guard) bool {
+	if o, ok := other.(*resultSet); ok {
 		return rs.results.Equals(o.results, guard)
 	}
 	return false
 }
 
-func (rs *ResultSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (rs *resultSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	types.ObjectToString(rs, s, b, g)
 }
 
-func (rs *ResultSet) Type() eval.PType {
+func (rs *resultSet) Type() eval.PType {
 	return resultSetType
 }

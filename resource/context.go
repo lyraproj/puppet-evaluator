@@ -19,7 +19,11 @@ const (
 	EXTERNAL_EDGES_TO = `externalTo`
 )
 
-type ApplyFunction func(eval.Context, []Handle) error
+// The ApplyFunction is sent a slice of resources and must return a slice with
+// the exact same size where each entry is either a resulting resource or an
+// eval.ErrorObject created with the eval.NewError function. If the execution fails
+// completely, the function must return nil and an error
+type ApplyFunction func(eval.Context, []eval.PuppetObject) ([]eval.PuppetObject, error)
 
 // GetGraph returns concurrent graph that is shared between all contexts
 func GetGraph(c eval.Context) Graph {
@@ -46,21 +50,18 @@ func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction Appl
 	return c.Evaluator().Evaluate(c, expr)
 }
 
-func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) eval.PuppetObject {
+func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) {
 	rs := getResources(c)
 	ref := Reference(c, resource)
-	oh, ok := rs[ref]
-	if ok {
+	if oh, ok := rs[ref]; ok {
 		if oh.value != nil {
 			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(oh.location)}))
 		}
 		oh.value = resource
 		oh.location = location
 	} else {
-		oh = &handle{resource, location}
-		rs[ref] = oh
+		rs[ref] = &handle{resource, location}
 	}
-	return oh
 }
 
 func getCurrentNode(c eval.Context) *node {

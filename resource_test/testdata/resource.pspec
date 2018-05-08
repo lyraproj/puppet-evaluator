@@ -13,6 +13,36 @@ Examples('resource evaluator',
         notice($x) <- $x = 'hello'
         |-SRC
       Evaluates_with(Notice('hello'))),
+
+    Example('evaluates to value of last node when last expression is a relational operator',
+      Given(@(SRC)),
+        $y = "$x wonderful" <- $x = 'hello' -> "$y world"
+        |-SRC
+      Evaluates_to('hello wonderful world')),
+
+    Example('evaluates to array with values of last nodes when last expression is a relational operator',
+      Given(@(SRC)),
+        $y = "$x wonderful" <- $x = 'hello' -> ["$y world", "$y planet"]
+        |-SRC
+      Evaluates_to(['hello wonderful world', 'hello wonderful planet'])),
+
+    Example('makes previous nodes result available as ResultSet in $pnr',
+      Given(@(SRC)),
+        $pnr['a'].value <- Result('a', 'hello')
+        |-SRC
+      Evaluates_to('hello')),
+
+    Example('makes previous nodes results available as ResultSet in $pnr',
+      Given(@(SRC)),
+        "${pnr['a'].value} ${pnr['b'].value}" <- [ Result('a', 'hello'),  Result('b', 'world') ]
+        |-SRC
+      Evaluates_to('hello world')),
+
+    Example('propagate errors from previous nodes',
+      Given(@(SRC)),
+        $pnr.ok <- [ Result('a', 'hello'),  Result('b', Error('oops')) ]
+        |-SRC
+      Evaluates_to(false)),
   ),
 
   Examples('when creating resources',
@@ -128,16 +158,27 @@ Examples('resource evaluator',
         ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
         ])),
 
-    Example('resources can be assigned to variables"',
+    Example('resources can be obtained from $pnr"',
       Given(Format(@(SRC), Get('resourceType'))),
         %s
-        $r1 = myres { '/a/a': ensure => present } ->
+        myres { '/a/a': ensure => present } ->
         with || {
-          $r2 = myres { '/b/a': ensure => $r1[0].ensure }
+          $r2 = myres { '/b/a': ensure => $pnr['myres[/a/a]'].value.ensure }
           $r2[0].ensure
         }
         |-SRC
       Evaluates_to('present')),
+
+    Example('current resources are not available through $pnr',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        myres { '/a/a': } ->
+        with || {
+          myres { '/b/a': }
+          $pnr['myres[/b/a]']
+        }
+        |-SRC
+      Evaluates_to(undef)),
   ),
 
   Examples('when referenced',
