@@ -117,7 +117,7 @@ type (
 	}
 
 	CallableObject interface {
-		Call(method string, args []PValue, block Lambda) (result PValue, ok bool)
+		Call(c Context, method string, args []PValue, block Lambda) (result PValue, ok bool)
 	}
 
 	PuppetObject interface {

@@ -163,7 +163,7 @@ Examples('resource evaluator',
         %s
         myres { '/a/a': ensure => present } ->
         with || {
-          $r2 = myres { '/b/a': ensure => $pnr['myres[/a/a]'].value.ensure }
+          $r2 = myres { '/b/a': ensure => $pnr[Myres['/a/a']].value.ensure }
           $r2[0].ensure
         }
         |-SRC
@@ -175,7 +175,7 @@ Examples('resource evaluator',
         myres { '/a/a': } ->
         with || {
           myres { '/b/a': }
-          $pnr['myres[/b/a]']
+          $pnr[Myres['/b/a']]
         }
         |-SRC
       Evaluates_to(undef)),

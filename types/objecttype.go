@@ -534,7 +534,7 @@ func (f *function) initialize(c eval.Context, name string, container *objectType
 func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
 	if a.CallableType().(*CallableType).CallableWith(c, args, block) {
 		if co, ok := receiver.(eval.CallableObject); ok {
-			if result, ok := co.Call(a.name, args, block); ok {
+			if result, ok := co.Call(c, a.name, args, block); ok {
 				return result
 			}
 		}

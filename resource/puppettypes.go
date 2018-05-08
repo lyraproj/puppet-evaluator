@@ -60,6 +60,8 @@ var builtinResourceTypes = [...]string{
 	`Zpool`,
 }
 
+var resultType, resultSetType eval.PType
+
 func InitBuiltinResources() {
 	eval.NewObjectType(`Resource`, `{
     type_parameters => {
@@ -68,6 +70,40 @@ func InitBuiltinResources() {
     attributes => {
       title => String[1]
     }}`)
+
+	resultType = eval.NewObjectType(`Result`, `{
+    attributes => {
+      'id' => ScalarData,
+      'value' => { type => RichData, value => undef },
+      'message' => { type => Optional[String], value => undef },
+      'error' => { type => Boolean, kind => derived },
+      'ok' => { type => Boolean, kind => derived }
+    }
+  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		return NewResult2(args...)
+	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		return NewResultFromHash(args[0].(*types.HashValue))
+	})
+
+	resultSetType = eval.NewObjectType(`ResultSet`, `{
+    attributes => {
+      'results' => Array[Result],
+    },
+    functions => {
+      count => Callable[[], Integer],
+      empty => Callable[[], Boolean],
+      error_set => Callable[[], ResultSet],
+      first => Callable[[], Optional[Result]],
+      ids => Callable[[], Array[ScalarData]],
+      ok => Callable[[], Boolean],
+      ok_set => Callable[[], ResultSet],
+      '[]' => Callable[[Variant[ScalarData, Type[Resource]]], Optional[Result]],
+    }
+  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		return NewResultSet(args...)
+	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		return NewResultSetFromHash(args[0].(*types.HashValue))
+	})
 
 	for _, br := range builtinResourceTypes {
 		func(name string) {

@@ -6,44 +6,6 @@ import (
 	"io"
 )
 
-var resultType, resultSetType eval.PType
-
-func init() {
-	resultType = eval.NewObjectType(`Result`, `{
-    attributes => {
-      'id' => ScalarData,
-      'value' => { type => RichData, value => undef },
-      'message' => { type => Optional[String], value => undef },
-      'error' => { type => Boolean, kind => derived },
-      'ok' => { type => Boolean, kind => derived }
-    }
-  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResult2(args...)
-	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultFromHash(args[0].(*types.HashValue))
-	})
-
-	resultSetType = eval.NewObjectType(`ResultSet`, `{
-    attributes => {
-      'results' => Array[Result],
-    },
-    functions => {
-      count => Callable[[], Integer],
-      empty => Callable[[], Boolean],
-      error_set => Callable[[], ResultSet],
-      first => Callable[[], Optional[Result]],
-      ids => Callable[[], Array[ScalarData]],
-      ok => Callable[[], Boolean],
-      ok_set => Callable[[], ResultSet],
-      '[]' => Callable[[ScalarData], Optional[Result]],
-    }
-  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultSet(args...)
-	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewResultSetFromHash(args[0].(*types.HashValue))
-	})
-}
-
 type Result interface {
 	eval.PuppetObject
 
@@ -67,7 +29,7 @@ type ResultSet interface {
 
 	// At returns the result for a given key together with a boolean
 	// indicating if the value was found or not
-	At(eval.PValue) (eval.PValue, bool)
+	At(eval.Context, eval.PValue) (eval.PValue, bool)
 
 	// ErrorSet returns the subset of the receiver that contains only
 	// error results
@@ -218,7 +180,7 @@ func NewResultSetFromHash(hash *types.HashValue) ResultSet {
 	return &resultSet{hash.Get5(`results`, eval.EMPTY_ARRAY).(*types.ArrayValue)}
 }
 
-func (rs *resultSet) Call(method string, args []eval.PValue, block eval.Lambda) (result eval.PValue, ok bool) {
+func (rs *resultSet) Call(c eval.Context, method string, args []eval.PValue, block eval.Lambda) (result eval.PValue, ok bool) {
 	switch method {
 	case `ok`:
 		return types.WrapBoolean(rs.Ok()), true
@@ -229,7 +191,7 @@ func (rs *resultSet) Call(method string, args []eval.PValue, block eval.Lambda) 
 	case `error_set`:
 		return rs.ErrorSet(), true
 	case `[]`:
-		if found, ok := rs.At(args[0]); ok {
+		if found, ok := rs.At(c, args[0]); ok {
 			return found, true
 		}
 		return eval.UNDEF, true
@@ -247,7 +209,10 @@ func (rs *resultSet) ErrorSet() ResultSet {
 	return &resultSet{rs.results.Reject(func(r eval.PValue) bool { return r.(Result).Ok() }).(*types.ArrayValue)}
 }
 
-func (rs *resultSet) At(id eval.PValue) (eval.PValue, bool) {
+func (rs *resultSet) At(c eval.Context, id eval.PValue) (eval.PValue, bool) {
+	if rt, ok := id.(eval.ParameterizedType); ok {
+		id = types.WrapString(Reference(c, rt))
+	}
 	return rs.results.Find(func(r eval.PValue) bool { return eval.Equals(id, r.(Result).Id()) })
 }
 
