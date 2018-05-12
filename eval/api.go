@@ -1,9 +1,9 @@
 package eval
 
 import (
+	"context"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
-	"context"
 )
 
 type (
@@ -83,7 +83,6 @@ type (
 		// ParseAndValidate parses and evaluates the given content. It will panic with
 		// an issue.Reported unless the parsing and evaluation was succesful.
 		ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
-
 
 		// ParseType parses and evaluates the given PValue into a PType. It will panic with
 		// an issue.Reported unless the parsing was succesfull and the result is evaluates

@@ -565,7 +565,7 @@ func resolveParameters(c eval.Context, eps []parser.Expression) []*parameter {
 }
 
 func init() {
-  eval.BuildFunction = buildFunction
+	eval.BuildFunction = buildFunction
 
 	eval.NewGoFunction = func(name string, creators ...eval.DispatchCreator) {
 		eval.RegisterGoFunction(buildFunction(name, nil, creators))

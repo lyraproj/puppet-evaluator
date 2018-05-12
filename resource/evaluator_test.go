@@ -1,6 +1,6 @@
 package resource
 
-import  "testing"
+import "testing"
 
 func TestRefSplitOK(t *testing.T) {
 	if x, y, ok := SplitRef(`x[y]`); ok {
@@ -14,7 +14,6 @@ func TestRefSplitOK(t *testing.T) {
 		t.Errorf(`Expected succesful split of 'x[y]'`)
 	}
 }
-
 
 func TestRefSplitNotOK(t *testing.T) {
 	if _, _, ok := SplitRef(`[y]`); ok {
@@ -33,4 +32,3 @@ func TestRefSplitNotOK(t *testing.T) {
 		t.Errorf(`Expected unsuccesful split of 'x[y] '`)
 	}
 }
-

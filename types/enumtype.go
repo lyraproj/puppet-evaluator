@@ -10,14 +10,14 @@ import (
 
 type EnumType struct {
 	caseInsensitive bool
-	values []string
+	values          []string
 }
 
 var Enum_Type eval.ObjectType
 
 func init() {
 	Enum_Type = newObjectType(`Pcore::EnumType`,
-`Pcore::ScalarDataType {
+		`Pcore::ScalarDataType {
 	attributes => {
 		values => Array[String[1]],
 		case_insensitive => {
@@ -26,7 +26,7 @@ func init() {
 		}
 	}
 }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-	    enumArgs := args[0].(eval.IndexedValue).AppendTo([]eval.PValue{})
+			enumArgs := args[0].(eval.IndexedValue).AppendTo([]eval.PValue{})
 			return NewEnumType2(append(enumArgs, args[1:]...)...)
 		})
 }
@@ -75,7 +75,7 @@ func NewEnumType3(args eval.IndexedValue) *EnumType {
 		args.EachWithIndex(func(arg eval.PValue, idx int) {
 			str, ok := arg.(*StringValue)
 			if !ok {
-				if ci, ok := arg.(*BooleanValue); ok && idx == top - 1 {
+				if ci, ok := arg.(*BooleanValue); ok && idx == top-1 {
 					caseInsensitive = ci.Bool()
 					return
 				}

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-semver/semver"
 
 	_ "github.com/puppetlabs/go-evaluator/pcore"
 )

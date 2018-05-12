@@ -1,9 +1,9 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-semver/semver"
-	"github.com/puppetlabs/go-parser/validator"
 	"context"
+	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 type (
@@ -76,12 +76,12 @@ type (
 	}
 )
 
-const(
-	KEY_PCORE_URI = `pcore_uri`
+const (
+	KEY_PCORE_URI     = `pcore_uri`
 	KEY_PCORE_VERSION = `pcore_version`
 
 	RUNTIME_NAME_AUTHORITY = URI(`http://puppet.com/2016.1/runtime`)
-	PCORE_URI = URI(`http://puppet.com/2016.1/pcore`)
+	PCORE_URI              = URI(`http://puppet.com/2016.1/pcore`)
 )
 
 var PCORE_VERSION, _ = semver.NewVersion3(1, 0, 0, ``, ``)

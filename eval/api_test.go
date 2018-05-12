@@ -12,7 +12,7 @@ func ExampleWrap() {
 	str := eval.Wrap("hello")
 	idx := eval.Wrap(23)
 	flt := eval.Wrap(123.34)
-	bl  := eval.Wrap(true)
+	bl := eval.Wrap(true)
 	und := eval.UNDEF
 
 	fmt.Printf("'%s' is a %s\n", str, str.Type())
@@ -31,7 +31,7 @@ func ExampleWrap() {
 
 func ExampleWrap_slice() {
 	// Wrap native Go slice
-	arr := eval.Wrap([]interface{}{ 1, 2.2, true, nil, "hello" })
+	arr := eval.Wrap([]interface{}{1, 2.2, true, nil, "hello"})
 	fmt.Printf("%s is an %s\n", arr, arr.Type())
 
 	// Output:
@@ -41,10 +41,10 @@ func ExampleWrap_slice() {
 func ExampleWrap_hash() {
 	// Wrap native Go hash
 	hsh := eval.Wrap(map[string]interface{}{
-		"first": 1,
+		"first":  1,
 		"second": 2.2,
-		"third": "three",
-		"nested": []string { "hello", "world" },
+		"third":  "three",
+		"nested": []string{"hello", "world"},
 	})
 	nst, _ := hsh.(eval.KeyedValue).Get4("nested")
 	fmt.Printf("'%s' is a %s\n", hsh, hsh.Type())

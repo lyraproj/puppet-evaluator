@@ -9,10 +9,10 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-issues/issue"
 	"regexp"
 	"strconv"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-evaluator/utils"
 	"sync"
 	"unicode"
 )
@@ -31,20 +31,20 @@ const (
 	NSECS_PER_USEC = 1000
 	NSECS_PER_MSEC = NSECS_PER_USEC * 1000
 	NSECS_PER_SEC  = NSECS_PER_MSEC * 1000
-	NSECS_PER_MIN  = NSECS_PER_SEC  * 60
-	NSECS_PER_HOUR = NSECS_PER_MIN  * 60
+	NSECS_PER_MIN  = NSECS_PER_SEC * 60
+	NSECS_PER_HOUR = NSECS_PER_MIN * 60
 	NSECS_PER_DAY  = NSECS_PER_HOUR * 24
 
-	KEY_STRING = `string`
-	KEY_FORMAT = `format`
-	KEY_NEGATIVE = `negative`
-	KEY_DAYS = `days`
-	KEY_HOURS = `hours`
-	KEY_MINUTES = `minutes`
-	KEY_SECONDS = `seconds`
+	KEY_STRING       = `string`
+	KEY_FORMAT       = `format`
+	KEY_NEGATIVE     = `negative`
+	KEY_DAYS         = `days`
+	KEY_HOURS        = `hours`
+	KEY_MINUTES      = `minutes`
+	KEY_SECONDS      = `seconds`
 	KEY_MILLISECONDS = `milliseconds`
 	KEY_MICROSECONDS = `microseconds`
-	KEY_NANOSECONDS = `nanoseconds`
+	KEY_NANOSECONDS  = `nanoseconds`
 )
 
 var TIMESPAN_MIN = time.Duration(math.MinInt64)
@@ -187,7 +187,7 @@ func NewTimespanType2(args ...eval.PValue) *TimespanType {
 		case *TimestampValue:
 			t, ok = arg.(*TimespanValue).Duration(), true
 		case *HashValue:
-			t, ok =fromHash(arg.(*HashValue))
+			t, ok = fromHash(arg.(*HashValue))
 		case *StringValue:
 			t, ok = parseDuration(arg.(*StringValue).value, DEFAULT_TIMESPAN_FORMATS)
 		case *IntegerValue:
@@ -314,7 +314,7 @@ func ParseTimespan(str string, formats []*TimespanFormat) *TimespanValue {
 }
 
 func fromFields(negative bool, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds int64) time.Duration {
-	ns := (((((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000 + milliseconds) * 1000 + microseconds) * 1000 + nanoseconds
+	ns := (((((days*24+hours)*60+minutes)*60+seconds)*1000+milliseconds)*1000+microseconds)*1000 + nanoseconds
 	if negative {
 		ns = -ns
 	}
@@ -350,23 +350,23 @@ func fromFieldsHash(hash *HashValue) time.Duration {
 }
 
 func fromStringHash(hash *HashValue) (time.Duration, bool) {
-  str := hash.Get5(KEY_STRING, _EMPTY_STRING)
-  fmtStrings := hash.Get5(KEY_FORMAT, nil)
-  var formats []*TimespanFormat
-  if fmtStrings == nil {
-  	formats = DEFAULT_TIMESPAN_FORMATS
-  } else {
-  	if fs, ok := fmtStrings.(*StringValue); ok {
-  		formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(fs.String())}
-	  } else {
-	    if fsa, ok := fmtStrings.(*ArrayValue); ok {
-		    formats = make([]*TimespanFormat, fsa.Len())
-		    fsa.EachWithIndex(func(fs eval.PValue, i int) {
-		      formats[i] = DefaultTimespanFormatParser.ParseFormat(fs.String())
-			  })
-		  }
-	  }
-  }
+	str := hash.Get5(KEY_STRING, _EMPTY_STRING)
+	fmtStrings := hash.Get5(KEY_FORMAT, nil)
+	var formats []*TimespanFormat
+	if fmtStrings == nil {
+		formats = DEFAULT_TIMESPAN_FORMATS
+	} else {
+		if fs, ok := fmtStrings.(*StringValue); ok {
+			formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(fs.String())}
+		} else {
+			if fsa, ok := fmtStrings.(*ArrayValue); ok {
+				formats = make([]*TimespanFormat, fsa.Len())
+				fsa.EachWithIndex(func(fs eval.PValue, i int) {
+					formats[i] = DefaultTimespanFormatParser.ParseFormat(fs.String())
+				})
+			}
+		}
+	}
 	return parseDuration(str.String(), formats)
 }
 
@@ -501,15 +501,15 @@ func (tv *TimespanValue) Type() eval.PType {
 	return (*TimespanType)(tv)
 }
 
-type(
+type (
 	TimespanFormat struct {
-		rx *regexp.Regexp
-		fmt string
+		rx       *regexp.Regexp
+		fmt      string
 		segments []segment
 	}
 
 	TimespanFormatParser struct {
-		lock sync.Mutex
+		lock    sync.Mutex
 		formats map[string]*TimespanFormat
 	}
 
@@ -532,11 +532,11 @@ type(
 	}
 
 	valueSegment struct {
-		useTotal bool
-		padchar rune
-		width int
+		useTotal     bool
+		padchar      rune
+		width        int
 		defaultWidth int
-		format string
+		format       string
 	}
 
 	daySegment struct {
@@ -568,19 +568,19 @@ type(
 	}
 )
 
-const(
+const (
 	NSEC_MAX = 0
 	MSEC_MAX = 1
-	SEC_MAX = 2
-	MIN_MAX = 3
+	SEC_MAX  = 2
+	MIN_MAX  = 3
 	HOUR_MAX = 4
-	DAY_MAX = 5
+	DAY_MAX  = 5
 
 	// States used by the #internal_parser function
 
 	STATE_LITERAL = 0 // expects literal or '%'
-	STATE_PAD  = 1 // expects pad, width, or format character
-	STATE_WIDTH = 2 // expects width, or format character
+	STATE_PAD     = 1 // expects pad, width, or format character
+	STATE_WIDTH   = 2 // expects width, or format character
 )
 
 var trimTrailingZeroes = regexp.MustCompile(`\A([0-9]+?)0*\z`)
@@ -588,10 +588,10 @@ var digitsOnly = regexp.MustCompile(`\A[0-9]+\z`)
 var DEFAULT_TIMESPAN_FORMATS []*TimespanFormat
 
 func NewTimespanFormatParser() *TimespanFormatParser {
-	return &TimespanFormatParser{formats:make(map[string]*TimespanFormat, 17)}
+	return &TimespanFormatParser{formats: make(map[string]*TimespanFormat, 17)}
 }
 
-func (p *TimespanFormatParser) ParseFormat(format string) *TimespanFormat  {
+func (p *TimespanFormatParser) ParseFormat(format string) *TimespanFormat {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -603,7 +603,7 @@ func (p *TimespanFormatParser) ParseFormat(format string) *TimespanFormat  {
 	return fmt
 }
 
-func (p *TimespanFormatParser) parse(str string) *TimespanFormat  {
+func (p *TimespanFormatParser) parse(str string) *TimespanFormat {
 	bld := make([]segment, 0, 7)
 	highest := -1
 	state := STATE_LITERAL
@@ -685,7 +685,7 @@ func (p *TimespanFormatParser) parse(str string) *TimespanFormat  {
 				if width == -1 {
 					width = n
 				} else {
-					width = width * 10 + n
+					width = width*10 + n
 				}
 			}
 			state = STATE_WIDTH
@@ -719,11 +719,11 @@ func appendLiteral(bld []segment, c rune) []segment {
 }
 
 func badFormatSpecifier(str string, start, pos int) issue.Reported {
-  return eval.Error(nil, eval.EVAL_TIMESPAN_BAD_FSPEC, issue.H{`expression`: str[start:pos], `format`: str, `position`: pos})
+	return eval.Error(nil, eval.EVAL_TIMESPAN_BAD_FSPEC, issue.H{`expression`: str[start:pos], `format`: str, `position`: pos})
 }
 
 func newTimespanFormat(format string, segments []segment) *TimespanFormat {
-	return &TimespanFormat{fmt:format, segments:segments}
+	return &TimespanFormat{fmt: format, segments: segments}
 }
 
 func (f *TimespanFormat) format(ts *TimespanValue) string {
@@ -1001,7 +1001,7 @@ func (s *fragmentSegment) nanoseconds(group string, multiplier int) int64 {
 	if p <= 0 {
 		return n
 	}
-	return utils.Int64Pow(n * 10, p)
+	return utils.Int64Pow(n*10, p)
 }
 
 func newMillisecondSegment(padchar rune, width int) segment {
@@ -1038,21 +1038,21 @@ func newNanosecondSegment(padchar rune, width int) segment {
 
 func (s *nanosecondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 	v := ts.totalNanoseconds()
-  w := s.width
-  if w < 0 {
-  	w = s.defaultWidth
-  }
-  if w < 9 {
-  	// Truncate digits to the right, i.e. let %6N reflect microseconds
-  	v /= utils.Int64Pow(10, int64(9 - w))
-  	if !s.useTotal {
-		  v %= utils.Int64Pow(10, int64(w))
-	  }
-  } else {
-  	if !s.useTotal {
-		  v %= NSECS_PER_SEC
-	  }
-  }
+	w := s.width
+	if w < 0 {
+		w = s.defaultWidth
+	}
+	if w < 9 {
+		// Truncate digits to the right, i.e. let %6N reflect microseconds
+		v /= utils.Int64Pow(10, int64(9-w))
+		if !s.useTotal {
+			v %= utils.Int64Pow(10, int64(w))
+		}
+	} else {
+		if !s.useTotal {
+			v %= NSECS_PER_SEC
+		}
+	}
 	s.appendValue(buffer, v)
 }
 
@@ -1062,7 +1062,7 @@ func (s *nanosecondSegment) multiplier() int {
 		w = s.defaultWidth
 	}
 	if w < 9 {
-		return int(utils.Int64Pow(10, int64(9 - w)))
+		return int(utils.Int64Pow(10, int64(9-w)))
 	}
 	return 1
 }

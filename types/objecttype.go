@@ -583,11 +583,11 @@ var objectId = int64(0)
 
 func AllocObjectType() *objectType {
 	return &objectType{
-		annotatable:        annotatable{annotations: _EMPTY_MAP},
-		hashKey:            eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
-		parameters:         hash.EMPTY_STRINGHASH,
-		attributes:         hash.EMPTY_STRINGHASH,
-		functions:          hash.EMPTY_STRINGHASH}
+		annotatable: annotatable{annotations: _EMPTY_MAP},
+		hashKey:     eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
+		parameters:  hash.EMPTY_STRINGHASH,
+		attributes:  hash.EMPTY_STRINGHASH,
+		functions:   hash.EMPTY_STRINGHASH}
 }
 
 func (t *objectType) Initialize(c eval.Context, args []eval.PValue) {
@@ -1081,8 +1081,8 @@ func (t *objectType) setCreators(creators ...eval.DispatchFunction) {
 }
 
 func (t *objectType) positionalInitSignature() eval.Signature {
-  ai := t.AttributesInfo()
-  argTypes := make([]eval.PType, len(ai.Attributes()))
+	ai := t.AttributesInfo()
+	argTypes := make([]eval.PType, len(ai.Attributes()))
 	for i, attr := range ai.Attributes() {
 		argTypes[i] = attr.Type()
 	}

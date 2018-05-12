@@ -2,9 +2,9 @@ package resource
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"io"
 	"github.com/puppetlabs/go-evaluator/types"
 	"gonum.org/v1/gonum/graph"
+	"io"
 )
 
 var Edge_Type eval.ObjectType
@@ -19,7 +19,7 @@ func init() {
 }`)
 }
 
-type(
+type (
 	Edge interface {
 		graph.Edge
 		eval.PValue
@@ -29,8 +29,8 @@ type(
 
 	// edge denotes a relationship between two ResourceNodes
 	edge struct {
-		from Node
-		to Node
+		from      Node
+		to        Node
 		subscribe bool
 	}
 )
@@ -63,9 +63,9 @@ func (re *edge) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 }
 
 func (re *edge) InitHash() eval.KeyedValue {
-	return types.WrapHash3(map[string]eval.PValue {
-		`from`: re.from,
-		`to`: re.to,
+	return types.WrapHash3(map[string]eval.PValue{
+		`from`:      re.from,
+		`to`:        re.to,
 		`subscribe`: types.WrapBoolean(re.subscribe),
 	})
 }

@@ -17,7 +17,7 @@ var Callable_Type eval.ObjectType
 
 func init() {
 	Callable_Type = newObjectType(`Pcore::CallableType`,
-`Pcore::AnyType {
+		`Pcore::AnyType {
   attributes => {
     param_types => {
       type => Optional[Type[Tuple]],

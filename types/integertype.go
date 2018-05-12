@@ -46,7 +46,7 @@ func init() {
 	newGoConstructor2(`Integer`,
 		func(t eval.LocalTypes) {
 			t.Type(`Radix`, `Variant[Default, Integer[2,2], Integer[8,8], Integer[10,10], Integer[16,16]]`)
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + INTEGER_PATTERN + `/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+INTEGER_PATTERN+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[radix] => Radix, Optional[abs] => Boolean}]`)
 		},
 

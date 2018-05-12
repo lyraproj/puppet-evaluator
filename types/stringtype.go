@@ -485,7 +485,7 @@ func (sv *StringValue) Unique() eval.IndexedValue {
 
 func reduceString(slice string, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
 	memo := initialValue
-	for _, v := range	slice {
+	for _, v := range slice {
 		memo = redactor(memo, WrapString(string(v)))
 	}
 	return memo

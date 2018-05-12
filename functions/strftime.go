@@ -23,7 +23,6 @@ func init() {
 			})
 		},
 
-
 		func(d eval.Dispatch) {
 			d.Param(`Timestamp`)
 			d.Param(`String`)

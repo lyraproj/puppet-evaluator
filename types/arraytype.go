@@ -414,7 +414,7 @@ func (av *ArrayValue) Flatten() eval.IndexedValue {
 	for _, e := range av.elements {
 		switch e.(type) {
 		case *ArrayValue, *HashEntry:
-			return WrapArray(flattenElements(av.elements, make([]eval.PValue, 0, len(av.elements) * 2)))
+			return WrapArray(flattenElements(av.elements, make([]eval.PValue, 0, len(av.elements)*2)))
 		}
 	}
 	return av
@@ -507,7 +507,7 @@ func (av *ArrayValue) Slice(i int, j int) eval.IndexedValue {
 }
 
 type arraySorter struct {
-	values []eval.PValue
+	values     []eval.PValue
 	comparator eval.Comparator
 }
 
@@ -716,7 +716,7 @@ func (av *ArrayValue) prtvReducedType() eval.PType {
 
 func reduceSlice(slice []eval.PValue, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
 	memo := initialValue
-	for _, v := range	slice {
+	for _, v := range slice {
 		memo = redactor(memo, v)
 	}
 	return memo

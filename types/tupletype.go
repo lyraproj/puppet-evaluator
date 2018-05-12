@@ -26,10 +26,10 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-	    tupleArgs := args[0].(*ArrayValue).AppendTo([]eval.PValue{})
-	    if len(args) > 1 {
-		    tupleArgs = append(tupleArgs, args[1].(*IntegerType).Parameters()...)
-	    }
+			tupleArgs := args[0].(*ArrayValue).AppendTo([]eval.PValue{})
+			if len(args) > 1 {
+				tupleArgs = append(tupleArgs, args[1].(*IntegerType).Parameters()...)
+			}
 			return NewTupleType2(tupleArgs...)
 		})
 }

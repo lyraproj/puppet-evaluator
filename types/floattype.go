@@ -38,7 +38,7 @@ func init() {
 
 	newGoConstructor2(`Float`,
 		func(t eval.LocalTypes) {
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + FLOAT_PATTERN + `/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FLOAT_PATTERN+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[abs] => Boolean}]`)
 		},
 

@@ -122,8 +122,8 @@ func InitBuiltinResources() {
 								})}))
 					})
 				})
-			}(br)
-		}
+		}(br)
+	}
 
 	eval.NewGoFunction(`get_resource`,
 		func(d eval.Dispatch) {

@@ -1,10 +1,10 @@
 package eval
 
 import (
-	"testing"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-pspec/pspec"
+	"testing"
 )
 
 func TestPSpecs(t *testing.T) {
@@ -14,7 +14,7 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					if from, ok := resource.FindNode(c, args[0]); ok {
-						return resource.GetGraph(c).Edges(from);
+						return resource.GetGraph(c).Edges(from)
 					}
 					return eval.EMPTY_ARRAY
 				})
@@ -34,7 +34,7 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					if from, ok := resource.FindNode(c, args[0]); ok {
-						return resource.GetGraph(c).FromNode(from);
+						return resource.GetGraph(c).FromNode(from)
 					}
 					return eval.EMPTY_ARRAY
 				})
@@ -46,7 +46,7 @@ func TestPSpecs(t *testing.T) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					if to, ok := resource.FindNode(c, args[0]); ok {
-						return resource.GetGraph(c).ToNode(to);
+						return resource.GetGraph(c).ToNode(to)
 					}
 					return eval.EMPTY_ARRAY
 				})

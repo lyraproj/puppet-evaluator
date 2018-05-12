@@ -1,16 +1,16 @@
 package types
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"io"
 	"net/url"
-	"strings"
-	"github.com/puppetlabs/go-evaluator/errors"
 	"strconv"
-	"fmt"
-	"bytes"
+	"strings"
 )
 
 var uriType_Default = &UriType{_UNDEF}
@@ -139,7 +139,7 @@ type (
 	uriMemberFunc func(*url.URL) eval.PValue
 
 	uriMember struct {
-	  memberFunc uriMemberFunc
+		memberFunc uriMemberFunc
 	}
 )
 
@@ -311,7 +311,6 @@ func (t *UriType) IsInstance(c eval.Context, other eval.PValue, g eval.Guard) bo
 	}
 	return false
 }
-
 
 func (t *UriType) Member(name string) (eval.CallableMember, bool) {
 	if member, ok := members[name]; ok {

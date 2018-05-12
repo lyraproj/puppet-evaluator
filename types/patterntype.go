@@ -92,7 +92,7 @@ func (t *PatternType) Get(c eval.Context, key string) (value eval.PValue, ok boo
 
 func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	if _, ok := o.(*PatternType); ok {
-    return len(t.regexps) == 0
+		return len(t.regexps) == 0
 	}
 
 	if st, ok := o.(*StringType); ok {

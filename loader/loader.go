@@ -32,7 +32,7 @@ type (
 )
 
 var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
-var staticResourceLoader = &parentedLoader{basicLoader:basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent:staticLoader}
+var staticResourceLoader = &parentedLoader{basicLoader: basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent: staticLoader}
 var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
@@ -169,7 +169,6 @@ func (l *parentedLoader) Parent() eval.Loader {
 func (l *typeSetLoader) TypeSet() eval.PType {
 	return l.typeSet
 }
-
 
 func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
 	entry := l.parentedLoader.LoadEntry(c, name)

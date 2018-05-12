@@ -3,48 +3,48 @@ package types
 import (
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-semver/semver"
-	"github.com/puppetlabs/go-parser/parser"
-	"math"
 	"fmt"
-	"sync/atomic"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-semver/semver"
+	"math"
 	"strings"
+	"sync/atomic"
 )
 
-const(
+const (
 	KEY_NAME_AUTHORITY = `name_authority`
-	KEY_REFERENCES = `references`
-	KEY_TYPES = `types`
-	KEY_VERSION = `version`
-	KEY_VERSION_RANGE = `version_range`
+	KEY_REFERENCES     = `references`
+	KEY_TYPES          = `types`
+	KEY_VERSION        = `version`
+	KEY_VERSION_RANGE  = `version_range`
 )
 
 var TypeSet_Type eval.ObjectType
 
-var TYPE_STRING_OR_VERSION = NewVariantType([]eval.PType {
+var TYPE_STRING_OR_VERSION = NewVariantType([]eval.PType{
 	stringType_NOT_EMPTY,
-	DefaultSemVerType() })
+	DefaultSemVerType()})
 
 var TYPE_SIMPLE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z]\w*\z`)})
 var TYPE_QUALIFIED_REFERENCE = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)})
 
-var TYPE_STRING_OR_RANGE = NewVariantType([]eval.PType {
+var TYPE_STRING_OR_RANGE = NewVariantType([]eval.PType{
 	stringType_NOT_EMPTY,
-	DefaultSemVerRangeType() })
+	DefaultSemVerRangeType()})
 
-var TYPE_STRING_OR_URI = NewVariantType([]eval.PType {
+var TYPE_STRING_OR_URI = NewVariantType([]eval.PType{
 	stringType_NOT_EMPTY,
-	DefaultUriType() })
+	DefaultUriType()})
 
-var TYPE_TYPE_REFERENCE_INIT = NewStructType([]*StructElement {
+var TYPE_TYPE_REFERENCE_INIT = NewStructType([]*StructElement{
 	NewStructElement2(KEY_NAME, TYPE_QUALIFIED_REFERENCE),
 	NewStructElement2(KEY_VERSION_RANGE, TYPE_STRING_OR_RANGE),
 	NewStructElement(NewOptionalType3(KEY_NAME_AUTHORITY), TYPE_STRING_OR_URI),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS)})
 
-var TYPE_TYPESET_INIT = NewStructType([]*StructElement {
+var TYPE_TYPESET_INIT = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(eval.KEY_PCORE_URI), TYPE_STRING_OR_URI),
 	NewStructElement2(eval.KEY_PCORE_VERSION, TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_NAME_AUTHORITY), TYPE_STRING_OR_URI),
@@ -94,18 +94,18 @@ type (
 	}
 )
 
-func newTypeSetReference(c eval.Context, t* TypeSetType, ref *HashValue) *typeSetReference {
+func newTypeSetReference(c eval.Context, t *TypeSetType, ref *HashValue) *typeSetReference {
 	r := &typeSetReference{
-		owner: t,
+		owner:         t,
 		nameAuthority: uriArg(c, ref, KEY_NAME_AUTHORITY, t.nameAuthority),
-		name: stringArg(ref, KEY_NAME, ``),
-		versionRange: versionRangeArg(c, ref, KEY_VERSION_RANGE, nil),
+		name:          stringArg(ref, KEY_NAME, ``),
+		versionRange:  versionRangeArg(c, ref, KEY_VERSION_RANGE, nil),
 	}
 	r.annotatable.initialize(ref)
 	return r
 }
 
-func (r* typeSetReference) initHash() map[string]eval.PValue {
+func (r *typeSetReference) initHash() map[string]eval.PValue {
 	h := r.annotatable.initHash()
 	if r.nameAuthority != r.owner.nameAuthority {
 		h[KEY_NAME_AUTHORITY] = WrapString(string(r.nameAuthority))
@@ -125,7 +125,7 @@ func (r *typeSetReference) Equals(other interface{}, g eval.Guard) bool {
 func (r *typeSetReference) resolve(c eval.Context) {
 	tn := eval.NewTypedName2(eval.TYPE, r.name, r.nameAuthority)
 	loadedEntry := c.Loader().LoadEntry(c, tn)
-	if(loadedEntry != nil) {
+	if loadedEntry != nil {
 		if typeSet, ok := loadedEntry.Value().(*TypeSetType); ok {
 			typeSet = typeSet.Resolve(c).(*TypeSetType)
 			if r.versionRange.Includes(typeSet.version) {
@@ -137,7 +137,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 	}
 	var v interface{}
 	if loadedEntry != nil {
-	  v = loadedEntry.Value()
+		v = loadedEntry.Value()
 	}
 	if v == nil {
 		panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
@@ -150,7 +150,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 	} else {
 		typeName = fmt.Sprintf("%T", v)
 	}
-	panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}, ))
+	panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}))
 }
 
 var typeSetType_DEFAULT = &TypeSetType{
@@ -165,11 +165,11 @@ var typeSetId = int64(0)
 
 func AllocTypeSetType() *TypeSetType {
 	return &TypeSetType{
-		annotatable:        annotatable{annotations: _EMPTY_MAP},
-		dcToCcMap:          make(map[string]string, 17),
-		hashKey:            eval.HashKey(fmt.Sprintf("\x00tTypeSet%d", atomic.AddInt64(&typeSetId, 1))),
-		types:              _EMPTY_MAP,
-		references:         map[string]*typeSetReference{},
+		annotatable: annotatable{annotations: _EMPTY_MAP},
+		dcToCcMap:   make(map[string]string, 17),
+		hashKey:     eval.HashKey(fmt.Sprintf("\x00tTypeSet%d", atomic.AddInt64(&typeSetId, 1))),
+		types:       _EMPTY_MAP,
+		references:  map[string]*typeSetReference{},
 	}
 }
 
@@ -257,7 +257,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	refs := hashArg(initHash, KEY_REFERENCES)
 	if !refs.IsEmpty() {
 		refMap := make(map[string]*typeSetReference, 7)
-		rootMap  := make(map[eval.URI]map[string][]semver.VersionRange, 7)
+		rootMap := make(map[eval.URI]map[string][]semver.VersionRange, 7)
 		refs.EachPair(func(k, v eval.PValue) {
 			refAlias := k.String()
 
@@ -289,7 +289,7 @@ func (t *TypeSetType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				}
 				naRoots[refName] = append(ranges, ref.versionRange)
 			} else {
-				naRoots[refName] = []semver.VersionRange{ ref.versionRange }
+				naRoots[refName] = []semver.VersionRange{ref.versionRange}
 			}
 
 			refMap[refAlias] = ref
@@ -471,7 +471,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash)
 	entries := make([]*HashEntry, 0)
 	types := map[string]parser.Expression{}
 
-	var	typesHash *HashValue
+	var typesHash *HashValue
 
 	for _, ex := range lh.Entries() {
 		entry := ex.(*parser.KeyedEntry)
@@ -563,7 +563,7 @@ func (t *TypeSetType) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash)
 	return result
 }
 
-func (t * TypeSetType) resolveNameAuthority(hash *HashValue, c eval.Context, location issue.Location) eval.URI {
+func (t *TypeSetType) resolveNameAuthority(hash *HashValue, c eval.Context, location issue.Location) eval.URI {
 	nameAuth := t.nameAuthority
 	if nameAuth == `` {
 		nameAuth = uriArg(c, hash, KEY_NAME_AUTHORITY, ``)

@@ -1,8 +1,8 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-issues/issue"
 	"bytes"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 const (

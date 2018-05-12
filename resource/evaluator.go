@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
@@ -8,7 +9,6 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"gonum.org/v1/gonum/graph"
-	"fmt"
 	"log"
 )
 
@@ -18,7 +18,7 @@ type resourceEval struct {
 
 // Evaluator is capable of evaluating resource expressions and resource operators. The
 // evaluator builds a graph which can be accessed by functions during evaluation.
-type	Evaluator interface {
+type Evaluator interface {
 	eval.Evaluator
 }
 
@@ -64,10 +64,10 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 		applyFunction = defaultApplyFunc
 	}
 
-	c.Set(SHARED_MAP, map[string]interface{} {
-		NODE_GRAPH: NewConcurrentGraph(),
-		NODE_JOBS: nodeJobs,
-		JOB_COUNTER: &jobCounter{0},
+	c.Set(SHARED_MAP, map[string]interface{}{
+		NODE_GRAPH:     NewConcurrentGraph(),
+		NODE_JOBS:      nodeJobs,
+		JOB_COUNTER:    &jobCounter{0},
 		APPLY_FUNCTION: applyFunction,
 	})
 

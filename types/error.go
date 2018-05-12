@@ -2,8 +2,8 @@ package types
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"io"
 	"github.com/puppetlabs/go-issues/issue"
+	"io"
 )
 
 var errorType eval.ObjectType
@@ -21,27 +21,27 @@ func init() {
 		  partial_result => { type => Data, value => undef },
 	  	details => { type => Optional[Hash[String[1],Data]], value => undef },
 		}}`,
-	func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return newError2(ctx, args...)
-	},
-	func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return newErrorFromHash(ctx, args[0].(*HashValue))
-	})
+		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+			return newError2(ctx, args...)
+		},
+		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+			return newErrorFromHash(ctx, args[0].(*HashValue))
+		})
 
 	eval.NewError = newError
 	eval.ErrorFromReported = errorFromReported
 }
 
 type errorObj struct {
-	typ eval.PType
-	message string
-	kind string
-	issueCode string
+	typ           eval.PType
+	message       string
+	kind          string
+	issueCode     string
 	partialResult eval.PValue
-	details eval.KeyedValue
+	details       eval.KeyedValue
 }
 
-func newError2(c eval.Context, args...eval.PValue) eval.ErrorObject {
+func newError2(c eval.Context, args ...eval.PValue) eval.ErrorObject {
 	nargs := len(args)
 	ev := &errorObj{partialResult: eval.UNDEF, details: eval.EMPTY_MAP}
 	ev.message = args[0].String()

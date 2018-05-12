@@ -13,12 +13,12 @@ import (
 	// Import ordering and subsequent initialisation currently
 	// results in a segfault if functions is not imported (but
 	// not used) at this point
+	"context"
 	_ "github.com/puppetlabs/go-evaluator/functions"
 	"github.com/puppetlabs/go-evaluator/resource"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"context"
-	"github.com/puppetlabs/go-issues/issue"
 )
 
 type (

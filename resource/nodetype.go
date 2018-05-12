@@ -186,7 +186,6 @@ func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
 	return results
 }
 
-
 // Creates an unevaluated node, aware of all resources that uses static titles
 func newNode(c eval.Context, expression parser.Expression) *node {
 	var handles map[string]*handle
@@ -259,7 +258,7 @@ func (rn *node) evaluate(c eval.Context) {
 
 	resources := rn.Resources()
 	rcount := resources.Len()
-	results := appendResults(make([]eval.PValue, 0, rcount + 1), rn.value)
+	results := appendResults(make([]eval.PValue, 0, rcount+1), rn.value)
 	if rcount > 0 {
 		rs := make([]eval.PuppetObject, 0, rcount)
 		resources.EachValue(func(r eval.PValue) {

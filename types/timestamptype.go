@@ -397,39 +397,39 @@ func (tv *TimestampValue) Type() eval.PType {
 const (
 	// Strings recognized as golang "layout" elements
 
-	loLongMonth = `January`
-	loMonth = `Jan`
-	loLongWeekDay = `Monday`
-	loWeekDay = `Mon`
-	loTZ = `MST`
-	loZeroMonth = `01`
-	loZeroDay = `02`
-	loZeroHour12 = `03`
-	loZeroMinute = `04`
-	loZeroSecond = `05`
-	loYear = `06`
-	loHour = `15`
-	loNumMonth = `1`
-	loLongYear = `2006`
-	loDay = `2`
-	loUnderDay = `_2`
-	loHour12 = `3`
-	loMinute = `4`
-	loSecond = `5`
-	loPM = `PM`
-	lopm = `pm`
-	loNumSecondsTz = `-070000`
-	loNumColonSecondsTZ = `-07:00:00`
-	loNumTZ = `-0700`
-	loNumColonTZ = `-07:00`
-	loNumShortTZ = `-07`
-	loISO8601SecondsTZ = `Z070000`
+	loLongMonth             = `January`
+	loMonth                 = `Jan`
+	loLongWeekDay           = `Monday`
+	loWeekDay               = `Mon`
+	loTZ                    = `MST`
+	loZeroMonth             = `01`
+	loZeroDay               = `02`
+	loZeroHour12            = `03`
+	loZeroMinute            = `04`
+	loZeroSecond            = `05`
+	loYear                  = `06`
+	loHour                  = `15`
+	loNumMonth              = `1`
+	loLongYear              = `2006`
+	loDay                   = `2`
+	loUnderDay              = `_2`
+	loHour12                = `3`
+	loMinute                = `4`
+	loSecond                = `5`
+	loPM                    = `PM`
+	lopm                    = `pm`
+	loNumSecondsTz          = `-070000`
+	loNumColonSecondsTZ     = `-07:00:00`
+	loNumTZ                 = `-0700`
+	loNumColonTZ            = `-07:00`
+	loNumShortTZ            = `-07`
+	loISO8601SecondsTZ      = `Z070000`
 	loISO8601ColonSecondsTZ = `Z07:00:00`
-	loISO8601TZ = `Z0700`
-	loISO8601ColonTZ = `Z07:00`
-	loISO8601ShortTz = `Z07`
-	loFracSecond0 = `.000`
-	loFracSecond9 = `.999`
+	loISO8601TZ             = `Z0700`
+	loISO8601ColonTZ        = `Z07:00`
+	loISO8601ShortTz        = `Z07`
+	loFracSecond0           = `.000`
+	loFracSecond9           = `.999`
 )
 
 type (
@@ -439,16 +439,16 @@ type (
 	}
 
 	TimestampFormatParser struct {
-		lock sync.Mutex
+		lock    sync.Mutex
 		formats map[string]*TimestampFormat
 	}
 )
 
 func NewTimestampFormatParser() *TimestampFormatParser {
-	return &TimestampFormatParser{formats:make(map[string]*TimestampFormat, 17)}
+	return &TimestampFormatParser{formats: make(map[string]*TimestampFormat, 17)}
 }
 
-func (p *TimestampFormatParser) ParseFormat(format string) *TimestampFormat  {
+func (p *TimestampFormatParser) ParseFormat(format string) *TimestampFormat {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -470,7 +470,7 @@ func (f *TimestampFormat) Format2(t *TimestampValue, tz string) string {
 	return t.min.In(loadLocation(tz)).Format(f.layout)
 }
 
-func strftimeToLayout(bld *bytes.Buffer, str string)  {
+func strftimeToLayout(bld *bytes.Buffer, str string) {
 	state := STATE_LITERAL
 	colons := 0
 	padchar := '0'
@@ -535,7 +535,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 			}
 			bld.WriteString(loLongMonth)
 			state = STATE_LITERAL
-		case 'b','h':
+		case 'b', 'h':
 			if upper {
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `upper cased short month`))
 			}
@@ -670,7 +670,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 		case 'c':
 			strftimeToLayout(bld, `%a %b %-d %T %Y`)
 			state = STATE_LITERAL
-		case 'D','x':
+		case 'D', 'x':
 			strftimeToLayout(bld, `%m/%d/%y`)
 			state = STATE_LITERAL
 		case 'F':
@@ -682,7 +682,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 		case 'R':
 			strftimeToLayout(bld, `%H:%M`)
 			state = STATE_LITERAL
-		case 'X','T':
+		case 'X', 'T':
 			strftimeToLayout(bld, `%H:%M:%S`)
 			state = STATE_LITERAL
 		case '+':
@@ -699,7 +699,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 				if width == -1 {
 					width = n
 				} else {
-					width = width * 10 + n
+					width = width*10 + n
 				}
 			}
 			state = STATE_WIDTH
@@ -712,7 +712,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string)  {
 }
 
 func notSupportedByGoTimeLayout(str string, start, pos int, description string) issue.Reported {
-	return eval.Error(nil, eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start:pos+1], `description`: description})
+	return eval.Error(nil, eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start : pos+1], `description`: description})
 }
 
 func toTimestampFormats(fmt eval.PValue) []*TimestampFormat {

@@ -13,9 +13,9 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-semver/semver"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 const (
@@ -43,15 +43,15 @@ const (
 
 	OPTIONAL_FRACTION = `(?:\.\d+)?`
 	OPTIONAL_EXPONENT = `(?:[eE]-?\d+)?`
-	FLOAT_DEC = `(?:` + INTEGER_DEC + OPTIONAL_FRACTION + OPTIONAL_EXPONENT + `)`
+	FLOAT_DEC         = `(?:` + INTEGER_DEC + OPTIONAL_FRACTION + OPTIONAL_EXPONENT + `)`
 
 	INTEGER_PATTERN = `\A` + SIGN_PREFIX + `(?:` + INTEGER_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
-	FLOAT_PATTERN = `\A` + SIGN_PREFIX + `(?:` + FLOAT_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
+	FLOAT_PATTERN   = `\A` + SIGN_PREFIX + `(?:` + FLOAT_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
 )
 
 type objectTypeAndCtor struct {
-  typ eval.ObjectType
-  ctor eval.DispatchFunction
+	typ  eval.ObjectType
+	ctor eval.DispatchFunction
 }
 
 func (rt *objectTypeAndCtor) Type() eval.ObjectType {
@@ -274,22 +274,22 @@ var richDataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceT
 var richDataHashType_DEFAULT = &HashType{integerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 	[]eval.PType{scalarType_DEFAULT,
-	binaryType_DEFAULT,
-	defaultType_DEFAULT,
-	objectType_DEFAULT,
-	typeType_DEFAULT,
-	typeSetType_DEFAULT,
-	undefType_DEFAULT,
-	richDataArrayType_DEFAULT,
-	richDataHashType_DEFAULT}}, nil}
+		binaryType_DEFAULT,
+		defaultType_DEFAULT,
+		objectType_DEFAULT,
+		typeType_DEFAULT,
+		typeSetType_DEFAULT,
+		undefType_DEFAULT,
+		richDataArrayType_DEFAULT,
+		richDataHashType_DEFAULT}}, nil}
 
 var resolvableTypes = make([]eval.ResolvableType, 0, 16)
 var resolvableTypesLock sync.Mutex
 
 type BuildFunctionArgs struct {
-	Name string
+	Name       string
 	LocalTypes eval.LocalTypesCreator
-	Creators []eval.DispatchCreator
+	Creators   []eval.DispatchCreator
 }
 
 var constructorsDecls = make([]*BuildFunctionArgs, 0, 16)

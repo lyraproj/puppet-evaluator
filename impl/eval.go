@@ -58,8 +58,8 @@ var coreTypes = map[string]eval.PType{
 
 type (
 	evaluator struct {
-		self          eval.Evaluator
-		logger        eval.Logger
+		self   eval.Evaluator
+		logger eval.Logger
 	}
 
 	systemLocation struct{}

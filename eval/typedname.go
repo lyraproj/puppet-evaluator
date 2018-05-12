@@ -1,9 +1,9 @@
 package eval
 
 import (
-	"strings"
 	"bytes"
 	"github.com/puppetlabs/go-issues/issue"
+	"strings"
 )
 
 type (

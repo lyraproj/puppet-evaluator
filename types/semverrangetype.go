@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-semver/semver"
-	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 type (

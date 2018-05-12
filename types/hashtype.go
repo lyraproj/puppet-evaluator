@@ -44,7 +44,7 @@ var Hash_Type eval.ObjectType
 
 func init() {
 	Hash_Type = newObjectType(`Pcore::HashType`,
-`Pcore::CollectionType {
+		`Pcore::CollectionType {
 	attributes => {
 		key_type => {
 			type => Optional[Type],
@@ -62,7 +62,7 @@ func init() {
 	newGoConstructor2(`Hash`,
 		func(t eval.LocalTypes) {
 			t.Type(`KeyValueArray`, `Array[Tuple[Any,Any],1]`)
-			t.Type(`TreeArray`,     `Array[Tuple[Array,Any],1]`)
+			t.Type(`TreeArray`, `Array[Tuple[Array,Any],1]`)
 			t.Type(`NewHashOption`, `Enum[tree, hash_tree]`)
 		},
 
@@ -91,7 +91,7 @@ func init() {
 							}
 						}
 					} else {
-						r := path.Slice(0, path.Len() - 1).Reduce2(result, func(memo, idx eval.PValue) eval.PValue {
+						r := path.Slice(0, path.Len()-1).Reduce2(result, func(memo, idx eval.PValue) eval.PValue {
 							if hv, ok := memo.(*MutableHashValue); ok {
 								return hv.Get3(idx, func() eval.PValue {
 									x := NewMutableHash()
@@ -782,7 +782,7 @@ func (hv *HashValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
 }
 
 func (hv *HashValue) Flatten() eval.IndexedValue {
-	els := make([]eval.PValue, 0, len(hv.entries) * 2)
+	els := make([]eval.PValue, 0, len(hv.entries)*2)
 	for _, he := range hv.entries {
 		els = append(els, he.key, he.value)
 	}
@@ -1206,7 +1206,7 @@ func (hv *HashValue) valueIndex() map[eval.HashKey]int {
 }
 
 func NewMutableHash() *MutableHashValue {
-	return &MutableHashValue{HashValue{entries:make([]*HashEntry, 0, 7)}}
+	return &MutableHashValue{HashValue{entries: make([]*HashEntry, 0, 7)}}
 }
 
 // PutAll merges the given hash into this hash (mutates the hash). The method
@@ -1224,7 +1224,7 @@ func (hv *MutableHashValue) Put(key, value eval.PValue) {
 
 func reduceEntries(slice []*HashEntry, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
 	memo := initialValue
-	for _, v := range	slice {
+	for _, v := range slice {
 		memo = redactor(memo, v)
 	}
 	return memo

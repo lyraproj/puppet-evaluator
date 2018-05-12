@@ -2,20 +2,20 @@ package resource
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
-	"gonum.org/v1/gonum/graph"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"gonum.org/v1/gonum/graph"
 )
 
 const (
-	APPLY_FUNCTION = `applyFunction`
-	SHARED_MAP = `sharedMap`
-	NODE_GRAPH = `nodeGraph`
-	NODE_JOBS = `nodeJobs`
-	JOB_COUNTER = `jobCounter`
-	RESOURCES = `resources`
-	CURRENT_NODE = `currentNode`
+	APPLY_FUNCTION    = `applyFunction`
+	SHARED_MAP        = `sharedMap`
+	NODE_GRAPH        = `nodeGraph`
+	NODE_JOBS         = `nodeJobs`
+	JOB_COUNTER       = `jobCounter`
+	RESOURCES         = `resources`
+	CURRENT_NODE      = `currentNode`
 	EXTERNAL_EDGES_TO = `externalTo`
 )
 

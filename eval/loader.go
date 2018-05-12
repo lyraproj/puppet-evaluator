@@ -1,8 +1,8 @@
 package eval
 
 import (
-	"regexp"
 	"github.com/puppetlabs/go-issues/issue"
+	"regexp"
 )
 
 type (

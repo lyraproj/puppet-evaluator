@@ -3,10 +3,10 @@ package types
 import (
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"strconv"
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"strconv"
 )
 
 type NumericType struct{}
@@ -22,7 +22,7 @@ func init() {
 
 	newGoConstructor2(`Numeric`,
 		func(t eval.LocalTypes) {
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/` + FLOAT_PATTERN + `/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FLOAT_PATTERN+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[from => Convertible, Optional[abs] => Boolean]`)
 		},
 

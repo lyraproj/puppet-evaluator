@@ -2,8 +2,8 @@ package eval
 
 import (
 	"bytes"
-	"io"
 	"fmt"
+	"io"
 )
 
 type (

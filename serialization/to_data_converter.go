@@ -254,7 +254,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 			}
 			args = args[:i]
 		}
-		entries := make([]*types.HashEntry, 0, len(attrs) + 1)
+		entries := make([]*types.HashEntry, 0, len(attrs)+1)
 		entries = append(entries, types.WrapHashEntry2(PCORE_TYPE_KEY, pcoreTv))
 		for i, a := range args {
 			key := types.WrapString(attrs[i].Name())

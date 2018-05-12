@@ -51,9 +51,9 @@ type ResultSet interface {
 }
 
 type result struct {
-	id eval.PValue
+	id      eval.PValue
 	message string
-	value eval.PValue
+	value   eval.PValue
 }
 
 type resultSet struct {
@@ -64,11 +64,11 @@ func NewResult(id, value eval.PValue, message string) Result {
 	return &result{id, message, value}
 }
 
-func NewErrorResult(id eval.PValue, error  eval.ErrorObject) Result {
+func NewErrorResult(id eval.PValue, error eval.ErrorObject) Result {
 	return &result{id, ``, error}
 }
 
-func NewResult2(args...eval.PValue) Result {
+func NewResult2(args ...eval.PValue) Result {
 	value := eval.UNDEF
 	var message string
 	if len(args) > 1 {
@@ -169,7 +169,7 @@ func (r *result) Value() eval.PValue {
 	return r.value
 }
 
-func NewResultSet(args...eval.PValue) ResultSet {
+func NewResultSet(args ...eval.PValue) ResultSet {
 	if len(args) == 0 {
 		return &resultSet{eval.EMPTY_ARRAY}
 	}
