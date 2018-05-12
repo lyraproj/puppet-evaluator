@@ -9,10 +9,12 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
+	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"github.com/puppetlabs/go-semver/semver"
+	"reflect"
 )
 
 var Object_Type eval.ObjectType
@@ -672,6 +674,39 @@ func (t *objectType) MetaType() eval.ObjectType {
 	return Object_Type
 }
 
+func (t *objectType) FromReflectedValue(c eval.Context, src reflect.Value) eval.PuppetObject {
+	if src.Kind() == reflect.Ptr {
+		src = src.Elem()
+	}
+	eval.AssertKind(c, src, reflect.Struct)
+	dt := src.Type()
+	n := src.NumField()
+	entries := make([]*HashEntry, 0, n)
+	for i := 0; i < n; i++ {
+		field := dt.Field(i)
+		fn := field.Name
+		an := utils.CamelToSnakeCase(fn)
+		entries = append(entries, WrapHashEntry2(an, wrap(c, src.Field(i))))
+	}
+	return eval.New(c, t, WrapHash(entries)).(eval.PuppetObject)
+}
+
+func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, dest reflect.Value) {
+	eval.AssertKind(c, dest, reflect.Struct)
+	dt := dest.Type()
+	n := dest.NumField()
+	for i := 0; i < n; i++ {
+		field := dt.Field(i)
+		fn := field.Name
+		an := utils.CamelToSnakeCase(fn)
+		if av, ok := src.Get(c, an); ok {
+			eval.ReflectTo(c, av, dest.Field(i))
+			continue
+		}
+		panic(eval.Error(c, eval.EVAL_ATTRIBUTE_NOT_FOUND, issue.H{`name`: an}))
+	}
+}
+
 func (t *objectType) Name() string {
 	return t.name
 }
@@ -856,7 +891,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			if _, ok := paramType.(*OptionalType); !ok {
 				paramType = NewOptionalType(paramType)
 			}
-			param := newTypeParameter(c, key, t, WrapHash4(issue.H{
+			param := newTypeParameter(c, key, t, WrapHash4(c, issue.H{
 				KEY_TYPE:  paramType,
 				KEY_VALUE: paramValue}))
 			assertOverride(c, param, parentTypeParams)
@@ -885,7 +920,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				KEY_VALUE: value,
 				KEY_KIND:  CONSTANT}
 			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
-			attrSpecs.Put(key, WrapHash4(attrSpec))
+			attrSpecs.Put(key, WrapHash4(c, attrSpec))
 		})
 	}
 
@@ -902,7 +937,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				if _, ok = attrType.(*OptionalType); ok {
 					hash[KEY_VALUE] = eval.UNDEF
 				}
-				attrSpec = WrapHash4(hash)
+				attrSpec = WrapHash4(c, hash)
 			}
 			attr := newAttribute(c, key, t, attrSpec)
 			assertOverride(c, attr, parentMembers)
@@ -924,7 +959,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				funcType := eval.AssertInstance(c,
 					func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
 					TYPE_FUNCTION_TYPE, value)
-				funcSpec = WrapHash4(issue.H{KEY_TYPE: funcType})
+				funcSpec = WrapHash4(c, issue.H{KEY_TYPE: funcType})
 			}
 			fnc := newFunction(c, key.String(), t, funcSpec)
 			assertOverride(c, fnc, parentMembers)

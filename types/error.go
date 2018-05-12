@@ -62,6 +62,12 @@ func newError2(c eval.Context, args ...eval.PValue) eval.ErrorObject {
 }
 
 func newError(c eval.Context, message, kind, issueCode string, partialResult eval.PValue, details eval.KeyedValue) eval.ErrorObject {
+	if partialResult == nil {
+		partialResult = eval.UNDEF
+	}
+	if details == nil {
+		details = eval.EMPTY_MAP
+	}
 	ev := &errorObj{message: message, kind: kind, issueCode: issueCode, partialResult: partialResult, details: details}
 	ev.initType(c)
 	return ev

@@ -6,6 +6,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type objectTypeExtension struct {
@@ -95,7 +96,7 @@ func (te *objectTypeExtension) Parameters() []eval.PValue {
 	pts := te.baseType.typeParameters(true)
 	n := pts.Len()
 	if n > 2 {
-		return []eval.PValue{WrapHash5(te.parameters)}
+		return []eval.PValue{WrapHash5(nil, te.parameters)}
 	}
 	params := make([]eval.PValue, 0, n)
 	top := 0
@@ -111,6 +112,14 @@ func (te *objectTypeExtension) Parameters() []eval.PValue {
 		idx++
 	})
 	return params[:top]
+}
+
+func (te *objectTypeExtension) FromReflectedValue(c eval.Context, src reflect.Value) eval.PuppetObject {
+	return te.baseType.FromReflectedValue(c, src)
+}
+
+func (te *objectTypeExtension) ToReflectedValue(c eval.Context, src eval.PuppetObject, dest reflect.Value) {
+	te.baseType.ToReflectedValue(c, src, dest)
 }
 
 func (te *objectTypeExtension) String() string {

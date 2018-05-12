@@ -220,6 +220,10 @@ func (t *RuntimeType) Parameters() []eval.PValue {
 	return ps
 }
 
+func (t *RuntimeType) ReflectType() (reflect.Type, bool) {
+	return t.goType, t.goType != nil
+}
+
 func (t *RuntimeType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -250,6 +254,25 @@ func (rv *RuntimeValue) Equals(o interface{}, g eval.Guard) bool {
 		return reflect.DeepEqual(rv.value, ov.value)
 	}
 	return false
+}
+
+func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
+	gt := rv.puppetType.goType
+	if gt == nil {
+		panic(eval.Error(c, eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+	}
+	return reflect.ValueOf(rv.value)
+}
+
+func (rv *RuntimeValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	gt := rv.puppetType.goType
+	if gt == nil {
+		panic(eval.Error(c, eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+	}
+	if !gt.AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(reflect.ValueOf(rv.value))
 }
 
 func (rv *RuntimeValue) String() string {

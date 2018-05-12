@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type (
@@ -127,6 +128,10 @@ func (t *RegexpType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapRegexp(t.patternString)}
 }
 
+func (t *RegexpType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(regexpType_DEFAULT.pattern), true
+}
+
 func (t *RegexpType) PatternString() string {
 	return t.patternString
 }
@@ -209,6 +214,18 @@ func (sv *RegexpValue) Regexp() *regexp.Regexp {
 
 func (sv *RegexpValue) PatternString() string {
 	return sv.patternString
+}
+
+func (sv *RegexpValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(sv.pattern)
+}
+
+func (sv *RegexpValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := sv.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
 }
 
 func (sv *RegexpValue) String() string {

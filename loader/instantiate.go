@@ -127,7 +127,7 @@ func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[stri
 	}
 
 	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.CONSTRUCTOR, `Task`)); ok {
-		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapHash4(arguments))
+		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapHash4(ctx, arguments))
 	}
 	panic(eval.Error(ctx, eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
 }

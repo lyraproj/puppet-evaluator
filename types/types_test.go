@@ -40,7 +40,7 @@ func TestTuple(t *testing.T) {
 }
 
 func TestWrapAliasedString(t *testing.T) {
-	v := wrap(eval.FUNCTION)
+	v := wrap(nil, eval.FUNCTION)
 	s, ok := v.(*StringValue)
 	if !(ok && s.String() == `function`) {
 		t.Errorf("Namespace got wrapped as %T %s", v, v.String())
@@ -49,7 +49,7 @@ func TestWrapAliasedString(t *testing.T) {
 
 func TestWrapMapOfInterface(t *testing.T) {
 	type M map[string]interface{}
-	a := wrap(M{
+	a := wrap(nil, M{
 		`foo`: 23,
 		`fee`: `hello`,
 		`fum`: M{

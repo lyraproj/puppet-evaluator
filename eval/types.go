@@ -1,6 +1,9 @@
 package eval
 
-import "github.com/puppetlabs/go-issues/issue"
+import (
+	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
+)
 
 type (
 	Visitor func(t PType)
@@ -17,6 +20,12 @@ type (
 		Name() string
 
 		Accept(visitor Visitor, g Guard)
+	}
+
+	PReflectedType interface {
+		PType
+
+		ReflectType() (reflect.Type, bool)
 	}
 
 	SizedType interface {
@@ -120,34 +129,6 @@ type (
 		Call(c Context, method string, args []PValue, block Lambda) (result PValue, ok bool)
 	}
 
-	PuppetObject interface {
-		PValue
-		ReadableObject
-
-		InitHash() KeyedValue
-	}
-
-	ErrorObject interface {
-		PuppetObject
-
-		// Kind returns the error kind
-		Kind() string
-
-		// Message returns the error message
-		Message() string
-
-		// IssueCode returns the issue code
-		IssueCode() string
-
-		// PartialResult returns the optional partial result. It returns
-		// eval.UNDEF if no partial result exists
-		PartialResult() PValue
-
-		// Details returns the optional details. It returns
-		// an empty map when o details exist
-		Details() KeyedValue
-	}
-
 	AttributesInfo interface {
 		NameToPos() map[string]int
 
@@ -173,6 +154,19 @@ type (
 		IsParameterized() bool
 
 		AttributesInfo() AttributesInfo
+
+		FromReflectedValue(c Context, src reflect.Value) PuppetObject
+
+		// ReflectValueTo copies values from src to dest. The src argument
+		// must be an instance of the receiver. The dest argument must be
+		// a reflected struct. The src must be able to deliver a value to
+		// each of the exported fields in dest.
+		//
+		// Puppets name convention stipulates lower case names using
+		// underscores to separate words. The Go conversion is to use
+		// camel cased names. ReflectValueTo will convert camel cased names
+		// into names with underscores.
+		ToReflectedValue(c Context, src PuppetObject, dest reflect.Value)
 	}
 
 	TypeWithContainedType interface {
@@ -185,6 +179,20 @@ type (
 	Generalizable interface {
 		ParameterizedType
 		Generic() PType
+	}
+
+	ImplementationRegistry interface {
+		// RegisterType registers the mapping between the given PType and reflect.Type
+		RegisterType(c Context, t ObjectType, r reflect.Type)
+
+		// RegisterType2 registers the mapping between the given name of a PType and reflect.Type
+		RegisterType2(c Context, tn string, r reflect.Type)
+
+		// PTypeToReflected returns the reflect.Type for the given PType
+		PTypeToReflected(t ObjectType) (reflect.Type, bool)
+
+		// ReflectedToPtype returns the PType for the given reflect.Type
+		ReflectedToPtype(t reflect.Type) (ObjectType, bool)
 	}
 )
 
@@ -276,6 +284,13 @@ func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 	return dflt
 }
 
+func ReflectType(src PType) (reflect.Type, bool) {
+	if sn, ok := src.(PReflectedType); ok {
+		return sn.ReflectType()
+	}
+	return nil, false
+}
+
 func Map1(elements []PValue, mapper Mapper) []PValue {
 	result := make([]PValue, len(elements))
 	for idx, elem := range elements {
@@ -299,6 +314,14 @@ func MapTypes(types []PType, mapper TypeMapper) []PValue {
 		result[idx] = mapper(elem)
 	}
 	return result
+}
+
+// New creates a new instance of type t
+func New(c Context, t PType, args ...PValue) PValue {
+	if ctor, ok := Load(c, NewTypedName(CONSTRUCTOR, t.Name())); ok {
+		return ctor.(Function).Call(c, nil, args...)
+	}
+	panic(Error(c, EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
 }
 
 func Reduce(elements []PValue, memo PValue, reductor BiMapper) PValue {

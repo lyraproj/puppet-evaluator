@@ -5,6 +5,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"reflect"
 )
 
 type NotUndefType struct {
@@ -115,6 +116,10 @@ func (t *NotUndefType) Parameters() []eval.PValue {
 		return []eval.PValue{WrapString(str.value)}
 	}
 	return []eval.PValue{t.typ}
+}
+
+func (t *NotUndefType) ReflectType() (reflect.Type, bool) {
+	return eval.ReflectType(t.typ)
 }
 
 func (t *NotUndefType) String() string {

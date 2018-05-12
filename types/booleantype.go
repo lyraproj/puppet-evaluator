@@ -5,6 +5,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"reflect"
 )
 
 var Boolean_FALSE = &BooleanValue{0}
@@ -127,6 +128,10 @@ func (t *BooleanType) Parameters() []eval.PValue {
 	return []eval.PValue{&BooleanValue{t.value}}
 }
 
+func (t *BooleanType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(true), true
+}
+
 func (t *BooleanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
@@ -159,6 +164,19 @@ func (bv *BooleanValue) Float() float64 {
 
 func (bv *BooleanValue) Int() int64 {
 	return int64(bv.value)
+}
+
+func (bv *BooleanValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(bv.value == 1)
+}
+
+func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
+	eval.AssertKind(c, value, reflect.Bool)
+	if value.Kind() == reflect.Interface {
+		value.Set(bv.Reflect(c))
+	} else {
+		value.SetBool(bv.value == 1)
+	}
 }
 
 func (bv *BooleanValue) String() string {

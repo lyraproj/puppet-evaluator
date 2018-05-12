@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"reflect"
 	"sort"
 )
 
@@ -256,6 +257,13 @@ func (t *ArrayType) Parameters() []eval.PValue {
 	return params
 }
 
+func (t *ArrayType) ReflectType() (reflect.Type, bool) {
+	if et, ok := eval.ReflectType(t.ElementType()); ok {
+		return reflect.SliceOf(et), true
+	}
+	return nil, false
+}
+
 func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
@@ -271,10 +279,10 @@ func WrapArray(elements []eval.PValue) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
 
-func WrapArray2(elements []interface{}) *ArrayValue {
+func WrapArray2(c eval.Context, elements []interface{}) *ArrayValue {
 	els := make([]eval.PValue, len(elements))
 	for i, e := range elements {
-		els[i] = wrap(e)
+		els[i] = wrap(c, e)
 	}
 	return &ArrayValue{elements: els}
 }
@@ -468,6 +476,27 @@ func (av *ArrayValue) Reduce(redactor eval.BiMapper) eval.PValue {
 
 func (av *ArrayValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
 	return reduceSlice(av.elements, initialValue, redactor)
+}
+
+func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
+	at, ok := eval.ReflectType(av.Type())
+	if !ok {
+		at = reflect.TypeOf([]interface{}{})
+	}
+	s := reflect.MakeSlice(at, av.Len(), av.Len())
+	for i, e := range av.elements {
+		eval.ReflectTo(c, e, s.Index(i))
+	}
+	return s
+}
+
+func (av *ArrayValue) ReflectTo(c eval.Context, value reflect.Value) {
+	eval.AssertKind(c, value, reflect.Slice)
+	s := reflect.MakeSlice(value.Type(), av.Len(), av.Len())
+	for i, e := range av.elements {
+		eval.ReflectTo(c, e, s.Index(i))
+	}
+	value.Set(s)
 }
 
 func (av *ArrayValue) Reject(predicate eval.Predicate) eval.IndexedValue {

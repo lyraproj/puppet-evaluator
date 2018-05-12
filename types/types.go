@@ -349,10 +349,14 @@ func init() {
 		}
 	}
 
+	eval.NewObjectType = newObjectType
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
-	eval.Wrap = wrap
+	eval.Wrap = func(v interface{}) eval.PValue {
+		return wrap(nil, v)
+	}
+	eval.Wrap2 = wrap
 }
 
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
@@ -429,7 +433,7 @@ func appendTypeParamKey(b *bytes.Buffer, v eval.PValue) {
 	}
 }
 
-func wrap(v interface{}) (pv eval.PValue) {
+func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 	switch v.(type) {
 	case nil:
 		pv = _UNDEF
@@ -460,7 +464,7 @@ func wrap(v interface{}) (pv eval.PValue) {
 	case []eval.PValue:
 		pv = WrapArray(v.([]eval.PValue))
 	case map[string]interface{}:
-		pv = WrapHash4(v.(map[string]interface{}))
+		pv = WrapHash4(c, v.(map[string]interface{}))
 	case map[string]eval.PValue:
 		pv = WrapHash3(v.(map[string]eval.PValue))
 	case json.Number:
@@ -470,18 +474,20 @@ func wrap(v interface{}) (pv eval.PValue) {
 			f, _ := v.(json.Number).Float64()
 			pv = WrapFloat(f)
 		}
+	case reflect.Value:
+		pv = wrapValue(c, v.(reflect.Value))
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
-		pv = wrapValue(reflect.ValueOf(v))
+		pv = wrapValue(c, reflect.ValueOf(v))
 	}
 	return pv
 }
 
-func wrapValue(vr reflect.Value) (pv eval.PValue) {
+func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 	switch vr.Kind() {
 	case reflect.String:
 		pv = WrapString(vr.String())
-	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 		pv = WrapInteger(vr.Int())
 	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
 		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
@@ -493,19 +499,23 @@ func wrapValue(vr reflect.Value) (pv eval.PValue) {
 		top := vr.Len()
 		els := make([]eval.PValue, top)
 		for i := 0; i < top; i++ {
-			els[i] = wrap(interfaceOrNil(vr.Index(i)))
+			els[i] = wrap(c, interfaceOrNil(vr.Index(i)))
 		}
 		pv = WrapArray(els)
 	case reflect.Map:
 		keys := vr.MapKeys()
 		els := make([]*HashEntry, len(keys))
 		for i, k := range keys {
-			els[i] = WrapHashEntry(wrap(interfaceOrNil(k)), wrap(interfaceOrNil(vr.MapIndex(k))))
+			els[i] = WrapHashEntry(wrap(c, interfaceOrNil(k)), wrap(c, interfaceOrNil(vr.MapIndex(k))))
 		}
 		pv = WrapHash(els)
 	default:
 		if vr.CanInterface() {
-			pv = WrapRuntime(vr.Interface())
+			if pt, ok := c.ImplementationRegistry().ReflectedToPtype(vr.Type()); ok {
+				pv = pt.FromReflectedValue(c, vr)
+			} else {
+				pv = WrapRuntime(vr.Interface())
+			}
 		} else {
 			pv = _UNDEF
 		}
@@ -518,10 +528,6 @@ func interfaceOrNil(vr reflect.Value) interface{} {
 		return vr.Interface()
 	}
 	return nil
-}
-
-func init() {
-	eval.NewObjectType = newObjectType
 }
 
 func newAliasType(name, typeDecl string) eval.PType {

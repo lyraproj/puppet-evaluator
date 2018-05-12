@@ -9,6 +9,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 	"sync"
 )
 
@@ -250,6 +251,10 @@ func (t *TimestampType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
+func (t *TimestampType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(time.Time{}), true
+}
+
 func (t *TimestampType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -345,6 +350,18 @@ func (tv *TimestampValue) Format(format string) string {
 
 func (tv *TimestampValue) Format2(format, tz string) string {
 	return DefaultTimestampFormatParser.ParseFormat(format).Format2(tv, tz)
+}
+
+func (tv *TimestampValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(tv.Time())
+}
+
+func (tv *TimestampValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := tv.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
 }
 
 func (tv *TimestampValue) Time() time.Time {

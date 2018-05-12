@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"reflect"
 	"strconv"
 )
 
@@ -98,6 +99,10 @@ func (t *NumericType) MetaType() eval.ObjectType {
 
 func (t *NumericType) Name() string {
 	return `Numeric`
+}
+
+func (t *NumericType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(float64(0.0)), true
 }
 
 func (t *NumericType) String() string {

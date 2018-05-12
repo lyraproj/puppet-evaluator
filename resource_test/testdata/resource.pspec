@@ -179,6 +179,22 @@ Examples('resource evaluator',
         }
         |-SRC
       Evaluates_to(undef)),
+
+    Example('resource can be instantiated in functions',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        function first() {
+          myres { '/a/b': ensure => absent }
+        }
+
+        function second() {
+          $m = $pnr[Myres['/a/b']].value
+          notice($m.ensure)  # would notice 'absent'
+        }
+
+        first() -> second()
+        |-SRC
+      Evaluates_with(Notice('Applying myres[/a/b]', 'absent'))),
   ),
 
   Examples('when referenced',

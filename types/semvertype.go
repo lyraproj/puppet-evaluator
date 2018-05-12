@@ -6,7 +6,9 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-semver/semver"
+	"reflect"
 )
 
 type (
@@ -190,6 +192,10 @@ func (t *SemVerType) Name() string {
 	return `SemVer`
 }
 
+func (t *SemVerType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(semver.Max), true
+}
+
 func (t *SemVerType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -236,6 +242,18 @@ func (v *SemVerValue) Equals(o interface{}, g eval.Guard) bool {
 		return v.Version().Equals(ov.Version())
 	}
 	return false
+}
+
+func (v *SemVerValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(v.Version())
+}
+
+func (v *SemVerValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := v.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
 }
 
 func (v *SemVerValue) SerializationString() string {

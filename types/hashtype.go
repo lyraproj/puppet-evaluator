@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
+	"reflect"
 )
 
 type (
@@ -565,11 +566,11 @@ func WrapHash3(hash map[string]eval.PValue) *HashValue {
 }
 
 // WrapHash4 does not preserve order since order is undefined in a Go map
-func WrapHash4(hash map[string]interface{}) *HashValue {
+func WrapHash4(c eval.Context, hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(c, v))
 		i++
 	}
 
@@ -581,11 +582,11 @@ func WrapHash4(hash map[string]interface{}) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-func WrapHash5(hash *hash.StringHash) *HashValue {
+func WrapHash5(c eval.Context, hash *hash.StringHash) *HashValue {
 	hvEntries := make([]*HashEntry, hash.Len())
 	i := 0
 	hash.EachPair(func(k string, v interface{}) {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(c, v))
 		i++
 	})
 	return &HashValue{entries: hvEntries}
@@ -823,6 +824,39 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.KeyedValue {
 		}
 	}
 	return WrapHash(selected)
+}
+
+func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
+	ht, ok := eval.ReflectType(hv.Type())
+	if !ok {
+		ht = reflect.TypeOf(map[interface{}]interface{}{})
+	}
+
+	keyType := ht.Key()
+	valueType := ht.Elem()
+	m := reflect.MakeMapWithSize(ht, hv.Len())
+	for _, e := range hv.entries {
+		m.SetMapIndex(eval.Reflect(c, e.key, keyType), eval.Reflect(c, e.value, valueType))
+	}
+	return m
+}
+
+func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
+	eval.AssertKind(c, value, reflect.Map)
+	ht := value.Type()
+	if ht.Kind() == reflect.Interface {
+		ok := false
+		if ht, ok = eval.ReflectType(hv.Type()); !ok {
+			ht = reflect.TypeOf(map[interface{}]interface{}{})
+		}
+	}
+	keyType := ht.Key()
+	valueType := ht.Elem()
+	m := reflect.MakeMapWithSize(value.Type(), hv.Len())
+	for _, e := range hv.entries {
+		m.SetMapIndex(eval.Reflect(c, e.key, keyType), eval.Reflect(c, e.value, valueType))
+	}
+	value.Set(m)
 }
 
 func (hv *HashValue) Reduce(redactor eval.BiMapper) eval.PValue {

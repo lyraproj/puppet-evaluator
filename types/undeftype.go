@@ -4,6 +4,8 @@ import (
 	"io"
 
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type (
@@ -53,6 +55,10 @@ func (t *UndefType) Name() string {
 	return `Undef`
 }
 
+func (t *UndefType) ReflectType() (reflect.Type, bool) {
+	return reflect.Value{}.Type(), true
+}
+
 func (t *UndefType) String() string {
 	return `Undef`
 }
@@ -72,6 +78,17 @@ func WrapUndef() *UndefValue {
 func (uv *UndefValue) Equals(o interface{}, g eval.Guard) bool {
 	_, ok := o.(*UndefValue)
 	return ok
+}
+
+func (uv *UndefValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.Value{}
+}
+
+func (uv *UndefValue) ReflectTo(c eval.Context, value reflect.Value) {
+	if !value.CanSet() {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Kind().String()}))
+	}
+	value.Set(reflect.Zero(value.Type()))
 }
 
 func (uv *UndefValue) String() string {

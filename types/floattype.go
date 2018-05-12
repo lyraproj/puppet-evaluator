@@ -9,6 +9,8 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type (
@@ -184,6 +186,10 @@ func (t *FloatType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapFloat(t.min), WrapFloat(t.max)}
 }
 
+func (t *FloatType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(float64(0.0)), true
+}
+
 func (t *FloatType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -224,6 +230,21 @@ func (fv *FloatValue) Float() float64 {
 
 func (fv *FloatValue) Int() int64 {
 	return int64(fv.Float())
+}
+
+func (fv *FloatValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(fv.Float())
+}
+
+func (fv *FloatValue) ReflectTo(c eval.Context, value reflect.Value) {
+	switch value.Kind() {
+	case reflect.Float64, reflect.Float32:
+		value.SetFloat(fv.Float())
+	case reflect.Interface:
+		value.Set(reflect.ValueOf(fv.Float()))
+	default:
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
+	}
 }
 
 func (fv *FloatValue) String() string {

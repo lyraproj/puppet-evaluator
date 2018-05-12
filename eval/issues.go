@@ -7,7 +7,10 @@ import (
 
 const (
 	EVAL_ARGUMENTS_ERROR                           = `EVAL_ARGUMENTS_ERROR`
+	EVAL_ATTEMPT_TO_SET_UNSETTABLE                 = `EVAL_ATTEMPT_TO_SET_UNSETTABLE`
+	EVAL_ATTEMPT_TO_SET_WRONG_KIND                 = `EVAL_ATTEMPT_TO_SET_WRONG_KIND`
 	EVAL_ATTRIBUTE_HAS_NO_VALUE                    = `EVAL_ATTRIBUTE_HAS_NO_VALUE`
+	EVAL_ATTRIBUTE_NOT_FOUND                       = `EVAL_ATTRIBUTE_NOT_FOUND`
 	EVAL_BAD_JSON_PATH                             = `EVAL_BAD_JSON_PATH`
 	EVAL_BOTH_CONSTANT_AND_ATTRIBUTE               = `EVAL_BOTH_CONSTANT_AND_ATTRIBUTE`
 	EVAL_CONSTANT_REQUIRES_VALUE                   = `EVAL_CONSTANT_REQUIRES_VALUE`
@@ -32,9 +35,13 @@ const (
 	EVAL_ILLEGAL_OBJECT_INHERITANCE                = `EVAL_ILLEGAL_OBJECT_INHERITANCE`
 	EVAL_ILLEGAL_RETURN                            = `EVAL_ILLEGAL_RETURN`
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE             = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
+	EVAL_IMPL_ALREDY_REGISTERED                    = `EVAL_IMPL_ALREDY_REGISTERED`
+	EVAL_IMPL_IS_NOT_STRUCT                        = `EVAL_IMPL_IS_NOT_STRUCT`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
 	EVAL_INSTANCE_DOES_NOT_RESPOND                 = `EVAL_INSTANCE_DOES_NOT_RESPOND`
 	EVAL_INVALID_REGEXP                            = `EVAL_INVALID_REGEXP`
+	EVAL_INVALID_SOURCE_FOR_GET                    = `EVAL_INVALID_SOURCE_FOR_GET`
+	EVAL_INVALID_SOURCE_FOR_SET                    = `EVAL_INVALID_SOURCE_FOR_SET`
 	EVAL_INVALID_STRING_FORMAT_SPEC                = `EVAL_INVALID_STRING_FORMAT_SPEC`
 	EVAL_INVALID_STRING_FORMAT_DELIMITER           = `EVAL_INVALID_STRING_FORMAT_DELIMITER`
 	EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG       = `EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG`
@@ -58,6 +65,7 @@ const (
 	EVAL_NOT_COLLECTION_AT                         = `EVAL_NOT_COLLECTION_AT`
 	EVAL_NOT_EXPECTED_TYPESET                      = `EVAL_NOT_EXPECTED_TYPESET`
 	EVAL_NOT_INTEGER                               = `EVAL_NOT_INTEGER`
+	EVAL_NOT_OBJECT_TYPE                           = `EVAL_NOT_OBJECT_TYPE`
 	EVAL_NOT_ONLY_DEFINITION                       = `EVAL_NOT_ONLY_DEFINITION`
 	EVAL_NOT_NUMERIC                               = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE                    = `EVAL_NOT_PARAMETERIZED_TYPE`
@@ -122,7 +130,13 @@ func joinErrors(e interface{}) string {
 func init() {
 	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: issue.A_an})
 
+	issue.Hard(EVAL_ATTEMPT_TO_SET_UNSETTABLE, `attempt to set a value of kind %{kind} in an unsettable reflect.Value`)
+
+	issue.Hard(EVAL_ATTEMPT_TO_SET_WRONG_KIND, `attempt to assign a value of kind %{expected} to a reflect.Value of kind %{actual}`)
+
 	issue.Hard(EVAL_ATTRIBUTE_HAS_NO_VALUE, `%{label} has no value`)
+
+	issue.Hard2(EVAL_ATTRIBUTE_NOT_FOUND, `%{type} has no attribute named %{name}`, issue.HF{`type`: issue.A_anUc})
 
 	issue.Hard(EVAL_BAD_JSON_PATH, `unable to resolve JSON path '${path}'`)
 
@@ -181,9 +195,17 @@ func init() {
 
 	issue.Hard(EVAL_ILLEGAL_REASSIGNMENT, `Cannot reassign variable '$%{var}'`)
 
+	issue.Hard(EVAL_IMPL_ALREDY_REGISTERED, `The type %{type} is already present in the implementation registry`)
+
+	issue.Hard(EVAL_IMPL_IS_NOT_STRUCT, `The type %{type} is not a struct or a pointer to a struct`)
+
 	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
 
 	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '${pattern}': %{detail}`)
+
+	issue.Hard2(EVAL_INVALID_SOURCE_FOR_GET, `Cannot create a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
+
+	issue.Hard2(EVAL_INVALID_SOURCE_FOR_SET, `Cannot set a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
 
 	issue.Hard(EVAL_INVALID_STRING_FORMAT_SPEC, `The string format '%{format}' is not a valid format on the form '%%<flags><width>.<prec><format>'`)
 
@@ -230,6 +252,8 @@ func init() {
 	issue.Hard(EVAL_NOT_COLLECTION_AT, `The given data does not contain a Collection at %{walked_path}, got '%{klass}'`)
 
 	issue.Hard(EVAL_NOT_INTEGER, `The value '%{value}' cannot be converted to an Integer`)
+
+	issue.Hard(EVAL_NOT_OBJECT_TYPE, `The type %{type} is not an Object type`)
 
 	issue.Hard(EVAL_NOT_EXPECTED_TYPESET, `The code loaded from %{source} does not define the TypeSet %{name}'`)
 

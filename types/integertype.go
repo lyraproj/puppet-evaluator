@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type (
@@ -270,6 +271,10 @@ func (t *IntegerType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapInteger(t.min), WrapInteger(t.max)}
 }
 
+func (t *IntegerType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(int64(0)), true
+}
+
 func (t *IntegerType) SizeParameters() []eval.PValue {
 	params := make([]eval.PValue, 2)
 	params[0] = WrapInteger(t.min)
@@ -317,6 +322,26 @@ func (iv *IntegerValue) Float() float64 {
 
 func (iv *IntegerValue) Int() int64 {
 	return iv.min
+}
+
+func (iv *IntegerValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(iv.Int())
+}
+
+func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
+	if !value.CanSet() {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
+	}
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value.SetInt(iv.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value.SetUint(uint64(iv.Int()))
+	case reflect.Interface:
+		value.Set(reflect.ValueOf(iv.Int()))
+	default:
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
+	}
 }
 
 func (iv *IntegerValue) String() string {
