@@ -684,8 +684,7 @@ func (t *objectType) FromReflectedValue(c eval.Context, src reflect.Value) eval.
 	entries := make([]*HashEntry, 0, n)
 	for i := 0; i < n; i++ {
 		field := dt.Field(i)
-		fn := field.Name
-		an := utils.CamelToSnakeCase(fn)
+		an := utils.FieldName(c, &field)
 		entries = append(entries, WrapHashEntry2(an, wrap(c, src.Field(i))))
 	}
 	return eval.New(c, t, WrapHash(entries)).(eval.PuppetObject)
@@ -697,8 +696,7 @@ func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, des
 	n := dest.NumField()
 	for i := 0; i < n; i++ {
 		field := dt.Field(i)
-		fn := field.Name
-		an := utils.CamelToSnakeCase(fn)
+		an := utils.FieldName(c, &field)
 		if av, ok := src.Get(c, an); ok {
 			eval.ReflectTo(c, av, dest.Field(i))
 			continue

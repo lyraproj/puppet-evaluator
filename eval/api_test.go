@@ -340,3 +340,43 @@ func ExampleImplementationRegistry() {
 	fmt.Println(ev)
 	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip' => '12345'), 'active' => true)
 }
+
+func ExampleImplementationRegistry_tags() {
+	type TestAddress struct {
+		Street string
+		Zip    string         `puppet:"name=>zip_code"`
+	}
+	type TestPerson struct {
+		Name    string
+		Age     int
+		Address *TestAddress
+		Active  bool          `puppet:"name=>enabled"`
+	}
+
+	c := eval.Puppet.RootContext()
+	c.AddDefinitions(c.ParseAndValidate(``, `
+  type My::Address = {
+    attributes => {
+      street => String,
+      zip_code => Optional[String],
+    }
+  }
+  type My::Person = {
+		attributes => {
+      name => String,
+      age => Integer,
+      address => My::Address,
+      enabled => Boolean,
+		}
+  }`, false))
+	c.ResolveDefinitions()
+
+	ir := c.ImplementationRegistry()
+	ir.RegisterType2(c, `My::Address`, reflect.TypeOf(&TestAddress{}))
+	ir.RegisterType2(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
+
+	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
+	ev := eval.Wrap2(c, ts)
+	fmt.Println(ev)
+	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true)
+}
