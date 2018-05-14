@@ -107,7 +107,7 @@ func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.P
 		// that are reached using children
 		r := g.(graph.EdgeRemover)
 		for _, en := range extEdges {
-			r.RemoveEdge(g.Edge(rn.ID(), en.ID()))
+			r.RemoveEdge(rn.ID(), en.ID())
 		}
 	}
 	return value, nil

@@ -142,10 +142,10 @@ func (cg *concurrentGraph) NewEdge(from, to graph.Node) graph.Edge {
 	return &edge{from.(*node), to.(*node), false}
 }
 
-func (cg *concurrentGraph) RemoveEdge(e graph.Edge) {
+func (cg *concurrentGraph) RemoveEdge(fid, tid int64) {
 	cg.lock.Lock()
 	defer cg.lock.Unlock()
-	cg.g.RemoveEdge(e)
+	cg.g.RemoveEdge(fid, tid)
 }
 
 func (cg *concurrentGraph) SetEdge(e graph.Edge) {
