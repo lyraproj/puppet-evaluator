@@ -23,6 +23,8 @@ const (
 	EVAL_EQUALITY_ON_CONSTANT                      = `EVAL_EQUALITY_ON_CONSTANT`
 	EVAL_EQUALITY_REDEFINED                        = `EVAL_EQUALITY_REDEFINED`
 	EVAL_FAILURE                                   = `EVAL_FAILURE`
+	EVAL_FILE_NOT_FOUND                            = `EVAL_FILE_NOT_FOUND`
+	EVAL_FILE_READ_DENIED                          = `EVAL_FILE_READ_DENIED`
 	EVAL_FORMAT_HASH_KEY_NOT_TYPE                  = `EVAL_FORMAT_HASH_KEY_NOT_TYPE`
 	EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE           = `EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE`
 	EVAL_ILLEGAL_ARGUMENT                          = `EVAL_ILLEGAL_ARGUMENT`
@@ -49,6 +51,7 @@ const (
 	EVAL_INVALID_URI                               = `EVAL_INVALID_URI`
 	EVAL_INVALID_VERSION                           = `EVAL_INVALID_VERSION`
 	EVAL_INVALID_VERSION_RANGE                     = `EVAL_INVALID_VERSION_RANGE`
+	EVAL_IS_DIRECTORY                              = `EVAL_IS_DIRECTORY`
 	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP                          = `EVAL_MATCH_NOT_REGEXP`
 	EVAL_MATCH_NOT_SEMVER_RANGE                    = `EVAL_MATCH_NOT_SEMVER_RANGE`
@@ -79,6 +82,7 @@ const (
 	EVAL_OVERRIDDEN_NOT_FOUND                      = `EVAL_OVERRIDDEN_NOT_FOUND`
 	EVAL_OVERRIDE_OF_FINAL                         = `EVAL_OVERRIDE_OF_FINAL`
 	EVAL_OVERRIDE_IS_MISSING                       = `EVAL_OVERRIDE_IS_MISSING`
+	EVAL_PARSE_ERROR                               = `EVAL_PARSE_ERROR`
 	EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND         = `EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND`
 	EVAL_SERIALIZATION_NOT_ATTRIBUTE               = `EVAL_SERIALIZATION_NOT_ATTRIBUTE`
 	EVAL_SERIALIZATION_BAD_KIND                    = `EVAL_SERIALIZATION_BAD_KIND`
@@ -164,6 +168,10 @@ func init() {
 
 	issue.Hard(EVAL_FAILURE, `%{message}`)
 
+	issue.Hard(EVAL_FILE_NOT_FOUND, `File '%{path}' does not exist`)
+
+	issue.Hard(EVAL_FILE_READ_DENIED, `Insufficient permissions to read '%{path}'`)
+
 	issue.Hard(EVAL_FORMAT_HASH_KEY_NOT_TYPE, `Expected key of format hash to be a Type. Got %{type}`)
 
 	issue.Hard(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, `Attempt to create a Runtime['go', '%{name}'] without providing a Go type`)
@@ -199,6 +207,8 @@ func init() {
 	issue.Hard(EVAL_IMPL_ALREDY_REGISTERED, `The type %{type} is already present in the implementation registry`)
 
 	issue.Hard(EVAL_IMPL_IS_NOT_STRUCT, `The type %{type} is not a struct or a pointer to a struct`)
+
+	issue.Hard(EVAL_IS_DIRECTORY, `The path '%{path}' is a directory`)
 
 	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
 
@@ -284,6 +294,8 @@ func init() {
 	issue.Hard(EVAL_OVERRIDE_IS_MISSING, `%{member} attempts to override %{label} without having override => true`)
 
 	issue.Hard(EVAL_OVERRIDE_OF_FINAL, `%{member} attempts to override final %{label}`)
+
+	issue.Hard(EVAL_PARSE_ERROR, `Unable to parse %{language}. Detail: %{detail}`)
 
 	issue.Hard(EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND, `%{label} serialization is referencing non existent attribute '%{attribute}'`)
 

@@ -16,6 +16,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
+	"gopkg.in/yaml.v2"
 	"strings"
 )
 
@@ -483,6 +484,13 @@ func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 		pv = WrapHash4(c, v.(map[string]interface{}))
 	case map[string]eval.PValue:
 		pv = WrapHash3(v.(map[string]eval.PValue))
+	case yaml.MapSlice:
+		ms := v.(yaml.MapSlice)
+		es := make([]*HashEntry, len(ms))
+		for i, me := range ms {
+			es[i] = WrapHashEntry(wrap(c, me.Key), wrap(c, me.Value))
+		}
+		pv = WrapHash(es)
 	case json.Number:
 		if i, err := v.(json.Number).Int64(); err == nil {
 			pv = WrapInteger(i)

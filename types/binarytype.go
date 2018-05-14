@@ -25,14 +25,14 @@ func init() {
 	newGoConstructor2(`Binary`,
 		func(t eval.LocalTypes) {
 			t.Type(`ByteInteger`, `Integer[0,255]`)
-			t.Type(`Base64Format`, `Enum['%b', '%u', '%B', '%s', '%r']`)
-			t.Type(`StringHash`, `Struct[value => String, format => Optional[Base64Format]]`)
+			t.Type(`Encoding`, `Enum['%b', '%u', '%B', '%s', '%r']`)
+			t.Type(`StringHash`, `Struct[value => String, format => Optional[Encoding]]`)
 			t.Type(`ArrayHash`, `Struct[value => Array[ByteInteger]]`)
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.OptionalParam(`Base64Format`)
+			d.OptionalParam(`Encoding`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				str := args[0].String()
 				f := `%B`
