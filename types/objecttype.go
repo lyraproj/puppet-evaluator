@@ -3,17 +3,16 @@ package types
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
+	"runtime"
 	"sync/atomic"
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
-	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	"reflect"
-	"runtime"
 )
 
 var Object_Type eval.ObjectType
@@ -603,7 +602,7 @@ func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, des
 			t.resolvedParent(c).ToReflectedValue(c, src, dest.Field(i))
 			continue
 		}
-		an := utils.FieldName(c, &field)
+		an := FieldName(c, &field)
 		if av, ok := src.Get(c, an); ok {
 			eval.ReflectTo(c, av, dest.Field(i))
 			continue
@@ -630,7 +629,7 @@ func (t *objectType) appendAttributeValues(c eval.Context, entries []*HashEntry,
 			entries = t.resolvedParent(c).appendAttributeValues(c, entries, src.Field(i))
 			continue
 		}
-		an := utils.FieldName(c, &field)
+		an := FieldName(c, &field)
 		entries = append(entries, WrapHashEntry2(an, wrap(c, src.Field(i))))
 	}
 	return entries

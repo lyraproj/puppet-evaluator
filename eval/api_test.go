@@ -344,13 +344,13 @@ func ExampleImplementationRegistry() {
 func ExampleImplementationRegistry_tags() {
 	type TestAddress struct {
 		Street string
-		Zip    string         `puppet:"name=>zip_code"`
+		Zip    string `puppet:"name=>zip_code"`
 	}
 	type TestPerson struct {
 		Name    string
 		Age     int
 		Address *TestAddress
-		Active  bool          `puppet:"name=>enabled"`
+		Active  bool `puppet:"name=>enabled"`
 	}
 
 	c := eval.Puppet.RootContext()
@@ -379,4 +379,46 @@ func ExampleImplementationRegistry_tags() {
 	ev := eval.Wrap2(c, ts)
 	fmt.Println(ev)
 	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true)
+}
+
+func ExampleObjectTypeFromReflect() {
+	type TestAddress struct {
+		Street string
+		Zip    string `puppet:"name=>zip_code"`
+	}
+	type TestPerson struct {
+		Name    string
+		Address *TestAddress
+	}
+	type TestExtendedPerson struct {
+		TestPerson
+		Age    int  `puppet:"type=>Optional[Integer],value=>undef"`
+		Active bool `puppet:"name=>enabled"`
+	}
+
+	c := eval.Puppet.RootContext()
+	rtAddress := reflect.TypeOf(&TestAddress{})
+	rtPerson := reflect.TypeOf(&TestPerson{})
+	rtExtPerson := reflect.TypeOf(&TestExtendedPerson{})
+
+	tAddress := types.ObjectTypeFromReflect(c, `My::Address`, nil, rtAddress)
+	tPerson := types.ObjectTypeFromReflect(c, `My::Person`, nil, rtPerson)
+	tExtPerson := types.ObjectTypeFromReflect(c, `My::ExtendedPerson`, tPerson, rtExtPerson)
+	tAddress.(eval.ResolvableType).Resolve(c)
+	tPerson.(eval.ResolvableType).Resolve(c)
+	tExtPerson.(eval.ResolvableType).Resolve(c)
+
+	fmt.Println(tAddress)
+	fmt.Println(tPerson)
+	fmt.Println(tExtPerson)
+
+	ts := &TestExtendedPerson{TestPerson{`Bob Tester`, &TestAddress{`Example Road 23`, `12345`}}, 34, true}
+	ev := eval.Wrap2(c, ts)
+	fmt.Println(ev)
+
+	// Output:
+	// My::Address[{'attributes' => {'street' => String, 'zip_code' => String}, 'name' => 'My::Address'}]
+	// My::Person[{'attributes' => {'name' => String, 'address' => My::Address}, 'name' => 'My::Person'}]
+	// My::ExtendedPerson[{'attributes' => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}, 'name' => 'My::ExtendedPerson', 'parent' => My::Person}]
+	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
