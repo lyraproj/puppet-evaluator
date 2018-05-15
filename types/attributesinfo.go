@@ -2,7 +2,7 @@ package types
 
 import "github.com/puppetlabs/go-evaluator/eval"
 
-type	attributesInfo struct {
+type attributesInfo struct {
 	nameToPos                map[string]int
 	posToName                map[int]string
 	attributes               []eval.Attribute
@@ -65,4 +65,3 @@ func (ai *attributesInfo) PositionalFromHash(c eval.Context, hash eval.KeyedValu
 	}
 	return va
 }
-

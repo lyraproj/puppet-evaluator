@@ -5,8 +5,8 @@ import (
 	"regexp"
 
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
 	_ "github.com/puppetlabs/go-evaluator/pcore"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
 func ExampleUniqueValues() {

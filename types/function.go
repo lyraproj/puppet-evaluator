@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
 	"fmt"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 )
 
