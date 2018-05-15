@@ -24,6 +24,7 @@ type (
 )
 
 var floatType_DEFAULT = &FloatType{-math.MaxFloat64, math.MaxFloat64}
+var floatType_32 = &FloatType{-math.MaxFloat32, math.MaxFloat32}
 
 var Float_Type eval.ObjectType
 

@@ -948,6 +948,13 @@ func (hv *HashValue) Get6(key string, dflt eval.Producer) eval.PValue {
 	return hv.get3(eval.HashKey(key), dflt)
 }
 
+func (hv *HashValue) GetEntry(key string) (eval.EntryValue, bool) {
+	if pos, ok := hv.valueIndex()[eval.HashKey(key)]; ok {
+		return hv.entries[pos], true
+	}
+	return nil, false
+}
+
 func (hv *HashValue) get(key eval.HashKey) (eval.PValue, bool) {
 	if pos, ok := hv.valueIndex()[key]; ok {
 		return hv.entries[pos].value, true

@@ -476,6 +476,8 @@ func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 		}
 	case reflect.Value:
 		pv = wrapValue(c, v.(reflect.Value))
+	case reflect.Type:
+		pv = wrapType(c, v.(reflect.Type))
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
 		pv = wrapValue(c, reflect.ValueOf(v))
@@ -511,7 +513,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 		pv = WrapHash(els)
 	default:
 		if vr.CanInterface() {
-			if pt, ok := c.ImplementationRegistry().ReflectedToPtype(vr.Type()); ok {
+			if pt, ok := wrapType(c, vr.Type()).(eval.ObjectType); ok {
 				pv = pt.FromReflectedValue(c, vr)
 			} else {
 				pv = WrapRuntime(vr.Interface())
@@ -521,6 +523,50 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 		}
 	}
 	return pv
+}
+
+func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
+	switch vt.Kind() {
+	case reflect.String:
+		pt = DefaultStringType()
+	case reflect.Int, reflect.Int64:
+		pt = DefaultIntegerType()
+	case reflect.Int32:
+		pt = integerType_32
+	case reflect.Int16:
+		pt = integerType_16
+	case reflect.Int8:
+		pt = integerType_8
+	case reflect.Uint, reflect.Uint64:
+		pt = integerType_u64
+	case reflect.Uint32:
+		pt = integerType_u32
+	case reflect.Uint16:
+		pt = integerType_u16
+	case reflect.Uint8:
+		pt = integerType_u8
+	case reflect.Bool:
+		pt = DefaultBooleanType()
+	case reflect.Float64:
+		pt = DefaultFloatType()
+	case reflect.Float32:
+		pt = floatType_32
+	case reflect.Slice, reflect.Array:
+		pt = NewArrayType(wrapType(c, vt.Elem()), nil)
+	case reflect.Map:
+		pt = NewHashType(wrapType(c, vt.Key()), wrapType(c, vt.Elem()), nil)
+	case reflect.Ptr:
+		pt = wrapType(c, vt.Elem())
+	case reflect.Struct:
+		if it, ok := c.ImplementationRegistry().ReflectedToPtype(vt); ok {
+			pt = it
+		} else {
+			pt = DefaultAnyType()
+		}
+	default:
+		pt = DefaultAnyType()
+	}
+	return
 }
 
 func interfaceOrNil(vr reflect.Value) interface{} {
@@ -546,32 +592,6 @@ func newAliasType(name, typeDecl string) eval.PType {
 		return at
 	}
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
-}
-
-func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
-	p := parser.CreateParser()
-	_, fileName, fileLine, _ := runtime.Caller(1)
-	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
-	if err != nil {
-		err = convertReported(err, fileName, fileLine)
-		panic(err)
-	}
-
-	if ta, ok := expr.(*parser.TypeAlias); ok {
-		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
-		ot := rt.(*objectType)
-		ot.setCreators(creators...)
-		registerResolvableType(ot)
-		return ot
-	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
-}
-
-func newObjectType2(name string, parent eval.PType, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
-	ta := NewObjectType(name, parent, initHash)
-	ta.setCreators(creators...)
-	registerResolvableType(ta)
-	return ta
 }
 
 func convertReported(err error, fileName string, lineOffset int) error {
@@ -649,4 +669,106 @@ func createMetaType(na eval.URI, name string, typeName string, parentName string
 	}
 
 	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
+}
+
+func argError(e eval.PType, a eval.PValue) errors.InstantiationError {
+	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.Type()))
+}
+
+func typeArg(hash eval.KeyedValue, key string, d eval.PType) eval.PType {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(eval.PType); ok {
+		return t
+	}
+	panic(argError(DefaultTypeType(), v))
+}
+
+func hashArg(hash eval.KeyedValue, key string) *HashValue {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return _EMPTY_MAP
+	}
+	if t, ok := v.(*HashValue); ok {
+		return t
+	}
+	panic(argError(DefaultHashType(), v))
+}
+
+func boolArg(hash eval.KeyedValue, key string, d bool) bool {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*BooleanValue); ok {
+		return t.Bool()
+	}
+	panic(argError(DefaultBooleanType(), v))
+}
+
+func stringArg(hash eval.KeyedValue, key string, d string) string {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		return t.String()
+	}
+	panic(argError(DefaultStringType(), v))
+}
+
+func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.URI {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		str := t.String()
+		if _, err := ParseURI2(str, true); err != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		}
+		return eval.URI(str)
+	}
+	if t, ok := v.(*UriValue); ok {
+		return eval.URI(t.URL().String())
+	}
+	panic(argError(DefaultUriType(), v))
+}
+
+func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Version) semver.Version {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sv, error := semver.ParseVersion(s.String())
+		if error != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sv
+	}
+	if sv, ok := v.(*SemVerValue); ok {
+		return sv.Version()
+	}
+	panic(argError(DefaultSemVerType(), v))
+}
+
+func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d semver.VersionRange) semver.VersionRange {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sr, error := semver.ParseVersionRange(s.String())
+		if error != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sr
+	}
+	if sv, ok := v.(*SemVerRangeValue); ok {
+		return sv.VersionRange()
+	}
+	panic(argError(DefaultSemVerType(), v))
 }
