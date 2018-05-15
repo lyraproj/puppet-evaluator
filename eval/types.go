@@ -396,3 +396,5 @@ var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) Obje
 var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
+
+var WrapType func(c Context, rt reflect.Type) PType

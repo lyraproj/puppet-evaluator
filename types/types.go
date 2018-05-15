@@ -357,6 +357,7 @@ func init() {
 		return wrap(nil, v)
 	}
 	eval.Wrap2 = wrap
+	eval.WrapType = wrapType
 }
 
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
