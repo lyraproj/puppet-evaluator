@@ -156,6 +156,10 @@ type (
 		Get5(key string, dflt PValue) PValue
 		Get6(key string, dflt Producer) PValue
 
+		// GetEntry returns the entry that represents the mapping between
+		// the given key and its value
+		GetEntry(key string) (EntryValue, bool)
+
 		Keys() IndexedValue
 
 		// MapValues returns a new KeyedValue with the exact same keys as
