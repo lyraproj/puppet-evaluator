@@ -623,9 +623,7 @@ func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 			bld := bytes.NewBufferString(``)
 			t.basicTypeToString(bld, f, s, g)
 			f.ApplyStringFlags(b, bld.String(), quoted)
-		} else {
-			t.basicTypeToString(b, f, s, g)
-		}
+		} else {t.basicTypeToString( b, f,s, g)}
 	default:
 		panic(s.UnsupportedFormat(t.Type(), `sp`, f))
 	}

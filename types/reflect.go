@@ -5,6 +5,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"reflect"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 const tagName = "puppet"
@@ -28,14 +29,43 @@ func TagHash(c eval.Context, f *reflect.StructField) (eval.KeyedValue, bool) {
 	return nil, false
 }
 
+func TypeSetFromReflect(c eval.Context, typeSetName string, version semver.Version, structTypes ...reflect.Type) *TypeSetType {
+	types := make([]*HashEntry, 0)
+	for _, structType := range structTypes {
+		var parent eval.PType
+		structType = checkStructType(c, structType)
+		nf := structType.NumField()
+		if nf > 0 {
+			f := structType.Field(0)
+			if f.Anonymous && f.Type.Kind() == reflect.Struct {
+				parent = NewTypeReferenceType(typeSetName + `::` + f.Type.Name())
+			}
+		}
+		types = append(types, WrapHashEntry2(
+			structType.Name(),
+			ObjectTypeFromReflect(c, typeSetName + `::` + structType.Name(), parent, structType)))
+	}
+
+	es := make([]*HashEntry, 0)
+	es = append(es, WrapHashEntry2(eval.KEY_PCORE_URI, WrapString(string(eval.PCORE_URI))))
+	es = append(es, WrapHashEntry2(eval.KEY_PCORE_VERSION, WrapSemVer(eval.PCORE_VERSION)))
+	es = append(es, WrapHashEntry2(KEY_VERSION, WrapSemVer(version)))
+	es = append(es, WrapHashEntry2(KEY_TYPES, WrapHash(types)))
+	return NewTypeSetType(eval.RUNTIME_NAME_AUTHORITY, typeSetName, WrapHash(es))
+}
+
+func checkStructType(c eval.Context, t reflect.Type) reflect.Type {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Struct`, `actual`: t.Kind().String()}))
+	}
+	return t
+}
+
 func ObjectTypeFromReflect(c eval.Context, typeName string, parent eval.PType, structType reflect.Type) eval.ObjectType {
-	if structType.Kind() == reflect.Ptr {
-		structType = structType.Elem()
-	}
-	if structType.Kind() != reflect.Struct {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Struct`, `actual`: structType.Kind().String()}))
-	}
-	structType.NumField()
+	structType = checkStructType(c, structType)
 	nf := structType.NumField()
 	es := make([]*HashEntry, 0, nf)
 	for i := 0; i < nf; i++ {

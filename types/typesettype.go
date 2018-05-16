@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"github.com/puppetlabs/go-evaluator/hash"
+	"bytes"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 const (

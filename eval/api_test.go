@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"time"
+	"os"
 )
 
 func ExampleWrap() {
@@ -417,8 +418,67 @@ func ExampleObjectTypeFromReflect() {
 	fmt.Println(ev)
 
 	// Output:
-	// My::Address[{'attributes' => {'street' => String, 'zip_code' => String}, 'name' => 'My::Address'}]
-	// My::Person[{'attributes' => {'name' => String, 'address' => My::Address}, 'name' => 'My::Person'}]
-	// My::ExtendedPerson[{'attributes' => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}, 'name' => 'My::ExtendedPerson', 'parent' => My::Person}]
+	// Object{name => 'My::Address', attributes => {'street' => String, 'zip_code' => String}}
+	// Object{name => 'My::Person', attributes => {'name' => String, 'address' => My::Address}}
+	// Object{name => 'My::ExtendedPerson', parent => My::Person, attributes => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}}
+	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
+}
+
+func ExampleTypeSetFromReflect() {
+	type Address struct {
+		Street string
+		Zip    string `puppet:"name=>zip_code"`
+	}
+	type Person struct {
+		Name    string
+		Address *Address
+	}
+	type ExtendedPerson struct {
+		Person
+		Age    int  `puppet:"type=>Optional[Integer],value=>undef"`
+		Active bool `puppet:"name=>enabled"`
+	}
+
+	c := eval.Puppet.RootContext()
+	typeSet := types.TypeSetFromReflect(c, `My`, semver.MustParseVersion(`1.0.0`),
+		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
+	typeSet.Resolve(c)
+	typeSet.ToString(os.Stdout, eval.PRETTY, nil)
+	fmt.Println()
+
+	ep := &ExtendedPerson{Person{`Bob Tester`, &Address{`Example Road 23`, `12345`}}, 34, true}
+	fmt.Println(eval.Wrap2(c, ep))
+
+	// Output:
+	// TypeSet{
+	//   pcore_uri => 'http://puppet.com/2016.1/pcore',
+	//   pcore_version => '1.0.0',
+	//   name_authority => 'http://puppet.com/2016.1/runtime',
+	//   name => 'My',
+	//   version => '1.0.0',
+	//   types => {
+	//     Address => {
+	//       attributes => {
+	//         'street' => String,
+	//         'zip_code' => String
+	//       }
+	//     },
+	//     Person => {
+	//       attributes => {
+	//         'name' => String,
+	//         'address' => Address
+	//       }
+	//     },
+	//     ExtendedPerson => Person{
+	//       attributes => {
+	//         'age' => {
+	//           'type' => Optional[Integer],
+	//           'value' => undef
+	//         },
+	//         'enabled' => Boolean
+	//       }
+	//     }
+	//   }
+	// }
 	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
