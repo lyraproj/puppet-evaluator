@@ -13,6 +13,8 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"bytes"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 var Object_Type eval.ObjectType
@@ -613,7 +615,134 @@ func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, des
 }
 
 func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	TypeToString(t, b, s, g)
+	f := eval.GetFormat(s.FormatMap(), t.Type())
+	switch f.FormatChar() {
+	case 's', 'p':
+		quoted := f.IsAlt() && f.FormatChar() == 's'
+		if quoted || f.HasStringFlags() {
+			bld := bytes.NewBufferString(``)
+			t.basicTypeToString(bld, f, s, g)
+			f.ApplyStringFlags(b, bld.String(), quoted)
+		} else {
+			t.basicTypeToString(b, f, s, g)
+		}
+	default:
+		panic(s.UnsupportedFormat(t.Type(), `sp`, f))
+	}
+}
+
+func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatContext, g eval.RDetect) {
+
+	if t.Equals(DefaultObjectType(), nil) {
+		io.WriteString(b, `Object`)
+		return
+	}
+
+	typeSetName, inTypeSet := s.Property(`typeSet`)
+	if ex, ok := s.Property(`expanded`); !(ok && ex == `true`) {
+		name := t.Name()
+		if inTypeSet {
+			name = stripTypeSetName(typeSetName, name)
+		}
+		io.WriteString(b, name)
+		return
+	}
+
+	// Avoid nested expansions
+	s = s.WithProperties(map[string]string{`expanded`: `false`})
+
+	indent1 := s.Indentation()
+	indent2 := indent1.Increase(f.IsAlt())
+	indent3 := indent2.Increase(f.IsAlt())
+	padding1 := ``
+	padding2 := ``
+	padding3 := ``
+	if f.IsAlt() {
+		padding1 = indent1.Padding()
+		padding2 = indent2.Padding()
+		padding3 = indent3.Padding()
+	}
+
+	cf := f.ContainerFormats()
+	if cf == nil {
+		cf = DEFAULT_CONTAINER_FORMATS
+	}
+
+	ctx2 := eval.NewFormatContext2(indent2, s.FormatMap(), s.Properties())
+	cti2 := eval.NewFormatContext2(indent2, cf, s.Properties())
+	ctx3 := eval.NewFormatContext2(indent3, s.FormatMap(), s.Properties())
+
+	if inTypeSet {
+		if t.parent != nil {
+			io.WriteString(b, stripTypeSetName(typeSetName, t.parent.Name()))
+		}
+		io.WriteString(b, `{`)
+	} else {
+		io.WriteString(b, `Object{`)
+	}
+
+	first2 := true
+	ih := t.initHash(!inTypeSet)
+	for _, key := range ih.Keys() {
+		if inTypeSet && key == `parent` {
+			continue
+		}
+
+		value := ih.Get(key, nil).(eval.PValue)
+		if first2 {
+			first2 = false
+		} else {
+			io.WriteString(b, `,`)
+			if !f.IsAlt() {
+				io.WriteString(b, ` `)
+			}
+		}
+		if f.IsAlt() {
+			io.WriteString(b, "\n")
+			io.WriteString(b, padding2)
+		}
+		io.WriteString(b, key)
+		io.WriteString(b, ` => `)
+		switch key {
+		case `attributes`, `functions`:
+			// The keys should not be quoted in this hash
+			io.WriteString(b, `{`)
+			first3 := true
+			value.(*HashValue).EachPair(func(name, typ eval.PValue) {
+				if first3 {
+					first3 = false
+				} else {
+					io.WriteString(b, `,`)
+					if !f.IsAlt() {
+						io.WriteString(b, ` `)
+					}
+				}
+				if f.IsAlt() {
+					io.WriteString(b, "\n")
+					io.WriteString(b, padding3)
+				}
+				utils.PuppetQuote(b, name.String())
+				io.WriteString(b, ` => `)
+				typ.ToString(b, ctx3, g)
+			})
+			if f.IsAlt() {
+				io.WriteString(b, "\n")
+				io.WriteString(b, padding2)
+			}
+			io.WriteString(b, "}")
+		default:
+			cx := cti2
+			if isContainer(value) {
+				cx = ctx2
+			}
+			value.ToString(b, cx, g)
+		}
+	}
+	if f.IsAlt() {
+		io.WriteString(b, "\n")
+		io.WriteString(b, padding1)
+	}
+	io.WriteString(b, "}")
 }
 
 func (t *objectType) Type() eval.PType {

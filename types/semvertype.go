@@ -9,6 +9,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-semver/semver"
 	"reflect"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 type (
@@ -271,7 +272,18 @@ func (v *SemVerValue) ToKey(b *bytes.Buffer) {
 }
 
 func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	v.Version().ToString(b)
+	f := eval.GetFormat(s.FormatMap(), v.Type())
+	val := v.Version().String()
+	switch f.FormatChar() {
+	case 's':
+		f.ApplyStringFlags(b, val, f.IsAlt())
+	case 'p':
+		io.WriteString(b, `SemVer(`)
+		utils.PuppetQuote(b, val)
+		utils.WriteByte(b, ')')
+	default:
+		panic(s.UnsupportedFormat(v.Type(), `sp`, f))
+	}
 }
 
 func (v *SemVerValue) Type() eval.PType {

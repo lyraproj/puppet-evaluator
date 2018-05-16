@@ -16,6 +16,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
+	"strings"
 )
 
 const (
@@ -197,19 +198,33 @@ func TypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetec
 }
 
 func basicTypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, t.Name())
-	if s != EXPANDED {
+	name := t.Name()
+	if ex, ok := s.Property(`expanded`); !(ok && ex == `true`) {
 		switch t.(type) {
-		case *objectType, *TypeAliasType, *TypeSetType:
+		case *TypeAliasType:
+			if ts, ok := s.Property(`typeSet`); ok {
+				name = stripTypeSetName(ts, name)
+			}
+			io.WriteString(b, name)
 			return
 		}
 	}
+	io.WriteString(b, name)
 	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
 			WrapArray(params).ToString(b, s, g)
 		}
 	}
+}
+
+func stripTypeSetName(tsName, name string) string {
+	tsName = tsName + `::`
+	if strings.HasPrefix(name, tsName) {
+		// Strip name and two colons
+		return name[len(tsName):]
+	}
+	return name
 }
 
 type alterFunc func(t eval.PType) eval.PType

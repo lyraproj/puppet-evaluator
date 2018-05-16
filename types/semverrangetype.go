@@ -183,11 +183,13 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 	vr := bv.rng
 	switch f.FormatChar() {
 	case 'p':
+		io.WriteString(b, `SemVerRange(`)
 		if f.IsAlt() {
 			utils.PuppetQuote(b, vr.NormalizedString())
 		} else {
 			utils.PuppetQuote(b, vr.String())
 		}
+		io.WriteString(b, `)`)
 	case 's':
 		if f.IsAlt() {
 			vr.ToNormalizedString(b)
