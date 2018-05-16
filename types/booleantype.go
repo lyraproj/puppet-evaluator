@@ -171,7 +171,7 @@ func (bv *BooleanValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
-	eval.AssertKind(c, value, reflect.Bool)
+	assertKind(c, value, reflect.Bool)
 	if value.Kind() == reflect.Interface {
 		value.Set(bv.Reflect(c))
 	} else {

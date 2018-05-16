@@ -96,6 +96,10 @@ type Context interface {
 	// to a PType
 	ParseType2(typeString string) PType
 
+	// Reflector returns a Reflector capable of converting to and from refleced values
+	// and types
+	Reflector() Reflector
+
 	ResolveDefinitions()
 
 	// Resolve types, constructions, or functions that has been recently added

@@ -399,7 +399,7 @@ func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
-	eval.AssertKind(c, value, reflect.String)
+	assertKind(c, value, reflect.String)
 	if value.Kind() == reflect.Interface {
 		value.Set(sv.Reflect(c))
 	} else {

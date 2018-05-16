@@ -119,7 +119,7 @@ func (t *OptionalType) Parameters() []eval.PValue {
 }
 
 func (t *OptionalType) ReflectType() (reflect.Type, bool) {
-	return eval.ReflectType(t.typ)
+	return ReflectType(t.typ)
 }
 
 func (t *OptionalType) String() string {

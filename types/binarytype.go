@@ -179,7 +179,7 @@ func (bv *BinaryValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
-	eval.AssertKind(c, value, reflect.Slice)
+	assertKind(c, value, reflect.Slice)
 	switch value.Type().Elem().Kind() {
 	case reflect.Int8, reflect.Uint8:
 		value.SetBytes(bv.bytes)

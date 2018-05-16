@@ -23,12 +23,6 @@ type (
 		Accept(visitor Visitor, g Guard)
 	}
 
-	PReflectedType interface {
-		PType
-
-		ReflectType() (reflect.Type, bool)
-	}
-
 	SizedType interface {
 		PType
 
@@ -204,20 +198,6 @@ type (
 		ParameterizedType
 		Generic() PType
 	}
-
-	ImplementationRegistry interface {
-		// RegisterType registers the mapping between the given PType and reflect.Type
-		RegisterType(c Context, t ObjectType, r reflect.Type)
-
-		// RegisterType2 registers the mapping between the given name of a PType and reflect.Type
-		RegisterType2(c Context, tn string, r reflect.Type)
-
-		// PTypeToReflected returns the reflect.Type for the given PType
-		PTypeToReflected(t ObjectType) (reflect.Type, bool)
-
-		// ReflectedToPtype returns the PType for the given reflect.Type
-		ReflectedToPtype(t reflect.Type) (ObjectType, bool)
-	}
 )
 
 var CommonType func(a PType, b PType) PType
@@ -306,13 +286,6 @@ func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 		}
 	}
 	return dflt
-}
-
-func ReflectType(src PType) (reflect.Type, bool) {
-	if sn, ok := src.(PReflectedType); ok {
-		return sn.ReflectType()
-	}
-	return nil, false
 }
 
 func Map1(elements []PValue, mapper Mapper) []PValue {

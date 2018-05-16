@@ -3,14 +3,15 @@ package eval_test
 import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
-	// Initialize pcore
-	_ "github.com/puppetlabs/go-evaluator/pcore"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-semver/semver"
+	"os"
 	"reflect"
 	"regexp"
 	"time"
-	"os"
+
+	// Initialize pcore
+	_ "github.com/puppetlabs/go-evaluator/pcore"
 )
 
 func ExampleWrap() {
@@ -61,7 +62,7 @@ func ExampleWrap_hash() {
 	// hsh['nested'] == ['hello', 'world'], an instance of Array[Enum['hello', 'world'], 2, 2]
 }
 
-func ExamplePcore_ParseType() {
+func ExamplePcore_parseType() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Printf("%s is an instance of %s\n", pcoreType, pcoreType.Type())
@@ -71,7 +72,7 @@ func ExamplePcore_ParseType() {
 	// Enum['foo', 'fee', 'fum'] is an instance of Type[Enum['foo', 'fee', 'fum']]
 }
 
-func ExamplePcore_IsInstance() {
+func ExamplePcore_isInstance() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Println(eval.IsInstance(ctx, pcoreType, eval.Wrap("foo")))
@@ -83,7 +84,7 @@ func ExamplePcore_IsInstance() {
 	// false
 }
 
-func ExamplePcore_ParseType_error() {
+func ExamplePcore_parseTypeError() {
 	err := eval.Puppet.Do(func(ctx eval.Context) error {
 		ctx.ParseType2("Enum[foo") // Missing end bracket
 		return nil
@@ -94,22 +95,22 @@ func ExamplePcore_ParseType_error() {
 	// Output: expected one of ',' or ']', got 'EOF' (line: 1, column: 9)
 }
 
-func ExampleReflect_array() {
+func ExampleReflector_reflectArray() {
 	c := eval.Puppet.RootContext()
 
 	av := eval.Wrap([]interface{}{`hello`, 3}).(*types.ArrayValue)
-	ar := eval.Reflect(c, av, nil)
+	ar := c.Reflector().Reflect(av, nil)
 	fmt.Printf("%s %v\n", ar.Type(), ar)
 
 	av = eval.Wrap([]interface{}{`hello`, `world`}).(*types.ArrayValue)
-	ar = eval.Reflect(c, av, nil)
+	ar = c.Reflector().Reflect(av, nil)
 	fmt.Printf("%s %v\n", ar.Type(), ar)
 	// Output:
 	// []interface {} [hello 3]
 	// []string [hello world]
 }
 
-func ExampleReflectTo_array() {
+func ExampleReflector_reflectToArray() {
 	type TestStruct struct {
 		Strings    []string
 		Interfaces []interface{}
@@ -122,21 +123,22 @@ func ExampleReflectTo_array() {
 
 	av := eval.Wrap([]string{`hello`, `world`})
 
-	eval.ReflectTo(c, av, rv.Field(0))
-	eval.ReflectTo(c, av, rv.Field(1))
-	eval.ReflectTo(c, av, rv.Field(2))
+	rf := c.Reflector()
+	rf.ReflectTo(av, rv.Field(0))
+	rf.ReflectTo(av, rv.Field(1))
+	rf.ReflectTo(av, rv.Field(2))
 	fmt.Println(ts)
 
-	eval.ReflectTo(c, eval.UNDEF, rv.Field(0))
-	eval.ReflectTo(c, eval.UNDEF, rv.Field(1))
-	eval.ReflectTo(c, eval.UNDEF, rv.Field(2))
+	rf.ReflectTo(eval.UNDEF, rv.Field(0))
+	rf.ReflectTo(eval.UNDEF, rv.Field(1))
+	rf.ReflectTo(eval.UNDEF, rv.Field(2))
 	fmt.Println(ts)
 	// Output:
 	// &{[hello world] [hello world] [hello world]}
 	// &{[] [] []}
 }
 
-func ExampleReflectTo_hash() {
+func ExampleReflector_reflectToHash() {
 	var strings map[string]string
 	var interfaces map[string]interface{}
 	var values map[string]eval.PValue
@@ -144,16 +146,17 @@ func ExampleReflectTo_hash() {
 	c := eval.Puppet.RootContext()
 	hv := eval.Wrap(map[string]string{`x`: `hello`, `y`: `world`})
 
-	eval.ReflectTo(c, hv, reflect.ValueOf(&strings))
-	eval.ReflectTo(c, hv, reflect.ValueOf(&interfaces))
-	eval.ReflectTo(c, hv, reflect.ValueOf(&values))
+	rf := c.Reflector()
+	rf.ReflectTo(hv, reflect.ValueOf(&strings))
+	rf.ReflectTo(hv, reflect.ValueOf(&interfaces))
+	rf.ReflectTo(hv, reflect.ValueOf(&values))
 	fmt.Printf("%s %s\n", strings[`x`], strings[`y`])
 	fmt.Printf("%s %s\n", interfaces[`x`], interfaces[`y`])
 	fmt.Printf("%s %s\n", values[`x`], values[`y`])
 
-	eval.ReflectTo(c, eval.UNDEF, reflect.ValueOf(&strings))
-	eval.ReflectTo(c, eval.UNDEF, reflect.ValueOf(&interfaces))
-	eval.ReflectTo(c, eval.UNDEF, reflect.ValueOf(&values))
+	rf.ReflectTo(eval.UNDEF, reflect.ValueOf(&strings))
+	rf.ReflectTo(eval.UNDEF, reflect.ValueOf(&interfaces))
+	rf.ReflectTo(eval.UNDEF, reflect.ValueOf(&values))
 	fmt.Println(strings)
 	fmt.Println(interfaces)
 	fmt.Println(values)
@@ -166,23 +169,24 @@ func ExampleReflectTo_hash() {
 	// map[]
 }
 
-func ExampleReflectTo_bytes() {
+func ExampleReflector_reflectToBytes() {
 	var buf []byte
 
 	c := eval.Puppet.RootContext()
 
+	rf := c.Reflector()
 	bv := eval.Wrap([]byte{1, 2, 3})
-	eval.ReflectTo(c, bv, reflect.ValueOf(&buf))
+	rf.ReflectTo(bv, reflect.ValueOf(&buf))
 	fmt.Println(buf)
 
-	eval.ReflectTo(c, eval.UNDEF, reflect.ValueOf(&buf))
+	rf.ReflectTo(eval.UNDEF, reflect.ValueOf(&buf))
 	fmt.Println(buf)
 	// Output:
 	// [1 2 3]
 	// []
 }
 
-func ExampleReflectTo_float() {
+func ExampleReflector_reflectToFloat() {
 	type TestStruct struct {
 		SmallFloat float32
 		BigFloat   float64
@@ -191,18 +195,19 @@ func ExampleReflectTo_float() {
 	}
 
 	c := eval.Puppet.RootContext()
+	rf := c.Reflector()
 	ts := &TestStruct{}
 	rv := reflect.ValueOf(ts).Elem()
 	n := rv.NumField()
 	for i := 0; i < n; i++ {
 		fv := eval.Wrap(float64(10+i+1) / 10.0)
-		eval.ReflectTo(c, fv, rv.Field(i))
+		rf.ReflectTo(fv, rv.Field(i))
 	}
 	fmt.Println(ts)
 	// Output: &{1.1 1.2 1.3 1.4}
 }
 
-func ExampleReflectTo_int() {
+func ExampleReflector_reflectToInt() {
 	type TestStruct struct {
 		AnInt    int
 		AnInt8   int8
@@ -219,59 +224,60 @@ func ExampleReflectTo_int() {
 	}
 
 	c := eval.Puppet.RootContext()
+	rf := c.Reflector()
 	ts := &TestStruct{}
 	rv := reflect.ValueOf(ts).Elem()
 	n := rv.NumField()
 	for i := 0; i < n; i++ {
-		eval.ReflectTo(c, eval.Wrap(10+i), rv.Field(i))
+		rf.ReflectTo(eval.Wrap(10+i), rv.Field(i))
 	}
 	fmt.Println(ts)
 	// Output: &{10 11 12 13 14 15 16 17 18 19 20 21}
 }
 
-func ExampleReflectTo_regexp() {
+func ExampleReflector_reflectToRegexp() {
 	var expr *regexp.Regexp
 
 	rx := eval.Wrap(regexp.MustCompile("[a-z]*"))
-	eval.ReflectTo(eval.Puppet.RootContext(), rx, reflect.ValueOf(&expr))
+	eval.Puppet.RootContext().Reflector().ReflectTo(rx, reflect.ValueOf(&expr))
 
 	fmt.Println(expr)
 	// Output: [a-z]*
 }
 
-func ExampleReflectTo_timespan() {
+func ExampleReflector_reflectToTimespan() {
 	var span time.Duration
 
 	rx := eval.Wrap(time.Duration(1234))
-	eval.ReflectTo(eval.Puppet.RootContext(), rx, reflect.ValueOf(&span))
+	eval.Puppet.RootContext().Reflector().ReflectTo(rx, reflect.ValueOf(&span))
 
 	fmt.Println(span)
 	// Output: 1.234µs
 }
 
-func ExampleReflectTo_stamp() {
+func ExampleReflector_reflectToTimestamp() {
 	var tx time.Time
 
 	tm, _ := time.Parse(time.RFC3339, "2018-05-11T06:31:22+01:00")
 	tv := eval.Wrap(tm)
-	eval.ReflectTo(eval.Puppet.RootContext(), tv, reflect.ValueOf(&tx))
+	eval.Puppet.RootContext().Reflector().ReflectTo(tv, reflect.ValueOf(&tx))
 
 	fmt.Println(tx.Format(time.RFC3339))
 	// Output: 2018-05-11T06:31:22+01:00
 }
 
-func ExampleReflectTo_version() {
+func ExampleReflector_reflectToTersion() {
 	var version semver.Version
 
 	ver, _ := semver.ParseVersion(`1.2.3`)
 	vv := eval.Wrap(ver)
-	eval.ReflectTo(eval.Puppet.RootContext(), vv, reflect.ValueOf(&version))
+	eval.Puppet.RootContext().Reflector().ReflectTo(vv, reflect.ValueOf(&version))
 
 	fmt.Println(version)
 	// Output: 1.2.3
 }
 
-func ExampleReflectTo_puppetObject() {
+func ExampleReflector_reflectToPuppetObject() {
 	type TestStruct struct {
 		Message   string
 		Kind      string
@@ -282,12 +288,12 @@ func ExampleReflectTo_puppetObject() {
 	ts := &TestStruct{}
 
 	ev := eval.NewError(c, `the message`, `THE_KIND`, `THE_CODE`, nil, nil)
-	eval.ReflectTo(c, ev, reflect.ValueOf(ts))
+	c.Reflector().ReflectTo(ev, reflect.ValueOf(ts))
 	fmt.Printf("message: %s, kind %s, issueCode %s\n", ts.Message, ts.Kind, ts.IssueCode)
 	// Output: message: the message, kind THE_KIND, issueCode THE_CODE
 }
 
-func ExampleObjectType_FromReflectedValue() {
+func ExampleObjectType_fromReflectedValue() {
 	type TestStruct struct {
 		Message   string
 		Kind      string
@@ -382,7 +388,7 @@ func ExampleImplementationRegistry_tags() {
 	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true)
 }
 
-func ExampleObjectTypeFromReflect() {
+func ExampleReflector_objectTypeFromReflect() {
 	type TestAddress struct {
 		Street string
 		Zip    string `puppet:"name=>zip_code"`
@@ -402,9 +408,10 @@ func ExampleObjectTypeFromReflect() {
 	rtPerson := reflect.TypeOf(&TestPerson{})
 	rtExtPerson := reflect.TypeOf(&TestExtendedPerson{})
 
-	tAddress := types.ObjectTypeFromReflect(c, `My::Address`, nil, rtAddress)
-	tPerson := types.ObjectTypeFromReflect(c, `My::Person`, nil, rtPerson)
-	tExtPerson := types.ObjectTypeFromReflect(c, `My::ExtendedPerson`, tPerson, rtExtPerson)
+	rf := c.Reflector()
+	tAddress := rf.ObjectTypeFromReflect(`My::Address`, nil, rtAddress)
+	tPerson := rf.ObjectTypeFromReflect(`My::Person`, nil, rtPerson)
+	tExtPerson := rf.ObjectTypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
 	tAddress.(eval.ResolvableType).Resolve(c)
 	tPerson.(eval.ResolvableType).Resolve(c)
 	tExtPerson.(eval.ResolvableType).Resolve(c)
@@ -424,7 +431,7 @@ func ExampleObjectTypeFromReflect() {
 	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
 
-func ExampleTypeSetFromReflect() {
+func ExampleReflector_typeSetFromReflect() {
 	type Address struct {
 		Street string
 		Zip    string `puppet:"name=>zip_code"`
@@ -440,7 +447,7 @@ func ExampleTypeSetFromReflect() {
 	}
 
 	c := eval.Puppet.RootContext()
-	typeSet := types.TypeSetFromReflect(c, `My`, semver.MustParseVersion(`1.0.0`),
+	typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`),
 		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
 	typeSet.(eval.ResolvableType).Resolve(c)
 	typeSet.ToString(os.Stdout, eval.PRETTY, nil)

@@ -827,7 +827,7 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.KeyedValue {
 }
 
 func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
-	ht, ok := eval.ReflectType(hv.Type())
+	ht, ok := ReflectType(hv.Type())
 	if !ok {
 		ht = reflect.TypeOf(map[interface{}]interface{}{})
 	}
@@ -835,26 +835,28 @@ func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
 	keyType := ht.Key()
 	valueType := ht.Elem()
 	m := reflect.MakeMapWithSize(ht, hv.Len())
+	rf := c.Reflector()
 	for _, e := range hv.entries {
-		m.SetMapIndex(eval.Reflect(c, e.key, keyType), eval.Reflect(c, e.value, valueType))
+		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
 	}
 	return m
 }
 
 func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
-	eval.AssertKind(c, value, reflect.Map)
+	assertKind(c, value, reflect.Map)
 	ht := value.Type()
 	if ht.Kind() == reflect.Interface {
 		ok := false
-		if ht, ok = eval.ReflectType(hv.Type()); !ok {
+		if ht, ok = ReflectType(hv.Type()); !ok {
 			ht = reflect.TypeOf(map[interface{}]interface{}{})
 		}
 	}
 	keyType := ht.Key()
 	valueType := ht.Elem()
 	m := reflect.MakeMapWithSize(value.Type(), hv.Len())
+	rf := c.Reflector()
 	for _, e := range hv.entries {
-		m.SetMapIndex(eval.Reflect(c, e.key, keyType), eval.Reflect(c, e.value, valueType))
+		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
 	}
 	value.Set(m)
 }

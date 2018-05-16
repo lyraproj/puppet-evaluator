@@ -596,18 +596,19 @@ func (t *objectType) ToKey() eval.HashKey {
 }
 
 func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, dest reflect.Value) {
-	eval.AssertKind(c, dest, reflect.Struct)
+	assertKind(c, dest, reflect.Struct)
 	dt := dest.Type()
 	n := dest.NumField()
+	rf := c.Reflector()
 	for i := 0; i < n; i++ {
 		field := dt.Field(i)
 		if field.Anonymous && i == 0 && t.parent != nil {
 			t.resolvedParent(c).ToReflectedValue(c, src, dest.Field(i))
 			continue
 		}
-		an := FieldName(c, &field)
+		an := rf.FieldName(&field)
 		if av, ok := src.Get(c, an); ok {
-			eval.ReflectTo(c, av, dest.Field(i))
+			rf.ReflectTo(av, dest.Field(i))
 			continue
 		}
 		panic(eval.Error(c, eval.EVAL_ATTRIBUTE_NOT_FOUND, issue.H{`name`: an}))
@@ -748,16 +749,17 @@ func (t *objectType) Type() eval.PType {
 }
 
 func (t *objectType) appendAttributeValues(c eval.Context, entries []*HashEntry, src reflect.Value) []*HashEntry {
-	eval.AssertKind(c, src, reflect.Struct)
+	assertKind(c, src, reflect.Struct)
 	dt := src.Type()
 	n := src.NumField()
+	rf := c.Reflector()
 	for i := 0; i < n; i++ {
 		field := dt.Field(i)
 		if field.Anonymous && i == 0 && t.parent != nil {
 			entries = t.resolvedParent(c).appendAttributeValues(c, entries, src.Field(i))
 			continue
 		}
-		an := FieldName(c, &field)
+		an := rf.FieldName(&field)
 		entries = append(entries, WrapHashEntry2(an, wrap(c, src.Field(i))))
 	}
 	return entries

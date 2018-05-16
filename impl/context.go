@@ -179,6 +179,10 @@ func (c *evalCtx) ParseType2(str string) eval.PType {
 	return c.ResolveType(c.ParseAndValidate(``, str, true))
 }
 
+func (c *evalCtx) Reflector() eval.Reflector {
+	return types.NewReflector(c)
+}
+
 func (c *evalCtx) ResolveDefinitions() {
 	if c.definitions == nil {
 		return

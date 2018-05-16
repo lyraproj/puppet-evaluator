@@ -119,7 +119,7 @@ func (t *NotUndefType) Parameters() []eval.PValue {
 }
 
 func (t *NotUndefType) ReflectType() (reflect.Type, bool) {
-	return eval.ReflectType(t.typ)
+	return ReflectType(t.typ)
 }
 
 func (t *NotUndefType) String() string {

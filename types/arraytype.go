@@ -258,7 +258,7 @@ func (t *ArrayType) Parameters() []eval.PValue {
 }
 
 func (t *ArrayType) ReflectType() (reflect.Type, bool) {
-	if et, ok := eval.ReflectType(t.ElementType()); ok {
+	if et, ok := ReflectType(t.ElementType()); ok {
 		return reflect.SliceOf(et), true
 	}
 	return nil, false
@@ -479,22 +479,24 @@ func (av *ArrayValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) 
 }
 
 func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
-	at, ok := eval.ReflectType(av.Type())
+	at, ok := ReflectType(av.Type())
 	if !ok {
 		at = reflect.TypeOf([]interface{}{})
 	}
 	s := reflect.MakeSlice(at, av.Len(), av.Len())
+	rf := c.Reflector()
 	for i, e := range av.elements {
-		eval.ReflectTo(c, e, s.Index(i))
+		rf.ReflectTo(e, s.Index(i))
 	}
 	return s
 }
 
 func (av *ArrayValue) ReflectTo(c eval.Context, value reflect.Value) {
-	eval.AssertKind(c, value, reflect.Slice)
+	assertKind(c, value, reflect.Slice)
 	s := reflect.MakeSlice(value.Type(), av.Len(), av.Len())
+	rf := c.Reflector()
 	for i, e := range av.elements {
-		eval.ReflectTo(c, e, s.Index(i))
+		rf.ReflectTo(e, s.Index(i))
 	}
 	value.Set(s)
 }

@@ -3,9 +3,7 @@ package eval
 import (
 	"bytes"
 	"fmt"
-	"github.com/puppetlabs/go-issues/issue"
 	"io"
-	"reflect"
 )
 
 type (
@@ -16,14 +14,6 @@ type (
 		Equality
 		ToString(bld io.Writer, format FormatContext, g RDetect)
 		Type() PType
-	}
-
-	PReflected interface {
-		ReflectTo(c Context, value reflect.Value)
-	}
-
-	PReflectedNative interface {
-		Reflect(c Context) reflect.Value
 	}
 
 	// Comparator returns true when a is less than b.
@@ -198,48 +188,6 @@ var ToFloat func(v PValue) (float64, bool)
 var Wrap func(v interface{}) PValue
 var Wrap2 func(c Context, v interface{}) PValue
 
-// Reflect returns the reflected value of the native value held
-// by the given src
-func Reflect(c Context, src PValue, rt reflect.Type) reflect.Value {
-	if rt != nil && rt.Kind() == reflect.Interface && rt.AssignableTo(pValueType) {
-		sv := reflect.ValueOf(src)
-		if sv.Type().AssignableTo(rt) {
-			return sv
-		}
-	}
-	if sn, ok := src.(PReflectedNative); ok {
-		return sn.Reflect(c)
-	}
-	panic(Error(c, EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: src.Type()}))
-}
-
-var pValueType = reflect.TypeOf([]PValue{}).Elem()
-
-// ReflectTo assigns the native value of src to dest
-func ReflectTo(c Context, src PValue, dest reflect.Value) {
-	if dest.Kind() == reflect.Ptr && !dest.CanSet() {
-		dest = dest.Elem()
-	}
-	assertSettable(c, dest)
-	if dest.Kind() == reflect.Interface && dest.Type().AssignableTo(pValueType) {
-		sv := reflect.ValueOf(src)
-		if !sv.Type().AssignableTo(dest.Type()) {
-			panic(Error(c, EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: sv.Type().String(), `actual`: dest.Type().String()}))
-		}
-		dest.Set(sv)
-	} else {
-		switch src.(type) {
-		case PReflected:
-			src.(PReflected).ReflectTo(c, dest)
-		case PuppetObject:
-			po := src.(PuppetObject)
-			po.Type().(ObjectType).ToReflectedValue(c, po, dest)
-		default:
-			panic(Error(c, EVAL_INVALID_SOURCE_FOR_SET, issue.H{`type`: src.Type()}))
-		}
-	}
-}
-
 func ToString(t PValue) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)
 }
@@ -264,17 +212,4 @@ func CopyValues(src []PValue) []PValue {
 		dst[i] = v
 	}
 	return dst
-}
-
-func assertSettable(c Context, value reflect.Value) {
-	if !value.CanSet() {
-		panic(Error(c, EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Type().String()}))
-	}
-}
-
-func AssertKind(c Context, value reflect.Value, kind reflect.Kind) {
-	vk := value.Kind()
-	if vk != kind && vk != reflect.Interface {
-		panic(Error(c, EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: kind.String(), `actual`: vk.String()}))
-	}
 }
