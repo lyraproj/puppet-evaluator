@@ -446,13 +446,22 @@ func ExampleReflector_typeSetFromReflect() {
 	}
 
 	c := eval.Puppet.RootContext()
+
+	// Create a TypeSet from a list of Go structs
 	typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`),
 		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
+
+	// Make the types known to the current loader
 	c.AddTypes(typeSet)
+
+	// Print the TypeSet in human readable form
 	typeSet.ToString(os.Stdout, eval.PRETTY, nil)
 	fmt.Println()
 
+	// Create an instance of something included in the TypeSet
 	ep := &ExtendedPerson{Person{`Bob Tester`, &Address{`Example Road 23`, `12345`}}, 34, true}
+
+	// Wrap the instance as a PValue and print it
 	fmt.Println(eval.Wrap2(c, ep))
 
 	// Output:
