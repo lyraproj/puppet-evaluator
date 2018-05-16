@@ -28,7 +28,7 @@ type (
 
 	typeSetLoader struct {
 		parentedLoader
-		typeSet *types.TypeSetType
+		typeSet eval.TypeSet
 	}
 )
 
@@ -51,7 +51,7 @@ func init() {
 	}
 
 	eval.NewTypeSetLoader = func(parent eval.Loader, typeSet eval.PType) eval.TypeSetLoader {
-		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(*types.TypeSetType)}
+		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(eval.TypeSet)}
 	}
 
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {

@@ -29,7 +29,7 @@ func TagHash(c eval.Context, f *reflect.StructField) (eval.KeyedValue, bool) {
 	return nil, false
 }
 
-func TypeSetFromReflect(c eval.Context, typeSetName string, version semver.Version, structTypes ...reflect.Type) *TypeSetType {
+func TypeSetFromReflect(c eval.Context, typeSetName string, version semver.Version, structTypes ...reflect.Type) eval.TypeSet {
 	types := make([]*HashEntry, 0)
 	for _, structType := range structTypes {
 		var parent eval.PType

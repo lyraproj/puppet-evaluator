@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/puppetlabs/go-issues/issue"
 	"reflect"
+	"github.com/puppetlabs/go-semver/semver"
 )
 
 type (
@@ -155,9 +156,11 @@ type (
 
 		AttributesInfo() AttributesInfo
 
+		// FromReflectedValue creates a new instance of the reciever type
+		// and initializes that instance from the given src
 		FromReflectedValue(c Context, src reflect.Value) PuppetObject
 
-		// ReflectValueTo copies values from src to dest. The src argument
+		// ToReflectedValue copies values from src to dest. The src argument
 		// must be an instance of the receiver. The dest argument must be
 		// a reflected struct. The src must be able to deliver a value to
 		// each of the exported fields in dest.
@@ -167,6 +170,27 @@ type (
 		// camel cased names. ReflectValueTo will convert camel cased names
 		// into names with underscores.
 		ToReflectedValue(c Context, src PuppetObject, dest reflect.Value)
+	}
+
+	TypeSet interface {
+		ParameterizedType
+
+		// GetType returns the given type from the receiver together with
+		// a flag indicating success or failure
+		GetType(typedName TypedName) (PType, bool)
+
+		// GetType2 is like GetType but uses a string to identify the type
+		GetType2(name string) (PType, bool)
+
+		// NameAuthority returns the name authority of the receiver
+		NameAuthority() URI
+
+		// Types returns a hash of all types contained in this set. The keyes
+		// in this hash are relative to the receiver name
+		Types() KeyedValue
+
+		// Version returns the version of the receiver
+		Version() semver.Version
 	}
 
 	TypeWithContainedType interface {

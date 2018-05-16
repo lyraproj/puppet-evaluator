@@ -442,7 +442,7 @@ func ExampleTypeSetFromReflect() {
 	c := eval.Puppet.RootContext()
 	typeSet := types.TypeSetFromReflect(c, `My`, semver.MustParseVersion(`1.0.0`),
 		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
-	typeSet.Resolve(c)
+	typeSet.(eval.ResolvableType).Resolve(c)
 	typeSet.ToString(os.Stdout, eval.PRETTY, nil)
 	fmt.Println()
 

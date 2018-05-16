@@ -9,7 +9,6 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 )
@@ -208,7 +207,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 				smartPath.Instantiator()(c, l, name, origins)
 				entry := l.GetEntry(name)
 				if entry != nil {
-					if _, ok := entry.Value().(*types.TypeSetType); ok {
+					if _, ok := entry.Value().(eval.TypeSet); ok {
 						return entry
 					}
 				}
@@ -236,8 +235,8 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 			tse = l.find(c, tsName)
 		}
 		if tse != nil && tse.Value() != nil {
-			if ts, ok := tse.Value().(*types.TypeSetType); ok {
-				ts.Resolve(c.WithLoader(l))
+			if ts, ok := tse.Value().(eval.TypeSet); ok {
+				ts.(eval.ResolvableType).Resolve(c.WithLoader(l))
 				te := l.GetEntry(name)
 				if te != nil {
 					return te
