@@ -98,6 +98,7 @@ const (
 	EVAL_TIMESTAMP_TZ_AMBIGUITY                    = `EVAL_TIMESTAMP_TZ_AMBIGUITY`
 	EVAL_TYPE_MISMATCH                             = `EVAL_TYPE_MISMATCH`
 	EVAL_TYPESET_ALIAS_COLLIDES                    = `EVAL_TYPESET_ALIAS_COLLIDES`
+	EVAL_TYPESET_ILLEGAL_NAME_PREFIX               = `EVAL_TYPESET_ILLEGAL_NAME_PREFIX`
 	EVAL_TYPESET_MISSING_NAME_AUTHORITY            = `EVAL_TYPESET_MISSING_NAME_AUTHORITY`
 	EVAL_TYPESET_REFERENCE_BAD_TYPE                = `EVAL_TYPESET_REFERENCE_BAD_TYPE`
 	EVAL_TYPESET_REFERENCE_DUPLICATE               = `EVAL_TYPESET_REFERENCE_DUPLICATE`
@@ -321,6 +322,8 @@ func init() {
 	issue.Hard(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 
 	issue.Hard(EVAL_TYPESET_ALIAS_COLLIDES, `TypeSet '%{name}' references a TypeSet using alias '%{ref_alias}'. The alias collides with the name of a declared type`)
+
+	issue.Hard(EVAL_TYPESET_ILLEGAL_NAME_PREFIX, `'%{name}' does has an incorrect qualifier. The TypeSet expects the prefix '%{expected_prefix}'`)
 
 	issue.Hard(EVAL_TYPESET_MISSING_NAME_AUTHORITY, `No 'name_authority' is declared in TypeSet '%{name}' and it cannot be inferred`)
 

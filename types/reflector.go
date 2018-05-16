@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-semver/semver"
+	"strings"
 )
 
 const tagName = "puppet"
@@ -18,6 +19,19 @@ var pValueType = reflect.TypeOf([]eval.PValue{}).Elem()
 
 func NewReflector(c eval.Context) eval.Reflector {
 	return &reflector{c}
+}
+
+func (r *reflector) StructName(prefix string, t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if name, ok := r.c.ImplementationRegistry().ReflectedToPtype(t); ok {
+		if !strings.HasPrefix(name, prefix) {
+			panic(eval.Error(r.c, eval.EVAL_TYPESET_ILLEGAL_NAME_PREFIX, issue.H{`name`: name, `expected_prefix`: prefix}))
+		}
+		return name
+	}
+	return prefix + t.Name()
 }
 
 func (r *reflector) FieldName(f *reflect.StructField) string {
@@ -141,12 +155,13 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, st
 		es = append(es, WrapHashEntry2(name, WrapHash(as)))
 	}
 	ot := NewObjectType(typeName, parent, SingletonHash2(`attributes`, WrapHash(es)))
-	r.c.ImplementationRegistry().RegisterType(r.c, ot, structType)
+	r.c.ImplementationRegistry().RegisterType(r.c, typeName, structType)
 	return ot
 }
 
 func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Version, structTypes ...reflect.Type) eval.TypeSet {
 	types := make([]*HashEntry, 0)
+	prefix := typeSetName + `::`
 	for _, structType := range structTypes {
 		var parent eval.PType
 		structType = r.checkStructType(structType)
@@ -154,12 +169,13 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 		if nf > 0 {
 			f := structType.Field(0)
 			if f.Anonymous && f.Type.Kind() == reflect.Struct {
-				parent = NewTypeReferenceType(typeSetName + `::` + f.Type.Name())
+				parent = NewTypeReferenceType(r.StructName(prefix, f.Type))
 			}
 		}
+		name := r.StructName(prefix, structType)
 		types = append(types, WrapHashEntry2(
-			structType.Name(),
-			r.ObjectTypeFromReflect(typeSetName + `::` + structType.Name(), parent, structType)))
+			name[strings.LastIndex(name, `::`) + 2:],
+			r.ObjectTypeFromReflect(name, parent, structType)))
 	}
 
 	es := make([]*HashEntry, 0)

@@ -7,7 +7,7 @@ import (
 )
 
 type implRegistry struct {
-	reflectToObjectType map[string]eval.ObjectType
+	reflectToObjectType map[string]string
 	objectTypeToReflect map[string]reflect.Type
 }
 
@@ -16,51 +16,43 @@ type parentedImplRegistry struct {
 	implRegistry
 }
 
-func NewImplementationRegistry() eval.ImplementationRegistry {
-	return &implRegistry{make(map[string]eval.ObjectType, 7), make(map[string]reflect.Type, 7)}
+func newImplementationRegistry() eval.ImplementationRegistry {
+	return &implRegistry{make(map[string]string, 7), make(map[string]reflect.Type, 7)}
 }
 
-func NewParentedImplementationRegistry(parent eval.ImplementationRegistry) eval.ImplementationRegistry {
-	return &parentedImplRegistry{parent, implRegistry{make(map[string]eval.ObjectType, 7), make(map[string]reflect.Type, 7)}}
+func newParentedImplementationRegistry(parent eval.ImplementationRegistry) eval.ImplementationRegistry {
+	return &parentedImplRegistry{parent, implRegistry{make(map[string]string, 7), make(map[string]reflect.Type, 7)}}
 }
 
-func (ir *implRegistry) RegisterType2(c eval.Context, tn string, r reflect.Type) {
-	ir.RegisterType(c, loadObjectType(c, tn), r)
-}
-
-func (ir *implRegistry) RegisterType(c eval.Context, t eval.ObjectType, r reflect.Type) {
+func (ir *implRegistry) RegisterType(c eval.Context, t string, r reflect.Type) {
 	r = assertUnregisteredStruct(c, ir, t, r)
 	ir.addTypeMapping(t, r)
 }
 
-func (ir *implRegistry) PTypeToReflected(t eval.ObjectType) (reflect.Type, bool) {
-	rt, ok := ir.objectTypeToReflect[t.Name()]
+func (ir *implRegistry) PTypeToReflected(t string) (reflect.Type, bool) {
+	rt, ok := ir.objectTypeToReflect[t]
 	return rt, ok
 }
 
-func (ir *implRegistry) ReflectedToPtype(t reflect.Type) (eval.ObjectType, bool) {
+func (ir *implRegistry) ReflectedToPtype(t reflect.Type) (string, bool) {
 	if t = structType(t); t != nil {
-		pt, ok := ir.reflectToObjectType[t.Name()]
+		pt, ok := ir.reflectToObjectType[t.String()]
 		return pt, ok
 	}
-	return nil, false
+	return ``, false
 }
 
-func (ir *implRegistry) addTypeMapping(t eval.ObjectType, r reflect.Type) {
-	ir.objectTypeToReflect[t.Name()] = r
-	ir.reflectToObjectType[r.Name()] = t
+func (ir *implRegistry) addTypeMapping(t string, r reflect.Type) {
+	ir.objectTypeToReflect[t] = r
+	ir.reflectToObjectType[r.String()] = t
 }
 
-func (pr *parentedImplRegistry) RegisterType(c eval.Context, t eval.ObjectType, r reflect.Type) {
+func (pr *parentedImplRegistry) RegisterType(c eval.Context, t string, r reflect.Type) {
 	r = assertUnregisteredStruct(c, pr, t, r)
 	pr.addTypeMapping(t, r)
 }
 
-func (pr *parentedImplRegistry) RegisterType2(c eval.Context, tn string, r reflect.Type) {
-	pr.RegisterType(c, loadObjectType(c, tn), r)
-}
-
-func (pr *parentedImplRegistry) PTypeToReflected(t eval.ObjectType) (reflect.Type, bool) {
+func (pr *parentedImplRegistry) PTypeToReflected(t string) (reflect.Type, bool) {
 	rt, ok := pr.ImplementationRegistry.PTypeToReflected(t)
 	if !ok {
 		rt, ok = pr.implRegistry.PTypeToReflected(t)
@@ -68,7 +60,7 @@ func (pr *parentedImplRegistry) PTypeToReflected(t eval.ObjectType) (reflect.Typ
 	return rt, ok
 }
 
-func (pr *parentedImplRegistry) ReflectedToPtype(t reflect.Type) (eval.ObjectType, bool) {
+func (pr *parentedImplRegistry) ReflectedToPtype(t reflect.Type) (string, bool) {
 	if t = structType(t); t != nil {
 		pt, ok := pr.ImplementationRegistry.ReflectedToPtype(t)
 		if !ok {
@@ -76,30 +68,24 @@ func (pr *parentedImplRegistry) ReflectedToPtype(t reflect.Type) (eval.ObjectTyp
 		}
 		return pt, ok
 	}
-	return nil, false
+	return ``, false
 }
 
-func loadObjectType(c eval.Context, tn string) eval.ObjectType {
-	if lo, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, tn)); ok {
-		if t, ok := lo.(eval.ObjectType); ok {
-			return t
+func assertUnregisteredStruct(c eval.Context, ir eval.ImplementationRegistry, t string, r reflect.Type) reflect.Type {
+	if rt, ok := ir.PTypeToReflected(t); ok {
+		if r.String() != rt.String() {
+			panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t}))
 		}
-		panic(eval.Error(c, eval.EVAL_NOT_OBJECT_TYPE, issue.H{`type`: tn}))
 	}
-	panic(eval.Error(c, eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tn}))
-}
-
-func assertUnregisteredStruct(c eval.Context, ir eval.ImplementationRegistry, t eval.ObjectType, r reflect.Type) reflect.Type {
-	if _, ok := ir.PTypeToReflected(t); ok {
-		panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t.Name()}))
-	}
-	if _, ok := ir.ReflectedToPtype(r); ok {
-		panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: r.Name()}))
+	if tn, ok := ir.ReflectedToPtype(r); ok {
+		if tn != t {
+			panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: r.String()}))
+		}
 	}
 	if st := structType(r); st != nil {
 		return st
 	}
-	panic(eval.Error(c, eval.EVAL_IMPL_IS_NOT_STRUCT, issue.H{`type`: r.Name()}))
+	panic(eval.Error(c, eval.EVAL_IMPL_IS_NOT_STRUCT, issue.H{`type`: r.String()}))
 }
 
 func structType(t reflect.Type) reflect.Type {

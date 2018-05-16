@@ -24,17 +24,14 @@ type PReflected interface {
 
 // An ImplementationRegistry contains mappings between ObjectType and reflect.Type
 type ImplementationRegistry interface {
-	// RegisterType registers the mapping between the given PType and reflect.Type
-	RegisterType(c Context, t ObjectType, r reflect.Type)
+	// RegisterType registers the mapping between the given PType name and reflect.Type
+	RegisterType(c Context, t string, r reflect.Type)
 
-	// RegisterType2 registers the mapping between the given name of a PType and reflect.Type
-	RegisterType2(c Context, tn string, r reflect.Type)
+	// PTypeToReflected returns the reflect.Type for the given PType name
+	PTypeToReflected(t string) (reflect.Type, bool)
 
-	// PTypeToReflected returns the reflect.Type for the given PType
-	PTypeToReflected(t ObjectType) (reflect.Type, bool)
-
-	// ReflectedToPtype returns the PType for the given reflect.Type
-	ReflectedToPtype(t reflect.Type) (ObjectType, bool)
+	// ReflectedToPtype returns the PType name for the given reflect.Type
+	ReflectedToPtype(t reflect.Type) (string, bool)
 }
 
 // A Reflector deals with conversions between PValue and reflect.Value and

@@ -542,6 +542,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 }
 
 func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
+	pt = DefaultAnyType()
 	switch vt.Kind() {
 	case reflect.String:
 		pt = DefaultStringType()
@@ -575,12 +576,12 @@ func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
 		pt = wrapType(c, vt.Elem())
 	case reflect.Struct:
 		if it, ok := c.ImplementationRegistry().ReflectedToPtype(vt); ok {
-			pt = it
-		} else {
-			pt = DefaultAnyType()
+			if lt, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, it)); ok {
+				pt = lt.(eval.PType)
+			} else {
+				pt = NewTypeReferenceType(it)
+			}
 		}
-	default:
-		pt = DefaultAnyType()
 	}
 	return
 }

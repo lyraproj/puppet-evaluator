@@ -36,7 +36,7 @@ func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Lo
 		c.loader = loader
 		c.scope = scope
 	} else {
-		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope, implRegistry: NewImplementationRegistry()}
+		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope, implRegistry: newImplementationRegistry()}
 	}
 	return c
 }
@@ -48,6 +48,37 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 			c.define(loader, d)
 		}
 	}
+}
+
+func (c *evalCtx) AddTypes(types ...eval.PType) {
+	l := c.DefiningLoader()
+	typeSets := make([]eval.TypeSet, 0)
+	for _, t := range types {
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+	}
+
+	for _, t := range types {
+		if rt, ok := t.(eval.ResolvableType); ok {
+			rt.Resolve(c)
+			if ts, ok := rt.(eval.TypeSet); ok {
+				typeSets = append(typeSets, ts)
+			}
+		}
+	}
+
+	for _, ts := range typeSets {
+		c.addTypeSet(l, ts)
+	}
+}
+
+func (c *evalCtx) addTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
+	ts.Types().EachValue(func(tv eval.PValue) {
+		t := tv.(eval.PType)
+		if tsc, ok := t.(eval.TypeSet); ok {
+			c.addTypeSet(l, tsc)
+		}
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+	})
 }
 
 func (c *evalCtx) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
@@ -103,7 +134,7 @@ func (c *evalCtx) Fork() eval.Context {
 	clone := c.clone()
 	clone.scope = NewParentedScope(clone.scope)
 	clone.loader = eval.NewParentedLoader(clone.loader)
-	clone.implRegistry = NewParentedImplementationRegistry(clone.implRegistry)
+	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)
 	clone.stack = s
 
 	if c.vars != nil {

@@ -12,6 +12,7 @@ import (
 
 	// Initialize pcore
 	_ "github.com/puppetlabs/go-evaluator/pcore"
+	"testing"
 )
 
 func ExampleWrap() {
@@ -339,8 +340,8 @@ func ExampleImplementationRegistry() {
 	c.ResolveDefinitions()
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType2(c, `My::Address`, reflect.TypeOf(&TestAddress{}))
-	ir.RegisterType2(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
+	ir.RegisterType(c, `My::Address`, reflect.TypeOf(&TestAddress{}))
+	ir.RegisterType(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap2(c, ts)
@@ -379,8 +380,8 @@ func ExampleImplementationRegistry_tags() {
 	c.ResolveDefinitions()
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType2(c, `My::Address`, reflect.TypeOf(&TestAddress{}))
-	ir.RegisterType2(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
+	ir.RegisterType(c, `My::Address`, reflect.TypeOf(&TestAddress{}))
+	ir.RegisterType(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap2(c, ts)
@@ -412,9 +413,7 @@ func ExampleReflector_objectTypeFromReflect() {
 	tAddress := rf.ObjectTypeFromReflect(`My::Address`, nil, rtAddress)
 	tPerson := rf.ObjectTypeFromReflect(`My::Person`, nil, rtPerson)
 	tExtPerson := rf.ObjectTypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
-	tAddress.(eval.ResolvableType).Resolve(c)
-	tPerson.(eval.ResolvableType).Resolve(c)
-	tExtPerson.(eval.ResolvableType).Resolve(c)
+	c.AddTypes(tAddress, tPerson, tExtPerson)
 
 	fmt.Println(tAddress)
 	fmt.Println(tPerson)
@@ -449,7 +448,7 @@ func ExampleReflector_typeSetFromReflect() {
 	c := eval.Puppet.RootContext()
 	typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`),
 		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
-	typeSet.(eval.ResolvableType).Resolve(c)
+	c.AddTypes(typeSet)
 	typeSet.ToString(os.Stdout, eval.PRETTY, nil)
 	fmt.Println()
 
@@ -488,4 +487,28 @@ func ExampleReflector_typeSetFromReflect() {
 	//   }
 	// }
 	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
+}
+
+func TestReflectorAndImplRepo(t *testing.T) {
+	type ObscurelyNamedAddress struct {
+		Street string
+		Zip    string `puppet:"name=>zip_code"`
+	}
+	type Person struct {
+		Name    string
+		Address *ObscurelyNamedAddress
+	}
+
+	c := eval.Puppet.RootContext()
+	ir := c.ImplementationRegistry()
+	ir.RegisterType(c, `My::Address`, reflect.TypeOf(&ObscurelyNamedAddress{}))
+
+	typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`),
+		reflect.TypeOf(&ObscurelyNamedAddress{}), reflect.TypeOf(&Person{}))
+	c.AddTypes(typeSet)
+	tss := typeSet.String()
+	exp := `TypeSet{pcore_uri => 'http://puppet.com/2016.1/pcore', pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'My', version => '1.0.0', types => {Address => {attributes => {'street' => String, 'zip_code' => String}}, Person => {attributes => {'name' => String, 'address' => Address}}}}`
+	if tss != exp {
+		t.Errorf("Expected %s, got %s\n", exp, tss)
+	}
 }
