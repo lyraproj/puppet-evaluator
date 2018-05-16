@@ -570,7 +570,7 @@ func WrapHash4(c eval.Context, hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(c, v))
+		hvEntries[i] = WrapHashEntry2(k, wrap(c, v))
 		i++
 	}
 
@@ -582,11 +582,11 @@ func WrapHash4(c eval.Context, hash map[string]interface{}) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-func WrapHash5(c eval.Context, hash *hash.StringHash) *HashValue {
+func WrapStringPValue(hash *hash.StringHash) *HashValue {
 	hvEntries := make([]*HashEntry, hash.Len())
 	i := 0
 	hash.EachPair(func(k string, v interface{}) {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(c, v))
+		hvEntries[i] = WrapHashEntry2(k, v.(eval.PValue))
 		i++
 	})
 	return &HashValue{entries: hvEntries}
@@ -1127,19 +1127,19 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 				k := entry.Key()
 				io.WriteString(b, padding)
 				if isContainer(k) {
-					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap()), g)
+					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
-					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf), g)
+					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				v := entry.Value()
 				io.WriteString(b, assoc)
 				if isContainer(v) {
-					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap()), g)
+					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
 					if v == nil {
 						panic(`not good`)
 					}
-					v.ToString(b, eval.NewFormatContext2(childrenIndent, cf), g)
+					v.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				if idx < last {
 					io.WriteString(b, sep)

@@ -1,6 +1,9 @@
 package types
 
-import "github.com/puppetlabs/go-evaluator/eval"
+import (
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/hash"
+)
 
 type typeParameter struct {
 	attribute
@@ -11,17 +14,17 @@ var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
-func (t *typeParameter) initHash() map[string]eval.PValue {
+func (t *typeParameter) initHash() *hash.StringHash {
 	hash := t.attribute.initHash()
-	hash[KEY_TYPE] = hash[KEY_TYPE].(*TypeType).Type()
-	if v, ok := hash[KEY_VALUE]; ok && eval.Equals(v, _UNDEF) {
-		delete(hash, KEY_VALUE)
+	hash.Put(KEY_TYPE, hash.Get(KEY_TYPE, nil).(*TypeType).Type())
+	if v, ok := hash.Get3(KEY_VALUE); ok && eval.Equals(v, _UNDEF) {
+		hash.Delete(KEY_VALUE)
 	}
 	return hash
 }
 
 func (t *typeParameter) InitHash() eval.KeyedValue {
-	return WrapHash3(t.initHash())
+	return WrapStringPValue(t.initHash())
 }
 
 func (t *typeParameter) FeatureType() string {

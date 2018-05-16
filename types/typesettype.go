@@ -11,6 +11,7 @@ import (
 	"math"
 	"strings"
 	"sync/atomic"
+	"github.com/puppetlabs/go-evaluator/hash"
 )
 
 const (
@@ -105,13 +106,13 @@ func newTypeSetReference(c eval.Context, t *TypeSetType, ref *HashValue) *typeSe
 	return r
 }
 
-func (r *typeSetReference) initHash() map[string]eval.PValue {
+func (r *typeSetReference) initHash() *hash.StringHash {
 	h := r.annotatable.initHash()
 	if r.nameAuthority != r.owner.nameAuthority {
-		h[KEY_NAME_AUTHORITY] = WrapString(string(r.nameAuthority))
+		h.Put(KEY_NAME_AUTHORITY, WrapString(string(r.nameAuthority)))
 	}
-	h[KEY_NAME] = WrapString(r.name)
-	h[KEY_VERSION_RANGE] = WrapSemVerRange(r.versionRange)
+	h.Put(KEY_NAME, WrapString(r.name))
+	h.Put(KEY_VERSION_RANGE, WrapSemVerRange(r.versionRange))
 	return h
 }
 
@@ -175,8 +176,8 @@ func AllocTypeSetType() *TypeSetType {
 
 func (t *TypeSetType) Initialize(c eval.Context, args []eval.PValue) {
 	if len(args) == 1 {
-		if hash, ok := args[0].(eval.KeyedValue); ok {
-			t.InitFromHash(c, hash)
+		if h, ok := args[0].(eval.KeyedValue); ok {
+			t.InitFromHash(c, h)
 			return
 		}
 	}
@@ -382,34 +383,34 @@ func (t *TypeSetType) referencesHash() *HashValue {
 	entries := make([]*HashEntry, len(t.references))
 	idx := 0
 	for key, tr := range t.references {
-		entries[idx] = WrapHashEntry2(key, WrapHash3(tr.initHash()))
+		entries[idx] = WrapHashEntry2(key, WrapStringPValue(tr.initHash()))
 		idx++
 	}
 	return WrapHash(entries)
 }
 
 func (t *TypeSetType) InitHash() eval.KeyedValue {
-	return WrapHash3(t.initHash())
+	return WrapStringPValue(t.initHash())
 }
 
-func (t *TypeSetType) initHash() map[string]eval.PValue {
+func (t *TypeSetType) initHash() *hash.StringHash {
 	h := t.annotatable.initHash()
 	if t.pcoreURI != `` {
-		h[eval.KEY_PCORE_URI] = WrapURI2(string(t.pcoreURI))
+		h.Put(eval.KEY_PCORE_URI, WrapURI2(string(t.pcoreURI)))
 	}
-	h[eval.KEY_PCORE_VERSION] = WrapSemVer(t.pcoreVersion)
+	h.Put(eval.KEY_PCORE_VERSION, WrapSemVer(t.pcoreVersion))
 	if t.nameAuthority != `` {
-		h[KEY_NAME_AUTHORITY] = WrapURI2(string(t.nameAuthority))
+		h.Put(KEY_NAME_AUTHORITY, WrapURI2(string(t.nameAuthority)))
 	}
-	h[KEY_NAME] = WrapString(t.name)
+	h.Put(KEY_NAME, WrapString(t.name))
 	if t.version != nil {
-		h[KEY_VERSION] = WrapSemVer(t.version)
+		h.Put(KEY_VERSION, WrapSemVer(t.version))
 	}
 	if !t.types.IsEmpty() {
-		h[KEY_TYPES] = t.types
+		h.Put(KEY_TYPES, t.types)
 	}
 	if len(t.references) > 0 {
-		h[KEY_REFERENCES] = t.referencesHash()
+		h.Put(KEY_REFERENCES, t.referencesHash())
 	}
 	return h
 }
@@ -448,7 +449,7 @@ func (t *TypeSetType) Resolve(c eval.Context) eval.PType {
 	if lh, ok := ihe.(*parser.LiteralHash); ok {
 		initHash = t.resolveLiteralHash(c, lh)
 	} else {
-		initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
+		initHash = ihe.(*HashValue)
 	}
 	t.loader = c.Loader()
 	t.InitFromHash(c, initHash)

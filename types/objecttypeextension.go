@@ -96,7 +96,7 @@ func (te *objectTypeExtension) Parameters() []eval.PValue {
 	pts := te.baseType.typeParameters(true)
 	n := pts.Len()
 	if n > 2 {
-		return []eval.PValue{WrapHash5(nil, te.parameters)}
+		return []eval.PValue{WrapStringPValue(te.parameters)}
 	}
 	params := make([]eval.PValue, 0, n)
 	top := 0

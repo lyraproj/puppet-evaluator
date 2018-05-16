@@ -63,5 +63,5 @@ func (f *function) CallableType() eval.PType {
 }
 
 func (f *function) InitHash() eval.KeyedValue {
-	return WrapHash3(f.initHash())
+	return WrapStringPValue(f.initHash())
 }

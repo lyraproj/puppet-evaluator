@@ -54,14 +54,14 @@ func (a *annotatedMember) Override() bool {
 	return a.override
 }
 
-func (a *annotatedMember) initHash() map[string]eval.PValue {
+func (a *annotatedMember) initHash() *hash.StringHash {
 	h := a.annotatable.initHash()
-	h[KEY_TYPE] = a.typ
+	h.Put(KEY_TYPE, a.typ)
 	if a.final {
-		h[KEY_FINAL] = WrapBoolean(true)
+		h.Put(KEY_FINAL, WrapBoolean(true))
 	}
 	if a.override {
-		h[KEY_OVERRIDE] = WrapBoolean(true)
+		h.Put(KEY_OVERRIDE, WrapBoolean(true))
 	}
 	return h
 }

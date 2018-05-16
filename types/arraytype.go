@@ -678,9 +678,9 @@ func (av *ArrayValue) Unique() eval.IndexedValue {
 func childToString(child eval.PValue, indent eval.Indentation, parentCtx eval.FormatContext, cf eval.FormatMap, g eval.RDetect) string {
 	var childrenCtx eval.FormatContext
 	if isContainer(child) {
-		childrenCtx = newFormatContext2(indent, parentCtx.FormatMap())
+		childrenCtx = newFormatContext2(indent, parentCtx.FormatMap(), parentCtx.Properties())
 	} else {
-		childrenCtx = newFormatContext2(indent, cf)
+		childrenCtx = newFormatContext2(indent, cf, parentCtx.Properties())
 	}
 	b := bytes.NewBufferString(``)
 	child.ToString(b, childrenCtx, g)

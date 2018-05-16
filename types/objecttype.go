@@ -477,7 +477,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 }
 
 func (t *objectType) InitHash() eval.KeyedValue {
-	return WrapHash3(t.initHash(true))
+	return WrapStringPValue(t.initHash(true))
 }
 
 func (t *objectType) IsAssignable(o eval.PType, g eval.Guard) bool {
@@ -558,7 +558,7 @@ func (t *objectType) Parameters2(includeName bool) []eval.PValue {
 	if t == objectType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{WrapHash3(t.initHash(includeName))}
+	return []eval.PValue{WrapStringPValue(t.initHash(includeName))}
 }
 
 func (t *objectType) Resolve(c eval.Context) eval.PType {
@@ -566,12 +566,13 @@ func (t *objectType) Resolve(c eval.Context) eval.PType {
 		ihe := t.initHashExpression
 		t.initHashExpression = nil
 
+		if prt, ok := t.parent.(eval.ResolvableType); ok {
+			t.parent = resolveTypeRefs(c, prt).(eval.PType)
+		}
+
 		var initHash *HashValue
 		if lh, ok := ihe.(*parser.LiteralHash); ok {
 			initHash = c.Evaluate(lh).(*HashValue)
-			if prt, ok := t.parent.(eval.ResolvableType); ok {
-				t.parent = resolveTypeRefs(c, prt).(eval.PType)
-			}
 		} else {
 			initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
 		}
@@ -792,16 +793,16 @@ func (t *objectType) findEqualityDefiner(attrName string) *objectType {
 	return nil
 }
 
-func (t *objectType) initHash(includeName bool) map[string]eval.PValue {
+func (t *objectType) initHash(includeName bool) *hash.StringHash {
 	h := t.annotatable.initHash()
 	if includeName && t.name != `` && t.name != `Object` {
-		h[KEY_NAME] = WrapString(t.name)
+		h.Put(KEY_NAME, WrapString(t.name))
 	}
 	if t.parent != nil {
-		h[KEY_PARENT] = t.parent
+		h.Put(KEY_PARENT, t.parent)
 	}
 	if !t.parameters.IsEmpty() {
-		h[KEY_TYPE_PARAMETERS] = compressedMembersHash(t.parameters)
+		h.Put(KEY_TYPE_PARAMETERS, compressedMembersHash(t.parameters))
 	}
 	if !t.attributes.IsEmpty() {
 		// Divide attributes into constants and others
@@ -815,29 +816,29 @@ func (t *objectType) initHash(includeName bool) map[string]eval.PValue {
 				others.Put(key, a)
 			}
 			if !others.IsEmpty() {
-				h[KEY_ATTRIBUTES] = compressedMembersHash(others)
+				h.Put(KEY_ATTRIBUTES, compressedMembersHash(others))
 			}
 			if len(constants) > 0 {
-				h[KEY_CONSTANTS] = WrapHash(constants)
+				h.Put(KEY_CONSTANTS, WrapHash(constants))
 			}
 		})
 	}
 	if !t.functions.IsEmpty() {
-		h[KEY_FUNCTIONS] = compressedMembersHash(t.functions)
+		h.Put(KEY_FUNCTIONS, compressedMembersHash(t.functions))
 	}
 	if t.equality != nil {
 		ev := make([]eval.PValue, len(t.equality))
 		for i, e := range t.equality {
 			ev[i] = WrapString(e)
 		}
-		h[KEY_EQUALITY] = WrapArray(ev)
+		h.Put(KEY_EQUALITY, WrapArray(ev))
 	}
 	if t.serialization != nil {
 		sv := make([]eval.PValue, len(t.serialization))
 		for i, s := range t.serialization {
 			sv[i] = WrapString(s)
 		}
-		h[KEY_SERIALIZATION] = WrapArray(sv)
+		h.Put(KEY_SERIALIZATION, WrapArray(sv))
 	}
 	return h
 }

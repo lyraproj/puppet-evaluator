@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"github.com/puppetlabs/go-evaluator/hash"
 )
 
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
@@ -79,19 +80,19 @@ func (a *attribute) HasValue() bool {
 	return a.value != nil
 }
 
-func (a *attribute) initHash() map[string]eval.PValue {
+func (a *attribute) initHash() *hash.StringHash {
 	hash := a.annotatedMember.initHash()
 	if a.kind != DEFAULT_KIND {
-		hash[KEY_KIND] = WrapString(string(a.kind))
+		hash.Put(KEY_KIND, WrapString(string(a.kind)))
 	}
 	if a.value != nil {
-		hash[KEY_VALUE] = a.value
+		hash.Put(KEY_VALUE, a.value)
 	}
 	return hash
 }
 
 func (a *attribute) InitHash() eval.KeyedValue {
-	return WrapHash3(a.initHash())
+	return WrapStringPValue(a.initHash())
 }
 
 func (a *attribute) Value(c eval.Context) eval.PValue {

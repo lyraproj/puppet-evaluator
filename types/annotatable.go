@@ -28,10 +28,10 @@ func (a *annotatable) initialize(initHash *HashValue) {
 	a.annotations = hashArg(initHash, KEY_ANNOTATIONS)
 }
 
-func (a *annotatable) initHash() map[string]eval.PValue {
-	h := make(map[string]eval.PValue, 5)
+func (a *annotatable) initHash() *hash.StringHash {
+	h := hash.NewStringHash(5)
 	if a.annotations.Len() > 0 {
-		h[KEY_ANNOTATIONS] = a.annotations
+		h.Put(KEY_ANNOTATIONS, a.annotations)
 	}
 	return h
 }
