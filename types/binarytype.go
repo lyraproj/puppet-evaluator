@@ -6,8 +6,11 @@ import (
 	"io"
 	"unicode/utf8"
 
+	"fmt"
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 var binaryType_DEFAULT = &BinaryType{}
@@ -104,6 +107,10 @@ func (t *BinaryType) Name() string {
 	return `Binary`
 }
 
+func (t *BinaryType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf([]byte{}), true
+}
+
 func (t *BinaryType) String() string {
 	return `Binary`
 }
@@ -165,6 +172,22 @@ func (bv *BinaryValue) Equals(o interface{}, g eval.Guard) bool {
 		return bytes.Equal(bv.bytes, ov.bytes)
 	}
 	return false
+}
+
+func (bv *BinaryValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(bv.bytes)
+}
+
+func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
+	assertKind(c, value, reflect.Slice)
+	switch value.Type().Elem().Kind() {
+	case reflect.Int8, reflect.Uint8:
+		value.SetBytes(bv.bytes)
+	case reflect.Interface:
+		value.Set(reflect.ValueOf(bv.bytes))
+	default:
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `[]byte`, `actual`: fmt.Sprintf(`[]%s`, value.Kind())}))
+	}
 }
 
 func (bv *BinaryValue) SerializationString() string {

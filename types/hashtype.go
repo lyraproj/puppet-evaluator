@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/hash"
+	"reflect"
 )
 
 type (
@@ -565,11 +566,11 @@ func WrapHash3(hash map[string]eval.PValue) *HashValue {
 }
 
 // WrapHash4 does not preserve order since order is undefined in a Go map
-func WrapHash4(hash map[string]interface{}) *HashValue {
+func WrapHash4(c eval.Context, hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		hvEntries[i] = WrapHashEntry2(k, wrap(c, v))
 		i++
 	}
 
@@ -581,11 +582,11 @@ func WrapHash4(hash map[string]interface{}) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-func WrapHash5(hash *hash.StringHash) *HashValue {
+func WrapStringPValue(hash *hash.StringHash) *HashValue {
 	hvEntries := make([]*HashEntry, hash.Len())
 	i := 0
 	hash.EachPair(func(k string, v interface{}) {
-		hvEntries[i] = WrapHashEntry(WrapString(k), wrap(v))
+		hvEntries[i] = WrapHashEntry2(k, v.(eval.PValue))
 		i++
 	})
 	return &HashValue{entries: hvEntries}
@@ -825,6 +826,41 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.KeyedValue {
 	return WrapHash(selected)
 }
 
+func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
+	ht, ok := ReflectType(hv.Type())
+	if !ok {
+		ht = reflect.TypeOf(map[interface{}]interface{}{})
+	}
+
+	keyType := ht.Key()
+	valueType := ht.Elem()
+	m := reflect.MakeMapWithSize(ht, hv.Len())
+	rf := c.Reflector()
+	for _, e := range hv.entries {
+		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
+	}
+	return m
+}
+
+func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
+	assertKind(c, value, reflect.Map)
+	ht := value.Type()
+	if ht.Kind() == reflect.Interface {
+		ok := false
+		if ht, ok = ReflectType(hv.Type()); !ok {
+			ht = reflect.TypeOf(map[interface{}]interface{}{})
+		}
+	}
+	keyType := ht.Key()
+	valueType := ht.Elem()
+	m := reflect.MakeMapWithSize(value.Type(), hv.Len())
+	rf := c.Reflector()
+	for _, e := range hv.entries {
+		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
+	}
+	value.Set(m)
+}
+
 func (hv *HashValue) Reduce(redactor eval.BiMapper) eval.PValue {
 	if hv.IsEmpty() {
 		return _UNDEF
@@ -912,6 +948,13 @@ func (hv *HashValue) Get5(key string, dflt eval.PValue) eval.PValue {
 
 func (hv *HashValue) Get6(key string, dflt eval.Producer) eval.PValue {
 	return hv.get3(eval.HashKey(key), dflt)
+}
+
+func (hv *HashValue) GetEntry(key string) (eval.EntryValue, bool) {
+	if pos, ok := hv.valueIndex()[eval.HashKey(key)]; ok {
+		return hv.entries[pos], true
+	}
+	return nil, false
 }
 
 func (hv *HashValue) get(key eval.HashKey) (eval.PValue, bool) {
@@ -1086,19 +1129,19 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 				k := entry.Key()
 				io.WriteString(b, padding)
 				if isContainer(k) {
-					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap()), g)
+					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
-					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf), g)
+					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				v := entry.Value()
 				io.WriteString(b, assoc)
 				if isContainer(v) {
-					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap()), g)
+					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
 					if v == nil {
 						panic(`not good`)
 					}
-					v.ToString(b, eval.NewFormatContext2(childrenIndent, cf), g)
+					v.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				if idx < last {
 					io.WriteString(b, sep)

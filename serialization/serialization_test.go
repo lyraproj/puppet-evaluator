@@ -46,7 +46,7 @@ func ExampleToDataConverter_Convert() {
 func ExampleDataToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		buf := bytes.NewBufferString(``)
-		DataToJson(ctx, types.WrapHash4(map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`}), buf, eval.EMPTY_MAP)
+		DataToJson(ctx, types.WrapHash4(ctx, map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`}), buf, eval.EMPTY_MAP)
 		fmt.Println(buf)
 		return nil
 	})
@@ -64,8 +64,8 @@ func ExampleJsonToData() {
 }
 
 func ExampleFromDataConverter_Convert() {
-	data := types.WrapHash4(map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`})
 	eval.Puppet.Do(func(ctx eval.Context) error {
+		data := types.WrapHash4(ctx, map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)

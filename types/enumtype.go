@@ -5,6 +5,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"reflect"
 	"strings"
 )
 
@@ -168,6 +169,10 @@ func (t *EnumType) MetaType() eval.ObjectType {
 
 func (t *EnumType) Name() string {
 	return `Enum`
+}
+
+func (t *EnumType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(`x`), true
 }
 
 func (t *EnumType) String() string {

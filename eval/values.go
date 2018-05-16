@@ -25,6 +25,34 @@ type (
 		InitFromHash(c Context, hash KeyedValue)
 	}
 
+	PuppetObject interface {
+		PValue
+		ReadableObject
+
+		InitHash() KeyedValue
+	}
+
+	ErrorObject interface {
+		PuppetObject
+
+		// Kind returns the error kind
+		Kind() string
+
+		// Message returns the error message
+		Message() string
+
+		// IssueCode returns the issue code
+		IssueCode() string
+
+		// PartialResult returns the optional partial result. It returns
+		// eval.UNDEF if no partial result exists
+		PartialResult() PValue
+
+		// Details returns the optional details. It returns
+		// an empty map when o details exist
+		Details() KeyedValue
+	}
+
 	DetailedTypeValue interface {
 		PValue
 		DetailedType() PType
@@ -118,6 +146,10 @@ type (
 		Get5(key string, dflt PValue) PValue
 		Get6(key string, dflt Producer) PValue
 
+		// GetEntry returns the entry that represents the mapping between
+		// the given key and its value
+		GetEntry(key string) (EntryValue, bool)
+
 		Keys() IndexedValue
 
 		// MapValues returns a new KeyedValue with the exact same keys as
@@ -154,6 +186,7 @@ var IsTruthy func(tv PValue) bool
 var ToInt func(v PValue) (int64, bool)
 var ToFloat func(v PValue) (float64, bool)
 var Wrap func(v interface{}) PValue
+var Wrap2 func(c Context, v interface{}) PValue
 
 func ToString(t PValue) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)

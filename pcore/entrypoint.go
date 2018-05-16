@@ -169,6 +169,7 @@ func (p *pcoreImpl) Logger() eval.Logger {
 }
 
 func (p *pcoreImpl) RootContext() eval.Context {
+	InitializePuppet()
 	return impl.NewContext(p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
 }
 

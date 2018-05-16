@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 )
 
 type (
@@ -26,6 +27,13 @@ var integerType_DEFAULT = &IntegerType{math.MinInt64, math.MaxInt64}
 var integerType_POSITIVE = &IntegerType{0, math.MaxInt64}
 var integerType_ZERO = &IntegerType{0, 0}
 var integerType_ONE = &IntegerType{1, 1}
+var integerType_8 = &IntegerType{math.MinInt8, math.MaxInt8}
+var integerType_16 = &IntegerType{math.MinInt16, math.MaxInt16}
+var integerType_32 = &IntegerType{math.MinInt32, math.MaxInt32}
+var integerType_u8 = &IntegerType{0, math.MaxUint8}
+var integerType_u16 = &IntegerType{0, math.MaxUint16}
+var integerType_u32 = &IntegerType{0, math.MaxUint32}
+var integerType_u64 = &IntegerType{0, math.MaxInt64} // MaxUInt64 isn't supported at this time
 var ZERO = (*IntegerValue)(integerType_ZERO)
 var MIN_INT = WrapInteger(math.MinInt64)
 var MAX_INT = WrapInteger(math.MaxInt64)
@@ -270,6 +278,10 @@ func (t *IntegerType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapInteger(t.min), WrapInteger(t.max)}
 }
 
+func (t *IntegerType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(int64(0)), true
+}
+
 func (t *IntegerType) SizeParameters() []eval.PValue {
 	params := make([]eval.PValue, 2)
 	params[0] = WrapInteger(t.min)
@@ -317,6 +329,26 @@ func (iv *IntegerValue) Float() float64 {
 
 func (iv *IntegerValue) Int() int64 {
 	return iv.min
+}
+
+func (iv *IntegerValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(iv.Int())
+}
+
+func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
+	if !value.CanSet() {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
+	}
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value.SetInt(iv.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value.SetUint(uint64(iv.Int()))
+	case reflect.Interface:
+		value.Set(reflect.ValueOf(iv.Int()))
+	default:
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
+	}
 }
 
 func (iv *IntegerValue) String() string {

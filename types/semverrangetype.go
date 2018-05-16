@@ -7,7 +7,9 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-semver/semver"
+	"reflect"
 )
 
 type (
@@ -129,6 +131,10 @@ func (t *SemVerRangeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard
 	return ok
 }
 
+func (t *SemVerRangeType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(semver.MatchAll), true
+}
+
 func (t *SemVerRangeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
@@ -152,6 +158,18 @@ func (bv *SemVerRangeValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (bv *SemVerRangeValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(bv.rng)
+}
+
+func (bv *SemVerRangeValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := bv.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
+}
+
 func (bv *SemVerRangeValue) SerializationString() string {
 	return bv.String()
 }
@@ -165,11 +183,13 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 	vr := bv.rng
 	switch f.FormatChar() {
 	case 'p':
+		io.WriteString(b, `SemVerRange(`)
 		if f.IsAlt() {
 			utils.PuppetQuote(b, vr.NormalizedString())
 		} else {
 			utils.PuppetQuote(b, vr.String())
 		}
+		io.WriteString(b, `)`)
 	case 's':
 		if f.IsAlt() {
 			vr.ToNormalizedString(b)

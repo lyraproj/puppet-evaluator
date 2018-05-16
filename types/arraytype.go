@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"reflect"
 	"sort"
 )
 
@@ -256,6 +257,13 @@ func (t *ArrayType) Parameters() []eval.PValue {
 	return params
 }
 
+func (t *ArrayType) ReflectType() (reflect.Type, bool) {
+	if et, ok := ReflectType(t.ElementType()); ok {
+		return reflect.SliceOf(et), true
+	}
+	return nil, false
+}
+
 func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
@@ -271,10 +279,10 @@ func WrapArray(elements []eval.PValue) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
 
-func WrapArray2(elements []interface{}) *ArrayValue {
+func WrapArray2(c eval.Context, elements []interface{}) *ArrayValue {
 	els := make([]eval.PValue, len(elements))
 	for i, e := range elements {
-		els[i] = wrap(e)
+		els[i] = wrap(c, e)
 	}
 	return &ArrayValue{elements: els}
 }
@@ -470,6 +478,29 @@ func (av *ArrayValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) 
 	return reduceSlice(av.elements, initialValue, redactor)
 }
 
+func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
+	at, ok := ReflectType(av.Type())
+	if !ok {
+		at = reflect.TypeOf([]interface{}{})
+	}
+	s := reflect.MakeSlice(at, av.Len(), av.Len())
+	rf := c.Reflector()
+	for i, e := range av.elements {
+		rf.ReflectTo(e, s.Index(i))
+	}
+	return s
+}
+
+func (av *ArrayValue) ReflectTo(c eval.Context, value reflect.Value) {
+	assertKind(c, value, reflect.Slice)
+	s := reflect.MakeSlice(value.Type(), av.Len(), av.Len())
+	rf := c.Reflector()
+	for i, e := range av.elements {
+		rf.ReflectTo(e, s.Index(i))
+	}
+	value.Set(s)
+}
+
 func (av *ArrayValue) Reject(predicate eval.Predicate) eval.IndexedValue {
 	all := true
 	selected := make([]eval.PValue, 0)
@@ -649,9 +680,9 @@ func (av *ArrayValue) Unique() eval.IndexedValue {
 func childToString(child eval.PValue, indent eval.Indentation, parentCtx eval.FormatContext, cf eval.FormatMap, g eval.RDetect) string {
 	var childrenCtx eval.FormatContext
 	if isContainer(child) {
-		childrenCtx = newFormatContext2(indent, parentCtx.FormatMap())
+		childrenCtx = newFormatContext2(indent, parentCtx.FormatMap(), parentCtx.Properties())
 	} else {
-		childrenCtx = newFormatContext2(indent, cf)
+		childrenCtx = newFormatContext2(indent, cf, parentCtx.Properties())
 	}
 	b := bytes.NewBufferString(``)
 	child.ToString(b, childrenCtx, g)

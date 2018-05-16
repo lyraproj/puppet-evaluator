@@ -13,12 +13,13 @@ import (
 type (
 	evalCtx struct {
 		context.Context
-		evaluator   eval.Evaluator
-		loader      eval.Loader
-		stack       []issue.Location
-		scope       eval.Scope
-		definitions []interface{}
-		vars        map[string]interface{}
+		evaluator    eval.Evaluator
+		loader       eval.Loader
+		stack        []issue.Location
+		scope        eval.Scope
+		implRegistry eval.ImplementationRegistry
+		definitions  []interface{}
+		vars         map[string]interface{}
 	}
 )
 
@@ -27,7 +28,17 @@ func NewContext(evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) 
 }
 
 func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
-	return &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope}
+	var c *evalCtx
+	if cp, ok := parent.(evalCtx); ok {
+		c = cp.clone()
+		c.Context = parent
+		c.evaluator = evaluator
+		c.loader = loader
+		c.scope = scope
+	} else {
+		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope, implRegistry: newImplementationRegistry()}
+	}
+	return c
 }
 
 func (c *evalCtx) AddDefinitions(expr parser.Expression) {
@@ -37,6 +48,37 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 			c.define(loader, d)
 		}
 	}
+}
+
+func (c *evalCtx) AddTypes(types ...eval.PType) {
+	l := c.DefiningLoader()
+	typeSets := make([]eval.TypeSet, 0)
+	for _, t := range types {
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+	}
+
+	for _, t := range types {
+		if rt, ok := t.(eval.ResolvableType); ok {
+			rt.Resolve(c)
+			if ts, ok := rt.(eval.TypeSet); ok {
+				typeSets = append(typeSets, ts)
+			}
+		}
+	}
+
+	for _, ts := range typeSets {
+		c.addTypeSet(l, ts)
+	}
+}
+
+func (c *evalCtx) addTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
+	ts.Types().EachValue(func(tv eval.PValue) {
+		t := tv.(eval.PType)
+		if tsc, ok := t.(eval.TypeSet); ok {
+			c.addTypeSet(l, tsc)
+		}
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+	})
 }
 
 func (c *evalCtx) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
@@ -92,6 +134,7 @@ func (c *evalCtx) Fork() eval.Context {
 	clone := c.clone()
 	clone.scope = NewParentedScope(clone.scope)
 	clone.loader = eval.NewParentedLoader(clone.loader)
+	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)
 	clone.stack = s
 
 	if c.vars != nil {
@@ -115,6 +158,10 @@ func (c *evalCtx) Get(key string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (c *evalCtx) ImplementationRegistry() eval.ImplementationRegistry {
+	return c.implRegistry
 }
 
 func (c *evalCtx) Loader() eval.Loader {
@@ -161,6 +208,10 @@ func (c *evalCtx) ParseType(typeString eval.PValue) eval.PType {
 
 func (c *evalCtx) ParseType2(str string) eval.PType {
 	return c.ResolveType(c.ParseAndValidate(``, str, true))
+}
+
+func (c *evalCtx) Reflector() eval.Reflector {
+	return types.NewReflector(c)
 }
 
 func (c *evalCtx) ResolveDefinitions() {
@@ -245,7 +296,7 @@ func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {
 // internally by methods like Fork, WithLoader, and WithScope to prevent them
 // from creating specific implementations.
 func (c *evalCtx) clone() *evalCtx {
-	return &evalCtx{c, c.evaluator, c.loader, c.stack, c.scope, c.definitions, c.vars}
+	return &evalCtx{c, c.evaluator, c.loader, c.stack, c.scope, c.implRegistry, c.definitions, c.vars}
 }
 
 func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {

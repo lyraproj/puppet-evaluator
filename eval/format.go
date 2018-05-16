@@ -42,7 +42,11 @@ type (
 	FormatContext interface {
 		Indentation() Indentation
 		FormatMap() FormatMap
+		Property(key string) (string, bool)
+		Properties() map[string]string
+		SetProperty(key, value string)
 		UnsupportedFormat(t PType, supportedFormats string, actualFormat Format) error
+		WithProperties(properties map[string]string) FormatContext
 	}
 )
 
@@ -50,11 +54,12 @@ var FORMAT_PATTERN = regexp.MustCompile(`\A%([\s\[+#0{<(|-]*)([1-9][0-9]*)?(?:\.
 
 var DEFAULT_FORMAT Format
 var DEFAULT_FORMAT_CONTEXT FormatContext
+var PRETTY FormatContext
 
 var NewFormat func(format string) Format
 var NewIndentation func(indenting bool, level int) Indentation
 var NewFormatContext func(t PType, format Format, indentation Indentation) FormatContext
-var NewFormatContext2 func(indentation Indentation, formatMap FormatMap) FormatContext
+var NewFormatContext2 func(indentation Indentation, formatMap FormatMap, properties map[string]string) FormatContext
 var NewFormatContext3 func(value PValue, format PValue) (FormatContext, error)
 
 func GetFormat(f FormatMap, t PType) Format {

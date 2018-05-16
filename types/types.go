@@ -16,6 +16,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
+	"strings"
 )
 
 const (
@@ -197,19 +198,33 @@ func TypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetec
 }
 
 func basicTypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, t.Name())
-	if s != EXPANDED {
+	name := t.Name()
+	if ex, ok := s.Property(`expanded`); !(ok && ex == `true`) {
 		switch t.(type) {
-		case *objectType, *TypeAliasType, *TypeSetType:
+		case *TypeAliasType:
+			if ts, ok := s.Property(`typeSet`); ok {
+				name = stripTypeSetName(ts, name)
+			}
+			io.WriteString(b, name)
 			return
 		}
 	}
+	io.WriteString(b, name)
 	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
 			WrapArray(params).ToString(b, s, g)
 		}
 	}
+}
+
+func stripTypeSetName(tsName, name string) string {
+	tsName = tsName + `::`
+	if strings.HasPrefix(name, tsName) {
+		// Strip name and two colons
+		return name[len(tsName):]
+	}
+	return name
 }
 
 type alterFunc func(t eval.PType) eval.PType
@@ -349,10 +364,15 @@ func init() {
 		}
 	}
 
+	eval.NewObjectType = newObjectType
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
-	eval.Wrap = wrap
+	eval.Wrap = func(v interface{}) eval.PValue {
+		return wrap(nil, v)
+	}
+	eval.Wrap2 = wrap
+	eval.WrapType = wrapType
 }
 
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
@@ -429,7 +449,7 @@ func appendTypeParamKey(b *bytes.Buffer, v eval.PValue) {
 	}
 }
 
-func wrap(v interface{}) (pv eval.PValue) {
+func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 	switch v.(type) {
 	case nil:
 		pv = _UNDEF
@@ -460,7 +480,7 @@ func wrap(v interface{}) (pv eval.PValue) {
 	case []eval.PValue:
 		pv = WrapArray(v.([]eval.PValue))
 	case map[string]interface{}:
-		pv = WrapHash4(v.(map[string]interface{}))
+		pv = WrapHash4(c, v.(map[string]interface{}))
 	case map[string]eval.PValue:
 		pv = WrapHash3(v.(map[string]eval.PValue))
 	case json.Number:
@@ -470,18 +490,22 @@ func wrap(v interface{}) (pv eval.PValue) {
 			f, _ := v.(json.Number).Float64()
 			pv = WrapFloat(f)
 		}
+	case reflect.Value:
+		pv = wrapValue(c, v.(reflect.Value))
+	case reflect.Type:
+		pv = wrapType(c, v.(reflect.Type))
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
-		pv = wrapValue(reflect.ValueOf(v))
+		pv = wrapValue(c, reflect.ValueOf(v))
 	}
 	return pv
 }
 
-func wrapValue(vr reflect.Value) (pv eval.PValue) {
+func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 	switch vr.Kind() {
 	case reflect.String:
 		pv = WrapString(vr.String())
-	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 		pv = WrapInteger(vr.Int())
 	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
 		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
@@ -493,19 +517,23 @@ func wrapValue(vr reflect.Value) (pv eval.PValue) {
 		top := vr.Len()
 		els := make([]eval.PValue, top)
 		for i := 0; i < top; i++ {
-			els[i] = wrap(interfaceOrNil(vr.Index(i)))
+			els[i] = wrap(c, interfaceOrNil(vr.Index(i)))
 		}
 		pv = WrapArray(els)
 	case reflect.Map:
 		keys := vr.MapKeys()
 		els := make([]*HashEntry, len(keys))
 		for i, k := range keys {
-			els[i] = WrapHashEntry(wrap(interfaceOrNil(k)), wrap(interfaceOrNil(vr.MapIndex(k))))
+			els[i] = WrapHashEntry(wrap(c, interfaceOrNil(k)), wrap(c, interfaceOrNil(vr.MapIndex(k))))
 		}
 		pv = WrapHash(els)
 	default:
 		if vr.CanInterface() {
-			pv = WrapRuntime(vr.Interface())
+			if pt, ok := wrapType(c, vr.Type()).(eval.ObjectType); ok {
+				pv = pt.FromReflectedValue(c, vr)
+			} else {
+				pv = WrapRuntime(vr.Interface())
+			}
 		} else {
 			pv = _UNDEF
 		}
@@ -513,15 +541,56 @@ func wrapValue(vr reflect.Value) (pv eval.PValue) {
 	return pv
 }
 
+func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
+	pt = DefaultAnyType()
+	switch vt.Kind() {
+	case reflect.String:
+		pt = DefaultStringType()
+	case reflect.Int, reflect.Int64:
+		pt = DefaultIntegerType()
+	case reflect.Int32:
+		pt = integerType_32
+	case reflect.Int16:
+		pt = integerType_16
+	case reflect.Int8:
+		pt = integerType_8
+	case reflect.Uint, reflect.Uint64:
+		pt = integerType_u64
+	case reflect.Uint32:
+		pt = integerType_u32
+	case reflect.Uint16:
+		pt = integerType_u16
+	case reflect.Uint8:
+		pt = integerType_u8
+	case reflect.Bool:
+		pt = DefaultBooleanType()
+	case reflect.Float64:
+		pt = DefaultFloatType()
+	case reflect.Float32:
+		pt = floatType_32
+	case reflect.Slice, reflect.Array:
+		pt = NewArrayType(wrapType(c, vt.Elem()), nil)
+	case reflect.Map:
+		pt = NewHashType(wrapType(c, vt.Key()), wrapType(c, vt.Elem()), nil)
+	case reflect.Ptr:
+		pt = wrapType(c, vt.Elem())
+	case reflect.Struct:
+		if it, ok := c.ImplementationRegistry().ReflectedToPtype(vt); ok {
+			if lt, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, it)); ok {
+				pt = lt.(eval.PType)
+			} else {
+				pt = NewTypeReferenceType(it)
+			}
+		}
+	}
+	return
+}
+
 func interfaceOrNil(vr reflect.Value) interface{} {
 	if vr.CanInterface() {
 		return vr.Interface()
 	}
 	return nil
-}
-
-func init() {
-	eval.NewObjectType = newObjectType
 }
 
 func newAliasType(name, typeDecl string) eval.PType {
@@ -540,32 +609,6 @@ func newAliasType(name, typeDecl string) eval.PType {
 		return at
 	}
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
-}
-
-func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
-	p := parser.CreateParser()
-	_, fileName, fileLine, _ := runtime.Caller(1)
-	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
-	if err != nil {
-		err = convertReported(err, fileName, fileLine)
-		panic(err)
-	}
-
-	if ta, ok := expr.(*parser.TypeAlias); ok {
-		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
-		ot := rt.(*objectType)
-		ot.setCreators(creators...)
-		registerResolvableType(ot)
-		return ot
-	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
-}
-
-func newObjectType2(name string, parent eval.PType, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
-	ta := NewObjectType(name, parent, initHash)
-	ta.setCreators(creators...)
-	registerResolvableType(ta)
-	return ta
 }
 
 func convertReported(err error, fileName string, lineOffset int) error {
@@ -643,4 +686,106 @@ func createMetaType(na eval.URI, name string, typeName string, parentName string
 	}
 
 	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
+}
+
+func argError(e eval.PType, a eval.PValue) errors.InstantiationError {
+	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.Type()))
+}
+
+func typeArg(hash eval.KeyedValue, key string, d eval.PType) eval.PType {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(eval.PType); ok {
+		return t
+	}
+	panic(argError(DefaultTypeType(), v))
+}
+
+func hashArg(hash eval.KeyedValue, key string) *HashValue {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return _EMPTY_MAP
+	}
+	if t, ok := v.(*HashValue); ok {
+		return t
+	}
+	panic(argError(DefaultHashType(), v))
+}
+
+func boolArg(hash eval.KeyedValue, key string, d bool) bool {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*BooleanValue); ok {
+		return t.Bool()
+	}
+	panic(argError(DefaultBooleanType(), v))
+}
+
+func stringArg(hash eval.KeyedValue, key string, d string) string {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		return t.String()
+	}
+	panic(argError(DefaultStringType(), v))
+}
+
+func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.URI {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if t, ok := v.(*StringValue); ok {
+		str := t.String()
+		if _, err := ParseURI2(str, true); err != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		}
+		return eval.URI(str)
+	}
+	if t, ok := v.(*UriValue); ok {
+		return eval.URI(t.URL().String())
+	}
+	panic(argError(DefaultUriType(), v))
+}
+
+func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Version) semver.Version {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sv, error := semver.ParseVersion(s.String())
+		if error != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sv
+	}
+	if sv, ok := v.(*SemVerValue); ok {
+		return sv.Version()
+	}
+	panic(argError(DefaultSemVerType(), v))
+}
+
+func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d semver.VersionRange) semver.VersionRange {
+	v := hash.Get5(key, nil)
+	if v == nil {
+		return d
+	}
+	if s, ok := v.(*StringValue); ok {
+		sr, error := semver.ParseVersionRange(s.String())
+		if error != nil {
+			panic(eval.Error(c, eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		}
+		return sr
+	}
+	if sv, ok := v.(*SemVerRangeValue); ok {
+		return sv.VersionRange()
+	}
+	panic(argError(DefaultSemVerType(), v))
 }

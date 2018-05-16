@@ -1,6 +1,10 @@
 package eval
 
-import "github.com/puppetlabs/go-issues/issue"
+import (
+	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
+	"github.com/puppetlabs/go-semver/semver"
+)
 
 type (
 	Visitor func(t PType)
@@ -120,34 +124,6 @@ type (
 		Call(c Context, method string, args []PValue, block Lambda) (result PValue, ok bool)
 	}
 
-	PuppetObject interface {
-		PValue
-		ReadableObject
-
-		InitHash() KeyedValue
-	}
-
-	ErrorObject interface {
-		PuppetObject
-
-		// Kind returns the error kind
-		Kind() string
-
-		// Message returns the error message
-		Message() string
-
-		// IssueCode returns the issue code
-		IssueCode() string
-
-		// PartialResult returns the optional partial result. It returns
-		// eval.UNDEF if no partial result exists
-		PartialResult() PValue
-
-		// Details returns the optional details. It returns
-		// an empty map when o details exist
-		Details() KeyedValue
-	}
-
 	AttributesInfo interface {
 		NameToPos() map[string]int
 
@@ -173,6 +149,42 @@ type (
 		IsParameterized() bool
 
 		AttributesInfo() AttributesInfo
+
+		// FromReflectedValue creates a new instance of the reciever type
+		// and initializes that instance from the given src
+		FromReflectedValue(c Context, src reflect.Value) PuppetObject
+
+		// ToReflectedValue copies values from src to dest. The src argument
+		// must be an instance of the receiver. The dest argument must be
+		// a reflected struct. The src must be able to deliver a value to
+		// each of the exported fields in dest.
+		//
+		// Puppets name convention stipulates lower case names using
+		// underscores to separate words. The Go conversion is to use
+		// camel cased names. ReflectValueTo will convert camel cased names
+		// into names with underscores.
+		ToReflectedValue(c Context, src PuppetObject, dest reflect.Value)
+	}
+
+	TypeSet interface {
+		ParameterizedType
+
+		// GetType returns the given type from the receiver together with
+		// a flag indicating success or failure
+		GetType(typedName TypedName) (PType, bool)
+
+		// GetType2 is like GetType but uses a string to identify the type
+		GetType2(name string) (PType, bool)
+
+		// NameAuthority returns the name authority of the receiver
+		NameAuthority() URI
+
+		// Types returns a hash of all types contained in this set. The keyes
+		// in this hash are relative to the receiver name
+		Types() KeyedValue
+
+		// Version returns the version of the receiver
+		Version() semver.Version
 	}
 
 	TypeWithContainedType interface {
@@ -301,6 +313,14 @@ func MapTypes(types []PType, mapper TypeMapper) []PValue {
 	return result
 }
 
+// New creates a new instance of type t
+func New(c Context, t PType, args ...PValue) PValue {
+	if ctor, ok := Load(c, NewTypedName(CONSTRUCTOR, t.Name())); ok {
+		return ctor.(Function).Call(c, nil, args...)
+	}
+	panic(Error(c, EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
+}
+
 func Reduce(elements []PValue, memo PValue, reductor BiMapper) PValue {
 	for _, elem := range elements {
 		memo = reductor(memo, elem)
@@ -373,3 +393,5 @@ var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) Obje
 var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
+
+var WrapType func(c Context, rt reflect.Type) PType

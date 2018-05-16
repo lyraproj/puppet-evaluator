@@ -7,6 +7,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
+	"strings"
 )
 
 type (
@@ -27,7 +28,7 @@ type (
 
 	typeSetLoader struct {
 		parentedLoader
-		typeSet *types.TypeSetType
+		typeSet eval.TypeSet
 	}
 )
 
@@ -50,7 +51,7 @@ func init() {
 	}
 
 	eval.NewTypeSetLoader = func(parent eval.Loader, typeSet eval.PType) eval.TypeSetLoader {
-		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(*types.TypeSetType)}
+		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(eval.TypeSet)}
 	}
 
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
@@ -189,6 +190,9 @@ func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Ent
 func (l *typeSetLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 	if tp, ok := l.typeSet.GetType(name); ok {
 		return l.SetEntry(name, &loaderEntry{tp, nil})
+	}
+	if strings.EqualFold(name.NameParts()[0], l.typeSet.Name()) {
+		return l.find(c, name.Child())
 	}
 	return nil
 }

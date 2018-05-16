@@ -11,6 +11,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 	"regexp"
 	"strconv"
 	"sync"
@@ -268,6 +269,10 @@ func (t *TimespanType) Parameters() []eval.PValue {
 	return []eval.PValue{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
+func (t *TimespanType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(time.Duration(0)), true
+}
+
 func (t *TimespanType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -431,6 +436,18 @@ func (tv *TimespanValue) Int() int64 {
 // Minutes returns a positive integer, 0 - 59 denoting minutes of hour
 func (tv *TimespanValue) Minutes() int64 {
 	return tv.totalMinutes() % 60
+}
+
+func (tv *TimespanValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(tv.Duration())
+}
+
+func (tv *TimespanValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := tv.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
 }
 
 // Seconds returns a positive integer, 0 - 59 denoting seconds of minute

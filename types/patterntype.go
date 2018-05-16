@@ -5,6 +5,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"reflect"
 )
 
 type PatternType struct {
@@ -144,6 +145,10 @@ func (t *PatternType) Patterns() *ArrayValue {
 		rxs[idx] = rx
 	}
 	return WrapArray(rxs)
+}
+
+func (t *PatternType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(`x`), true
 }
 
 func (t *PatternType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {

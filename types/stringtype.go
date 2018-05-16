@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"reflect"
 	"regexp"
 )
 
@@ -209,6 +210,10 @@ func (t *StringType) Parameters() []eval.PValue {
 	return t.size.Parameters()
 }
 
+func (t *StringType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(`x`), true
+}
+
 func (t *StringType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -387,6 +392,19 @@ func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.PValue {
 
 func (sv *StringValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
 	return reduceString(sv.String(), initialValue, redactor)
+}
+
+func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(sv.String())
+}
+
+func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
+	assertKind(c, value, reflect.String)
+	if value.Kind() == reflect.Interface {
+		value.Set(sv.Reflect(c))
+	} else {
+		value.SetString(sv.String())
+	}
 }
 
 func (sv *StringValue) Reject(predicate eval.Predicate) eval.IndexedValue {

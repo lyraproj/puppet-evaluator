@@ -5,6 +5,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"reflect"
 )
 
 type OptionalType struct {
@@ -115,6 +116,10 @@ func (t *OptionalType) Parameters() []eval.PValue {
 		return []eval.PValue{WrapString(str.value)}
 	}
 	return []eval.PValue{t.typ}
+}
+
+func (t *OptionalType) ReflectType() (reflect.Type, bool) {
+	return ReflectType(t.typ)
 }
 
 func (t *OptionalType) String() string {

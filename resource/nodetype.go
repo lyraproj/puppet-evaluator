@@ -252,13 +252,18 @@ func (rn *node) evaluate(c eval.Context) {
 		return true
 	}()
 
-	if done {
-		return
+	if !done {
+		rn.apply(c)
 	}
+}
 
+func (rn *node) apply(c eval.Context) {
 	resources := rn.Resources()
 	rcount := resources.Len()
-	results := appendResults(make([]eval.PValue, 0, rcount+1), rn.value)
+	results := make([]eval.PValue, 0, rcount+1)
+	if _, ok := rn.expression.(*parser.ResourceExpression); !ok {
+		results = appendResults(results, rn.value)
+	}
 	if rcount > 0 {
 		rs := make([]eval.PuppetObject, 0, rcount)
 		resources.EachValue(func(r eval.PValue) {
@@ -278,10 +283,14 @@ func (rn *node) evaluate(c eval.Context) {
 			rn.error = ir
 		} else {
 			for ix, ar := range applyResults {
+				r := rs[ix]
 				if err, ok := ar.(eval.ErrorObject); ok {
-					results = append(results, NewErrorResult(types.WrapString(Reference(c, rs[ix])), err))
+					results = append(results, NewErrorResult(types.WrapString(Reference(c, r)), err))
 				} else {
-					results = append(results, NewResult(types.WrapString(Reference(c, rs[ix])), ar, ``))
+					// Update handle
+					rh, _ := resources.Get4(Reference(c, r))
+					rh.(*handle).value = ar
+					results = append(results, NewResult(types.WrapString(Reference(c, r)), ar, ``))
 				}
 			}
 		}
@@ -289,7 +298,6 @@ func (rn *node) evaluate(c eval.Context) {
 	rn.results = results
 
 	scheduleNodes(c, GetGraph(c).FromNode(rn))
-	return
 }
 
 func (rn *node) update(c eval.Context, value eval.PValue, resources map[string]*handle) {

@@ -352,14 +352,14 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.PType, value eval.PVal
 		})
 		if ot, ok := typ.(eval.ObjectType); ok {
 			if ot.HasHashConstructor() {
-				return f.buildValue(f.create(typ, hash))
+				return f.buildValue(eval.New(f.context, typ, hash))
 			}
-			return f.buildValue(f.create(typ, ot.AttributesInfo().PositionalFromHash(f.context, hash)...))
+			return f.buildValue(eval.New(f.context, typ, ot.AttributesInfo().PositionalFromHash(f.context, hash)...))
 		}
-		return f.buildValue(f.create(typ, hash))
+		return f.buildValue(eval.New(f.context, typ, hash))
 	}
 	if str, ok := value.(*types.StringValue); ok {
-		return f.buildValue(f.create(typ, str))
+		return f.buildValue(eval.New(f.context, typ, str))
 	}
 	panic(eval.Error(f.context, eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
 }
@@ -369,11 +369,4 @@ func (f *FromDataConverter) allocate(typ eval.PType) (eval.ObjectValue, bool) {
 		return allocator.(eval.Lambda).Call(nil, nil).(eval.ObjectValue), true
 	}
 	return nil, false
-}
-
-func (f *FromDataConverter) create(typ eval.PType, args ...eval.PValue) eval.PValue {
-	if ctor, ok := eval.Load(f.context, eval.NewTypedName(eval.CONSTRUCTOR, typ.Name())); ok {
-		return ctor.(eval.Function).Call(f.context, nil, args...)
-	}
-	panic(eval.Error(f.context, eval.EVAL_CTOR_NOT_FOUND, issue.H{`type`: typ.Name()}))
 }

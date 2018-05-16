@@ -34,6 +34,7 @@ type (
 	formatContext struct {
 		indentation eval.Indentation
 		formatMap   eval.FormatMap
+		properties  map[string]string
 	}
 
 	indentation struct {
@@ -79,9 +80,34 @@ var DEFAULT_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{WrapHashEnt
 
 var DEFAULT_ANY_FORMAT = simpleFormat('s')
 
+var PRETTY_PROGRAM_FORMAT = newFormat(`%#p`)
+var PRETTY_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), PRETTY_PROGRAM_FORMAT)}))
+var PRETTY_ARRAY_FORMAT = basicAltFormat('a', `,`, '[', PRETTY_CONTAINER_FORMATS)
+var PRETTY_HASH_FORMAT = basicAltFormat('h', ` => `, '{', PRETTY_CONTAINER_FORMATS)
+var PRETTY_OBJECT_FORMAT = basicAltFormat('p', ` => `, '(', PRETTY_CONTAINER_FORMATS)
+
+var PRETTY_INDENTATION = newIndentation(true, 0)
+
+
 func init() {
 	eval.DEFAULT_FORMAT = DEFAULT_ANY_FORMAT
 	eval.DEFAULT_FORMAT_CONTEXT = NONE
+	eval.PRETTY = newFormatContext2(PRETTY_INDENTATION, eval.FormatMap(WrapHash([]*HashEntry{
+		WrapHashEntry(DefaultObjectType(), PRETTY_OBJECT_FORMAT),
+		WrapHashEntry(DefaultTypeType(), PRETTY_OBJECT_FORMAT),
+		WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
+		WrapHashEntry(DefaultNumericType(), simpleFormat('d')),
+		WrapHashEntry(DefaultStringType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultUriType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultSemVerType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultSemVerRangeType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultTimestampType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultTimespanType(), PRETTY_PROGRAM_FORMAT),
+		WrapHashEntry(DefaultArrayType(), PRETTY_ARRAY_FORMAT),
+		WrapHashEntry(DefaultHashType(), PRETTY_HASH_FORMAT),
+		WrapHashEntry(DefaultBinaryType(), simpleFormat('B')),
+		WrapHashEntry(DefaultAnyType(), DEFAULT_ANY_FORMAT),
+	})), map[string]string{`expanded`: `true`})
 
 	eval.NewFormatContext = newFormatContext
 	eval.NewFormatContext2 = newFormatContext2
@@ -118,18 +144,18 @@ var delimiterPairs = map[byte][2]byte{
 	0:   {'[', ']'},
 }
 
-var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
+var NONE = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS, nil)
 
-var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS)
+var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS, map[string]string{`expanded`: `true`})
 
-var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, eval.FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)))
+var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, eval.FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)), nil)
 
 func newFormatContext(t eval.PType, format eval.Format, indentation eval.Indentation) eval.FormatContext {
-	return &formatContext{indentation, WrapHash([]*HashEntry{WrapHashEntry(t, format)})}
+	return &formatContext{indentation, WrapHash([]*HashEntry{WrapHashEntry(t, format)}), nil}
 }
 
-func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap) eval.FormatContext {
-	return &formatContext{indentation, formatMap}
+func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap, properties map[string]string) eval.FormatContext {
+	return &formatContext{indentation, formatMap, properties}
 }
 
 var TYPE_STRING_FORMAT = NewVariantType([]eval.PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
@@ -152,7 +178,7 @@ func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.Form
 	case *DefaultValue:
 		context = eval.DEFAULT_FORMAT_CONTEXT
 	default:
-		context = newFormatContext2(DEFAULT_INDENTATION, mergeFormats(DEFAULT_FORMATS, NewFormatMap(format.(*HashValue))))
+		context = newFormatContext2(DEFAULT_INDENTATION, mergeFormats(DEFAULT_FORMATS, NewFormatMap(format.(*HashValue))), nil)
 	}
 	return
 }
@@ -321,8 +347,42 @@ func (c *formatContext) FormatMap() eval.FormatMap {
 	return c.formatMap
 }
 
+func (c *formatContext) Property(key string) (string, bool) {
+	if c.properties != nil {
+		pv, ok := c.properties[key]
+		return pv, ok
+	}
+	return ``, false
+}
+
+func (c *formatContext) Properties() map[string]string {
+	return c.properties
+}
+
+func (c *formatContext) SetProperty(key, value string) {
+	if c.properties == nil {
+		c.properties = map[string]string{ key: value }
+	} else {
+		c.properties[key] = value
+	}
+}
+
 func (c *formatContext) UnsupportedFormat(t eval.PType, supportedFormats string, actualFormat eval.Format) error {
 	return eval.Error(nil, eval.EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
+}
+
+func (c *formatContext) WithProperties(properties map[string]string) eval.FormatContext {
+	if c.properties != nil {
+		merged := make(map[string]string, len(c.properties) + len(properties))
+		for k, v := range c.properties {
+			merged[k] = v
+		}
+		for k, v := range properties {
+			merged[k] = v
+		}
+		properties = merged
+	}
+	return newFormatContext2(c.indentation, c.formatMap, properties)
 }
 
 func newIndentation(indenting bool, level int) eval.Indentation {
@@ -383,6 +443,20 @@ func simpleFormat(formatChar byte) eval.Format {
 func basicFormat(formatChar byte, sep2 string, leftDelimiter byte, containerFormats eval.FormatMap) eval.Format {
 	return &format{
 		formatChar:       formatChar,
+		prec:             -1,
+		width:            -1,
+		origFmt:          `%` + string(formatChar),
+		separator:        `,`,
+		separator2:       sep2,
+		leftDelimiter:    leftDelimiter,
+		containerFormats: containerFormats,
+	}
+}
+
+func basicAltFormat(formatChar byte, sep2 string, leftDelimiter byte, containerFormats eval.FormatMap) eval.Format {
+	return &format{
+		formatChar:       formatChar,
+		alt:              true,
 		prec:             -1,
 		width:            -1,
 		origFmt:          `%` + string(formatChar),

@@ -6,7 +6,10 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-semver/semver"
+	"reflect"
+	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 type (
@@ -190,6 +193,10 @@ func (t *SemVerType) Name() string {
 	return `SemVer`
 }
 
+func (t *SemVerType) ReflectType() (reflect.Type, bool) {
+	return reflect.TypeOf(semver.Max), true
+}
+
 func (t *SemVerType) String() string {
 	return eval.ToString2(t, NONE)
 }
@@ -238,6 +245,18 @@ func (v *SemVerValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
+func (v *SemVerValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(v.Version())
+}
+
+func (v *SemVerValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := v.Reflect(c)
+	if !rv.Type().AssignableTo(dest.Type()) {
+		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+	}
+	dest.Set(rv)
+}
+
 func (v *SemVerValue) SerializationString() string {
 	return v.String()
 }
@@ -253,7 +272,18 @@ func (v *SemVerValue) ToKey(b *bytes.Buffer) {
 }
 
 func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	v.Version().ToString(b)
+	f := eval.GetFormat(s.FormatMap(), v.Type())
+	val := v.Version().String()
+	switch f.FormatChar() {
+	case 's':
+		f.ApplyStringFlags(b, val, f.IsAlt())
+	case 'p':
+		io.WriteString(b, `SemVer(`)
+		utils.PuppetQuote(b, val)
+		utils.WriteByte(b, ')')
+	default:
+		panic(s.UnsupportedFormat(v.Type(), `sp`, f))
+	}
 }
 
 func (v *SemVerValue) Type() eval.PType {
