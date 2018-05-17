@@ -168,6 +168,26 @@ func InitBuiltinResources() {
 			})
 		})
 
+	eval.NewGoFunction(`create_resource_types`,
+		// Dispatch that expects a hash where each key is the name of the
+		// resource type and the value is the attributes hash
+		func(d eval.Dispatch) {
+			d.Param(`Hash[String,Hash[String,RichData]]`)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				hv := args[0].(*types.HashValue)
+				rts := make([]eval.PType, 0, hv.Len())
+				hv.EachPair(func(k, v eval.PValue) {
+					rhe := make([]*types.HashEntry, 3)
+					rhe[0] = types.WrapHashEntry2(`name`, k)
+					rhe[1] = types.WrapHashEntry2(`parent`, resourceType)
+					rhe[2] = types.WrapHashEntry2(`attributes`, v)
+					rts = append(rts, types.NewObjectType(``, nil, types.WrapHash(rhe)))
+				})
+				c.AddTypes(rts...)
+				return eval.UNDEF
+			})
+		})
+
 	eval.NewGoFunction(`get_resource`,
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Type[Resource],String]`)

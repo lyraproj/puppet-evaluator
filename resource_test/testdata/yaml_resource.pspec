@@ -1,0 +1,23 @@
+Examples('when declaring Resources in YAML',
+  Example('types and instances can be declared in YAML',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        MyRes:
+          ensure: 'Enum[absent,present]'
+          mode: 'Integer[0, 07777]'
+        |YAML
+
+      parse_yaml(@(YAML)).each |$k, $v| { create_resources($k, $v) }
+        myres:
+          '/a/b':
+            ensure: absent
+          '/a/c':
+            ensure: present
+          '_defaults':
+            mode: 0700
+        |YAML
+
+      String([get_resource('myres[/a/b]'), get_resource('myres[/a/c]')])
+      |-SRC
+    Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'present', 'mode' => 448)]`)),
+)

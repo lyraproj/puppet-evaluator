@@ -148,6 +148,16 @@ func (t *objectType) Initialize(c eval.Context, args []eval.PValue) {
 
 func NewObjectType(name string, parent eval.PType, initHashExpression interface{}) *objectType {
 	obj := AllocObjectType()
+	if name == `` {
+		if h, ok := initHashExpression.(*HashValue); ok {
+			name = h.Get5(`name`, _EMPTY_STRING).String()
+		} else if h, ok := initHashExpression.(*parser.LiteralHash); ok {
+			ne := h.Get(`name`)
+			if s, ok := ne.(*parser.LiteralString); ok {
+				name = s.StringValue()
+			}
+		}
+	}
 	obj.name = name
 	obj.initHashExpression = initHashExpression
 	obj.parent = parent
