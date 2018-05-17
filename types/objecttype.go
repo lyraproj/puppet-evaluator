@@ -15,13 +15,14 @@ import (
 	"github.com/puppetlabs/go-parser/validator"
 	"bytes"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-evaluator/errors"
 )
 
 var Object_Type eval.ObjectType
 
 func init() {
 	oneArgCtor := func(ctx eval.Context, args []eval.PValue) eval.PValue {
-		return NewObjectType2(ctx, args[0].(*HashValue), ctx.Loader())
+		return NewObjectType2(ctx, args...)
 	}
 	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
 		WrapHash3(map[string]eval.PValue{
@@ -70,7 +71,7 @@ var TYPE_CHECKS = DefaultAnyType()
 
 var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_TYPE_NAME),
-	NewStructElement(NewOptionalType3(KEY_PARENT), DefaultTypeType()),
+	NewStructElement(NewOptionalType3(KEY_PARENT), NewVariantType(DefaultTypeType(), TYPE_TYPE_NAME)),
 	NewStructElement(NewOptionalType3(KEY_TYPE_PARAMETERS), TYPE_PARAMETERS),
 	NewStructElement(NewOptionalType3(KEY_ATTRIBUTES), TYPE_ATTRIBUTES),
 	NewStructElement(NewOptionalType3(KEY_CONSTANTS), TYPE_CONSTANTS),
@@ -153,14 +154,26 @@ func NewObjectType(name string, parent eval.PType, initHashExpression interface{
 	return obj
 }
 
-func NewObjectType2(c eval.Context, initHash *HashValue, loader eval.Loader) *objectType {
-	if initHash.IsEmpty() {
+func NewObjectType2(c eval.Context, args ...eval.PValue) *objectType {
+	argc := len(args)
+	switch argc {
+	case 0:
 		return DefaultObjectType()
+	case 1:
+		arg := args[0]
+		if initHash, ok := arg.(*HashValue); ok {
+			if initHash.IsEmpty() {
+				return DefaultObjectType()
+			}
+			obj := AllocObjectType()
+			obj.InitFromHash(c, initHash)
+			obj.loader = c.Loader()
+			return obj
+		}
+		panic(NewIllegalArgumentType2(`Object[]`, 0, `Hash[String,Any]`, arg.Type()))
+	default:
+		panic(errors.NewIllegalArgumentCount(`Object[]`, `1`, argc))
 	}
-	obj := AllocObjectType()
-	obj.InitFromHash(c, initHash)
-	obj.loader = loader
-	return obj
 }
 
 func (t *objectType) Accept(v eval.Visitor, g eval.Guard) {
@@ -289,10 +302,16 @@ func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver s
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
+				label := ``
+				if receiverType == `` {
+					label = fmt.Sprintf(`%s.%s`, t.Label(), receiver)
+				} else {
+					label = fmt.Sprintf(`%s %s[%s]`, receiverType, t.Label(), receiver)
+				}
 				panic(eval.Error(c, eval.EVAL_BAD_TYPE_STRING,
 					issue.H{
 						`string`: typeString,
-						`label`: fmt.Sprintf(`%s %s[%s]`, receiverType, t.Label(), receiver),
+						`label`: label,
 						`detail`: err.Error()}))
 			}
 			panic(r)
@@ -309,7 +328,13 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.name = stringArg(initHash, KEY_NAME, t.name)
 
 	if t.parent == nil {
-		t.parent = typeArg(initHash, KEY_PARENT, nil)
+		if pt, ok := initHash.Get4(KEY_PARENT); ok {
+			if pn, ok := pt.(*StringValue); ok {
+				t.parent = t.parseAttributeType(c, ``, `parent`, pn)
+			} else {
+				t.parent = pt.(eval.PType)
+			}
+		}
 	}
 
 	parentMembers := hash.EMPTY_STRINGHASH
