@@ -628,6 +628,9 @@ func describeOptionalType(expected *types.OptionalType, original, actual eval.PT
 }
 
 func describeEnumType(expected *types.EnumType, original, actual eval.PType, path []*pathElement) []mismatch {
+	if eval.IsAssignable(expected, actual) {
+		return []mismatch{}
+	}
 	return []mismatch{newPatternMismatch(path, original, actual)}
 }
 
