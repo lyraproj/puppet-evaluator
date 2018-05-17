@@ -195,6 +195,13 @@ Examples('resource evaluator',
         first() -> second()
         |-SRC
       Evaluates_with(Notice('Applying myres[/a/b]', 'absent'))),
+
+    Example('resource can be instantiated using a hash',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        create_resources(myres, {'/a/b' => { ensure => 'absent' }})
+        |-SRC
+      Evaluates_with(Notice('Applying myres[/a/b]'))),
   ),
 
   Examples('when referenced',
