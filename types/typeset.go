@@ -26,20 +26,14 @@ const (
 
 var TypeSet_Type eval.ObjectType
 
-var TYPE_STRING_OR_VERSION = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultSemVerType()})
+var TYPE_STRING_OR_VERSION = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerType())
 
 var TYPE_SIMPLE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z]\w*\z`)})
 var TYPE_QUALIFIED_REFERENCE = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)})
 
-var TYPE_STRING_OR_RANGE = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultSemVerRangeType()})
+var TYPE_STRING_OR_RANGE = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerRangeType())
 
-var TYPE_STRING_OR_URI = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultUriType()})
+var TYPE_STRING_OR_URI = NewVariantType(stringType_NOT_EMPTY, DefaultUriType())
 
 var TYPE_TYPE_REFERENCE_INIT = NewStructType([]*StructElement{
 	NewStructElement2(KEY_NAME, TYPE_QUALIFIED_REFERENCE),
@@ -54,8 +48,8 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_OBJECT_NAME),
 	NewStructElement(NewOptionalType3(KEY_VERSION), TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_TYPES),
-		NewHashType(TYPE_SIMPLE_TYPE_NAME, NewVariantType([]eval.PType{
-			DefaultTypeType(), TYPE_OBJECT_INIT_HASH}), NewIntegerType(1, math.MaxInt64))),
+		NewHashType(TYPE_SIMPLE_TYPE_NAME,
+			NewVariantType(DefaultTypeType(), TYPE_OBJECT_INIT_HASH), NewIntegerType(1, math.MaxInt64))),
 	NewStructElement(NewOptionalType3(KEY_REFERENCES),
 		NewHashType(TYPE_SIMPLE_TYPE_NAME, TYPE_TYPE_REFERENCE_INIT, NewIntegerType(1, math.MaxInt64))),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS)})

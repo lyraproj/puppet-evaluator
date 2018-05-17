@@ -160,19 +160,19 @@ func mergeMismatch(m mismatch, o mismatch, path []*pathElement) mismatch {
 					ts := make([]eval.PType, 0, len(ev.Types())+len(ov.Types()))
 					ts = append(ts, ev.Types()...)
 					ts = append(ts, ov.Types()...)
-					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)))
+					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)...))
 				} else {
-					et.setExpected(types.NewVariantType(types.UniqueTypes(types.CopyAppend(ev.Types(), ot.expectedType))))
+					et.setExpected(types.NewVariantType(types.UniqueTypes(types.CopyAppend(ev.Types(), ot.expectedType))...))
 				}
 			} else {
 				if ov, ok := ot.expectedType.(*types.VariantType); ok {
 					ts := make([]eval.PType, 0, len(ov.Types())+1)
 					ts = append(ts, et.expectedType)
 					ts = append(ts, ov.Types()...)
-					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)))
+					et.setExpected(types.NewVariantType(types.UniqueTypes(ts)...))
 				} else {
 					if !eval.Equals(et.expectedType, ot.expectedType) {
-						et.setExpected(types.NewVariantType([]eval.PType{et.expectedType, ot.expectedType}))
+						et.setExpected(types.NewVariantType(et.expectedType, ot.expectedType))
 					}
 				}
 			}

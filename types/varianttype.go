@@ -25,7 +25,7 @@ func DefaultVariantType() *VariantType {
 	return variantType_DEFAULT
 }
 
-func NewVariantType(types []eval.PType) eval.PType {
+func NewVariantType(types ...eval.PType) eval.PType {
 	switch len(types) {
 	case 0:
 		return DefaultVariantType()

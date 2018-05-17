@@ -115,7 +115,7 @@ func commonType(a eval.PType, b eval.PType) eval.PType {
 		case *VariantType:
 			ap := a.(*VariantType)
 			bp := b.(*VariantType)
-			return NewVariantType(UniqueTypes(append(ap.Types(), bp.Types()...)))
+			return NewVariantType(UniqueTypes(append(ap.Types(), bp.Types()...))...)
 		}
 	}
 
