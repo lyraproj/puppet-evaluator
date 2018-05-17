@@ -299,7 +299,7 @@ var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 		richDataArrayType_DEFAULT,
 		richDataHashType_DEFAULT}}, nil}
 
-var resolvableTypes = make([]eval.ResolvableType, 0, 16)
+var resolvableTypes = make([]eval.PType, 0, 16)
 var resolvableTypesLock sync.Mutex
 
 type BuildFunctionArgs struct {
@@ -384,11 +384,11 @@ func newGoConstructor2(typeName string, localTypes eval.LocalTypesCreator, creat
 	registerGoConstructor(&BuildFunctionArgs{typeName, localTypes, creators})
 }
 
-func PopDeclaredTypes() (types []eval.ResolvableType) {
+func PopDeclaredTypes() (types []eval.PType) {
 	resolvableTypesLock.Lock()
 	types = resolvableTypes
 	if len(types) > 0 {
-		resolvableTypes = make([]eval.ResolvableType, 0, 16)
+		resolvableTypes = make([]eval.PType, 0, 16)
 	}
 	resolvableTypesLock.Unlock()
 	return

@@ -45,7 +45,7 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(eval.KEY_PCORE_URI), TYPE_STRING_OR_URI),
 	NewStructElement2(eval.KEY_PCORE_VERSION, TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_NAME_AUTHORITY), TYPE_STRING_OR_URI),
-	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_OBJECT_NAME),
+	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_TYPE_NAME),
 	NewStructElement(NewOptionalType3(KEY_VERSION), TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_TYPES),
 		NewHashType(TYPE_SIMPLE_TYPE_NAME,
@@ -650,7 +650,6 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 		typesMap := make(map[string]eval.PValue, len(types))
 		for typeName, value := range types {
 			fullName := fmt.Sprintf(`%s::%s`, t.name, typeName)
-			typedName := eval.NewTypedName2(eval.TYPE, fullName, nameAuth)
 			if rde, ok := value.(*parser.ResourceDefaultsExpression); ok {
 				// This is actually a <Parent> { <key-value entries> } notation. Convert to a literal
 				// hash that contains the parent
@@ -680,9 +679,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 				}
 				value = factory.Hash(attrs, value.Locator(), value.ByteOffset(), value.ByteLength())
 			}
-			tp := createTypeDefinition(nameAuth, fullName, value)
-			typesMap[typeName] = tp
-			c.Loader().(eval.DefiningLoader).SetEntry(typedName, eval.NewLoaderEntry(tp, value))
+			typesMap[typeName] = createTypeDefinition(nameAuth, fullName, value)
 		}
 		typesHash = WrapHash3(typesMap)
 	}

@@ -56,7 +56,7 @@ const (
 
 var QREF_PATTERN = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
 
-var TYPE_OBJECT_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
+var TYPE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
 
 var TYPE_MEMBER_NAME = NewPatternType2(NewRegexpTypeR(validator.PARAM_NAME))
 
@@ -69,7 +69,7 @@ var TYPE_EQUALITY = NewVariantType2(TYPE_MEMBER_NAME, TYPE_MEMBER_NAMES)
 var TYPE_CHECKS = DefaultAnyType()
 
 var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
-	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_OBJECT_NAME),
+	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_TYPE_NAME),
 	NewStructElement(NewOptionalType3(KEY_PARENT), DefaultTypeType()),
 	NewStructElement(NewOptionalType3(KEY_TYPE_PARAMETERS), TYPE_PARAMETERS),
 	NewStructElement(NewOptionalType3(KEY_ATTRIBUTES), TYPE_ATTRIBUTES),
@@ -98,6 +98,7 @@ type (
 		loader              eval.Loader
 		initHashExpression  interface{} // Expression or *HashValue
 		attrInfo            *attributesInfo
+		ctor                eval.Function
 	}
 
 	objectValue struct {
@@ -181,6 +182,10 @@ func (t *objectType) Accept(v eval.Visitor, g eval.Guard) {
 
 func (t *objectType) AttributesInfo() eval.AttributesInfo {
 	return t.attrInfo
+}
+
+func (t *objectType) Constructor() eval.Function {
+	return t.ctor
 }
 
 func (t *objectType) Default() eval.PType {
@@ -280,6 +285,22 @@ func (t *objectType) HasHashConstructor() bool {
 	return t.creators == nil || len(t.creators) == 2
 }
 
+func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver string, typeString *StringValue) eval.PType {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				panic(eval.Error(c, eval.EVAL_BAD_TYPE_STRING,
+					issue.H{
+						`string`: typeString,
+						`label`: fmt.Sprintf(`%s %s[%s]`, receiverType, t.Label(), receiver),
+						`detail`: err.Error()}))
+			}
+			panic(r)
+		}
+	}()
+	return c.ParseType(typeString)
+}
+
 func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	eval.AssertInstance(c, `object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
 	t.parameters = hash.EMPTY_STRINGHASH
@@ -316,9 +337,14 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
 				paramValue = ph.Get5(KEY_VALUE, nil)
 			} else {
-				paramType = eval.AssertInstance(c,
-					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
-					DefaultTypeType(), v).(eval.PType)
+				if tn, ok := v.(*StringValue); ok {
+					// Type name. Load the type.
+					paramType = t.parseAttributeType(c, `type_parameter`, key, tn)
+				} else {
+					paramType = eval.AssertInstance(c,
+						func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
+						DefaultTypeType(), v).(eval.PType)
+				}
 				paramValue = nil
 			}
 			if _, ok := paramType.(*OptionalType); !ok {
@@ -363,9 +389,15 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			value := ifv.(eval.PValue)
 			attrSpec, ok := value.(*HashValue)
 			if !ok {
-				attrType := eval.AssertInstance(c,
-					func() string { return fmt.Sprintf(`attribute %s[%s]`, t.Label(), key) },
-					DefaultTypeType(), value)
+				var attrType eval.PType
+				if tn, ok := value.(*StringValue); ok {
+					// Type name. Load the type.
+					attrType = t.parseAttributeType(c, `attribute`, key, tn)
+				} else {
+					attrType = eval.AssertInstance(c,
+						func() string { return fmt.Sprintf(`attribute %s[%s]`, t.Label(), key) },
+						DefaultTypeType(), value).(eval.PType)
+				}
 				hash := issue.H{KEY_TYPE: attrType}
 				if _, ok = attrType.(*OptionalType); ok {
 					hash[KEY_VALUE] = eval.UNDEF
@@ -389,9 +421,15 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			}
 			funcSpec, ok := value.(*HashValue)
 			if !ok {
-				funcType := eval.AssertInstance(c,
-					func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
-					TYPE_FUNCTION_TYPE, value)
+				var funcType eval.PType
+				if tn, ok := value.(*StringValue); ok {
+					// Type name. Load the type.
+					funcType = t.parseAttributeType(c, `function`, key.String(), tn)
+				} else {
+					funcType = eval.AssertInstance(c,
+						func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
+						TYPE_FUNCTION_TYPE, value).(eval.PType)
+				}
 				funcSpec = WrapHash4(c, issue.H{KEY_TYPE: funcType})
 			}
 			fnc := newFunction(c, key.String(), t, funcSpec)
@@ -858,8 +896,6 @@ func (t *objectType) createNewFunction(c eval.Context) {
 	pi := t.AttributesInfo()
 	dl := t.loader.(eval.DefiningLoader)
 
-	var ctor eval.Function
-
 	var functions []eval.DispatchFunction
 	if t.creators != nil {
 		functions = t.creators
@@ -906,8 +942,7 @@ func (t *objectType) createNewFunction(c eval.Context) {
 		})
 	}
 
-	ctor = eval.MakeGoConstructor(t.name, creators...).Resolve(c)
-	dl.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.name), eval.NewLoaderEntry(ctor, nil))
+	t.ctor = eval.MakeGoConstructor(t.name, creators...).Resolve(c)
 }
 
 func (t *objectType) findEqualityDefiner(attrName string) *objectType {

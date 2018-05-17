@@ -150,6 +150,9 @@ type (
 
 		AttributesInfo() AttributesInfo
 
+		// Constructor returns the function that creates instances of the type
+		Constructor() Function
+
 		// FromReflectedValue creates a new instance of the reciever type
 		// and initializes that instance from the given src
 		FromReflectedValue(c Context, src reflect.Value) PuppetObject

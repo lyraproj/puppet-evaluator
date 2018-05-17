@@ -35,7 +35,12 @@ func init() {
 				return c.ParseType(args[0])
 			})
 		},
-	)
+		func(d eval.Dispatch) {
+			d.Param2(TYPE_OBJECT_INIT_HASH)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				return NewObjectType(``, nil, args[0]).Resolve(c)
+			})
+		})
 }
 
 func DefaultTypeType() *TypeType {

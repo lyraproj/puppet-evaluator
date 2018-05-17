@@ -1,5 +1,5 @@
 Examples('Object type',
-  Examples('can be declared',
+  Examples('can be declared using',
     Example('using keyword Object and bracketed parameter list with hash',
       Given(@(SRC)),
         type MyType = Object[{
@@ -11,7 +11,7 @@ Examples('Object type',
         |-SRC
       Evaluates_with(Notice('MyType'))),
 
-    Example('using keyword Object and hash',
+    Example('keyword Object and hash',
       Given(@(SRC)),
         type MyType = Object{
           attributes => {
@@ -22,7 +22,7 @@ Examples('Object type',
         |-SRC
       Evaluates_with(Notice('MyType'))),
 
-    Example('using parent name and hash',
+    Example('parent name and hash',
       Given(@(SRC)),
         type MyType = Object{
           attributes => {
@@ -59,6 +59,31 @@ Examples('Object type',
         notice(MyType)
         |-SRC
       Evaluates_with(Notice('MyType'))),
+
+    Example('with types declares as strings',
+      Given(@(SRC)),
+        type MyType = [{
+          attributes => {
+            p1 => 'String',
+            p2 => { type => 'String', value => 'world' }
+          }
+        }]
+        String(MyType('hello'))
+        |-SRC
+      Evaluates_to(`MyType('p1' => 'hello')`)),
+
+
+    Example('Type constructor and a hash',
+      Given(@(SRC)),
+        $t = Type({
+          name => 'MyType',
+          attributes => {
+            p1 => 'String'
+          }
+        })
+        String($t.new('hello'))
+        |-SRC
+      Evaluates_to(`MyType('p1' => 'hello')`)),
   ),
 
   Examples('when creating instance',

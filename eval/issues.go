@@ -12,6 +12,7 @@ const (
 	EVAL_ATTRIBUTE_HAS_NO_VALUE                    = `EVAL_ATTRIBUTE_HAS_NO_VALUE`
 	EVAL_ATTRIBUTE_NOT_FOUND                       = `EVAL_ATTRIBUTE_NOT_FOUND`
 	EVAL_BAD_JSON_PATH                             = `EVAL_BAD_JSON_PATH`
+	EVAL_BAD_TYPE_STRING                           = `EVAL_BAD_TYPE_STRING`
 	EVAL_BOTH_CONSTANT_AND_ATTRIBUTE               = `EVAL_BOTH_CONSTANT_AND_ATTRIBUTE`
 	EVAL_CONSTANT_REQUIRES_VALUE                   = `EVAL_CONSTANT_REQUIRES_VALUE`
 	EVAL_CONSTANT_WITH_FINAL                       = `EVAL_CONSTANT_WITH_FINAL`
@@ -144,6 +145,8 @@ func init() {
 	issue.Hard2(EVAL_ATTRIBUTE_NOT_FOUND, `%{type} has no attribute named %{name}`, issue.HF{`type`: issue.A_anUc})
 
 	issue.Hard(EVAL_BAD_JSON_PATH, `unable to resolve JSON path '${path}'`)
+
+	issue.Hard(EVAL_BAD_TYPE_STRING, `%{label} type string '%{string}' cannot be parsed into a data type: %{detail}`)
 
 	issue.Hard(EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, `attribute %{label}[%{key}] is defined as both a constant and an attribute`)
 
