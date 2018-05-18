@@ -393,6 +393,8 @@ var AssertInstance func(c Context, pfx interface{}, expected PType, value PValue
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
+var NewTypeSet func(name, typeDecl string) TypeSet
+
 var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject

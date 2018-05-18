@@ -1,19 +1,20 @@
 package types
 
 import (
-	"io"
-
+	"bytes"
 	"fmt"
+	"io"
+	"math"
+	"runtime"
+	"strings"
+	"sync/atomic"
+
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/hash"
+	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
-	"math"
-	"strings"
-	"sync/atomic"
-	"github.com/puppetlabs/go-evaluator/hash"
-	"bytes"
-	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 const (
@@ -707,4 +708,21 @@ func (t *typeSet) resolveNameAuthority(hash *HashValue, c eval.Context, location
 		}
 	}
 	return nameAuth
+}
+
+func newTypeSet(name, typeDecl string) eval.TypeSet {
+	p := parser.CreateParser()
+	_, fileName, fileLine, _ := runtime.Caller(1)
+	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = TypeSet%s`, name, typeDecl), true)
+	if err != nil {
+		err = convertReported(err, fileName, fileLine)
+		panic(err)
+	}
+
+	if ta, ok := expr.(*parser.TypeAlias); ok {
+		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
+		registerResolvableType(rt.(eval.ResolvableType))
+		return rt.(eval.TypeSet)
+	}
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }

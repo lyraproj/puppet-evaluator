@@ -366,6 +366,7 @@ func init() {
 	}
 
 	eval.NewObjectType = newObjectType
+	eval.NewTypeSet = newTypeSet
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
