@@ -21,3 +21,31 @@ Examples('when declaring Resources in YAML',
       |-SRC
     Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'present', 'mode' => 448)]`)),
 )
+
+Examples('when using the YAML Puppet parser',
+  Example('resources are instantiated',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        MyRes:
+          ensure: 'Enum[absent,present]'
+          mode: 'Integer[0, 07777]'
+        |YAML
+
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s')) ->
+        sequence:
+          - resources:
+              myres:
+                '/a/b':
+                  ensure: absent
+                  mode: 0700
+          - resources:
+              myres:
+                '/a/c':
+                  ensure: "${pnr['myres[/a/b]'].value.ensure}"
+                  mode: 0600
+        |YAML
+      String([get_resource('myres[/a/b]'), get_resource('myres[/a/c]')])
+      |SRC
+    Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'absent', 'mode' => 384)]`)),
+
+)

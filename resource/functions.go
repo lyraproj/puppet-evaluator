@@ -85,4 +85,20 @@ func initResourceFunctions() {
 			})
 		},
 	)
+
+	eval.NewGoFunction(`evaluate_yaml`,
+		func(d eval.Dispatch) {
+			d.Param(`String`)
+			d.Param(`Binary`)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				return evaluateYaml(c, args[0].String(), args[1].(*types.BinaryValue).Bytes())
+			})
+		},
+		func(d eval.Dispatch) {
+			d.Param(`String`)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				path := args[0].String()
+				return evaluateYaml(c, path, types.BinaryFromFile(c, path).Bytes())
+			})
+		})
 }
