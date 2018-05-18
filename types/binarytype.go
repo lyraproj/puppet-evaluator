@@ -11,6 +11,8 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 	"reflect"
+	"io/ioutil"
+	"os"
 )
 
 var binaryType_DEFAULT = &BinaryType{}
@@ -125,6 +127,27 @@ func (t *BinaryType) Type() eval.PType {
 
 func WrapBinary(val []byte) *BinaryValue {
 	return &BinaryValue{val}
+}
+
+func BinaryFromFile(c eval.Context, path string) *BinaryValue {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		stat, serr := os.Stat(path)
+		if serr != nil {
+			if os.IsNotExist(serr) {
+				panic(eval.Error(c, eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
+			}
+			if os.IsPermission(serr) {
+				panic(eval.Error(c, eval.EVAL_FILE_READ_DENIED, issue.H{`path`: path}))
+			}
+		} else {
+			if stat.IsDir() {
+				panic(eval.Error(c, eval.EVAL_IS_DIRECTORY, issue.H{`path`: path}))
+			}
+		}
+		panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
+	}
+	return WrapBinary(bytes)
 }
 
 func BinaryFromString(str string, f string) *BinaryValue {
