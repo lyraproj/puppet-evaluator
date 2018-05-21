@@ -8,7 +8,7 @@ import (
 var resourceType eval.PType
 
 type Resource struct {
-	title string
+	Title string
 }
 
 func initResourceType(c eval.Context) {
