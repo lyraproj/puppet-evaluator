@@ -59,7 +59,7 @@ func InitializePuppet() {
 
 	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader), nil)
 	c.ResolveResolvables()
-	resource.InitBuiltinResources()
+	resource.InitBuiltinResources(c)
 	c.WithLoader(eval.StaticResourceLoader()).ResolveResolvables()
 }
 

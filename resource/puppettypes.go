@@ -60,16 +60,10 @@ var builtinResourceTypes = [...]string{
 	`Zpool`,
 }
 
-var resourceType, resultType, resultSetType eval.PType
+var resultType, resultSetType eval.PType
 
-func InitBuiltinResources() {
-	resourceType = eval.NewObjectType(`Resource`, `{
-    type_parameters => {
-      title => String[1]
-    },
-    attributes => {
-      title => String[1]
-    }}`)
+func InitBuiltinResources(c eval.Context) {
+	initResourceType(c)
 
 	resultType = eval.NewObjectType(`Result`, `{
     attributes => {
