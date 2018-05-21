@@ -37,6 +37,10 @@ func (te *objectTypeExtension) Accept(v eval.Visitor, g eval.Guard) {
 	te.baseType.Accept(v, g)
 }
 
+func (te *objectTypeExtension) Constructor() eval.Function {
+	return te.baseType.Constructor()
+}
+
 func (te *objectTypeExtension) Default() eval.PType {
 	return te.baseType.Default()
 }

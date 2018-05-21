@@ -353,7 +353,7 @@ func (f *goFunction) Type() eval.PType {
 	for idx := 0; idx < top; idx++ {
 		variants[idx] = f.dispatchers[idx].Type()
 	}
-	return types.NewVariantType(variants)
+	return types.NewVariantType(variants...)
 }
 
 func NewPuppetLambda(expr *parser.LambdaExpression, c eval.Context) eval.Lambda {

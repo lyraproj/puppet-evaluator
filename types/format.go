@@ -158,7 +158,7 @@ func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap, p
 	return &formatContext{indentation, formatMap, properties}
 }
 
-var TYPE_STRING_FORMAT = NewVariantType([]eval.PType{DefaultStringType(), DefaultDefaultType(), DefaultHashType()})
+var TYPE_STRING_FORMAT = NewVariantType(DefaultStringType(), DefaultDefaultType(), DefaultHashType())
 
 func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.FormatContext, err error) {
 	eval.AssertInstance(nil, `String format`, TYPE_STRING_FORMAT, format)
@@ -289,7 +289,7 @@ func typeRank(pt eval.PType) int {
 	return 0
 }
 
-var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType([]eval.PType{DefaultStringType(), DefaultHashType()}), nil)
+var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType(DefaultStringType(), DefaultHashType()), nil)
 
 func NewFormatMap(h *HashValue) eval.FormatMap {
 	eval.AssertInstance(nil, `String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)

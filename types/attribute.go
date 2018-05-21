@@ -10,7 +10,7 @@ import (
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
 
 var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
-	NewStructElement2(KEY_TYPE, DefaultTypeType()),
+	NewStructElement2(KEY_TYPE, NewVariantType(DefaultTypeType(), TYPE_TYPE_NAME)),
 	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_KIND), TYPE_ATTRIBUTE_KIND),
@@ -33,8 +33,8 @@ func newAttribute(c eval.Context, name string, container *objectType, initHash *
 }
 
 func (a *attribute) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
-	a.annotatedMember.initialize(name, container, initHash)
-	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for %s`, a.Label()) }, TYPE_ATTRIBUTE, initHash)
+	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for attribute %s[%s]`, container.Label(), name) }, TYPE_ATTRIBUTE, initHash)
+	a.annotatedMember.initialize(c, `attribute`, name, container, initHash)
 	a.kind = eval.AttributeKind(stringArg(initHash, KEY_KIND, ``))
 	if a.kind == CONSTANT { // final is implied
 		if initHash.IncludesKey2(KEY_FINAL) && !a.final {

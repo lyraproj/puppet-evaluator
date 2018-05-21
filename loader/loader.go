@@ -87,13 +87,7 @@ func (e *loaderEntry) Value() interface{} {
 
 func (l *basicLoader) ResolveResolvables(c eval.Context) {
 	ts := types.PopDeclaredTypes()
-	for _, t := range ts {
-		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), &loaderEntry{t, nil})
-	}
-
-	for _, t := range ts {
-		t.(eval.ResolvableType).Resolve(c)
-	}
+	c.AddTypes(ts...)
 
 	ctors := types.PopDeclaredConstructors()
 	for _, ct := range ctors {

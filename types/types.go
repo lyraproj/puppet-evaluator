@@ -16,6 +16,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
+	"gopkg.in/yaml.v2"
 	"strings"
 )
 
@@ -298,7 +299,7 @@ var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 		richDataArrayType_DEFAULT,
 		richDataHashType_DEFAULT}}, nil}
 
-var resolvableTypes = make([]eval.ResolvableType, 0, 16)
+var resolvableTypes = make([]eval.PType, 0, 16)
 var resolvableTypesLock sync.Mutex
 
 type BuildFunctionArgs struct {
@@ -365,6 +366,7 @@ func init() {
 	}
 
 	eval.NewObjectType = newObjectType
+	eval.NewTypeSet = newTypeSet
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
@@ -383,11 +385,11 @@ func newGoConstructor2(typeName string, localTypes eval.LocalTypesCreator, creat
 	registerGoConstructor(&BuildFunctionArgs{typeName, localTypes, creators})
 }
 
-func PopDeclaredTypes() (types []eval.ResolvableType) {
+func PopDeclaredTypes() (types []eval.PType) {
 	resolvableTypesLock.Lock()
 	types = resolvableTypes
 	if len(types) > 0 {
-		resolvableTypes = make([]eval.ResolvableType, 0, 16)
+		resolvableTypes = make([]eval.PType, 0, 16)
 	}
 	resolvableTypesLock.Unlock()
 	return
@@ -483,6 +485,13 @@ func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 		pv = WrapHash4(c, v.(map[string]interface{}))
 	case map[string]eval.PValue:
 		pv = WrapHash3(v.(map[string]eval.PValue))
+	case yaml.MapSlice:
+		ms := v.(yaml.MapSlice)
+		es := make([]*HashEntry, len(ms))
+		for i, me := range ms {
+			es[i] = WrapHashEntry(wrap(c, me.Key), wrap(c, me.Value))
+		}
+		pv = WrapHash(es)
 	case json.Number:
 		if i, err := v.(json.Number).Int64(); err == nil {
 			pv = WrapInteger(i)

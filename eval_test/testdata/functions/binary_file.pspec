@@ -1,0 +1,9 @@
+Examples('the binary_file function',
+  Example('can read a file',
+    Let('the_file', File("hello binary\n")),
+    Given(Scope('path' => Get('the_file')), @(SRC)),
+      binary_file($path)
+      |SRC
+    Evaluates_to(Binary("hello binary\n", '%s'))),
+
+)

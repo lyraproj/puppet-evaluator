@@ -52,33 +52,10 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 
 func (c *evalCtx) AddTypes(types ...eval.PType) {
 	l := c.DefiningLoader()
-	typeSets := make([]eval.TypeSet, 0)
 	for _, t := range types {
 		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
 	}
-
-	for _, t := range types {
-		if rt, ok := t.(eval.ResolvableType); ok {
-			rt.Resolve(c)
-			if ts, ok := rt.(eval.TypeSet); ok {
-				typeSets = append(typeSets, ts)
-			}
-		}
-	}
-
-	for _, ts := range typeSets {
-		c.addTypeSet(l, ts)
-	}
-}
-
-func (c *evalCtx) addTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
-	ts.Types().EachValue(func(tv eval.PValue) {
-		t := tv.(eval.PType)
-		if tsc, ok := t.(eval.TypeSet); ok {
-			c.addTypeSet(l, tsc)
-		}
-		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
-	})
+	c.resolveTypes(types...)
 }
 
 func (c *evalCtx) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
@@ -227,7 +204,7 @@ func (c *evalCtx) ResolveDefinitions() {
 			case *puppetFunction:
 				d.(*puppetFunction).Resolve(c)
 			case eval.ResolvableType:
-				d.(eval.ResolvableType).Resolve(c)
+				c.resolveTypes(d.(eval.PType))
 			}
 		}
 	}
@@ -320,4 +297,40 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	} else {
 		c.definitions = append(c.definitions, ta)
 	}
+}
+
+func (c *evalCtx) resolveTypes(types ...eval.PType) {
+	l := c.DefiningLoader()
+	typeSets := make([]eval.TypeSet, 0)
+	for _, t := range types {
+		if rt, ok := t.(eval.ResolvableType); ok {
+			rt.Resolve(c)
+			if ts, ok := rt.(eval.TypeSet); ok {
+				typeSets = append(typeSets, ts)
+			} else if ot, ok := rt.(eval.ObjectType); ok {
+				if ctor := ot.Constructor(); ctor != nil {
+					l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+				}
+			}
+		}
+	}
+
+	for _, ts := range typeSets {
+		c.resolveTypeSet(l, ts)
+	}
+}
+
+func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
+	ts.Types().EachValue(func(tv eval.PValue) {
+		t := tv.(eval.PType)
+		if tsc, ok := t.(eval.TypeSet); ok {
+			c.resolveTypeSet(l, tsc)
+		}
+		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+		if ot, ok := t.(eval.ObjectType); ok {
+			if ctor := ot.Constructor(); ctor != nil {
+				l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+			}
+		}
+	})
 }

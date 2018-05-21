@@ -150,6 +150,9 @@ type (
 
 		AttributesInfo() AttributesInfo
 
+		// Constructor returns the function that creates instances of the type
+		Constructor() Function
+
 		// FromReflectedValue creates a new instance of the reciever type
 		// and initializes that instance from the given src
 		FromReflectedValue(c Context, src reflect.Value) PuppetObject
@@ -389,6 +392,8 @@ var AssertType func(c Context, pfx interface{}, expected, actual PType) PType
 var AssertInstance func(c Context, pfx interface{}, expected PType, value PValue) PValue
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
+
+var NewTypeSet func(name, typeDecl string) TypeSet
 
 var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
 

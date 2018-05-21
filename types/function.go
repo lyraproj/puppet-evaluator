@@ -26,8 +26,8 @@ func newFunction(c eval.Context, name string, container *objectType, initHash *H
 }
 
 func (f *function) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
-	f.annotatedMember.initialize(name, container, initHash)
-	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer for %s`, f.Label()) }, TYPE_FUNCTION, initHash)
+	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer function for %s[%s]`, container.Label(), name) }, TYPE_FUNCTION, initHash)
+	f.annotatedMember.initialize(c, `function`, name, container, initHash)
 }
 
 func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {

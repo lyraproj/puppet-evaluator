@@ -1,0 +1,73 @@
+Examples('when declaring Resources in YAML',
+  Example('types and instances can be declared in YAML',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        MyRes:
+          ensure: 'Enum[absent,present]'
+          mode: 'Integer[0, 07777]'
+        |YAML
+
+      parse_yaml(@(YAML)).each |$k, $v| { create_resources($k, $v) }
+        myres:
+          '/a/b':
+            ensure: absent
+          '/a/c':
+            ensure: present
+          '_defaults':
+            mode: 0700
+        |YAML
+
+      String([resource('myres[/a/b]'), resource('myres[/a/c]')])
+      |-SRC
+    Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'present', 'mode' => 448)]`)),
+)
+
+Examples('when using the YAML Puppet parser',
+  Example('resources are instantiated',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        'My::A':
+          ensure: 'Enum[absent,present]'
+          mode: 'Integer[0, 07777]'
+
+        'My::B':
+          message: String
+
+        'My::C':
+          ip: String
+        |YAML
+
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s')) ->
+        sequental:
+          - parallel:
+            - resources:
+                my::a:
+                  '/a/a':
+                    ensure: absent
+                    mode: 0700
+                my::b:
+                  x:
+                    message: The X
+                  'y':
+                    message: The Y
+                  z:
+                    message: The Z
+            - resources:
+                my::c:
+                  a:
+                    ip: 192.168.0.1
+                  b:
+                    ip: 192.168.0.2
+                  c:
+                    ip: 192.168.0.3
+          - resources:
+              my::a:
+                '/a/b':
+                  ensure: "${resource('my::a[/a/a]').ensure}"
+                  mode: 0600
+        |YAML
+      String([resource('my::a[/a/b]')])
+      |SRC
+    Evaluates_to(`[My::A('title' => '/a/b', 'ensure' => 'absent', 'mode' => 384)]`)),
+
+)

@@ -15,11 +15,17 @@ type annotatedMember struct {
 	final     bool
 }
 
-func (a *annotatedMember) initialize(name string, container *objectType, initHash *HashValue) {
+func (a *annotatedMember) initialize(c eval.Context, memberType, name string, container *objectType, initHash *HashValue) {
 	a.annotatable.initialize(initHash)
 	a.name = name
 	a.container = container
-	a.typ = typeArg(initHash, KEY_TYPE, DefaultTypeType())
+	typ := initHash.Get5(KEY_TYPE, nil)
+	if tn, ok := typ.(*StringValue); ok {
+		a.typ = container.parseAttributeType(c, memberType, name, tn)
+	} else {
+		// Unchecked because type is guaranteed by earlier type assersion on the hash
+		a.typ = typ.(eval.PType)
+	}
 	a.override = boolArg(initHash, KEY_OVERRIDE, false)
 	a.final = boolArg(initHash, KEY_FINAL, false)
 }

@@ -1,19 +1,20 @@
 package types
 
 import (
-	"io"
-
+	"bytes"
 	"fmt"
+	"io"
+	"math"
+	"runtime"
+	"strings"
+	"sync/atomic"
+
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/hash"
+	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
-	"math"
-	"strings"
-	"sync/atomic"
-	"github.com/puppetlabs/go-evaluator/hash"
-	"bytes"
-	"github.com/puppetlabs/go-evaluator/utils"
 )
 
 const (
@@ -26,20 +27,14 @@ const (
 
 var TypeSet_Type eval.ObjectType
 
-var TYPE_STRING_OR_VERSION = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultSemVerType()})
+var TYPE_STRING_OR_VERSION = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerType())
 
 var TYPE_SIMPLE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z]\w*\z`)})
 var TYPE_QUALIFIED_REFERENCE = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)})
 
-var TYPE_STRING_OR_RANGE = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultSemVerRangeType()})
+var TYPE_STRING_OR_RANGE = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerRangeType())
 
-var TYPE_STRING_OR_URI = NewVariantType([]eval.PType{
-	stringType_NOT_EMPTY,
-	DefaultUriType()})
+var TYPE_STRING_OR_URI = NewVariantType(stringType_NOT_EMPTY, DefaultUriType())
 
 var TYPE_TYPE_REFERENCE_INIT = NewStructType([]*StructElement{
 	NewStructElement2(KEY_NAME, TYPE_QUALIFIED_REFERENCE),
@@ -51,11 +46,11 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(eval.KEY_PCORE_URI), TYPE_STRING_OR_URI),
 	NewStructElement2(eval.KEY_PCORE_VERSION, TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_NAME_AUTHORITY), TYPE_STRING_OR_URI),
-	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_OBJECT_NAME),
+	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_TYPE_NAME),
 	NewStructElement(NewOptionalType3(KEY_VERSION), TYPE_STRING_OR_VERSION),
 	NewStructElement(NewOptionalType3(KEY_TYPES),
-		NewHashType(TYPE_SIMPLE_TYPE_NAME, NewVariantType([]eval.PType{
-			DefaultTypeType(), TYPE_OBJECT_INIT_HASH}), NewIntegerType(1, math.MaxInt64))),
+		NewHashType(TYPE_SIMPLE_TYPE_NAME,
+			NewVariantType(DefaultTypeType(), TYPE_OBJECT_INIT_HASH), NewIntegerType(1, math.MaxInt64))),
 	NewStructElement(NewOptionalType3(KEY_REFERENCES),
 		NewHashType(TYPE_SIMPLE_TYPE_NAME, TYPE_TYPE_REFERENCE_INIT, NewIntegerType(1, math.MaxInt64))),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS)})
@@ -656,7 +651,6 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 		typesMap := make(map[string]eval.PValue, len(types))
 		for typeName, value := range types {
 			fullName := fmt.Sprintf(`%s::%s`, t.name, typeName)
-			typedName := eval.NewTypedName2(eval.TYPE, fullName, nameAuth)
 			if rde, ok := value.(*parser.ResourceDefaultsExpression); ok {
 				// This is actually a <Parent> { <key-value entries> } notation. Convert to a literal
 				// hash that contains the parent
@@ -686,9 +680,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 				}
 				value = factory.Hash(attrs, value.Locator(), value.ByteOffset(), value.ByteLength())
 			}
-			tp := createTypeDefinition(nameAuth, fullName, value)
-			typesMap[typeName] = tp
-			c.Loader().(eval.DefiningLoader).SetEntry(typedName, eval.NewLoaderEntry(tp, value))
+			typesMap[typeName] = createTypeDefinition(nameAuth, fullName, value)
 		}
 		typesHash = WrapHash3(typesMap)
 	}
@@ -716,4 +708,21 @@ func (t *typeSet) resolveNameAuthority(hash *HashValue, c eval.Context, location
 		}
 	}
 	return nameAuth
+}
+
+func newTypeSet(name, typeDecl string) eval.TypeSet {
+	p := parser.CreateParser()
+	_, fileName, fileLine, _ := runtime.Caller(1)
+	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = TypeSet%s`, name, typeDecl), true)
+	if err != nil {
+		err = convertReported(err, fileName, fileLine)
+		panic(err)
+	}
+
+	if ta, ok := expr.(*parser.TypeAlias); ok {
+		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
+		registerResolvableType(rt.(eval.ResolvableType))
+		return rt.(eval.TypeSet)
+	}
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }
