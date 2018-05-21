@@ -24,7 +24,7 @@ type (
 	StringValue StringType
 )
 
-var stringType_DEFAULT = &StringType{integerType_POSITIVE, ``}
+var stringType_DEFAULT = &StringType{IntegerType_POSITIVE, ``}
 var stringType_NOT_EMPTY = &StringType{NewIntegerType(1, math.MaxInt64), ``}
 
 var String_Type eval.ObjectType
@@ -89,7 +89,7 @@ func DefaultStringType() *StringType {
 
 func NewStringType(rng *IntegerType, s string) *StringType {
 	if s == `` {
-		if rng == nil || *rng == *integerType_POSITIVE {
+		if rng == nil || *rng == *IntegerType_POSITIVE {
 			return DefaultStringType()
 		}
 		return &StringType{rng, s}
@@ -171,7 +171,7 @@ func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
 
 	if et, ok := o.(*EnumType); ok {
 		if t.value == `` {
-			if *t.size == *integerType_POSITIVE {
+			if *t.size == *IntegerType_POSITIVE {
 				return true
 			}
 			for _, str := range et.values {
@@ -204,7 +204,7 @@ func (t *StringType) Name() string {
 }
 
 func (t *StringType) Parameters() []eval.PValue {
-	if t.value != `` || *t.size == *integerType_POSITIVE {
+	if t.value != `` || *t.size == *IntegerType_POSITIVE {
 		return eval.EMPTY_VALUES
 	}
 	return t.size.Parameters()

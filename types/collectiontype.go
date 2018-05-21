@@ -29,7 +29,7 @@ func DefaultCollectionType() *CollectionType {
 }
 
 func NewCollectionType(size *IntegerType) *CollectionType {
-	if size == nil || *size == *integerType_POSITIVE {
+	if size == nil || *size == *IntegerType_POSITIVE {
 		return DefaultCollectionType()
 	}
 	return &CollectionType{size}
@@ -141,7 +141,7 @@ func (t *CollectionType) Name() string {
 }
 
 func (t *CollectionType) Parameters() []eval.PValue {
-	if *t.size == *integerType_POSITIVE {
+	if *t.size == *IntegerType_POSITIVE {
 		return eval.EMPTY_VALUES
 	}
 	return t.size.SizeParameters()
@@ -163,4 +163,4 @@ func (t *CollectionType) Type() eval.PType {
 	return &TypeType{t}
 }
 
-var collectionType_DEFAULT = &CollectionType{integerType_POSITIVE}
+var collectionType_DEFAULT = &CollectionType{IntegerType_POSITIVE}

@@ -55,12 +55,12 @@ func NewArrayType(element eval.PType, rng *IntegerType) *ArrayType {
 		element = anyType_DEFAULT
 	}
 	if rng == nil {
-		rng = integerType_POSITIVE
+		rng = IntegerType_POSITIVE
 	}
-	if *rng == *integerType_POSITIVE && element == anyType_DEFAULT {
+	if *rng == *IntegerType_POSITIVE && element == anyType_DEFAULT {
 		return DefaultArrayType()
 	}
-	if *rng == *integerType_ZERO && element == unitType_DEFAULT {
+	if *rng == *IntegerType_ZERO && element == unitType_DEFAULT {
 		return EmptyArrayType()
 	}
 	return &ArrayType{rng, element}
@@ -83,7 +83,7 @@ func NewArrayType2(args ...eval.PValue) *ArrayType {
 	var rng *IntegerType
 	switch argc - offset {
 	case 0:
-		rng = integerType_POSITIVE
+		rng = IntegerType_POSITIVE
 	case 1:
 		sizeArg := args[offset]
 		if rng, ok = sizeArg.(*IntegerType); !ok {
@@ -227,7 +227,7 @@ func writeTypes(bld io.Writer, format eval.FormatContext, g eval.RDetect, types 
 }
 
 func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool) bool {
-	if skipDefault && *t == *integerType_POSITIVE {
+	if skipDefault && *t == *IntegerType_POSITIVE {
 		return false
 	}
 	if needComma {
@@ -243,7 +243,7 @@ func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool)
 }
 
 func (t *ArrayType) Parameters() []eval.PValue {
-	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *integerType_ZERO {
+	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *IntegerType_ZERO {
 		return t.size.SizeParameters()
 	}
 
@@ -251,7 +251,7 @@ func (t *ArrayType) Parameters() []eval.PValue {
 	if !t.typ.Equals(DefaultAnyType(), nil) {
 		params = append(params, t.typ)
 	}
-	if *t.size != *integerType_POSITIVE {
+	if *t.size != *IntegerType_POSITIVE {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
@@ -268,8 +268,8 @@ func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-var arrayType_DEFAULT = &ArrayType{integerType_POSITIVE, anyType_DEFAULT}
-var arrayType_EMPTY = &ArrayType{integerType_ZERO, unitType_DEFAULT}
+var arrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, anyType_DEFAULT}
+var arrayType_EMPTY = &ArrayType{IntegerType_ZERO, unitType_DEFAULT}
 
 func SingletonArray(element eval.PValue) *ArrayValue {
 	return &ArrayValue{elements: []eval.PValue{element}}

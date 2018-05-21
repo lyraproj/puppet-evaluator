@@ -38,8 +38,8 @@ type (
 	}
 )
 
-var hashType_EMPTY = &HashType{integerType_ZERO, unitType_DEFAULT, unitType_DEFAULT}
-var hashType_DEFAULT = &HashType{integerType_POSITIVE, anyType_DEFAULT, anyType_DEFAULT}
+var hashType_EMPTY = &HashType{IntegerType_ZERO, unitType_DEFAULT, unitType_DEFAULT}
+var hashType_DEFAULT = &HashType{IntegerType_POSITIVE, anyType_DEFAULT, anyType_DEFAULT}
 
 var Hash_Type eval.ObjectType
 
@@ -155,7 +155,7 @@ func EmptyHashType() *HashType {
 
 func NewHashType(keyType eval.PType, valueType eval.PType, rng *IntegerType) *HashType {
 	if rng == nil {
-		rng = integerType_POSITIVE
+		rng = IntegerType_POSITIVE
 	}
 	if keyType == nil {
 		keyType = anyType_DEFAULT
@@ -163,7 +163,7 @@ func NewHashType(keyType eval.PType, valueType eval.PType, rng *IntegerType) *Ha
 	if valueType == nil {
 		valueType = anyType_DEFAULT
 	}
-	if keyType == anyType_DEFAULT && valueType == anyType_DEFAULT && rng == integerType_POSITIVE {
+	if keyType == anyType_DEFAULT && valueType == anyType_DEFAULT && rng == IntegerType_POSITIVE {
 		return DefaultHashType()
 	}
 	return &HashType{rng, keyType, valueType}
@@ -196,7 +196,7 @@ func NewHashType2(args ...eval.PValue) *HashType {
 	var rng *IntegerType
 	switch argc - offset {
 	case 0:
-		rng = integerType_POSITIVE
+		rng = IntegerType_POSITIVE
 	case 1:
 		sizeArg := args[offset]
 		if rng, ok = sizeArg.(*IntegerType); !ok {
@@ -318,7 +318,7 @@ func (t *HashType) Parameters() []eval.PValue {
 	params := make([]eval.PValue, 0, 4)
 	params = append(params, t.keyType)
 	params = append(params, t.valueType)
-	if *t.size != *integerType_POSITIVE {
+	if *t.size != *IntegerType_POSITIVE {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params

@@ -69,6 +69,9 @@ type (
 		// resource expression or a type reference expression
 		expression parser.Expression
 
+		// parameters to lambda (only valid when expression is a lambda)
+		parameters []eval.PValue
+
 		// Set in case node evaluation ended in error
 		error issue.Reported
 
@@ -187,7 +190,7 @@ func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
 }
 
 // Creates an unevaluated node, aware of all resources that uses static titles
-func newNode(c eval.Context, expression parser.Expression) *node {
+func newNode(c eval.Context, expression parser.Expression, parameters ...eval.PValue) *node {
 	var handles map[string]*handle
 	if expression == nil {
 		// Root node
@@ -202,6 +205,7 @@ func newNode(c eval.Context, expression parser.Expression) *node {
 	g := GetGraph(c).(graph.DirectedBuilder)
 	node := g.NewNode().(*node)
 	node.expression = expression
+	node.parameters = parameters
 	node.resources = handles
 	node.value = nil
 	g.AddNode(node)

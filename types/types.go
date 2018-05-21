@@ -281,13 +281,13 @@ func CopyAppend(types []eval.PType, t eval.PType) []eval.PType {
 	return tc
 }
 
-var dataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`Data`}}
-var dataHashType_DEFAULT = &HashType{integerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
+var dataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`Data`}}
+var dataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
 var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]eval.PType{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
 
 var richKeyType_DEFAULT = &VariantType{[]eval.PType{stringType_DEFAULT, numericType_DEFAULT}}
-var richDataArrayType_DEFAULT = &ArrayType{integerType_POSITIVE, &TypeReferenceType{`RichData`}}
-var richDataHashType_DEFAULT = &HashType{integerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
+var richDataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`RichData`}}
+var richDataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 	[]eval.PType{scalarType_DEFAULT,
 		binaryType_DEFAULT,

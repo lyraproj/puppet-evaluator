@@ -157,7 +157,7 @@ func (e *evaluator) Logger() eval.Logger {
 	return e.logger
 }
 
-func (e *evaluator) callFunction(name string, args []eval.PValue, call parser.CallExpression, c eval.Context) eval.PValue {
+func (e *evaluator) CallFunction(name string, args []eval.PValue, call parser.CallExpression, c eval.Context) eval.PValue {
 	return e.call(`function`, name, args, call, c)
 }
 
@@ -263,16 +263,16 @@ func (e *evaluator) eval_CallMethodExpression(call *parser.CallMethodExpression,
 			return mbr.Call(c, obj, block, e.unfold(call.Arguments(), c))
 		}
 	}
-	return e.callFunction(qn.Name(), e.unfold(call.Arguments(), c, receiver...), call, c)
+	return e.self.CallFunction(qn.Name(), e.unfold(call.Arguments(), c, receiver...), call, c)
 }
 
 func (e *evaluator) eval_CallNamedFunctionExpression(call *parser.CallNamedFunctionExpression, c eval.Context) eval.PValue {
 	fc := call.Functor()
 	switch fc.(type) {
 	case *parser.QualifiedName:
-		return e.callFunction(fc.(*parser.QualifiedName).Name(), e.unfold(call.Arguments(), c), call, c)
+		return e.self.CallFunction(fc.(*parser.QualifiedName).Name(), e.unfold(call.Arguments(), c), call, c)
 	case *parser.QualifiedReference:
-		return e.callFunction(`new`, e.unfold(call.Arguments(), c, types.WrapString(fc.(*parser.QualifiedReference).Name())), call, c)
+		return e.self.CallFunction(`new`, e.unfold(call.Arguments(), c, types.WrapString(fc.(*parser.QualifiedReference).Name())), call, c)
 	default:
 		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
 			issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))

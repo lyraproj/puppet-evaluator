@@ -23,18 +23,24 @@ type (
 	IntegerValue IntegerType
 )
 
+var IntegerType_POSITIVE = &IntegerType{0, math.MaxInt64}
+var IntegerType_ZERO = &IntegerType{0, 0}
+var IntegerType_ONE = &IntegerType{1, 1}
+var IntegerType_TWO = &IntegerType{2, 2}
+
+var Integer_ZERO = &IntegerValue{0, 0}
+var Integer_ONE = &IntegerValue{1, 1}
+var Integer_TWO = &IntegerValue{2, 2}
+
 var integerType_DEFAULT = &IntegerType{math.MinInt64, math.MaxInt64}
-var integerType_POSITIVE = &IntegerType{0, math.MaxInt64}
-var integerType_ZERO = &IntegerType{0, 0}
-var integerType_ONE = &IntegerType{1, 1}
 var integerType_8 = &IntegerType{math.MinInt8, math.MaxInt8}
 var integerType_16 = &IntegerType{math.MinInt16, math.MaxInt16}
 var integerType_32 = &IntegerType{math.MinInt32, math.MaxInt32}
 var integerType_u8 = &IntegerType{0, math.MaxUint8}
 var integerType_u16 = &IntegerType{0, math.MaxUint16}
 var integerType_u32 = &IntegerType{0, math.MaxUint32}
-var integerType_u64 = &IntegerType{0, math.MaxInt64} // MaxUInt64 isn't supported at this time
-var ZERO = (*IntegerValue)(integerType_ZERO)
+var integerType_u64 = IntegerType_POSITIVE // MaxUInt64 isn't supported at this time
+var ZERO = (*IntegerValue)(IntegerType_ZERO)
 var MIN_INT = WrapInteger(math.MinInt64)
 var MAX_INT = WrapInteger(math.MaxInt64)
 
@@ -131,7 +137,7 @@ func DefaultIntegerType() *IntegerType {
 }
 
 func PositiveIntegerType() *IntegerType {
-	return integerType_POSITIVE
+	return IntegerType_POSITIVE
 }
 
 func NewIntegerType(min int64, max int64) *IntegerType {
@@ -143,10 +149,10 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 		if max == math.MaxInt64 {
 			return PositiveIntegerType()
 		} else if max == 0 {
-			return integerType_ZERO
+			return IntegerType_ZERO
 		}
 	} else if min == 1 && max == 1 {
-		return integerType_ONE
+		return IntegerType_ONE
 	}
 	if min > max {
 		panic(errors.NewArgumentsError(`Integer[]`, `min is not allowed to be greater than max`))

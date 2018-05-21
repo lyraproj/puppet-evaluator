@@ -102,6 +102,11 @@ func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.P
 		return nil, err
 	}
 
+	if lambda, ok := value.(eval.Lambda); ok {
+		// parallel or sequential
+		value = lambda.Call(c, nil, rn.parameters...)
+	}
+
 	if len(extEdges) < len(g.From(rn.ID())) {
 		// Original externa edges are no longer needed since they now describe paths
 		// that are reached using children
@@ -126,6 +131,110 @@ func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue
 	default:
 		return re.evaluator.Eval(expr, c)
 	}
+}
+
+const parallel = `parallel`
+const sequential = `sequential`
+
+func (re *resourceEval) CallFunction(name string, args []eval.PValue, call parser.CallExpression, c eval.Context) eval.PValue {
+	switch name {
+	case parallel, sequential:
+		// This is not a real function call but rather a node scheduling instruction
+		return re.createEdgesWithArgument(c, name, args, call)
+
+		// Schedule the nodes that will call the lambda
+	default:
+		return re.evaluator.CallFunction(name, args, call, c)
+	}
+}
+
+func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, args []eval.PValue, call parser.CallExpression) eval.PValue {
+	nodeExpr, ok := call.Lambda().(*parser.LambdaExpression)
+	if !ok {
+		panic(eval.Error2(call, EVAL_DECLARATION_MUST_HAVE_LAMBDA, issue.H{`declaration`: name}))
+	}
+
+	ac := len(args)
+	if ac != 1 {
+		panic(eval.Error2(call, eval.EVAL_ILLEGAL_ARGUMENT_COUNT, issue.H{`expression`: call, `expected`: 1, `actual`: ac}))
+	}
+	arg := args[0]
+
+	params := nodeExpr.Parameters()
+	np := len(params)
+	if np != 1 && np != 2 {
+		panic(eval.Error2(call, eval.EVAL_ILLEGAL_ARGUMENT_COUNT, issue.H{`expression`: nodeExpr, `expected`: `1-2`, `actual`: np}))
+	}
+
+	// Emulate "each" style iteration with either one or two arguments
+	nodes := make([]Node, 0, 8)
+	eval.AssertInstance(c, name, types.DefaultIterableType(), arg)
+	if hash, ok := arg.(*types.HashValue); ok {
+		if np == 2 {
+			hash.EachPair(func(k, v eval.PValue) {
+				nodes = append(nodes, newNode(c, nodeExpr, k, v))
+			})
+		} else {
+			hash.Each(func(v eval.PValue) {
+				nodes = append(nodes, newNode(c, nodeExpr, v))
+			})
+		}
+	} else {
+		iter := arg.(eval.IterableValue)
+		if np == 2 {
+			if iter.IsHashStyle() {
+				iter.Iterator().Each(func(v eval.PValue) {
+					vi := v.(eval.IndexedValue)
+					nodes = append(nodes, newNode(c, nodeExpr, vi.At(0), vi.At(1)))
+				})
+			} else {
+				iter.Iterator().EachWithIndex(func(idx eval.PValue, v eval.PValue) {
+					nodes = append(nodes, newNode(c, nodeExpr, idx, v))
+				})
+			}
+		} else {
+			iter.Iterator().Each(func(v eval.PValue) {
+				nodes = append(nodes, newNode(c, nodeExpr, v))
+			})
+		}
+	}
+
+	cn := getCurrentNode(c)
+	g := GetGraph(c).(graph.DirectedBuilder)
+	extEdges := getExternalEdgesTo(c)
+
+	if name == parallel {
+		for _, n := range nodes {
+			// Create edge from current to node
+			g.SetEdge(newEdge(cn, n, false))
+
+			// node must evaluate before any edges external to the current node evaluates
+			for _, cnTo := range extEdges {
+				exEdge := g.Edge(cn.ID(), cnTo.ID()).(Edge)
+				g.SetEdge(newEdge(n, cnTo.(Node), exEdge.Subscribe()))
+			}
+		}
+	} else {
+		// Create edge from current to first node in the list
+		prev := nodes[0]
+		// Create edge from current to node
+		g.SetEdge(newEdge(cn, prev, false))
+
+		// Create the edge chain that enforces sequential execution
+		nc := len(nodes)
+		for i := 1; i < nc; i++ {
+			nxt := nodes[i]
+			g.SetEdge(newEdge(prev, nxt, false))
+			prev = nxt
+		}
+		last := nodes[nc-1]
+		// last node must evaluate before any edges external to the current node evaluates
+		for _, cnTo := range extEdges {
+			exEdge := g.Edge(cn.ID(), cnTo.ID()).(Edge)
+			g.SetEdge(newEdge(last, cnTo.(Node), exEdge.Subscribe()))
+		}
+	}
+	return eval.UNDEF
 }
 
 func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {

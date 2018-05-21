@@ -148,6 +148,12 @@ func (cg *concurrentGraph) RemoveEdge(fid, tid int64) {
 	cg.g.RemoveEdge(fid, tid)
 }
 
+func (cg *concurrentGraph) RemoveNode(id int64) {
+	cg.lock.Lock()
+	defer cg.lock.Unlock()
+	cg.g.RemoveNode(id)
+}
+
 func (cg *concurrentGraph) SetEdge(e graph.Edge) {
 	cg.lock.Lock()
 	defer cg.lock.Unlock()

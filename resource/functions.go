@@ -86,6 +86,15 @@ func initResourceFunctions() {
 		},
 	)
 
+	eval.NewGoFunction(`reference`,
+		func(d eval.Dispatch) {
+			d.Param(`Resource`)
+			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				return types.WrapString(Reference(c, args[0]))
+			})
+		},
+	)
+
 	eval.NewGoFunction(`evaluate_yaml`,
 		func(d eval.Dispatch) {
 			d.Param(`String`)

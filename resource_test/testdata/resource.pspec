@@ -158,6 +158,22 @@ Examples('resource evaluator',
         ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
         ])),
 
+    Example('parallel can be ordered using ->"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        parallel([a, b, c]) |$x| { myres { "/a/$x": } } ->
+        parallel([a, b, c]) |$x| { myres { "/b/$x": } }
+        |-SRC
+      Evaluates_with(Notice(*['/a/a', '/a/b', '/a/c', '/b/a', '/b/b', '/b/c'].map |$r| { "Applying myres[$r]" }))),
+
+    Example('sequential can be ordered using ->"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        sequential([a, b, c]) |$x| { myres { "/a/$x": } } ->
+        sequential([a, b, c]) |$x| { myres { "/b/$x": } }
+        |-SRC
+      Evaluates_with(Notice(*['/a/a', '/a/b', '/a/c', '/b/a', '/b/b', '/b/c'].map |$r| { "Applying myres[$r]" }))),
+
     Example('resources can be obtained from $pnr"',
       Given(Format(@(SRC), Get('resourceType'))),
         %s

@@ -49,10 +49,10 @@ func NewTupleType(types []eval.PType, size *IntegerType) *TupleType {
 		givenOrActualSize = NewIntegerType(sz, sz)
 	} else {
 		if sz == 0 {
-			if *size == *integerType_POSITIVE {
+			if *size == *IntegerType_POSITIVE {
 				return DefaultTupleType()
 			}
-			if *size == *integerType_ZERO {
+			if *size == *IntegerType_ZERO {
 				return EmptyTupleType()
 			}
 		}
@@ -106,13 +106,13 @@ func tupleFromArgs(callable bool, args eval.IndexedValue) *TupleType {
 	}
 
 	if argc == 0 {
-		if *rng == *integerType_ZERO {
+		if *rng == *IntegerType_ZERO {
 			return tupleType_EMPTY
 		}
 		if callable {
 			return &TupleType{rng, rng, []eval.PType{DefaultUnitType()}}
 		}
-		if *rng == *integerType_POSITIVE {
+		if *rng == *IntegerType_POSITIVE {
 			return tupleType_DEFAULT
 		}
 		return &TupleType{rng, rng, []eval.PType{}}
@@ -321,7 +321,7 @@ func (t *TupleType) Parameters() []eval.PValue {
 	for _, c := range t.types {
 		params = append(params, c)
 	}
-	if !(t.size == nil || top == 0 && *t.size == *integerType_POSITIVE) {
+	if !(t.size == nil || top == 0 && *t.size == *IntegerType_POSITIVE) {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
@@ -339,5 +339,5 @@ func (t *TupleType) Types() []eval.PType {
 	return t.types
 }
 
-var tupleType_DEFAULT = &TupleType{integerType_POSITIVE, integerType_POSITIVE, []eval.PType{}}
-var tupleType_EMPTY = &TupleType{integerType_ZERO, integerType_ZERO, []eval.PType{}}
+var tupleType_DEFAULT = &TupleType{IntegerType_POSITIVE, IntegerType_POSITIVE, []eval.PType{}}
+var tupleType_EMPTY = &TupleType{IntegerType_ZERO, IntegerType_ZERO, []eval.PType{}}

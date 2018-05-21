@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	EVAL_DECLARATION_MUST_HAVE_LAMBDA  = `EVAL_DECLARATION_MUST_HAVE_LAMBDA`
 	EVAL_DUPLICATE_RESOURCE            = `EVAL_DUPLICATE_RESOURCE`
 	EVAL_ILLEGAL_RESOURCE              = `EVAL_ILLEGAL_RESOURCE`
 	EVAL_UNKNOWN_RESOURCE              = `EVAL_UNKNOWN_RESOURCE`
@@ -24,6 +25,8 @@ func joinPath(path interface{}) string {
 }
 
 func init() {
+	issue.Hard(EVAL_DECLARATION_MUST_HAVE_LAMBDA, `A %{declaration} declaration must be declared with a block`)
+
 	issue.Hard(EVAL_DUPLICATE_RESOURCE, `Duplicate declaration: %{ref} is already declared %{previous_location}; cannot redeclare`)
 
 	issue.Hard(EVAL_ILLEGAL_HANDLE_REPLACE, `Illegal replacement of Handle value. Expected value type '%{expected_type}', got '%{actual_type}'`)
