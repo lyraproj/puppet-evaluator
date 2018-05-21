@@ -750,7 +750,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 		}
 		io.WriteString(b, `{`)
 	} else {
-		io.WriteString(b, `Object{`)
+		io.WriteString(b, `Object[{`)
 	}
 
 	first2 := true
@@ -815,6 +815,9 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 		io.WriteString(b, padding1)
 	}
 	io.WriteString(b, "}")
+	if !inTypeSet {
+		io.WriteString(b, "]")
+	}
 }
 
 func (t *objectType) Type() eval.PType {

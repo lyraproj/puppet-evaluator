@@ -59,7 +59,7 @@ func NewTypedName2(namespace Namespace, name string, nameAuthority URI) TypedNam
 	tn := typedName{}
 
 	parts := strings.Split(strings.ToLower(name), `::`)
-	if len(parts) > 0 && parts[0] == `` {
+	if len(parts) > 0 && parts[0] == `` && len(name) > 2 {
 		parts = parts[1:]
 		name = name[2:]
 	}

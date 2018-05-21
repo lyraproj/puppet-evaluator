@@ -479,7 +479,7 @@ func (t *typeSet) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatCon
 	}
 	s = s.WithProperties(map[string]string{`typeSet`: t.Name()})
 
-	io.WriteString(b, `TypeSet{`)
+	io.WriteString(b, `TypeSet[{`)
 	indent1 := s.Indentation()
 	indent2 := indent1.Increase(f.IsAlt())
 	indent3 := indent2.Increase(f.IsAlt())
@@ -559,7 +559,7 @@ func (t *typeSet) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatCon
 		io.WriteString(b, "\n")
 		io.WriteString(b, padding1)
 	}
-	io.WriteString(b, "}")
+	io.WriteString(b, "}]")
 }
 
 func (t *typeSet) initHash() *hash.StringHash {

@@ -424,9 +424,9 @@ func ExampleReflector_objectTypeFromReflect() {
 	fmt.Println(ev)
 
 	// Output:
-	// Object{name => 'My::Address', attributes => {'street' => String, 'zip_code' => String}}
-	// Object{name => 'My::Person', attributes => {'name' => String, 'address' => My::Address}}
-	// Object{name => 'My::ExtendedPerson', parent => My::Person, attributes => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}}
+	// Object[{name => 'My::Address', attributes => {'street' => String, 'zip_code' => String}}]
+	// Object[{name => 'My::Person', attributes => {'name' => String, 'address' => My::Address}}]
+	// Object[{name => 'My::ExtendedPerson', parent => My::Person, attributes => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}}]
 	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
 
@@ -465,7 +465,7 @@ func ExampleReflector_typeSetFromReflect() {
 	fmt.Println(eval.Wrap2(c, ep))
 
 	// Output:
-	// TypeSet{
+	// TypeSet[{
 	//   pcore_uri => 'http://puppet.com/2016.1/pcore',
 	//   pcore_version => '1.0.0',
 	//   name_authority => 'http://puppet.com/2016.1/runtime',
@@ -494,7 +494,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//       }
 	//     }
 	//   }
-	// }
+	// }]
 	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
 
@@ -516,7 +516,7 @@ func TestReflectorAndImplRepo(t *testing.T) {
 		reflect.TypeOf(&ObscurelyNamedAddress{}), reflect.TypeOf(&Person{}))
 	c.AddTypes(typeSet)
 	tss := typeSet.String()
-	exp := `TypeSet{pcore_uri => 'http://puppet.com/2016.1/pcore', pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'My', version => '1.0.0', types => {Address => {attributes => {'street' => String, 'zip_code' => String}}, Person => {attributes => {'name' => String, 'address' => Address}}}}`
+	exp := `TypeSet[{pcore_uri => 'http://puppet.com/2016.1/pcore', pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'My', version => '1.0.0', types => {Address => {attributes => {'street' => String, 'zip_code' => String}}, Person => {attributes => {'name' => String, 'address' => Address}}}}]`
 	if tss != exp {
 		t.Errorf("Expected %s, got %s\n", exp, tss)
 	}

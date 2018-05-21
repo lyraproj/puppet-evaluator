@@ -9,14 +9,39 @@ import (
 
 func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.PValue) {
 	keys := expr.Keys()
+	op := expr.Operand()
+	if qr, ok := op.(*parser.QualifiedReference); ok {
+		if (qr.Name() == `TypeSet` || qr.Name() == `Object`) && len(keys) == 1 {
+			// Defer evaluation of the type parameter until type is resolved
+			if hash, ok := keys[0].(*parser.LiteralHash); ok {
+				name := ``
+				ne := hash.Get(`name`)
+				if ne != nil {
+					name = e.eval(ne, c).String()
+				}
+				if qr.Name() == `Object` {
+					return types.NewObjectType(name, nil, hash)
+				}
+
+				na := eval.RUNTIME_NAME_AUTHORITY
+				ne = hash.Get(`name_authority`)
+				if ne != nil {
+					na = eval.URI(e.eval(ne, c).String())
+				}
+				return types.NewTypeSetType(na, name, hash)
+			}
+		}
+
+		args := make([]eval.PValue, len(keys))
+		for idx, key := range keys {
+			args[idx] = e.eval(key, c)
+		}
+		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
+	}
+
 	args := make([]eval.PValue, len(keys))
 	for idx, key := range keys {
 		args[idx] = e.eval(key, c)
-	}
-
-	op := expr.Operand()
-	if qr, ok := op.(*parser.QualifiedReference); ok {
-		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 
 	lhs := e.eval(op, c)
