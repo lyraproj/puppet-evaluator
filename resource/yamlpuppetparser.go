@@ -72,7 +72,10 @@ func (yp *yamlParser) parseMapItem(path []string, key string, value interface{})
 		// Will return literal array for multiple expressions which in turn is interpreted as
 		// parallel by the evaluator
 		expr = yp.parseValue(path, value, true)
-	case `sequence`:
+		if _, ok := expr.(*parser.LiteralList); !ok {
+			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
+		}
+	case `sequental`:
 		expr = yp.parseValue(path, value, true)
 		if la, ok := expr.(*parser.LiteralList); ok {
 			// Transform into relational operators to ensure that execution is sequenced
@@ -90,6 +93,8 @@ func (yp *yamlParser) parseMapItem(path []string, key string, value interface{})
 				}
 				expr = lhs
 			}
+		} else {
+			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
 		}
 	case `resources`:
 		expr = yp.parseValue(path, value, false)

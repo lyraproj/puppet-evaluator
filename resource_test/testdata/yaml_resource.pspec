@@ -26,26 +26,48 @@ Examples('when using the YAML Puppet parser',
   Example('resources are instantiated',
     Given(@(SRC)),
       create_resource_types(parse_yaml(@(YAML)))
-        MyRes:
+        'My::A':
           ensure: 'Enum[absent,present]'
           mode: 'Integer[0, 07777]'
+
+        'My::B':
+          message: String
+
+        'My::C':
+          ip: String
         |YAML
 
       evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s')) ->
-        sequence:
+        sequental:
+          - parallel:
+            - resources:
+                my::a:
+                  '/a/a':
+                    ensure: absent
+                    mode: 0700
+                my::b:
+                  x:
+                    message: The X
+                  'y':
+                    message: The Y
+                  z:
+                    message: The Z
+            - resources:
+                my::c:
+                  a:
+                    ip: 192.168.0.1
+                  b:
+                    ip: 192.168.0.2
+                  c:
+                    ip: 192.168.0.3
           - resources:
-              myres:
+              my::a:
                 '/a/b':
-                  ensure: absent
-                  mode: 0700
-          - resources:
-              myres:
-                '/a/c':
-                  ensure: "${pnr['myres[/a/b]'].value.ensure}"
+                  ensure: "${resource('my::a[/a/a]').ensure}"
                   mode: 0600
         |YAML
       String([resource('my::a[/a/b]')])
       |SRC
-    Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'absent', 'mode' => 384)]`)),
+    Evaluates_to(`[My::A('title' => '/a/b', 'ensure' => 'absent', 'mode' => 384)]`)),
 
 )
