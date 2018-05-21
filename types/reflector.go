@@ -21,12 +21,12 @@ func NewReflector(c eval.Context) eval.Reflector {
 	return &reflector{c}
 }
 
-func (r *reflector) StructName(prefix string, t reflect.Type) string {
+func (r *reflector) StructName(prefix string, t reflect.Type, isDecl bool) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	if name, ok := r.c.ImplementationRegistry().ReflectedToPtype(t); ok {
-		if !strings.HasPrefix(name, prefix) {
+		if isDecl && !strings.HasPrefix(name, prefix) {
 			panic(eval.Error(r.c, eval.EVAL_TYPESET_ILLEGAL_NAME_PREFIX, issue.H{`name`: name, `expected_prefix`: prefix}))
 		}
 		return name
@@ -169,10 +169,10 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 		if nf > 0 {
 			f := structType.Field(0)
 			if f.Anonymous && f.Type.Kind() == reflect.Struct {
-				parent = NewTypeReferenceType(r.StructName(prefix, f.Type))
+				parent = NewTypeReferenceType(r.StructName(prefix, f.Type, false))
 			}
 		}
-		name := r.StructName(prefix, structType)
+		name := r.StructName(prefix, structType, true)
 		types = append(types, WrapHashEntry2(
 			name[strings.LastIndex(name, `::`) + 2:],
 			r.ObjectTypeFromReflect(name, parent, structType)))
