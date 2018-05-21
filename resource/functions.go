@@ -70,7 +70,7 @@ func initResourceFunctions() {
 			})
 		})
 
-	eval.NewGoFunction(`get_resource`,
+	eval.NewGoFunction(`resource`,
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Type[Resource],String]`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {

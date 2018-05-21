@@ -17,7 +17,7 @@ Examples('when declaring Resources in YAML',
             mode: 0700
         |YAML
 
-      String([get_resource('myres[/a/b]'), get_resource('myres[/a/c]')])
+      String([resource('myres[/a/b]'), resource('myres[/a/c]')])
       |-SRC
     Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'present', 'mode' => 448)]`)),
 )
@@ -44,7 +44,7 @@ Examples('when using the YAML Puppet parser',
                   ensure: "${pnr['myres[/a/b]'].value.ensure}"
                   mode: 0600
         |YAML
-      String([get_resource('myres[/a/b]'), get_resource('myres[/a/c]')])
+      String([resource('my::a[/a/b]')])
       |SRC
     Evaluates_to(`[MyRes('title' => '/a/b', 'ensure' => 'absent', 'mode' => 448), MyRes('title' => '/a/c', 'ensure' => 'absent', 'mode' => 384)]`)),
 
