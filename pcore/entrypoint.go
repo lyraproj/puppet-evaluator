@@ -34,6 +34,7 @@ type (
 
 var staticLock sync.Mutex
 var puppet = &pcoreImpl{}
+var topImplRegistry eval.ImplementationRegistry
 
 func init() {
 	eval.Puppet = puppet
@@ -57,10 +58,11 @@ func InitializePuppet() {
 	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 
-	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader), nil)
+	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
 	c.ResolveResolvables()
 	resource.InitBuiltinResources(c)
 	c.WithLoader(eval.StaticResourceLoader()).ResolveResolvables()
+	topImplRegistry = c.ImplementationRegistry()
 }
 
 func (p *pcoreImpl) Reset() {
@@ -170,11 +172,11 @@ func (p *pcoreImpl) Logger() eval.Logger {
 
 func (p *pcoreImpl) RootContext() eval.Context {
 	InitializePuppet()
-	return impl.NewContext(p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
+	return impl.WithParent(context.Background(), p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
 }
 
 func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
-	return p.DoWithParent(context.Background(), actor)
+	return p.DoWithParent(p.RootContext(), actor)
 }
 
 func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
@@ -192,14 +194,10 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	if ec, ok := parentCtx.(eval.Context); ok {
 		ctx = ec.Fork()
 	} else {
-		ctx = p.newContext(parentCtx)
+		ctx = impl.WithParent(parentCtx, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
 	}
 	err = actor(ctx)
 	return
-}
-
-func (p *pcoreImpl) newContext(parent context.Context) eval.Context {
-	return impl.WithParent(parent, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), nil)
 }
 
 func (p *pcoreImpl) NewEvaluator() eval.Evaluator {

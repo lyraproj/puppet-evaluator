@@ -23,20 +23,20 @@ type (
 	}
 )
 
-func NewContext(evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
-	return WithParent(context.Background(), evaluator, loader, scope)
+func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
+	return WithParent(context.Background(), evaluator, loader, newImplementationRegistry())
 }
 
-func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Loader, scope eval.Scope) eval.Context {
+func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Loader, ir eval.ImplementationRegistry) eval.Context {
 	var c *evalCtx
+	ir = newParentedImplementationRegistry(ir)
 	if cp, ok := parent.(evalCtx); ok {
 		c = cp.clone()
 		c.Context = parent
 		c.evaluator = evaluator
 		c.loader = loader
-		c.scope = scope
 	} else {
-		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), scope: scope, implRegistry: newImplementationRegistry()}
+		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), implRegistry: ir}
 	}
 	return c
 }
