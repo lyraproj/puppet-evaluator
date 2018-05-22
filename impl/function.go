@@ -143,31 +143,36 @@ func (fb *functionBuilder) Name() string {
 }
 
 func (fb *functionBuilder) Resolve(c eval.Context) eval.Function {
+	ds := make([]eval.Lambda, len(fb.dispatchers))
 	if len(fb.localTypeBuilder.localTypes) > 0 {
 		localLoader := eval.NewParentedLoader(c.Loader())
-		c = c.WithLoader(localLoader)
-		b := bytes.NewBufferString(``)
-		for _, td := range fb.localTypeBuilder.localTypes {
-			if td.tp == nil {
-				b.WriteString(`type `)
-				b.WriteString(td.name)
-				b.WriteString(` = `)
-				b.WriteString(td.decl)
-				b.WriteByte('\n')
-			} else {
-				localLoader.SetEntry(eval.NewTypedName(eval.TYPE, td.name), eval.NewLoaderEntry(td.tp, nil))
+		c.DoWithLoader(localLoader, func() {
+			b := bytes.NewBufferString(``)
+			for _, td := range fb.localTypeBuilder.localTypes {
+				if td.tp == nil {
+					b.WriteString(`type `)
+					b.WriteString(td.name)
+					b.WriteString(` = `)
+					b.WriteString(td.decl)
+					b.WriteByte('\n')
+				} else {
+					localLoader.SetEntry(eval.NewTypedName(eval.TYPE, td.name), eval.NewLoaderEntry(td.tp, nil))
+				}
 			}
-		}
 
-		s := b.String()
-		if len(s) > 0 {
-			c.AddDefinitions(c.ParseAndValidate(``, s, false))
+			s := b.String()
+			if len(s) > 0 {
+				c.AddDefinitions(c.ParseAndValidate(``, s, false))
+			}
+			c.ResolveDefinitions()
+			for i, d := range fb.dispatchers {
+				ds[i] = d.createDispatch(c)
+			}
+		})
+	} else {
+		for i, d := range fb.dispatchers {
+			ds[i] = d.createDispatch(c)
 		}
-		c.ResolveDefinitions()
-	}
-	ds := make([]eval.Lambda, len(fb.dispatchers))
-	for idx, d := range fb.dispatchers {
-		ds[idx] = d.createDispatch(c)
 	}
 	return &goFunction{fb.name, ds}
 }

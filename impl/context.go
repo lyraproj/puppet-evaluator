@@ -86,6 +86,15 @@ func (c *evalCtx) Delete(key string) {
 	}
 }
 
+func (c *evalCtx) DoWithLoader(loader eval.Loader, actor eval.Actor) {
+	saveLoader := c.loader
+	defer func() {
+		c.loader = saveLoader
+	}()
+	c.loader = loader
+	actor()
+}
+
 func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 	if location == nil {
 		location = c.StackTop()
@@ -95,10 +104,6 @@ func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issu
 
 func (c *evalCtx) Evaluate(expr parser.Expression) eval.PValue {
 	return c.evaluator.Eval(expr, c)
-}
-
-func (c *evalCtx) EvaluateIn(expr parser.Expression, scope eval.Scope) eval.PValue {
-	return c.evaluator.Eval(expr, c.WithScope(scope))
 }
 
 func (c *evalCtx) Evaluator() eval.Evaluator {
@@ -255,12 +260,6 @@ func (c *evalCtx) StackTop() issue.Location {
 		return &systemLocation{}
 	}
 	return c.stack[s-1]
-}
-
-func (c *evalCtx) WithLoader(loader eval.Loader) eval.Context {
-	clone := c.clone()
-	clone.loader = loader
-	return clone
 }
 
 func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {

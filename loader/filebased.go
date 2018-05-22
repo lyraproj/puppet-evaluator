@@ -236,7 +236,9 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 		}
 		if tse != nil && tse.Value() != nil {
 			if ts, ok := tse.Value().(eval.TypeSet); ok {
-				ts.(eval.ResolvableType).Resolve(c.WithLoader(l))
+				c.DoWithLoader(l, func() {
+					ts.(eval.ResolvableType).Resolve(c)
+				})
 				te := l.GetEntry(name)
 				if te != nil {
 					return te

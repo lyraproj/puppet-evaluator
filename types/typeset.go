@@ -419,14 +419,14 @@ func (t *typeSet) Resolve(c eval.Context) eval.PType {
 	for _, ref := range t.references {
 		ref.resolve(c)
 	}
-	tsaCtx := c.WithLoader(eval.NewTypeSetLoader(c.Loader(), t))
-	t.types = t.types.MapValues(func(tp eval.PValue) eval.PValue {
-		if rtp, ok := tp.(eval.ResolvableType); ok {
-			return rtp.Resolve(tsaCtx)
-		}
-		return tp
-	}).(*HashValue)
-
+	c.DoWithLoader(eval.NewTypeSetLoader(c.Loader(), t), func() {
+		t.types = t.types.MapValues(func(tp eval.PValue) eval.PValue {
+			if rtp, ok := tp.(eval.ResolvableType); ok {
+				return rtp.Resolve(c)
+			}
+			return tp
+		}).(*HashValue)
+	})
 	return t
 }
 

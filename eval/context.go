@@ -28,11 +28,12 @@ type Context interface {
 	// DefiningLoader returns a Loader that can receive new definitions
 	DefiningLoader() DefiningLoader
 
+	// DoWithLoader assigns the given loader to the receiver and calls the actor. The original loader is
+	// restored before this call returns.
+	DoWithLoader(loader Loader, actor Actor)
+
 	// Evaluate evaluates the given expression using the evaluator of the receiver.
 	Evaluate(expr parser.Expression) PValue
-
-	// EvaluateIn evaluates the given expression using the given scope.
-	EvaluateIn(expr parser.Expression, scope Scope) PValue
 
 	// Evaluator returns the evaluator of the receiver.
 	Evaluator() Evaluator
@@ -64,10 +65,6 @@ type Context interface {
 	// Logger returns the logger of the receiver. This will be the same logger as the
 	// logger of the evaluator.
 	Logger() Logger
-
-	// WithLoader creates a copy of the receiver where the loader is replaced with the
-	// given loader.
-	WithLoader(loader Loader) Context
 
 	// WithScope creates a copy of the receiver where the scope is replaced with the
 	// given scope.

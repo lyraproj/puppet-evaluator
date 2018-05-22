@@ -61,7 +61,7 @@ func InitializePuppet() {
 	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
 	c.ResolveResolvables()
 	resource.InitBuiltinResources(c)
-	c.WithLoader(eval.StaticResourceLoader()).ResolveResolvables()
+	c.DoWithLoader(eval.StaticResourceLoader(), c.ResolveResolvables)
 	topImplRegistry = c.ImplementationRegistry()
 }
 
