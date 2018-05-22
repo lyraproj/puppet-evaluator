@@ -409,7 +409,9 @@ func (t *typeSet) Resolve(c eval.Context) eval.PType {
 	t.initHashExpression = nil
 	var initHash *HashValue
 	if lh, ok := ihe.(*parser.LiteralHash); ok {
-		initHash = t.resolveLiteralHash(c, lh)
+		c.DoStatic(func() {
+			initHash = t.resolveLiteralHash(c, lh)
+		})
 	} else {
 		initHash = ihe.(*HashValue)
 	}

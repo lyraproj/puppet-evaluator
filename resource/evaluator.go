@@ -123,6 +123,9 @@ func (re *resourceEval) Logger() eval.Logger {
 }
 
 func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue {
+	if c.Static() {
+		return re.evaluator.Eval(expr, c)
+	}
 	switch expr.(type) {
 	case *parser.RelationshipExpression:
 		return re.eval_RelationshipExpression(expr.(*parser.RelationshipExpression), c)

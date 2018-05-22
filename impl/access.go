@@ -33,9 +33,11 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 		}
 
 		args := make([]eval.PValue, len(keys))
-		for idx, key := range keys {
-			args[idx] = e.eval(key, c)
-		}
+		c.DoStatic(func() {
+			for idx, key := range keys {
+				args[idx] = e.eval(key, c)
+			}
+		})
 		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 

@@ -18,6 +18,7 @@ type (
 		stack        []issue.Location
 		scope        eval.Scope
 		implRegistry eval.ImplementationRegistry
+		static       bool
 		definitions  []interface{}
 		vars         map[string]interface{}
 	}
@@ -84,6 +85,19 @@ func (c *evalCtx) Delete(key string) {
 	if c.vars != nil {
 		delete(c.vars, key)
 	}
+}
+
+func (c *evalCtx) DoStatic(actor eval.Actor) {
+	if c.static {
+		actor()
+		return
+	}
+
+	defer func() {
+		c.static = false
+	}()
+	c.static = true
+	actor()
 }
 
 func (c *evalCtx) DoWithLoader(loader eval.Loader, actor eval.Actor) {
@@ -220,7 +234,10 @@ func (c *evalCtx) ResolveResolvables() {
 }
 
 func (c *evalCtx) ResolveType(expr parser.Expression) eval.PType {
-	resolved := c.Evaluate(expr)
+	var resolved eval.PValue
+	c.DoStatic(func() {
+		resolved = c.Evaluate(expr)
+	})
 	if pt, ok := resolved.(eval.PType); ok {
 		return pt
 	}
@@ -262,6 +279,10 @@ func (c *evalCtx) StackTop() issue.Location {
 	return c.stack[s-1]
 }
 
+func (c *evalCtx) Static() bool {
+	return c.static
+}
+
 func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {
 	clone := c.clone()
 	clone.scope = scope
@@ -272,7 +293,7 @@ func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {
 // internally by methods like Fork, WithLoader, and WithScope to prevent them
 // from creating specific implementations.
 func (c *evalCtx) clone() *evalCtx {
-	return &evalCtx{c, c.evaluator, c.loader, c.stack, c.scope, c.implRegistry, c.definitions, c.vars}
+	return &evalCtx{c, c.evaluator, c.loader, c.stack, c.scope, c.implRegistry, c.static, c.definitions, c.vars}
 }
 
 func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {

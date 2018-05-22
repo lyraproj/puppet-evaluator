@@ -143,10 +143,10 @@ Examples('resource evaluator',
         [ myres { '/a/a': }, myres { '/a/b': }, myres { '/a/c': } ] ->
         [ myres { '/b/a': }, myres { '/b/b': }, myres { '/b/c': } ] ->
         ['/a/a', '/a/b', '/a/c' ].map |$r| {
-          nodes_from(MyRes[$r]).map |$n| { $n.resources.keys }.flatten
+          nodes_from("myres[$r]").map |$n| { $n.resources.keys }.flatten
         } +
         ['/b/a', '/b/b', '/b/c' ].map |$r| {
-          nodes_to(MyRes[$r]).map |$n| { $n.resources.keys }.flatten
+          nodes_to("myres[$r]").map |$n| { $n.resources.keys }.flatten
         }
         |-SRC
       Evaluates_to([

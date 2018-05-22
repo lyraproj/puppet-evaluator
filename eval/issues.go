@@ -38,6 +38,7 @@ const (
 	EVAL_ILLEGAL_OBJECT_INHERITANCE                = `EVAL_ILLEGAL_OBJECT_INHERITANCE`
 	EVAL_ILLEGAL_RETURN                            = `EVAL_ILLEGAL_RETURN`
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE             = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
+	EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION            = `EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION`
 	EVAL_IMPL_ALREDY_REGISTERED                    = `EVAL_IMPL_ALREDY_REGISTERED`
 	EVAL_IMPL_IS_NOT_STRUCT                        = `EVAL_IMPL_IS_NOT_STRUCT`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
@@ -194,6 +195,8 @@ func init() {
 		issue.HF{`value`: issue.A_an})
 
 	issue.Hard(EVAL_ILLEGAL_BREAK, `break() from context where this is illegal`)
+
+	issue.Hard2(EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, `%{expression} is illegal within a type declaration`, issue.HF{`expression`: issue.A_anUc})
 
 	issue.Hard(EVAL_ILLEGAL_KIND_VALUE_COMBINATION, `%{label} of kind '%{kind}' cannot be combined with an attribute value`)
 

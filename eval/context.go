@@ -28,6 +28,9 @@ type Context interface {
 	// DefiningLoader returns a Loader that can receive new definitions
 	DefiningLoader() DefiningLoader
 
+	// DoStatic ensures that the reciver is in static mode during the evaluation of the given actor
+	DoStatic(actor Actor)
+
 	// DoWithLoader assigns the given loader to the receiver and calls the actor. The original loader is
 	// restored before this call returns.
 	DoWithLoader(loader Loader, actor Actor)
@@ -101,6 +104,12 @@ type Context interface {
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
 
+	// Scope returns the scope
+	Scope() Scope
+
+	// Stack returns the full stack. The returned value must not be modified.
+	Stack() []issue.Location
+
 	// StackPop pops the last pushed location from the stack
 	StackPop()
 
@@ -111,9 +120,7 @@ type Context interface {
 	// StackTop returns the top of the stack
 	StackTop() issue.Location
 
-	// Scope returns the scope
-	Scope() Scope
-
-	// Stack returns the full stack. The returned value must not be modified.
-	Stack() []issue.Location
+	// Static returns true during evaluation of type expressions. It is used to prevent
+	// dynamic expressions within such expressions
+	Static() bool
 }

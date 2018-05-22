@@ -501,53 +501,28 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return e.eval_AndExpression(expr.(*parser.AndExpression), c)
 	case *parser.ArithmeticExpression:
 		return e.eval_ArithmeticExpression(expr.(*parser.ArithmeticExpression), c)
-	case *parser.AssignmentExpression:
-		return e.eval_AssignmentExpression(expr.(*parser.AssignmentExpression), c)
-	case *parser.BlockExpression:
-		return e.eval_BlockExpression(expr.(*parser.BlockExpression), c)
-	case *parser.CallMethodExpression:
-		return e.eval_CallMethodExpression(expr.(*parser.CallMethodExpression), c)
-	case *parser.CallNamedFunctionExpression:
-		return e.eval_CallNamedFunctionExpression(expr.(*parser.CallNamedFunctionExpression), c)
-	case *parser.CaseExpression:
-		return e.eval_CaseExpression(expr.(*parser.CaseExpression), c)
 	case *parser.ComparisonExpression:
 		return e.eval_ComparisonExpression(expr.(*parser.ComparisonExpression), c)
-	case *parser.ConcatenatedString:
-		return e.eval_ConcatenatedString(expr.(*parser.ConcatenatedString), c)
 	case *parser.HeredocExpression:
 		return e.eval_HeredocExpression(expr.(*parser.HeredocExpression), c)
-	case *parser.IfExpression:
-		return e.eval_IfExpression(expr.(*parser.IfExpression), c)
 	case *parser.KeyedEntry:
 		return e.eval_KeyedEntry(expr.(*parser.KeyedEntry), c)
-	case *parser.LambdaExpression:
-		return e.eval_LambdaExpression(expr.(*parser.LambdaExpression), c)
 	case *parser.LiteralHash:
 		return e.eval_LiteralHash(expr.(*parser.LiteralHash), c)
 	case *parser.LiteralList:
 		return e.eval_LiteralList(expr.(*parser.LiteralList), c)
-	case *parser.MatchExpression:
-		return e.eval_MatchExpression(expr.(*parser.MatchExpression), c)
 	case *parser.NotExpression:
 		return e.eval_NotExpression(expr.(*parser.NotExpression), c)
 	case *parser.OrExpression:
 		return e.eval_OrExpression(expr.(*parser.OrExpression), c)
-	case *parser.ParenthesizedExpression:
-		return e.eval_ParenthesizedExpression(expr.(*parser.ParenthesizedExpression), c)
-	case *parser.Program:
-		return e.eval_Program(expr.(*parser.Program), c)
 	case *parser.QualifiedName:
 		return e.eval_QualifiedName(expr.(*parser.QualifiedName))
 	case *parser.QualifiedReference:
 		return e.eval_QualifiedReference(expr.(*parser.QualifiedReference), c)
+	case *parser.ParenthesizedExpression:
+		return e.eval_ParenthesizedExpression(expr.(*parser.ParenthesizedExpression), c)
 	case *parser.RegexpExpression:
 		return e.eval_RegexpExpression(expr.(*parser.RegexpExpression))
-	case *parser.SelectorExpression:
-		return e.eval_SelectorExpression(expr.(*parser.SelectorExpression), c)
-	case *parser.FunctionDefinition, *parser.TypeAlias, *parser.TypeMapping:
-		// All definitions must be processed at this time
-		return eval.UNDEF
 	case *parser.LiteralBoolean:
 		return e.eval_LiteralBoolean(expr.(*parser.LiteralBoolean))
 	case *parser.LiteralDefault:
@@ -562,6 +537,38 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return eval.UNDEF
 	case *parser.TextExpression:
 		return e.eval_TextExpression(expr.(*parser.TextExpression), c)
+	}
+
+	if c.Static() {
+		panic(e.evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
+	}
+
+	switch expr.(type) {
+	case *parser.AssignmentExpression:
+		return e.eval_AssignmentExpression(expr.(*parser.AssignmentExpression), c)
+	case *parser.BlockExpression:
+		return e.eval_BlockExpression(expr.(*parser.BlockExpression), c)
+	case *parser.CallMethodExpression:
+		return e.eval_CallMethodExpression(expr.(*parser.CallMethodExpression), c)
+	case *parser.CallNamedFunctionExpression:
+		return e.eval_CallNamedFunctionExpression(expr.(*parser.CallNamedFunctionExpression), c)
+	case *parser.CaseExpression:
+		return e.eval_CaseExpression(expr.(*parser.CaseExpression), c)
+	case *parser.ConcatenatedString:
+		return e.eval_ConcatenatedString(expr.(*parser.ConcatenatedString), c)
+	case *parser.IfExpression:
+		return e.eval_IfExpression(expr.(*parser.IfExpression), c)
+	case *parser.LambdaExpression:
+		return e.eval_LambdaExpression(expr.(*parser.LambdaExpression), c)
+	case *parser.MatchExpression:
+		return e.eval_MatchExpression(expr.(*parser.MatchExpression), c)
+	case *parser.Program:
+		return e.eval_Program(expr.(*parser.Program), c)
+	case *parser.SelectorExpression:
+		return e.eval_SelectorExpression(expr.(*parser.SelectorExpression), c)
+	case *parser.FunctionDefinition, *parser.TypeAlias, *parser.TypeMapping:
+		// All definitions must be processed at this time
+		return eval.UNDEF
 	case *parser.UnfoldExpression:
 		return e.eval_UnfoldExpression(expr.(*parser.UnfoldExpression), c)
 	case *parser.UnlessExpression:
