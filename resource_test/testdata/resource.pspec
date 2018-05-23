@@ -22,7 +22,7 @@ Examples('resource evaluator',
 
     Example('evaluates to array with values of last nodes when last expression is a relational operator',
       Given(@(SRC)),
-        $y = "$x wonderful" <- $x = 'hello' -> ["$y world", "$y planet"]
+        $y = "$x wonderful" <- $x = 'hello' -> parallel["$y world", "$y planet"]
         |-SRC
       Evaluates_to(['hello wonderful world', 'hello wonderful planet'])),
 
@@ -34,13 +34,13 @@ Examples('resource evaluator',
 
     Example('makes previous nodes results available as ResultSet in $pnr',
       Given(@(SRC)),
-        "${pnr['a'].value} ${pnr['b'].value}" <- [ Result('a', 'hello'),  Result('b', 'world') ]
+        "${pnr['a'].value} ${pnr['b'].value}" <- parallel[ Result('a', 'hello'),  Result('b', 'world') ]
         |-SRC
       Evaluates_to('hello world')),
 
     Example('propagate errors from previous nodes',
       Given(@(SRC)),
-        $pnr.ok <- [ Result('a', 'hello'),  Result('b', Error('oops')) ]
+        $pnr.ok <- parallel[ Result('a', 'hello'),  Result('b', Error('oops')) ]
         |-SRC
       Evaluates_to(false)),
   ),
@@ -140,8 +140,8 @@ Examples('resource evaluator',
     Example('arrays can be ordered using ->"',
       Given(Format(@(SRC), Get('resourceType'))),
         %s
-        [ myres { '/a/a': }, myres { '/a/b': }, myres { '/a/c': } ] ->
-        [ myres { '/b/a': }, myres { '/b/b': }, myres { '/b/c': } ] ->
+        parallel[ myres { '/a/a': }, myres { '/a/b': }, myres { '/a/c': } ] ->
+        parallel[ myres { '/b/a': }, myres { '/b/b': }, myres { '/b/c': } ] ->
         ['/a/a', '/a/b', '/a/c' ].map |$r| {
           nodes_from("myres[$r]").map |$n| { $n.resources.keys }.flatten
         } +
@@ -158,7 +158,7 @@ Examples('resource evaluator',
         ['myres[/a/a]', 'myres[/a/b]', 'myres[/a/c]'],
         ])),
 
-    Example('parallel can be ordered using ->"',
+    Example('parallel function form can be ordered using ->"',
       Given(Format(@(SRC), Get('resourceType'))),
         %s
         parallel([a, b, c]) |$x| { myres { "/a/$x": } } ->
@@ -170,6 +170,14 @@ Examples('resource evaluator',
       Given(Format(@(SRC), Get('resourceType'))),
         %s
         sequential([a, b, c]) |$x| { myres { "/a/$x": } } ->
+        sequential([a, b, c]) |$x| { myres { "/b/$x": } }
+        |-SRC
+      Evaluates_with(Notice(*['/a/a', '/a/b', '/a/c', '/b/a', '/b/b', '/b/c'].map |$r| { "Applying myres[$r]" }))),
+
+    Example('sequential can use an access expression ->"',
+      Given(Format(@(SRC), Get('resourceType'))),
+        %s
+        sequential[ myres { "/a/a": }, myres { "/a/b": }, myres { "/a/c": } ] ->
         sequential([a, b, c]) |$x| { myres { "/b/$x": } }
         |-SRC
       Evaluates_with(Notice(*['/a/a', '/a/b', '/a/c', '/b/a', '/b/b', '/b/c'].map |$r| { "Applying myres[$r]" }))),

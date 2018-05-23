@@ -82,7 +82,9 @@ func getTitles(c eval.Context, expr parser.Expression, titles []string) []string
 		}
 	case *parser.LiteralString:
 		titles = append(titles, expr.(*parser.LiteralString).StringValue())
-	case *parser.QualifiedName, *parser.QualifiedReference:
+	case *parser.QualifiedName:
+		titles = append(titles, expr.(*parser.QualifiedName).Name())
+	case *parser.QualifiedReference:
 		titles = append(titles, expr.(*parser.QualifiedReference).Name())
 	case parser.LiteralValue:
 		titles = append(titles, c.Call(`new`, []eval.PValue{types.DefaultStringType(), c.Evaluate(expr)}, nil).String())
