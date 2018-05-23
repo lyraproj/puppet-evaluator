@@ -38,7 +38,7 @@ Examples('when using the YAML Puppet parser',
         |YAML
 
       evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s')) ->
-        sequental:
+        sequential:
           - parallel:
             - resources:
                 my::a:

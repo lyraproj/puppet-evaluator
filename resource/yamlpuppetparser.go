@@ -75,7 +75,7 @@ func (yp *yamlParser) parseMapItem(path []string, key string, value interface{})
 		if _, ok := expr.(*parser.LiteralList); !ok {
 			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
 		}
-	case `sequental`:
+	case `sequential`:
 		expr = yp.parseValue(path, value, true)
 		if la, ok := expr.(*parser.LiteralList); ok {
 			// Transform into relational operators to ensure that execution is sequenced
