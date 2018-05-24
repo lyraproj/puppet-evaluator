@@ -286,15 +286,25 @@ func (rn *node) apply(c eval.Context) {
 			results = append(results, NewErrorResult(types.WrapInteger(rn.ID()), eval.ErrorFromReported(c, ir)))
 			rn.error = ir
 		} else {
+			if len(applyResults) != len(rs) {
+				panic(eval.Error(c, EVAL_APPLY_FUNCTION_SIZE_MISMATCH, issue.H{`expected`: len(rs), `actual`: len(applyResults)}))
+			}
 			for ix, ar := range applyResults {
 				r := rs[ix]
 				if err, ok := ar.(eval.ErrorObject); ok {
 					results = append(results, NewErrorResult(types.WrapString(Reference(c, r)), err))
 				} else {
-					// Update handle
+					if ar == nil {
+						panic(eval.Error(c, EVAL_APPLY_FUNCTION_NIL_RETURN, issue.NO_ARGS))
+					}
 					rh, _ := resources.Get4(Reference(c, r))
-					rh.(*handle).value = ar
-					results = append(results, NewResult(types.WrapString(Reference(c, r)), ar, ``))
+					if arp, ok := ar.(eval.PuppetObject); ok {
+						// Update handle
+						rh.(*handle).Replace(arp)
+						results = append(results, NewResult(types.WrapString(Reference(c, r)), arp, ``))
+					} else {
+						panic(eval.Error(c, EVAL_APPLY_FUNCTION_INVALID_RETURN, issue.H{`value`: ar}))
+					}
 				}
 			}
 		}
