@@ -985,30 +985,6 @@ func init() {
 			return strings.Join(rs, "\n")
 		}
 	}
-
-	eval.AssertType = func(c eval.Context, pfx interface{}, expected, actual eval.PType) eval.PType {
-		if !eval.IsAssignable(expected, actual) {
-			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, actual)}))
-		}
-		return actual
-	}
-
-	eval.AssertInstance = func(c eval.Context, pfx interface{}, expected eval.PType, value eval.PValue) eval.PValue {
-		if !eval.IsInstance(c, expected, value) {
-			panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(getPrefix(pfx), expected, eval.DetailedValueType(value))}))
-		}
-		return value
-	}
-}
-
-func getPrefix(pfx interface{}) string {
-	name := ``
-	if s, ok := pfx.(string); ok {
-		name = s
-	} else if f, ok := pfx.(func() string); ok {
-		name = f()
-	}
-	return name
 }
 
 func describeSignatures(signatures []eval.Signature, argsTuple eval.PType, block eval.Lambda) string {

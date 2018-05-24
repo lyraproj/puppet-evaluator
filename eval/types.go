@@ -2,8 +2,8 @@ package eval
 
 import (
 	"github.com/puppetlabs/go-issues/issue"
-	"reflect"
 	"github.com/puppetlabs/go-semver/semver"
+	"reflect"
 )
 
 type (
@@ -258,6 +258,20 @@ func Any2(array IndexedValue, predicate Predicate) bool {
 	return false
 }
 
+func AssertType(c Context, pfx interface{}, expected, actual PType) PType {
+	if !IsAssignable(expected, actual) {
+		panic(Error(c, EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
+	}
+	return actual
+}
+
+func AssertInstance(c Context, pfx interface{}, expected PType, value PValue) PValue {
+	if !IsInstance(c, expected, value) {
+		panic(Error(c, EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
+	}
+	return value
+}
+
 func Each(elements []PValue, consumer Consumer) {
 	for _, elem := range elements {
 		consumer(elem)
@@ -387,10 +401,6 @@ var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambd
 
 var DescribeMismatch func(pfx string, expected PType, actual PType) string
 
-var AssertType func(c Context, pfx interface{}, expected, actual PType) PType
-
-var AssertInstance func(c Context, pfx interface{}, expected PType, value PValue) PValue
-
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
 var NewTypeSet func(name, typeDecl string) TypeSet
@@ -400,3 +410,13 @@ var NewError func(c Context, message, kind, issueCode string, partialResult PVal
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
 
 var WrapType func(c Context, rt reflect.Type) PType
+
+func getPrefix(pfx interface{}) string {
+	name := ``
+	if s, ok := pfx.(string); ok {
+		name = s
+	} else if f, ok := pfx.(func() string); ok {
+		name = f()
+	}
+	return name
+}

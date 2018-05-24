@@ -6,6 +6,9 @@ import (
 )
 
 const (
+	EVAL_APPLY_FUNCTION_SIZE_MISMATCH  = `EVAL_APPLY_FUNCTION_SIZE_MISMATCH`
+	EVAL_APPLY_FUNCTION_INVALID_RETURN = `EVAL_APPLY_FUNCTION_INVALID_RETURN`
+	EVAL_APPLY_FUNCTION_NIL_RETURN     = `EVAL_APPLY_FUNCTION_NIL_RETURN`
 	EVAL_DECLARATION_MUST_HAVE_LAMBDA  = `EVAL_DECLARATION_MUST_HAVE_LAMBDA`
 	EVAL_DUPLICATE_RESOURCE            = `EVAL_DUPLICATE_RESOURCE`
 	EVAL_ILLEGAL_RESOURCE              = `EVAL_ILLEGAL_RESOURCE`
@@ -25,6 +28,12 @@ func joinPath(path interface{}) string {
 }
 
 func init() {
+	issue.Hard(EVAL_APPLY_FUNCTION_SIZE_MISMATCH, `Slice returned by ApplyFunction has incorrect size. Expected %{expected}, actual %{actual}`)
+
+	issue.Hard(EVAL_APPLY_FUNCTION_INVALID_RETURN, `Slice returned by ApplyFunction expects eval.PuppetObject. Got %<value>T`)
+
+	issue.Hard(EVAL_APPLY_FUNCTION_NIL_RETURN, `Slice returned by ApplyFunction contains one or more nil values`)
+
 	issue.Hard(EVAL_DECLARATION_MUST_HAVE_LAMBDA, `A %{declaration} declaration must be declared with a block`)
 
 	issue.Hard(EVAL_DUPLICATE_RESOURCE, `Duplicate declaration: %{ref} is already declared %{previous_location}; cannot redeclare`)

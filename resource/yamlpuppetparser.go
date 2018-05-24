@@ -31,7 +31,7 @@ func evaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
 	return c.Evaluate(expr)
 }
 
-func (yp *yamlParser) parseYaml(path []string, ms yaml.MapSlice, top bool) (expr parser.Expression) {
+func (yp *yamlParser) parseYaml(path []string, ms yaml.MapSlice, top bool) parser.Expression {
 	es := make([]parser.Expression, len(ms))
 
 	// Copy path and make room for key
@@ -56,46 +56,33 @@ func (yp *yamlParser) parseYaml(path []string, ms yaml.MapSlice, top bool) (expr
 	}
 	if top {
 		if len(es) == 1 {
-			expr = es[0]
-		} else {
-			expr = yp.f.Array(es, yp.l, 0, 0)
+			return es[0]
 		}
-	} else {
-		expr = yp.f.Hash(es, yp.l, 0, 0)
+		return yp.f.Array(es, yp.l, 0, 0)
 	}
-	return
+
+	if len(es) == 1 {
+		ke := es[0].(*parser.KeyedEntry)
+		if key, ok := ke.Key().(*parser.LiteralString); ok && key.StringValue() == `_eval` {
+			if str, ok := ke.Value().(*parser.LiteralString); ok {
+				return yp.c.ParseAndValidate(yp.l.File(), str.StringValue(), true)
+			}
+			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `String`, `actual`: ke.Value().Label()}))
+		}
+	}
+	return yp.f.Hash(es, yp.l, 0, 0)
 }
 
 func (yp *yamlParser) parseMapItem(path []string, key string, value interface{}) (expr parser.Expression) {
 	switch key {
-	case `parallel`:
+	case `parallel`, `sequential`:
 		// Will return literal array for multiple expressions which in turn is interpreted as
 		// parallel by the evaluator
 		expr = yp.parseValue(path, value, true)
-		if _, ok := expr.(*parser.LiteralList); !ok {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
+		if ll, ok := expr.(*parser.LiteralList); ok {
+			return yp.f.Access(yp.f.QualifiedName(key, yp.l, 0, 0), ll.Elements(), yp.l, 0, 0)
 		}
-	case `sequential`:
-		expr = yp.parseValue(path, value, true)
-		if la, ok := expr.(*parser.LiteralList); ok {
-			// Transform into relational operators to ensure that execution is sequenced
-			exprs := la.Elements()
-			top := len(exprs)
-			switch top {
-			case 0:
-				expr = yp.f.Nop(yp.l, 0, 0)
-			case 1:
-				expr = exprs[0]
-			default:
-				lhs := exprs[0]
-				for i := 1; i < top; i++ {
-					lhs = yp.f.RelOp(`->`, lhs, exprs[i], yp.l, 0, 0)
-				}
-				expr = lhs
-			}
-		} else {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
-		}
+		panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralList`, `actual`: expr.Label()}))
 	case `resources`:
 		expr = yp.parseValue(path, value, false)
 		if hash, ok := expr.(*parser.LiteralHash); ok {

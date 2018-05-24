@@ -129,13 +129,29 @@ func WrapBinary(val []byte) *BinaryValue {
 	return &BinaryValue{val}
 }
 
+// BinaryFromFile opens file appointed by the given path for reading and returns
+// its contents as a Binary. The function will panic with an issue.Reported unless
+// the operation succeeds.
 func BinaryFromFile(c eval.Context, path string) *BinaryValue {
+	if bf, ok := BinaryFromFile2(c, path); ok {
+		return bf
+	}
+	panic(eval.Error(c, eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
+}
+
+// BinaryFromFile2 opens file appointed by the given path for reading and returns
+// its contents as a Binary together with a boolean indicating if the file was
+// found or not.
+//
+// The function will only return false if the given file does not exist. It will panic
+// with an issue.Reported on all other errors.
+func BinaryFromFile2(c eval.Context, path string) (*BinaryValue, bool) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		stat, serr := os.Stat(path)
 		if serr != nil {
 			if os.IsNotExist(serr) {
-				panic(eval.Error(c, eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
+				return nil, false
 			}
 			if os.IsPermission(serr) {
 				panic(eval.Error(c, eval.EVAL_FILE_READ_DENIED, issue.H{`path`: path}))
@@ -147,7 +163,7 @@ func BinaryFromFile(c eval.Context, path string) *BinaryValue {
 		}
 		panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
 	}
-	return WrapBinary(bytes)
+	return WrapBinary(bytes), true
 }
 
 func BinaryFromString(str string, f string) *BinaryValue {

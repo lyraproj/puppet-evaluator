@@ -44,7 +44,7 @@ Examples('when using the YAML Puppet parser',
                 my::a:
                   '/a/a':
                     ensure: absent
-                    mode: 0700
+                    mode: 0644
                 my::b:
                   x:
                     message: The X
@@ -63,7 +63,7 @@ Examples('when using the YAML Puppet parser',
           - resources:
               my::a:
                 '/a/b':
-                  ensure: "${resource('my::a[/a/a]').ensure}"
+                  ensure: { _eval: "resource('my::a[/a/a]').ensure" }
                   mode: 0600
         |YAML
       String([resource('my::a[/a/b]')])
