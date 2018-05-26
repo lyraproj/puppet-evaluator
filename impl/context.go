@@ -109,6 +109,15 @@ func (c *evalCtx) DoWithLoader(loader eval.Loader, actor eval.Actor) {
 	actor()
 }
 
+func (c *evalCtx) DoWithScope(scope eval.Scope, actor eval.Actor) {
+	saveScope := c.scope
+	defer func() {
+		c.scope = saveScope
+	}()
+	c.scope = scope
+	actor()
+}
+
 func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 	if location == nil {
 		location = c.StackTop()

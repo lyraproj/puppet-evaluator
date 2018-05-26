@@ -35,6 +35,10 @@ type Context interface {
 	// restored before this call returns.
 	DoWithLoader(loader Loader, actor Actor)
 
+	// DoWithScope assigns the given scope to the receiver and calls the actor. The original scope is
+	// restored before this call returns.
+	DoWithScope(scope Scope, actor Actor)
+
 	// Evaluate evaluates the given expression using the evaluator of the receiver.
 	Evaluate(expr parser.Expression) PValue
 
