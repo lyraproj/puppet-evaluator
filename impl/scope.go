@@ -105,10 +105,39 @@ func (e *BasicScope) Set(name string, value eval.PValue) bool {
 	return false
 }
 
+func (e *BasicScope) State(name string)  eval.VariableState {
+	if strings.HasPrefix(name, `::`) {
+		// Shortcut to global scope
+		_, ok := e.scopes[0][name[2:]]
+		if ok {
+			return eval.Global
+		}
+		return eval.NotFound
+	}
+
+	for idx := len(e.scopes) - 1; idx >= 0; idx-- {
+		if _, ok := e.scopes[idx][name]; ok {
+			if idx == 0 {
+				return eval.Global
+			}
+			return eval.Local
+		}
+	}
+	return eval.NotFound
+}
+
 func (e *parentedScope) Get(name string) (value eval.PValue, found bool) {
 	value, found = e.BasicScope.Get(name)
 	if !found {
 		value, found = e.parent.Get(name)
 	}
 	return
+}
+
+func (e *parentedScope) State(name string) eval.VariableState {
+	s := e.BasicScope.State(name)
+	if s != 0 {
+		return s
+	}
+	return e.parent.State(name)
 }

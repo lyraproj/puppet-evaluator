@@ -1,5 +1,11 @@
 package eval
 
+type VariableState int
+
+const NotFound = VariableState(0)
+const Global = VariableState(1)
+const Local = VariableState(2)
+
 type (
 	// A Scope is the container for Puppet variables. It is constituted of
 	// a stack of ephemeral scopes where each ephemeral scope represents a local
@@ -35,5 +41,8 @@ type (
 		// RxGet returns a numeric variable that has been assigned by RxSet together
 		// with a boolean indicating success.
 		RxGet(index int) (value PValue, found bool)
+
+		// State returns NotFound, Global, or Local
+		State(name string) VariableState
 	}
 )
