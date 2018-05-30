@@ -1,4 +1,4 @@
-package resource
+package yamlparser
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
@@ -19,19 +20,24 @@ type yamlParser struct {
 	f parser.ExpressionFactory
 }
 
-func evaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
+func NewYAMLParser(c eval.Context, filename string, content []byte) *yamlParser {
+	yp := &yamlParser{c, parser.NewLocator(filename, string(content)), parser.DefaultFactory()}
+	return yp
+}
+
+func EvaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
 	ms := make(yaml.MapSlice, 0)
 	err := yaml.Unmarshal(content, &ms)
 	if err != nil {
 		panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
 	}
 	yp := &yamlParser{c, parser.NewLocator(filename, string(content)), parser.DefaultFactory()}
-	expr := yp.parseYaml([]string{}, ms, true)
+	expr := yp.ParseYaml([]string{}, ms, true)
 	fmt.Println(expr.ToPN())
 	return c.Evaluate(expr)
 }
 
-func (yp *yamlParser) parseYaml(path []string, ms yaml.MapSlice, top bool) parser.Expression {
+func (yp *yamlParser) ParseYaml(path []string, ms yaml.MapSlice, top bool) parser.Expression {
 	es := make([]parser.Expression, len(ms))
 
 	// Copy path and make room for key
@@ -66,6 +72,14 @@ func (yp *yamlParser) parseYaml(path []string, ms yaml.MapSlice, top bool) parse
 		if key, ok := ke.Key().(*parser.LiteralString); ok && key.StringValue() == `_eval` {
 			if str, ok := ke.Value().(*parser.LiteralString); ok {
 				return yp.c.ParseAndValidate(yp.l.File(), str.StringValue(), true)
+			}
+			if str, ok := ke.Value().(*parser.ConcatenatedString); ok {
+				bld := bytes.NewBufferString(``)
+				for _, s := range str.Segments() {
+					strtemp := yp.c.Evaluate(s).(*types.StringValue).String()
+					bld.WriteString(strtemp)
+				}
+				return yp.c.ParseAndValidate(yp.l.File(), bld.String(), true)
 			}
 			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `String`, `actual`: ke.Value().Label()}))
 		}
@@ -108,6 +122,8 @@ func (yp *yamlParser) parseMapItem(path []string, key string, value interface{})
 		} else {
 			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: path, `key`: key, `expected`: `LiteralHash`, `actual`: expr.Label()}))
 		}
+	case `functions`:
+		expr = yp.parseValue(path, value, false)
 	default:
 		panic(eval.Error(yp.c, EVAL_YAML_UNRECOGNIZED_TOP_CONSTRUCT, issue.H{`path`: path, `key`: key}))
 	}
@@ -150,7 +166,7 @@ func (yp *yamlParser) parseValue(path []string, value interface{}, top bool) par
 
 	switch value.(type) {
 	case yaml.MapSlice:
-		return yp.parseYaml(path, value.(yaml.MapSlice), top)
+		return yp.ParseYaml(path, value.(yaml.MapSlice), top)
 	case []interface{}:
 		vs := value.([]interface{})
 		exprs := make([]parser.Expression, len(vs))
