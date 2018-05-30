@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )

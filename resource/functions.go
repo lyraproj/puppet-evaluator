@@ -6,6 +6,7 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-evaluator/yaml2ast"
 	"github.com/puppetlabs/go-issues/issue"
 )
 
@@ -100,14 +101,14 @@ func initResourceFunctions() {
 			d.Param(`String`)
 			d.Param(`Binary`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return evaluateYaml(c, args[0].String(), args[1].(*types.BinaryValue).Bytes())
+				return yaml2ast.EvaluateYaml(c, args[0].String(), args[1].(*types.BinaryValue).Bytes())
 			})
 		},
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 				path := args[0].String()
-				return evaluateYaml(c, path, types.BinaryFromFile(c, path).Bytes())
+				return yaml2ast.EvaluateYaml(c, path, types.BinaryFromFile(c, path).Bytes())
 			})
 		})
 }
