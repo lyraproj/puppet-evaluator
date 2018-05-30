@@ -1,4 +1,4 @@
-package yamlparser
+package yaml2ast
 
 import (
 	"strings"

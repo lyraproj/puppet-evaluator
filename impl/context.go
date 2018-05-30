@@ -6,11 +6,9 @@ import (
 
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-evaluator/yamlparser"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
-	yaml "gopkg.in/yaml.v2"
 )
 
 type (
@@ -205,16 +203,6 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 		}
 	}
 	return expr
-}
-
-func (c *evalCtx) ParseAndValidateYAML(filename string, content []byte) parser.Expression {
-	ms := make(yaml.MapSlice, 0)
-	err := yaml.Unmarshal(content, &ms)
-	if err != nil {
-		panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
-	}
-	yp := yamlparser.NewYAMLParser(c, filename, content)
-	return yp.ParseYaml([]string{filename}, ms, true)
 }
 
 func (c *evalCtx) ParseType(typeString eval.PValue) eval.PType {

@@ -1,4 +1,4 @@
-package yamlparser
+package yaml2ast
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
@@ -20,11 +19,21 @@ type yamlParser struct {
 	f parser.ExpressionFactory
 }
 
-func NewYAMLParser(c eval.Context, filename string, content []byte) *yamlParser {
+// YamlToAST parses and transforms the given yaml content into a Puppet AST. It will
+// panic with an issue.Reported unless the parsing and transformation was succesful.
+func YamlToAST(c eval.Context, filename string, content []byte) parser.Expression {
+	ms := make(yaml.MapSlice, 0)
+	err := yaml.Unmarshal(content, &ms)
+	if err != nil {
+		panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
+	}
 	yp := &yamlParser{c, parser.NewLocator(filename, string(content)), parser.DefaultFactory()}
-	return yp
+	return yp.ParseYaml([]string{filename}, ms, true)
 }
 
+// EvaluateYaml parses the supplied yaml content into a map, transforms that
+// map into Puppet DSL before then evaluating that DSL. It will panic with
+// an issue.Reported unless the parsing and evaluation was succesful.
 func EvaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
 	ms := make(yaml.MapSlice, 0)
 	err := yaml.Unmarshal(content, &ms)
@@ -37,6 +46,8 @@ func EvaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
 	return c.Evaluate(expr)
 }
 
+// ParseYaml parses the supplied yaml content into a generic map.  It will
+// panic with an issue.Reported unless the parsing was succesful.
 func (yp *yamlParser) ParseYaml(path []string, ms yaml.MapSlice, top bool) parser.Expression {
 	es := make([]parser.Expression, len(ms))
 
@@ -76,7 +87,7 @@ func (yp *yamlParser) ParseYaml(path []string, ms yaml.MapSlice, top bool) parse
 			if str, ok := ke.Value().(*parser.ConcatenatedString); ok {
 				bld := bytes.NewBufferString(``)
 				for _, s := range str.Segments() {
-					strtemp := yp.c.Evaluate(s).(*types.StringValue).String()
+					strtemp := yp.c.Evaluate(s).String()
 					bld.WriteString(strtemp)
 				}
 				return yp.c.ParseAndValidate(yp.l.File(), bld.String(), true)

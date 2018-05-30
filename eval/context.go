@@ -82,10 +82,6 @@ type Context interface {
 	// an issue.Reported unless the parsing and evaluation was succesful.
 	ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
 
-	// ParseAndValidateYAML parses and evaluates the given content. It will panic with
-	// an issue.Reported unless the parsing and evaluation was succesful.
-	ParseAndValidateYAML(filename string, content []byte) parser.Expression
-
 	// ParseType parses and evaluates the given PValue into a PType. It will panic with
 	// an issue.Reported unless the parsing was succesfull and the result is evaluates
 	// to a PType
