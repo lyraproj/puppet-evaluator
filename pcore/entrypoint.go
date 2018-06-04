@@ -33,7 +33,7 @@ type (
 )
 
 var staticLock sync.Mutex
-var puppet = &pcoreImpl{}
+var puppet = &pcoreImpl{settings:make(map[string]*setting, 32)}
 var topImplRegistry eval.ImplementationRegistry
 
 func init() {
@@ -51,7 +51,6 @@ func InitializePuppet() {
 	}
 
 	puppet.logger = eval.NewStdLogger()
-	puppet.settings = make(map[string]*setting, 32)
 	puppet.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
 	puppet.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
 	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
