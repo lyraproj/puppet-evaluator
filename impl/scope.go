@@ -91,13 +91,13 @@ func (e *BasicScope) RxSet(variables []string) {
 }
 
 func (e *BasicScope) Set(name string, value eval.PValue) bool {
-	var current map[string]eval.PValue
+	scopeIdx := 0
 	if strings.HasPrefix(name, `::`) {
 		name = name[2:]
-		current = e.scopes[0]
 	} else {
-		current = e.scopes[len(e.scopes)-1]
+		scopeIdx = len(e.scopes)-1
 	}
+	current := e.scopes[scopeIdx]
 	if _, found := current[name]; !found {
 		current[name] = value
 		return true
@@ -132,6 +132,31 @@ func (e *parentedScope) Get(name string) (value eval.PValue, found bool) {
 		value, found = e.parent.Get(name)
 	}
 	return
+}
+
+func (e *parentedScope) Set(name string, value eval.PValue) bool {
+	scopeIdx := 0
+	if strings.HasPrefix(name, `::`) {
+		name = name[2:]
+	} else {
+		scopeIdx = len(e.scopes)-1
+	}
+	if scopeIdx == 0 && e.parent.State(name) == eval.Global {
+		// Attempt to override global declared in parent. Only $pnr can do
+		// that and the override ends up here, not in the parent.
+		if name == `pnr` {
+			e.scopes[0][name] = value
+			return true
+		}
+		return false
+	}
+
+	current := e.scopes[scopeIdx]
+	if _, found := current[name]; !found {
+		current[name] = value
+		return true
+	}
+	return false
 }
 
 func (e *parentedScope) State(name string) eval.VariableState {
