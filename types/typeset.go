@@ -85,6 +85,7 @@ type (
 		pcoreURI           eval.URI
 		pcoreVersion       semver.Version
 		version            semver.Version
+		typedName          eval.TypedName
 		types              *HashValue
 		references         map[string]*typeSetReference
 		loader             eval.Loader
@@ -393,6 +394,10 @@ func (t *typeSet) NameAuthority() eval.URI {
 	return t.nameAuthority
 }
 
+func (t *typeSet) TypedName() eval.TypedName {
+	return t.typedName
+}
+
 func (t *typeSet) Parameters() []eval.PValue {
 	if t.Equals(typeSetType_DEFAULT, nil) {
 		return eval.EMPTY_VALUES
@@ -417,6 +422,7 @@ func (t *typeSet) Resolve(c eval.Context) eval.PType {
 	}
 	t.loader = c.Loader()
 	t.InitFromHash(c, initHash)
+	t.typedName = eval.NewTypedName2(eval.TYPE, t.name, t.nameAuthority)
 
 	for _, ref := range t.references {
 		ref.resolve(c)

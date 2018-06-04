@@ -448,7 +448,7 @@ func ExampleReflector_typeSetFromReflect() {
 	c := eval.Puppet.RootContext()
 
 	// Create a TypeSet from a list of Go structs
-	typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`),
+	typeSet := c.Reflector().TypeSetFromReflect(`My::Own`, semver.MustParseVersion(`1.0.0`),
 		reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
 
 	// Make the types known to the current loader
@@ -469,7 +469,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//   pcore_uri => 'http://puppet.com/2016.1/pcore',
 	//   pcore_version => '1.0.0',
 	//   name_authority => 'http://puppet.com/2016.1/runtime',
-	//   name => 'My',
+	//   name => 'My::Own',
 	//   version => '1.0.0',
 	//   types => {
 	//     Address => {
@@ -495,7 +495,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//     }
 	//   }
 	// }]
-	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
+	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 }
 
 func TestReflectorAndImplRepo(t *testing.T) {

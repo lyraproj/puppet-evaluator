@@ -7,7 +7,6 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
-	"strings"
 )
 
 type (
@@ -185,8 +184,8 @@ func (l *typeSetLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 	if tp, ok := l.typeSet.GetType(name); ok {
 		return l.SetEntry(name, &loaderEntry{tp, nil})
 	}
-	if strings.EqualFold(name.NameParts()[0], l.typeSet.Name()) {
-		return l.find(c, name.Child())
+	if child, ok := name.RelativeTo(l.typeSet.TypedName()); ok {
+		return l.find(c, child)
 	}
 	return nil
 }

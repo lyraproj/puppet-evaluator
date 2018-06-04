@@ -182,6 +182,9 @@ type (
 		// NameAuthority returns the name authority of the receiver
 		NameAuthority() URI
 
+		// TypedName returns the name of this type set as a TypedName
+		TypedName() TypedName
+
 		// Types returns a hash of all types contained in this set. The keyes
 		// in this hash are relative to the receiver name
 		Types() KeyedValue

@@ -12,6 +12,8 @@ type (
 	TypedName interface {
 		issue.Named
 
+		IsParent(n TypedName) bool
+
 		IsQualified() bool
 
 		MapKey() string
@@ -31,6 +33,8 @@ type (
 		// Parent returns the typed name with its final segment stripped off, e.g.
 		// A::B::C returns A::B
 		Parent() TypedName
+
+		RelativeTo(parent TypedName) (TypedName, bool)
 	}
 
 	typedName struct {
@@ -75,9 +79,19 @@ func (t *typedName) Child() TypedName {
 	if !t.IsQualified() {
 		return nil
 	}
+	return t.child(1)
+}
 
-	stripLen := len(t.nameParts[0]) + 2
-	parts := t.nameParts[1:]
+func (t *typedName) child(stripCount int) TypedName {
+	if !t.IsQualified() {
+		return nil
+	}
+
+	stripLen := 2
+	for i := 0; i < stripCount; i++ {
+		stripLen += len(t.nameParts[i])
+	}
+	parts := t.nameParts[stripCount:]
 	b := bytes.NewBufferString(``)
 	b.Grow(len(t.compoundName) - stripLen)
 	b.WriteString(string(t.nameAuthority))
@@ -122,6 +136,27 @@ func (t *typedName) Equals(other interface{}, g Guard) bool {
 func (t *typedName) Name() string {
 	cn := t.compoundName
 	return cn[strings.LastIndex(cn, `/`)+1:]
+}
+
+func (t *typedName) IsParent(o TypedName) bool {
+	tps := t.nameParts
+	ops := o.NameParts()
+	top := len(tps)
+	if top > len(ops) {
+		for idx := 0; idx < top; idx++ {
+			if tps[idx] != ops[idx] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (t *typedName) RelativeTo(parent TypedName) (TypedName, bool) {
+	if parent.IsParent(t) {
+		return t.child(len(parent.NameParts())), true
+	}
+	return nil, false
 }
 
 func (t *typedName) IsQualified() bool {
