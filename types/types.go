@@ -96,6 +96,13 @@ func normalize(t eval.PType) eval.PType {
 	return t
 }
 
+func resolve(c eval.Context, t eval.PType) eval.PType {
+	if rt, ok := t.(eval.ResolvableType); ok {
+		return rt.Resolve(c)
+	}
+	return t
+}
+
 func GuardedIsInstance(c eval.Context, a eval.PType, v eval.PValue, g eval.Guard) bool {
 	return a.IsInstance(c, v, g)
 }

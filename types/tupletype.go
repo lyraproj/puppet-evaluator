@@ -307,6 +307,15 @@ func (t *TupleType) Name() string {
 	return `Tuple`
 }
 
+func (t *TupleType) Resolve(c eval.Context) eval.PType {
+	rts := make([]eval.PType, len(t.types))
+	for i, ts := range t.types {
+		rts[i] = resolve(c, ts)
+	}
+	t.types = rts
+	return t
+}
+
 func (t *TupleType) Size() *IntegerType {
 	return t.givenOrActualSize
 }

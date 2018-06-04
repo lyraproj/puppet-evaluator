@@ -113,6 +113,11 @@ func (t *SensitiveType) Parameters() []eval.PValue {
 	return []eval.PValue{t.typ}
 }
 
+func (t *SensitiveType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *SensitiveType) String() string {
 	return eval.ToString2(t, NONE)
 }

@@ -122,6 +122,11 @@ func (t *OptionalType) ReflectType() (reflect.Type, bool) {
 	return ReflectType(t.typ)
 }
 
+func (t *OptionalType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *OptionalType) String() string {
 	return eval.ToString2(t, NONE)
 }

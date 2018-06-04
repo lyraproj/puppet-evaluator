@@ -324,6 +324,12 @@ func (t *HashType) Parameters() []eval.PValue {
 	return params
 }
 
+func (t *HashType) Resolve(c eval.Context) eval.PType {
+	t.keyType = resolve(c, t.keyType)
+	t.valueType = resolve(c, t.valueType)
+	return t
+}
+
 func (t *HashType) Size() *IntegerType {
 	return t.size
 }

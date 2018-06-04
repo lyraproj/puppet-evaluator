@@ -123,6 +123,15 @@ func (t *VariantType) Parameters() []eval.PValue {
 	return ps
 }
 
+func (t *VariantType) Resolve(c eval.Context) eval.PType {
+	rts := make([]eval.PType, len(t.types))
+	for i, ts := range t.types {
+		rts[i] = resolve(c, ts)
+	}
+	t.types = rts
+	return t
+}
+
 func (t *VariantType) String() string {
 	return eval.ToString2(t, NONE)
 }

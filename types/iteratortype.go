@@ -144,6 +144,11 @@ func (t *IteratorType) ElementType() eval.PType {
 	return t.typ
 }
 
+func (t *IteratorType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *IteratorType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }

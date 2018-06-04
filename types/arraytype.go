@@ -201,6 +201,11 @@ func (t *ArrayType) Name() string {
 	return `Array`
 }
 
+func (t *ArrayType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *ArrayType) Size() *IntegerType {
 	return t.size
 }

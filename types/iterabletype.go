@@ -122,6 +122,11 @@ func (t *IterableType) Parameters() []eval.PValue {
 	return []eval.PValue{t.typ}
 }
 
+func (t *IterableType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *IterableType) String() string {
 	return eval.ToString2(t, NONE)
 }

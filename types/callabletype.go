@@ -267,6 +267,19 @@ func (t *CallableType) ParametersType() eval.PType {
 	return t.paramsType
 }
 
+func (t *CallableType) Resolve(c eval.Context) eval.PType {
+	if t.paramsType != nil {
+		t.paramsType = resolve(c, t.paramsType).(*TupleType)
+	}
+	if t.returnType != nil {
+		t.returnType = resolve(c, t.returnType)
+	}
+	if t.blockType != nil {
+		t.blockType = resolve(c, t.blockType)
+	}
+	return t
+}
+
 func (t *CallableType) ReturnType() eval.PType {
 	return t.returnType
 }

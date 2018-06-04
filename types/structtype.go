@@ -160,6 +160,11 @@ func (s *StructElement) Optional() bool {
 	return ok
 }
 
+func (s *StructElement) resolve(c eval.Context) {
+	s.key = resolve(c, s.key)
+	s.value = resolve(c, s.value)
+}
+
 func (s *StructElement) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
 	optionalValue := isAssignable(s.value, undefType_DEFAULT)
 	if _, ok := s.key.(*OptionalType); ok {
@@ -343,6 +348,13 @@ func (t *StructType) Parameters() []eval.PValue {
 		entries[idx] = WrapHashEntry(key, s.value)
 	}
 	return []eval.PValue{WrapHash(entries)}
+}
+
+func (t *StructType) Resolve(c eval.Context) eval.PType {
+	for _, e := range t.elements {
+		e.resolve(c)
+	}
+	return t
 }
 
 func (t *StructType) Size() *IntegerType {

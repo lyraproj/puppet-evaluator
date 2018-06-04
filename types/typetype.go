@@ -129,6 +129,11 @@ func (t *TypeType) Parameters() []eval.PValue {
 	return []eval.PValue{t.typ}
 }
 
+func (t *TypeType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *TypeType) String() string {
 	return eval.ToString2(t, NONE)
 }

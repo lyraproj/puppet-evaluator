@@ -118,6 +118,11 @@ func (t *NotUndefType) Parameters() []eval.PValue {
 	return []eval.PValue{t.typ}
 }
 
+func (t *NotUndefType) Resolve(c eval.Context) eval.PType {
+	t.typ = resolve(c, t.typ)
+	return t
+}
+
 func (t *NotUndefType) ReflectType() (reflect.Type, bool) {
 	return ReflectType(t.typ)
 }
