@@ -182,7 +182,7 @@ func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Ent
 
 func (l *typeSetLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 	if tp, ok := l.typeSet.GetType(name); ok {
-		return l.SetEntry(name, &loaderEntry{tp, nil})
+		return &loaderEntry{tp, nil}
 	}
 	if child, ok := name.RelativeTo(l.typeSet.TypedName()); ok {
 		return l.find(c, child)
