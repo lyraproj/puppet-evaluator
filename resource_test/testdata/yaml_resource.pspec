@@ -90,6 +90,9 @@ Examples('when using the YAML Puppet parser',
               - '/a/b':
                   ensure: { _eval: "resource('my::a[/a/a]').ensure" }
                   mode: 0600
+              - { _eval: "\"test-${resource('my::c[a]').title}\"" }:
+                  ensure: { _eval: "resource('my::a[/a/a]').ensure" }
+                  mode: 0600
         |YAML
       String([resource('my::a[/a/b]')])
       |SRC

@@ -192,9 +192,16 @@ func (yp *transformer) transformOrderedHash(expr parser.Expression) *parser.Lite
 	for i, e := range assocs {
 		yp.pushPath(i)
 		assoc := yp.transformAssoc(e)
-		key, ok := stringValue(assoc.Key())
+		key := ``
+		key, ok = stringValue(assoc.Key())
 		if !ok {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `String`, `actual`: assoc.Key().Label()}))
+			if _, ok := assoc.Key().(*parser.ConcatenatedString); ok {
+				// This will eventually evaluate to a string so it's OK. Use PN representation to form a unique key.
+				ok = true
+				key = assoc.Key().ToPN().String()
+			} else {
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `String`, `actual`: assoc.Key().Label()}))
+			}
 		}
 		if _, ok = unique[key]; ok {
 			panic(eval.Error(yp.c, EVAL_YAML_DUPLICATE_KEY, issue.H{`path`: yp.path(), `key`: key}))
