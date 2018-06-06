@@ -191,22 +191,11 @@ func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
 
 // Creates an unevaluated node, aware of all resources that uses static titles
 func newNode(c eval.Context, expression parser.Expression, parameters ...eval.PValue) *node {
-	var handles map[string]*handle
-	if expression == nil {
-		// Root node
-		handles = map[string]*handle{}
-	} else {
-		refs := findResources(c, expression)
-		handles = make(map[string]*handle, len(refs))
-		for _, r := range refs {
-			handles[r] = &handle{}
-		}
-	}
 	g := GetGraph(c).(graph.DirectedBuilder)
 	node := g.NewNode().(*node)
 	node.expression = expression
 	node.parameters = parameters
-	node.resources = handles
+	node.resources = map[string]*handle{}
 	node.value = nil
 	g.AddNode(node)
 	return node

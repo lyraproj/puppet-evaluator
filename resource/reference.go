@@ -49,31 +49,6 @@ func SplitRef(ref string) (typeName, title string, ok bool) {
 	return ``, ``, false
 }
 
-// findResources finds all resources that uses literal titles. Titles that depend on variables cannot be
-// evaluated at this time
-func findResources(c eval.Context, expr parser.Expression) []string {
-	refs := []string{}
-	expr.AllContents([]parser.Expression{}, func(path []parser.Expression, e parser.Expression) {
-		if re, ok := e.(*parser.ResourceExpression); ok && re.Form() == parser.REGULAR {
-			// If parent chain contains a relationship operation, then skip this resource since everything below
-			// a relationship will end up in a node of its own
-			for _, p := range path {
-				if _, ok := p.(*parser.RelationshipExpression); ok {
-					return
-				}
-			}
-			typeName := strings.ToLower(re.TypeName().(*parser.QualifiedName).Name())
-			for _, bd := range re.Bodies() {
-				body := bd.(*parser.ResourceBody)
-				for _, title := range getTitles(c, body.Title(), []string{}) {
-					refs = append(refs, fmt.Sprintf(`%s[%s]`, typeName, title))
-				}
-			}
-		}
-	})
-	return refs
-}
-
 func getTitles(c eval.Context, expr parser.Expression, titles []string) []string {
 	switch expr.(type) {
 	case *parser.LiteralList:
