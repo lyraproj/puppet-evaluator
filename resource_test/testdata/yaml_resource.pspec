@@ -23,6 +23,50 @@ Examples('when declaring Resources in YAML',
 )
 
 Examples('when using the YAML Puppet parser',
+  Example('_eval evaluates expression',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        _eval: "1 + 2"
+        |YAML
+      |SRC
+    Evaluates_to(3)),
+
+  Example('_eval evaluates interpolation in block',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        _eval: '"${1 + 2}"'
+        |YAML
+      |SRC
+    Evaluates_to('3')),
+
+  Example('_eval evaluates interpolation in block',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        _eval: >
+          "${1 + 2}"
+        |YAML
+      |SRC
+    Evaluates_to('3')),
+
+  Example('ordered hash with duplicate keys generate errors',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        'My::A':
+          ensure: 'Enum[absent,present]'
+          mode: 'Integer[0, 07777]'
+        |YAML
+
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        block:
+          - my::a:
+            - 'a':
+                ensure: absent
+            - 'a':
+                ensure: absent
+        |YAML
+      |SRC
+    Evaluates_with(Error(EVAL_YAML_DUPLICATE_KEY))),
+
   Example('resources are instantiated',
     Given(@(SRC)),
       create_resource_types(parse_yaml(@(YAML)))
@@ -40,29 +84,32 @@ Examples('when using the YAML Puppet parser',
       evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s')) ->
         sequential:
           - parallel:
-            - resources:
-                my::a:
-                  '/a/a':
+            - block:
+              - my::a:
+                - '/a/a':
                     ensure: absent
                     mode: 0644
-                my::b:
-                  x:
+              - my::b:
+                - x:
                     message: The X
-                  'y':
+                - 'y':
                     message: The Y
-                  z:
+                - z:
                     message: The Z
-            - resources:
-                my::c:
-                  a:
+            - block:
+              - my::c:
+                - a:
                     ip: 192.168.0.1
-                  b:
+                - b:
                     ip: 192.168.0.2
-                  c:
+                - c:
                     ip: 192.168.0.3
-          - resources:
-              my::a:
-                '/a/b':
+          - block:
+            - my::a:
+              - '/a/b':
+                  ensure: { _eval: "resource('my::a[/a/a]').ensure" }
+                  mode: 0600
+              - { _eval: "\"test-${resource('my::c[a]').title}\"" }:
                   ensure: { _eval: "resource('my::a[/a/a]').ensure" }
                   mode: 0600
         |YAML
