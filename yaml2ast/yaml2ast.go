@@ -93,6 +93,12 @@ func (yp *transformer) transformMapItem(mi *yaml.MapItem, top bool) (expr parser
 	case `_eval`:
 		expr = yp.transformEvalValue(yp.transformValue(mi.Value, false))
 
+	case `_getvar`:
+		expr = yp.transformGetvar(yp.transformValue(mi.Value, false))
+
+	case `_setvar`:
+		expr = yp.transformSetvar(yp.transformValue(mi.Value, false))
+
 	default:
 		tk := yp.transformValue(mi.Key, false)
 		tv := yp.transformValue(mi.Value, false)
@@ -162,6 +168,48 @@ func (yp *transformer) transformEvalValue(expr parser.Expression) parser.Express
 	default:
 		panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `String, List, or Hash`, `actual`: expr.Label()}))
 	}
+}
+
+func (yp *transformer) transformGetvar(expr parser.Expression) parser.Expression {
+	switch expr.(type) {
+	case *parser.LiteralString:
+		name := expr.(*parser.LiteralString).StringValue()
+		if !validator.PARAM_NAME.MatchString(name) {
+			panic(eval.Error(yp.c, EVAL_ILLEGAL_VARIABLE_NAME, issue.H{`name`: name}))
+		}
+		return yp.f.Variable(yp.f.QualifiedName(name, yp.l, 0, 0), yp.l, 0, 0)
+	default:
+		panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `String`, `actual`: expr.Label()}))
+	}
+}
+
+func (yp *transformer) transformSetvar(expr parser.Expression) parser.Expression {
+	if ll, ok := expr.(*parser.LiteralHash); ok {
+		len := len(ll.Entries())
+		ets := make([]parser.Expression, len)
+		for i, v := range ll.Entries() {
+			ke := v.(*parser.KeyedEntry)
+			if n, ok := ke.Key().(*parser.LiteralString); ok {
+				name := n.StringValue()
+				if validator.DOUBLE_COLON_EXPR.MatchString(name) {
+					panic(eval.Error(yp.c, validator.VALIDATE_CROSS_SCOPE_ASSIGNMENT, issue.H{`name`: name}))
+				}
+				if !validator.PARAM_NAME.MatchString(name) {
+					panic(eval.Error(yp.c, EVAL_ILLEGAL_VARIABLE_NAME, issue.H{`name`: name}))
+				}
+				ets[i] = yp.f.Assignment(`=`,
+					yp.f.Variable(yp.f.QualifiedName(name, yp.l, 0, 0), yp.l, 0, 0),
+					ke.Value(), yp.l, 0, 0)
+			} else {
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `String`, `actual`: ke.Key().Label()}))
+			}
+		}
+		if len == 1 {
+			return ets[0]
+		}
+		return yp.f.Block(ets, yp.l, 0, 0)
+	}
+	panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `Hash`, `actual`: expr.Label()}))
 }
 
 func (yp *transformer) transformValue(value interface{}, top bool) parser.Expression {
