@@ -249,7 +249,9 @@ func toTypes(types eval.IndexedValue) ([]eval.PType, int) {
 	top := types.Len()
 	if top == 1 {
 		if a, ok := types.At(0).(eval.IndexedValue); ok {
-			return toTypes(a)
+			if _, ok = a.(*StringValue); !ok {
+				return toTypes(a)
+			}
 		}
 	}
 	result := make([]eval.PType, 0, top)

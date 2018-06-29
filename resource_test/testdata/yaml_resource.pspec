@@ -117,6 +117,50 @@ Examples('when using the YAML Puppet parser',
       |SRC
     Evaluates_to(`[My::A('title' => '/a/b', 'ensure' => 'absent', 'mode' => 384)]`)),
 
+  Example('variables are set with _setvar',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        block:
+          - _setvar:
+              a: Value of a
+              b: Value of b
+          - _eval: '"$a and $b"'
+        |YAML
+      |SRC
+    Evaluates_to(`Value of a and Value of b`)),
+
+  Example('variables are retrieved with _getvar',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        block:
+          - _setvar:
+              a: Value of a
+              b: Value of b
+          - _getvar: a
+        |YAML
+      |SRC
+    Evaluates_to(`Value of a`)),
+
+  Example('variables in a resource are retrieved with _getvar',
+    Given(@(SRC)),
+      create_resource_types(parse_yaml(@(YAML)))
+        'My::A':
+          message: String
+        |YAML
+
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        block:
+          - _setvar:
+              a: Value of a
+              b: Value of b
+          - my::a:
+            - xyz:
+                message: { _getvar: a }
+          - _eval: "resource('my::a[xyz]').message"
+        |YAML
+      |SRC
+    Evaluates_to(`Value of a`)),
+
   Example('functions are called with positional arguments',
     Given(@(SRC)),
       evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
