@@ -45,14 +45,7 @@ func (yp *transformer) transformMap(ms yaml.MapSlice, top bool) parser.Expressio
 
 	// Copy path and make room for key
 	for i, mi := range ms {
-		if top {
-			es[i] = yp.transformMapItem(mi)
-		} else {
-			es[i] = yp.f.KeyedEntry(
-				yp.transformValue(mi.Key, false),
-				yp.transformValue(mi.Value, false),
-				yp.l, 0, 0)
-		}
+		es[i] = yp.transformMapItem(&mi, top)
 	}
 
 	if top {
@@ -63,58 +56,101 @@ func (yp *transformer) transformMap(ms yaml.MapSlice, top bool) parser.Expressio
 	}
 
 	if len(es) == 1 {
-		// Check if this is a one element hash with "_eval" key.
-		ke := es[0].(*parser.KeyedEntry)
-		if key, ok := ke.Key().(*parser.LiteralString); ok && key.StringValue() == `_eval` {
-			yp.pushPath(key.StringValue())
-			expr := yp.transformEvalValue(ke.Value())
-			yp.popPath()
-			return expr
+		if _, ok := es[0].(*parser.KeyedEntry); !ok {
+			return es[0]
 		}
 	}
 	return yp.f.Hash(es, yp.l, 0, 0)
 }
 
-func (yp *transformer) transformMapItem(mi yaml.MapItem) (expr parser.Expression) {
+func (yp *transformer) transformMapItem(mi *yaml.MapItem, top bool) (expr parser.Expression) {
 	yp.pushPath(mi.Key)
 	switch mi.Key {
 	case `parallel`, `sequential`:
-		expr = yp.transformValue(mi.Value, true)
-		if ll, ok := expr.(*parser.LiteralList); ok {
-			expr = yp.f.Access(yp.f.QualifiedName(mi.Key.(string), yp.l, 0, 0), ll.Elements(), yp.l, 0, 0)
+		expr = yp.transformValue(mi.Value, top)
+		if top {
+			if ll, ok := expr.(*parser.LiteralList); ok {
+				expr = yp.f.Access(yp.f.QualifiedName(mi.Key.(string), yp.l, 0, 0), ll.Elements(), yp.l, 0, 0)
+			} else {
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `List`, `actual`: expr.Label()}))
+			}
 		} else {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `List`, `actual`: expr.Label()}))
+			expr = yp.f.KeyedEntry(yp.transformValue(mi.Key, false), expr, yp.l, 0, 0)
 		}
 
 	case `block`:
-		expr = yp.transformValue(mi.Value, true)
-		if ll, ok := expr.(*parser.LiteralList); ok {
-			expr = yp.f.Block(ll.Elements(), yp.l, 0, 0)
+		expr = yp.transformValue(mi.Value, top)
+		if top {
+			if ll, ok := expr.(*parser.LiteralList); ok {
+				expr = yp.f.Block(ll.Elements(), yp.l, 0, 0)
+			} else {
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `List`, `actual`: expr.Label()}))
+			}
 		} else {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `List`, `actual`: expr.Label()}))
+			expr = yp.f.KeyedEntry(yp.transformValue(mi.Key, false), expr, yp.l, 0, 0)
 		}
 
 	case `_eval`:
-		expr = yp.transformEvalValue(yp.transformValue(mi.Value, true))
+		expr = yp.transformEvalValue(yp.transformValue(mi.Value, false))
 
 	default:
-		// Resource expression. Like a hash but must be expressed as list with one association for each hash entry (due to
-		// the unordered nature of YAML hash)
-		tv := yp.transformValue(mi.Key, false)
-		var name *parser.QualifiedName
-		if s, ok := tv.(*parser.LiteralString); ok {
-			if validator.CLASSREF_DECL.MatchString(s.StringValue()) {
-				// Can't distinguish this from a quoted string
-				name = yp.f.QualifiedName(s.StringValue(), yp.l, 0, 0).(*parser.QualifiedName)
+		tk := yp.transformValue(mi.Key, false)
+		tv := yp.transformValue(mi.Value, false)
+		expr = nil
+		switch tk.(type) {
+		case *parser.LiteralString:
+			if top {
+				// Resource expression. Like a hash but must be expressed as list with one association for each hash entry (due to
+				// the unordered nature of YAML hash)
+				s := tk.(*parser.LiteralString)
+				if validator.CLASSREF_DECL.MatchString(s.StringValue()) {
+					name := yp.f.QualifiedName(s.StringValue(), yp.l, 0, 0).(*parser.QualifiedName)
+					expr = yp.resourceExpression(name, yp.transformOrderedHash(tv))
+				}
+			}
+		case *parser.LiteralList:
+			els := tk.(*parser.LiteralList).Elements()
+			ne := len(els)
+			if ne > 0 {
+				if tn, ok := els[ne-1].(*parser.LiteralString); ok {
+					if validator.CLASSREF_EXT.MatchString(tn.StringValue()) {
+						// Type reference. Convert into a call to new for the given type.
+						name := yp.f.QualifiedReference(tn.StringValue(), yp.l, 0, 0)
+						if ne > 1 {
+							// Cannot be preceded by a functor
+							panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `method name`, `actual`: name.Label()}))
+						}
+						expr = yp.f.CallMethod(yp.f.NamedAccess(name, yp.f.QualifiedName(`new`, yp.l, 0, 0), yp.l, 0, 0), yp.transformArguments(mi), nil, yp.l, 0, 0)
+					} else if validator.CLASSREF_DECL.MatchString(tn.StringValue()) {
+						// Name of function
+						name := yp.f.QualifiedName(tn.StringValue(), yp.l, 0, 0)
+						if ne > 1 {
+							expr = yp.f.CallMethod(yp.f.NamedAccess(yp.transformFunctor(els[:ne-1]), name, yp.l, 0, 0), yp.transformArguments(mi), nil, yp.l, 0, 0)
+						} else {
+							expr = yp.f.CallNamed(name, true, yp.transformArguments(mi), nil, yp.l, 0, 0)
+						}
+					}
+				}
 			}
 		}
-		if name == nil {
-			panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `Name`, `actual`: tv.Label()}))
+		if expr == nil {
+			if top {
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `Name or Type`, `actual`: tk.Label()}))
+			}
+			expr = yp.f.KeyedEntry(tk, tv, yp.l, 0, 0)
 		}
-		expr = yp.resourceExpression(name, yp.transformOrderedHash(yp.transformValue(mi.Value, false)))
 	}
 	yp.popPath()
 	return expr
+}
+
+func (yp *transformer) transformArguments(mi *yaml.MapItem) []parser.Expression {
+	va := yp.transformValue(mi.Value, false)
+	if val, ok := va.(*parser.LiteralList); ok {
+		// Args passed as positional array
+		return val.Elements()
+	}
+	return []parser.Expression { va }
 }
 
 func (yp *transformer) transformEvalValue(expr parser.Expression) parser.Expression {
@@ -314,9 +350,17 @@ func (yp *transformer) pushPath(elem interface{}) {
 	switch elem.(type) {
 	case string:
 		s = elem.(string)
+	case []interface{}:
+		a := elem.([]interface{})
+		if len(a) > 0 {
+			if tn, ok := a[0].(string); ok {
+				s = fmt.Sprintf(`type %s`, tn)
+			}
+		}
 	case int:
 		s = strconv.Itoa(elem.(int))
-	default:
+	}
+	if s == `` {
 		s = fmt.Sprintf(`%v`, elem)
 	}
 	if len(yp.p) > yp.plen {
@@ -333,6 +377,33 @@ func (yp *transformer) popPath() {
 
 func (yp *transformer) path() []string {
 	return yp.p[0:yp.plen]
+}
+
+func (yp *transformer) transformFunctor(els []parser.Expression) (expr parser.Expression) {
+	expr = nil
+	for i, next := range els {
+		yp.pushPath(i)
+		if tn, ok := next.(*parser.LiteralString); ok {
+			if validator.CLASSREF_EXT.MatchString(tn.StringValue()) {
+				// Type reference. Convert into a call to new for the given type.
+				next = yp.f.QualifiedReference(tn.StringValue(), yp.l, 0, 0)
+			} else if validator.CLASSREF_DECL.MatchString(tn.StringValue()) {
+				// Name of function
+				next = yp.f.QualifiedName(tn.StringValue(), yp.l, 0, 0)
+			}
+		}
+		if expr == nil {
+			expr = next
+		} else {
+			if _, ok := next.(*parser.QualifiedName); !ok {
+				// Type name must be the leftmost element in a functor
+				panic(eval.Error(yp.c, EVAL_YAML_ILLEGAL_TYPE, issue.H{`path`: yp.path(), `expected`: `method name`, `actual`: next.Label()}))
+			}
+			expr = yp.f.CallMethod(yp.f.NamedAccess(expr, next, yp.l, 0, 0), []parser.Expression{}, nil, yp.l, 0, 0)
+		}
+		yp.popPath()
+	}
+	return
 }
 
 func stringValue(expr parser.Expression) (string, bool) {

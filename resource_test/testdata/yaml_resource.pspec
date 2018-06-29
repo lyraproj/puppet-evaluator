@@ -117,4 +117,32 @@ Examples('when using the YAML Puppet parser',
       |SRC
     Evaluates_to(`[My::A('title' => '/a/b', 'ensure' => 'absent', 'mode' => 384)]`)),
 
+  Example('functions are called with positional arguments',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        [strftime]:
+          - [Timestamp]: '2018-11-24T12:13:14'
+          - '%c'
+        |YAML
+      |SRC
+    Evaluates_to(`Sat Nov 24 12:13:14 2018`)),
+
+  Example('functions are called with named arguments',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+        [Integer]:
+          from: '777'
+          radix: 8
+        |YAML
+      |SRC
+    Evaluates_to(511)),
+
+  Example('methods are called with positional arguments',
+    Given(@(SRC)),
+      evaluate_yaml('/test/file.yaml', Binary(@(YAML), '%s'))
+          [String, assert_type]:
+            - 'hello'
+        |YAML
+      |SRC
+    Evaluates_to(`hello`)),
 )
