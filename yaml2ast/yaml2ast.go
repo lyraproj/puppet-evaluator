@@ -144,8 +144,6 @@ func (yp *transformer) transformMapItem(mi *yaml.MapItem, top bool) (expr parser
 	return expr
 }
 
-// [ { [resource]: 'foo[bar' }, ensure ]
-
 func (yp *transformer) transformArguments(mi *yaml.MapItem) []parser.Expression {
 	va := yp.transformValue(mi.Value, false)
 	if val, ok := va.(*parser.LiteralList); ok {
