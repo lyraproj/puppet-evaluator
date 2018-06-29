@@ -337,6 +337,24 @@ Examples(`TypeSet type`,
         |-SRC
       Evaluates_to(`MySet::Complex('real' => 3.00000, 'imaginary' => 4.00000)`)),
 
+    Example('locally overrides a type in the root namespace',
+      Given(@(SRC)),
+        type PInt = Integer[0,99]
+        type MySet = TypeSet {
+          pcore_version => '1.0.0',
+          types => {
+            PInt => Integer[0],
+            Obj => Object[{
+              attributes => {
+                ping => PInt
+              }
+            }]
+          }
+        }
+        String(MySet::Obj(300))
+        |-SRC
+      Evaluates_to(`MySet::Obj('ping' => 300)`)),
+
     Example('references itself',
       Given(@(SRC)),
         type MySet = TypeSet {
