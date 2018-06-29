@@ -165,27 +165,20 @@ func (l *typeSetLoader) TypeSet() eval.PType {
 }
 
 func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
+	if tp, ok := l.typeSet.GetType(name); ok {
+		return &loaderEntry{tp, nil}
+	}
 	entry := l.parentedLoader.LoadEntry(c, name)
 	if entry == nil {
-		entry = l.find(c, name)
-		if entry == nil {
-			entry = &loaderEntry{nil, nil}
-			l.parentedLoader.SetEntry(name, entry)
+		if child, ok := name.RelativeTo(l.typeSet.TypedName()); ok {
+			return l.LoadEntry(c, child)
 		}
+		entry = &loaderEntry{nil, nil}
+		l.parentedLoader.SetEntry(name, entry)
 	}
 	return entry
 }
 
 func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
 	return l.parent.(eval.DefiningLoader).SetEntry(name, entry)
-}
-
-func (l *typeSetLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
-	if tp, ok := l.typeSet.GetType(name); ok {
-		return &loaderEntry{tp, nil}
-	}
-	if child, ok := name.RelativeTo(l.typeSet.TypedName()); ok {
-		return l.find(c, child)
-	}
-	return nil
 }
