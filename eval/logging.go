@@ -21,8 +21,6 @@ type (
 	}
 
 	stdlog struct {
-		out io.Writer
-		err io.Writer
 	}
 
 	LogEntry interface {
@@ -70,7 +68,7 @@ func (l LogLevel) Severity() issue.Severity {
 }
 
 func NewStdLogger() Logger {
-	return &stdlog{os.Stdout, os.Stderr}
+	return &stdlog{}
 }
 
 func (l *stdlog) Log(level LogLevel, args ...PValue) {
@@ -79,25 +77,27 @@ func (l *stdlog) Log(level LogLevel, args ...PValue) {
 	for _, arg := range args {
 		ToString3(arg, w)
 	}
+	fmt.Fprintln(w)
 }
 
 func (l *stdlog) Logf(level LogLevel, format string, args ...interface{}) {
 	w := l.writerFor(level)
 	fmt.Fprintf(w, `%s: `, level)
 	fmt.Fprintf(w, format, args...)
+	fmt.Fprintln(w)
 }
 
 func (l *stdlog) writerFor(level LogLevel) io.Writer {
 	switch level {
 	case DEBUG, INFO, NOTICE:
-		return l.out
+		return os.Stdout
 	default:
-		return l.err
+		return os.Stderr
 	}
 }
 
 func (l *stdlog) LogIssue(issue issue.Reported) {
-	fmt.Fprintln(l.err, issue.String())
+	fmt.Fprintln(os.Stderr, issue.String())
 }
 
 func NewArrayLogger() *ArrayLogger {
