@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"strings"
 )
 
 var coreTypes = map[string]eval.PType{
@@ -288,6 +289,28 @@ func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context)
 	})
 }
 
+func (e *evaluator) eval_InExpression(expr *parser.InExpression, c eval.Context) eval.PValue {
+	a := e.eval(expr.Lhs(), c)
+	x := e.eval(expr.Rhs(), c)
+	switch x.(type) {
+	case *types.ArrayValue:
+		return types.WrapBoolean(x.(*types.ArrayValue).Any(func(b eval.PValue) bool {
+			return e.doCompare(expr, `==`, a, b, c)
+		}))
+	case *types.HashValue:
+		return types.WrapBoolean(x.(*types.HashValue).AnyPair(func(b, v eval.PValue) bool {
+			return e.doCompare(expr, `==`, a, b, c)
+		}))
+	case *types.StringValue:
+		if c.Language() != eval.LangPuppet {
+			if _, ok := a.(*types.StringValue); ok {
+				return types.WrapBoolean(strings.Contains(strings.ToLower(x.String()), strings.ToLower(a.String())))
+			}
+		}
+	}
+	return types.Boolean_FALSE
+}
+
 func (e *evaluator) eval_UnlessExpression(expr *parser.UnlessExpression, c eval.Context) eval.PValue {
 	return c.Scope().WithLocalScope(func() eval.PValue {
 		if !eval.IsTruthy(e.eval(expr.Test(), c)) {
@@ -505,6 +528,8 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return e.eval_ComparisonExpression(expr.(*parser.ComparisonExpression), c)
 	case *parser.HeredocExpression:
 		return e.eval_HeredocExpression(expr.(*parser.HeredocExpression), c)
+	case *parser.InExpression:
+		return e.eval_InExpression(expr.(*parser.InExpression), c)
 	case *parser.KeyedEntry:
 		return e.eval_KeyedEntry(expr.(*parser.KeyedEntry), c)
 	case *parser.LiteralHash:
