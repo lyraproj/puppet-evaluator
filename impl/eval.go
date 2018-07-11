@@ -537,6 +537,8 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return eval.UNDEF
 	case *parser.TextExpression:
 		return e.eval_TextExpression(expr.(*parser.TextExpression), c)
+	case eval.ParserExtension:
+		return expr.(eval.ParserExtension).Evaluate(e, c)
 	}
 
 	if c.Static() {
