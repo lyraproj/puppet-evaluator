@@ -10,6 +10,7 @@ import (
 type (
 	BasicScope struct {
 		scopes []map[string]eval.PValue
+		mutable bool
 	}
 
 	parentedScope struct {
@@ -18,9 +19,11 @@ type (
 	}
 )
 
-// NewScope creates a new Scope instance that in turn consists of a stack of ephemeral scopes
-func NewScope() eval.Scope {
-	return &BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}}
+// NewScope creates a new Scope instance that in turn consists of a stack of ephemeral scopes. If
+// the mutable flag is true, then all ephemeral scopes except the one that represents the global
+// scope considered mutable.
+func NewScope(mutable bool) eval.Scope {
+	return &BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}, mutable}
 }
 
 // NewParentedScope creates a scope that will override its parent. When a value isn't found in this
@@ -28,14 +31,14 @@ func NewScope() eval.Scope {
 //
 // All new or updated values will end up in this scope, i.e. no modifications are ever propagated to
 // the parent scope.
-func NewParentedScope(parent eval.Scope) eval.Scope {
-	return &parentedScope{BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}}, parent}
+func NewParentedScope(parent eval.Scope, mutable bool) eval.Scope {
+	return &parentedScope{BasicScope{[]map[string]eval.PValue{make(map[string]eval.PValue, 8)}, mutable}, parent}
 }
 
-func NewScope2(h *types.HashValue) eval.Scope {
+func NewScope2(h *types.HashValue, mutable bool) eval.Scope {
 	top := make(map[string]eval.PValue, h.Len())
 	h.EachPair(func(k, v eval.PValue) { top[k.String()] = v })
-	return &BasicScope{[]map[string]eval.PValue{top}}
+	return &BasicScope{[]map[string]eval.PValue{top}, mutable}
 }
 
 // No key can ever start with '::' or a capital letter
@@ -98,6 +101,12 @@ func (e *BasicScope) Set(name string, value eval.PValue) bool {
 		scopeIdx = len(e.scopes)-1
 	}
 	current := e.scopes[scopeIdx]
+
+	if e.mutable && scopeIdx > 0 {
+		current[name] = value
+		return true
+	}
+
 	if _, found := current[name]; !found {
 		current[name] = value
 		return true
@@ -150,8 +159,13 @@ func (e *parentedScope) Set(name string, value eval.PValue) bool {
 		}
 		return false
 	}
-
 	current := e.scopes[scopeIdx]
+
+	if e.mutable && scopeIdx > 0 {
+		current[name] = value
+		return true
+	}
+
 	if _, found := current[name]; !found {
 		current[name] = value
 		return true
