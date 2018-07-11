@@ -163,13 +163,16 @@ func (e *evaluator) CallFunction(name string, args []eval.PValue, call parser.Ca
 }
 
 func (e *evaluator) call(funcType eval.Namespace, name string, args []eval.PValue, call parser.CallExpression, c eval.Context) (result eval.PValue) {
-	if c == nil || c.Loader() == nil {
-		panic(`foo`)
-	}
 	tn := eval.NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := eval.Load(c, tn)
 	if !ok {
-		panic(e.evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
+		if funcType == eval.FUNCTION && c.Language() == eval.LangJavaScript {
+			// Might be the name of a variable.
+			f, ok = c.Scope().Get(name)
+		}
+		if !ok {
+			panic(e.evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
+		}
 	}
 
 	var block eval.Lambda
@@ -274,10 +277,20 @@ func (e *evaluator) eval_CallNamedFunctionExpression(call *parser.CallNamedFunct
 		return e.self.CallFunction(fc.(*parser.QualifiedName).Name(), e.unfold(call.Arguments(), c), call, c)
 	case *parser.QualifiedReference:
 		return e.self.CallFunction(`new`, e.unfold(call.Arguments(), c, types.WrapString(fc.(*parser.QualifiedReference).Name())), call, c)
-	default:
-		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
-			issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
+	case *parser.VariableExpression:
+		if c.Language() == eval.LangJavaScript {
+			// Evaluate and check what the functor might be
+			if fn, ok := e.eval(fc, c).(eval.Function); ok {
+				var lambda eval.Lambda
+				if lm := call.Lambda(); lm != nil {
+					lambda = e.eval(lm, c).(eval.Lambda)
+				}
+				return fn.Call(c, lambda, e.unfold(call.Arguments(), c)...)
+			}
+		}
 	}
+	panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+		issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 }
 
 func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context) eval.PValue {

@@ -1,18 +1,20 @@
 package eval
 
 type (
-	Lambda interface {
+	InvocableValue interface {
 		PValue
 
 		Call(c Context, block Lambda, args ...PValue) PValue
+	}
+
+	Lambda interface {
+		InvocableValue
 
 		Signature() Signature
 	}
 
 	Function interface {
-		PValue
-
-		Call(c Context, block Lambda, args ...PValue) PValue
+		InvocableValue
 
 		Dispatchers() []Lambda
 
