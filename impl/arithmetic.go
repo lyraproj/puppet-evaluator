@@ -11,10 +11,10 @@ import (
 )
 
 func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.Context) eval.PValue {
-	return e.calculate(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c))
+	return e.calculate(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c), c)
 }
 
-func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue) eval.PValue {
+func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue, c eval.Context) eval.PValue {
 	op := expr.Operator()
 	switch a.(type) {
 	case *types.HashValue, *types.ArrayValue, *types.UriValue:
@@ -34,6 +34,10 @@ func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, 
 		return e.lhsIntArithmetic(expr, a.(*types.IntegerValue).Int(), b)
 	case *types.StringValue:
 		sv := a.(*types.StringValue)
+		if c.Language() == eval.LangJavaScript {
+			// JavaScript concatenates the strings
+			return types.WrapString(sv.String() + b.String())
+		}
 		if iv, err := strconv.ParseInt(sv.String(), 0, 64); err == nil {
 			return e.lhsIntArithmetic(expr, iv, b)
 		}

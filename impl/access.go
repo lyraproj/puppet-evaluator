@@ -56,6 +56,16 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 			if mbr, ok := tem.Member(`[]`); ok {
 				return mbr.Call(c, lhs, nil, args)
 			}
+
+			if c.Language() == eval.LangJavaScript && len(args) == 1 {
+				// In JavaScript, x['y'] is equal to x.y
+				if s, ok := args[0].(*types.StringValue); ok {
+					if mbr, ok := tem.Member(s.String()); ok {
+						return mbr.Call(c, lhs, nil, []eval.PValue{})
+					}
+					panic(e.evalError(eval.EVAL_ATTRIBUTE_NOT_FOUND, op, issue.H{`type`: lhs.Type(), `name`: s.String()}))
+				}
+			}
 		}
 	}
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
