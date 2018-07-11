@@ -77,8 +77,8 @@ var members = map[string]uriMemberFunc{
 }
 
 func init() {
-	newAliasType(`Pcore::URIStringParam`, `Variant[String[1],Regexp,Type[Pattern],Type[Enum],Type[NotUndef],Type[Undef]]`)
-	newAliasType(`Pcore::URIIntParam`, `Variant[Integer[0],Type[NotUndef],Type[Undef]]`)
+	newTypeAlias(`Pcore::URIStringParam`, `Variant[String[1],Regexp,Type[Pattern],Type[Enum],Type[NotUndef],Type[Undef]]`)
+	newTypeAlias(`Pcore::URIIntParam`, `Variant[Integer[0],Type[NotUndef],Type[Undef]]`)
 
 	URI_Type = newObjectType(`Pcore::URIType`,
 		`Pcore::AnyType{

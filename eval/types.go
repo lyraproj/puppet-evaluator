@@ -404,6 +404,8 @@ var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambd
 
 var DescribeMismatch func(pfx string, expected PType, actual PType) string
 
+var NewTypeAlias func(name, typeDecl string) PType
+
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
 var NewTypeSet func(name, typeDecl string) TypeSet
