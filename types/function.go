@@ -39,8 +39,12 @@ func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda,
 		}
 		panic(eval.Error(c, eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
 	}
+	types := make([]eval.PValue, len(args))
+	for i, a := range args {
+		types[i] = a.Type()
+	}
 	panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(args...), block)}))
+		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
 }
 
 func (f *function) Equals(other interface{}, g eval.Guard) bool {

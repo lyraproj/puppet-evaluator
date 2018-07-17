@@ -20,6 +20,10 @@ type Evaluator interface {
 	Logger() Logger
 }
 
+type ParserExtension interface {
+	Evaluate(e Evaluator, c Context) PValue
+}
+
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error func(c Context, issueCode issue.Code, args issue.H) issue.Reported

@@ -10,6 +10,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"strings"
 )
 
 var coreTypes = map[string]eval.PType{
@@ -162,13 +163,16 @@ func (e *evaluator) CallFunction(name string, args []eval.PValue, call parser.Ca
 }
 
 func (e *evaluator) call(funcType eval.Namespace, name string, args []eval.PValue, call parser.CallExpression, c eval.Context) (result eval.PValue) {
-	if c == nil || c.Loader() == nil {
-		panic(`foo`)
-	}
 	tn := eval.NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := eval.Load(c, tn)
 	if !ok {
-		panic(e.evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
+		if funcType == eval.FUNCTION && c.Language() == eval.LangJavaScript {
+			// Might be the name of a variable.
+			f, ok = c.Scope().Get(name)
+		}
+		if !ok {
+			panic(e.evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
+		}
 	}
 
 	var block eval.Lambda
@@ -273,10 +277,20 @@ func (e *evaluator) eval_CallNamedFunctionExpression(call *parser.CallNamedFunct
 		return e.self.CallFunction(fc.(*parser.QualifiedName).Name(), e.unfold(call.Arguments(), c), call, c)
 	case *parser.QualifiedReference:
 		return e.self.CallFunction(`new`, e.unfold(call.Arguments(), c, types.WrapString(fc.(*parser.QualifiedReference).Name())), call, c)
-	default:
-		panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
-			issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
+	case *parser.VariableExpression:
+		if c.Language() == eval.LangJavaScript {
+			// Evaluate and check what the functor might be
+			if fn, ok := e.eval(fc, c).(eval.Function); ok {
+				var lambda eval.Lambda
+				if lm := call.Lambda(); lm != nil {
+					lambda = e.eval(lm, c).(eval.Lambda)
+				}
+				return fn.Call(c, lambda, e.unfold(call.Arguments(), c)...)
+			}
+		}
 	}
+	panic(e.evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+		issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 }
 
 func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context) eval.PValue {
@@ -286,6 +300,28 @@ func (e *evaluator) eval_IfExpression(expr *parser.IfExpression, c eval.Context)
 		}
 		return e.eval(expr.Else(), c)
 	})
+}
+
+func (e *evaluator) eval_InExpression(expr *parser.InExpression, c eval.Context) eval.PValue {
+	a := e.eval(expr.Lhs(), c)
+	x := e.eval(expr.Rhs(), c)
+	switch x.(type) {
+	case *types.ArrayValue:
+		return types.WrapBoolean(x.(*types.ArrayValue).Any(func(b eval.PValue) bool {
+			return e.doCompare(expr, `==`, a, b, c)
+		}))
+	case *types.HashValue:
+		return types.WrapBoolean(x.(*types.HashValue).AnyPair(func(b, v eval.PValue) bool {
+			return e.doCompare(expr, `==`, a, b, c)
+		}))
+	case *types.StringValue:
+		if c.Language() != eval.LangPuppet {
+			if _, ok := a.(*types.StringValue); ok {
+				return types.WrapBoolean(strings.Contains(strings.ToLower(x.String()), strings.ToLower(a.String())))
+			}
+		}
+	}
+	return types.Boolean_FALSE
 }
 
 func (e *evaluator) eval_UnlessExpression(expr *parser.UnlessExpression, c eval.Context) eval.PValue {
@@ -505,6 +541,8 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return e.eval_ComparisonExpression(expr.(*parser.ComparisonExpression), c)
 	case *parser.HeredocExpression:
 		return e.eval_HeredocExpression(expr.(*parser.HeredocExpression), c)
+	case *parser.InExpression:
+		return e.eval_InExpression(expr.(*parser.InExpression), c)
 	case *parser.KeyedEntry:
 		return e.eval_KeyedEntry(expr.(*parser.KeyedEntry), c)
 	case *parser.LiteralHash:
@@ -537,6 +575,8 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return eval.UNDEF
 	case *parser.TextExpression:
 		return e.eval_TextExpression(expr.(*parser.TextExpression), c)
+	case eval.ParserExtension:
+		return expr.(eval.ParserExtension).Evaluate(e, c)
 	}
 
 	if c.Static() {

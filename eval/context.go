@@ -67,6 +67,9 @@ type Context interface {
 	// ImplementationRegistry returns the registry that holds mappings between PType and reflect.Type
 	ImplementationRegistry() ImplementationRegistry
 
+	// Language returns the language used when parsing the original source
+	Language() Language
+
 	// Loader returns the loader of the receiver.
 	Loader() Loader
 
@@ -108,6 +111,9 @@ type Context interface {
 
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
+
+	// SetLanguage sets the language flavor to use when evaluating the AST
+	SetLanguage(lang Language)
 
 	// Scope returns the scope
 	Scope() Scope

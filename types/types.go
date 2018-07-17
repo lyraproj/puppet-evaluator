@@ -375,6 +375,7 @@ func init() {
 	}
 
 	eval.NewObjectType = newObjectType
+	eval.NewTypeAlias = newTypeAlias
 	eval.NewTypeSet = newTypeSet
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
@@ -611,7 +612,7 @@ func interfaceOrNil(vr reflect.Value) interface{} {
 	return nil
 }
 
-func newAliasType(name, typeDecl string) eval.PType {
+func newTypeAlias(name, typeDecl string) eval.PType {
 	p := parser.CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)
 	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)

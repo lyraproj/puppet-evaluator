@@ -64,8 +64,12 @@ func (a *attribute) Call(c eval.Context, receiver eval.PValue, block eval.Lambda
 	if block == nil && len(args) == 0 {
 		return a.Get(c, receiver)
 	}
+	types := make([]eval.PValue, len(args))
+	for i, a := range args {
+		types[i] = a.Type()
+	}
 	panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(args...), block)}))
+		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
 }
 
 func (a *attribute) Default(value eval.PValue) bool {

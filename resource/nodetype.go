@@ -66,6 +66,9 @@ type (
 		value     eval.PValue
 		resources map[string]*handle
 
+		// invocable value (mutualy exclusive to the expression
+		lambda eval.InvocableValue
+
 		// resource expression or a type reference expression
 		expression parser.Expression
 
@@ -193,8 +196,22 @@ func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
 func newNode(c eval.Context, expression parser.Expression, parameters ...eval.PValue) *node {
 	g := GetGraph(c).(graph.DirectedBuilder)
 	node := g.NewNode().(*node)
+	node.lambda = nil
 	node.expression = expression
 	node.parameters = parameters
+	node.resources = map[string]*handle{}
+	node.value = nil
+	g.AddNode(node)
+	return node
+}
+
+// Creates an unevaluated node, aware of all resources that uses static titles
+func newNode2(c eval.Context, lambda eval.InvocableValue) *node {
+	g := GetGraph(c).(graph.DirectedBuilder)
+	node := g.NewNode().(*node)
+	node.lambda = lambda
+	node.expression = &parser.Nop{}
+	node.parameters = []eval.PValue{}
 	node.resources = map[string]*handle{}
 	node.value = nil
 	g.AddNode(node)

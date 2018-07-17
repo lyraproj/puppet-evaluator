@@ -97,13 +97,26 @@ func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.P
 	extEdges := g.From(rn.ID())
 	setExternalEdgesTo(c, extEdges)
 	setResources(c, map[string]*handle{})
-	value, err := re.evaluator.Evaluate(c, rn.expression)
-	if err != nil {
-		return nil, err
+
+	var lambda eval.InvocableValue
+	var err issue.Reported
+
+	value := eval.UNDEF
+
+	if rn.lambda == nil {
+		value, err = re.evaluator.Evaluate(c, rn.expression)
+		if err != nil {
+			return nil, err
+		}
+
+		if l, ok := value.(eval.InvocableValue); ok {
+			lambda = l
+		}
+	} else {
+		lambda = rn.lambda
 	}
 
-	if lambda, ok := value.(eval.Lambda); ok {
-		// parallel or sequential
+	if lambda != nil {
 		value = lambda.Call(c, nil, rn.parameters...)
 	}
 
@@ -154,10 +167,28 @@ func (re *resourceEval) CallFunction(name string, args []eval.PValue, call parse
 }
 
 func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, args []eval.PValue, call parser.CallExpression) eval.PValue {
+	allInvocable := true
+	for _, arg := range args {
+		if _, ok := arg.(eval.InvocableValue); !ok {
+			allInvocable = false
+			break
+		}
+	}
+
+	if allInvocable {
+		// Create one node per function. The node calls the function without arguments
+		nodes := make([]Node, len(args))
+		for i, arg := range args {
+			nodes[i] = newNode2(c, arg.(eval.InvocableValue))
+		}
+		return createEdgesForNodes(c, nodes, name)
+	}
+
 	nodeExpr, ok := call.Lambda().(*parser.LambdaExpression)
 	if !ok {
 		panic(eval.Error2(call, EVAL_DECLARATION_MUST_HAVE_LAMBDA, issue.H{`declaration`: name}))
 	}
+
 
 	ac := len(args)
 	if ac != 1 {
