@@ -1,7 +1,7 @@
 package eval
 
 type (
-	Actor func()
+	Doer func()
 
 	Consumer func(value PValue)
 

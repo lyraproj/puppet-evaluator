@@ -29,16 +29,16 @@ type Context interface {
 	// DefiningLoader returns a Loader that can receive new definitions
 	DefiningLoader() DefiningLoader
 
-	// DoStatic ensures that the reciver is in static mode during the evaluation of the given actor
-	DoStatic(actor Actor)
+	// DoStatic ensures that the reciver is in static mode during the evaluation of the given doer
+	DoStatic(doer Doer)
 
-	// DoWithLoader assigns the given loader to the receiver and calls the actor. The original loader is
+	// DoWithLoader assigns the given loader to the receiver and calls the doer. The original loader is
 	// restored before this call returns.
-	DoWithLoader(loader Loader, actor Actor)
+	DoWithLoader(loader Loader, doer Doer)
 
-	// DoWithScope assigns the given scope to the receiver and calls the actor. The original scope is
+	// DoWithScope assigns the given scope to the receiver and calls the doer. The original scope is
 	// restored before this call returns.
-	DoWithScope(scope Scope, actor Actor)
+	DoWithScope(scope Scope, doer Doer)
 
 	// Evaluate evaluates the given expression using the evaluator of the receiver.
 	Evaluate(expr parser.Expression) PValue

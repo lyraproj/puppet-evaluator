@@ -288,46 +288,46 @@ func (f *FromDataConverter) Convert(value eval.PValue) eval.PValue {
 	return f.buildValue(value)
 }
 
-func (f *FromDataConverter) buildHash(actor eval.Actor) *types.HashValue {
-	return f.build(&hashBuilder{hash.NewStringHash(31), nil}, actor).(*types.HashValue)
+func (f *FromDataConverter) buildHash(doer eval.Doer) *types.HashValue {
+	return f.build(&hashBuilder{hash.NewStringHash(31), nil}, doer).(*types.HashValue)
 }
 
-func (f *FromDataConverter) buildObject(object eval.ObjectValue, actor eval.Actor) eval.PValue {
-	return f.build(&objectHashBuilder{hashBuilder{hash.NewStringHash(31), nil}, object}, actor)
+func (f *FromDataConverter) buildObject(object eval.ObjectValue, doer eval.Doer) eval.PValue {
+	return f.build(&objectHashBuilder{hashBuilder{hash.NewStringHash(31), nil}, object}, doer)
 }
 
-func (f *FromDataConverter) buildArray(actor eval.Actor) eval.PValue {
-	return f.build(&arrayBuilder{make([]builder, 0, 32), nil}, actor)
+func (f *FromDataConverter) buildArray(doer eval.Doer) eval.PValue {
+	return f.build(&arrayBuilder{make([]builder, 0, 32), nil}, doer)
 }
 
 func (f *FromDataConverter) buildValue(value eval.PValue) eval.PValue {
 	return f.build(&valueBuilder{value}, nil)
 }
 
-func (f *FromDataConverter) build(vx builder, actor eval.Actor) eval.PValue {
+func (f *FromDataConverter) build(vx builder, doer eval.Doer) eval.PValue {
 	if f.current != nil {
 		f.current.put(f.key, vx)
 	}
-	if actor != nil {
-		f.withValue(vx, actor)
+	if doer != nil {
+		f.withValue(vx, doer)
 	}
 	return vx.resolve(f.context)
 }
 
-func (f *FromDataConverter) with(key eval.PValue, actor eval.Actor) {
+func (f *FromDataConverter) with(key eval.PValue, doer eval.Doer) {
 	parentKey := f.key
 	f.key = key
-	actor()
+	doer()
 	f.key = parentKey
 }
 
-func (f *FromDataConverter) withValue(value builder, actor eval.Actor) builder {
+func (f *FromDataConverter) withValue(value builder, doer eval.Doer) builder {
 	if f.root == nil {
 		f.root = value
 	}
 	parent := f.current
 	f.current = value
-	actor()
+	doer()
 	f.current = parent
 	return value
 }

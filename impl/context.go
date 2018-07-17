@@ -89,9 +89,9 @@ func (c *evalCtx) Delete(key string) {
 	}
 }
 
-func (c *evalCtx) DoStatic(actor eval.Actor) {
+func (c *evalCtx) DoStatic(doer eval.Doer) {
 	if c.static {
-		actor()
+		doer()
 		return
 	}
 
@@ -99,25 +99,25 @@ func (c *evalCtx) DoStatic(actor eval.Actor) {
 		c.static = false
 	}()
 	c.static = true
-	actor()
+	doer()
 }
 
-func (c *evalCtx) DoWithLoader(loader eval.Loader, actor eval.Actor) {
+func (c *evalCtx) DoWithLoader(loader eval.Loader, doer eval.Doer) {
 	saveLoader := c.loader
 	defer func() {
 		c.loader = saveLoader
 	}()
 	c.loader = loader
-	actor()
+	doer()
 }
 
-func (c *evalCtx) DoWithScope(scope eval.Scope, actor eval.Actor) {
+func (c *evalCtx) DoWithScope(scope eval.Scope, doer eval.Doer) {
 	saveScope := c.scope
 	defer func() {
 		c.scope = saveScope
 	}()
 	c.scope = scope
-	actor()
+	doer()
 }
 
 func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
