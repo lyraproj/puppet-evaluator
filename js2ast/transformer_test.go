@@ -472,6 +472,29 @@ console.log('Honda' in car.values())
 	// notice: true
 }
 
+func ExampleEvaluateJavaScript_sequential() {
+	err := eval.Puppet.Do(func(c eval.Context) error {
+		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
+function tier1(){
+  console.log("tier1 calling");
+}
+ 
+function tier2() {
+  console.log("tier2 calling");
+}
+ 
+sequential(tier1,tier2)
+`))
+		return err
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Output:
+	// notice: tier1 calling
+	// notice: tier2 calling
+}
+
 func TestJavaScriptFile(t *testing.T) {
 	err := eval.Puppet.Do(func(c eval.Context) error {
 		typesFile := `testdata/resource_types.js`
