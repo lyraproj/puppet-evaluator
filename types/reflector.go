@@ -4,7 +4,6 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 	"reflect"
-	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-semver/semver"
 	"strings"
 )
@@ -40,7 +39,7 @@ func (r *reflector) FieldName(f *reflect.StructField) string {
 			return nv.String()
 		}
 	}
-	return utils.CamelToSnakeCase(f.Name)
+	return issue.CamelToSnakeCase(f.Name)
 }
 
 func (r *reflector) Reflect(src eval.PValue, rt reflect.Type) reflect.Value {
@@ -149,7 +148,7 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, st
 		}
 		as = append(as, WrapHashEntry2(`type`, typ))
 		if name == `` {
-			name = utils.CamelToSnakeCase(f.Name)
+			name = issue.CamelToSnakeCase(f.Name)
 		}
 
 		es = append(es, WrapHashEntry2(name, WrapHash(as)))

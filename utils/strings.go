@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/puppetlabs/go-parser/parser"
-	"unicode"
 )
 
 func AllStrings(strings []string, predicate func(str string) bool) bool {
@@ -19,23 +18,6 @@ func AllStrings(strings []string, predicate func(str string) bool) bool {
 		}
 	}
 	return true
-}
-
-// CamelToSnakeCase converts a camel cased name like "NameIsBob" to
-// its corresponding snake cased "name_is_bob"
-func CamelToSnakeCase(name string) string {
-	b := bytes.NewBufferString(``)
-	for i, c := range name {
-		if unicode.IsUpper(c) {
-			if i > 0 {
-				b.WriteByte('_')
-			}
-			b.WriteRune(unicode.ToLower(c))
-		} else {
-			b.WriteRune(c)
-		}
-	}
-	return b.String()
 }
 
 // ContainsString returns true if strings contains str

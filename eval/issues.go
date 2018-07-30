@@ -1,7 +1,6 @@
 package eval
 
 import (
-	"bytes"
 	"github.com/puppetlabs/go-issues/issue"
 )
 
@@ -124,15 +123,6 @@ const (
 	EVAL_UNSUPPORTED_STRING_FORMAT                 = `EVAL_UNSUPPORTED_STRING_FORMAT`
 	EVAL_WRONG_DEFINITION                          = `EVAL_WRONG_DEFINITION`
 )
-
-func joinErrors(e interface{}) string {
-	b := bytes.NewBufferString(``)
-	for _, error := range e.([]issue.Reported) {
-		b.WriteString("\n")
-		error.ErrorTo(b)
-	}
-	return b.String()
-}
 
 func init() {
 	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: issue.A_an})
@@ -258,7 +248,7 @@ func init() {
 
 	issue.Hard(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
 
-	issue.Hard2(EVAL_MULTI_ERROR, `Multiple errors: %{errors}`, issue.HF{`errors`: joinErrors})
+	issue.Hard2(EVAL_MULTI_ERROR, `Multiple errors: %{errors}`, issue.HF{`errors`: issue.JoinErrors})
 
 	issue.Hard(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 
