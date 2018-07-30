@@ -67,6 +67,24 @@ func (e *BasicScope) WithLocalScope(producer eval.Producer) eval.PValue {
 	return result
 }
 
+func (e *BasicScope) Fork() eval.Scope {
+	clone := &BasicScope{}
+	clone.copyFrom(e)
+	return clone
+}
+
+func (e *BasicScope) copyFrom(src *BasicScope) {
+	e.mutable = src.mutable
+	e.scopes = make([]map[string]eval.PValue, len(src.scopes))
+	for i, s := range src.scopes {
+		cm := make(map[string]eval.PValue, len(s))
+		for k, v := range s {
+			cm[k] = v
+		}
+		e.scopes[i] = cm
+	}
+}
+
 func (e *BasicScope) Get(name string) (value eval.PValue, found bool) {
 	if strings.HasPrefix(name, `::`) {
 		if value, found = e.scopes[0][name[2:]]; found {
@@ -133,6 +151,13 @@ func (e *BasicScope) State(name string)  eval.VariableState {
 		}
 	}
 	return eval.NotFound
+}
+
+func (e *parentedScope) Fork() eval.Scope {
+	clone := &parentedScope{}
+	clone.copyFrom(&e.BasicScope)
+	clone.parent = e.parent.Fork()
+	return clone
 }
 
 func (e *parentedScope) Get(name string) (value eval.PValue, found bool) {

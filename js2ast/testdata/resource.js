@@ -135,9 +135,8 @@ function tier4() {
   var secgroup = resource('genesis::aws::securitygroup[myapp-secgroup]');
   console.log("✔ Created RouteTable '" + routes.route_table_id + "' for Subnet '" + subnet.subnet_id + "'");
 
-  resources({
-    'genesis::aws::instance': {
-      'myapp-instance': {
+  [1,2,3].parallel(function(x) {
+    resources({'genesis::aws::instance': new Hash(['myapp-instance-' + x, {
         region: region,
         image_id: 'ami-f90a4880',
         instance_type: 't2.nano',
@@ -145,13 +144,12 @@ function tier4() {
         tag_specifications: [new Genesis.Aws.TagSpecification({resource_type: 'instance', tags: tags})],
         subnet_id: subnet.subnet_id,
         security_groups: [new Genesis.Aws.GroupIdentifier({group_id: secgroup.group_id})]
-      }
-    }
+      }])})
   })
 }
 
 function tier5() {
-  var instance = resource('genesis::aws::instance[myapp-instance]');
+  var instance = resource('genesis::aws::instance[myapp-instance-1]');
   console.log("✔ Created EC2 Instance, ID: '" + instance.instance_id + "', PrivateIP: '" + instance.private_ip_address + "', PublicIP: '" + instance.public_ip_address + "'");
 
   resources({

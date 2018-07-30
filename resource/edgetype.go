@@ -29,8 +29,8 @@ type (
 
 	// edge denotes a relationship between two ResourceNodes
 	edge struct {
-		from      Node
-		to        Node
+		from      graph.Node
+		to        graph.Node
 		subscribe bool
 	}
 )
@@ -53,9 +53,9 @@ func (re *edge) From() graph.Node {
 func (re *edge) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `from`:
-		return re.from, true
+		return re.from.(eval.PValue), true
 	case `to`:
-		return re.to, true
+		return re.to.(eval.PValue), true
 	case `subscribe`:
 		return types.WrapBoolean(re.subscribe), true
 	}
@@ -64,8 +64,8 @@ func (re *edge) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
 
 func (re *edge) InitHash() eval.KeyedValue {
 	return types.WrapHash3(map[string]eval.PValue{
-		`from`:      re.from,
-		`to`:        re.to,
+		`from`:      re.from.(eval.PValue),
+		`to`:        re.to.(eval.PValue),
 		`subscribe`: types.WrapBoolean(re.subscribe),
 	})
 }
@@ -91,5 +91,5 @@ func (re *edge) Type() eval.PType {
 }
 
 func (re *edge) Value() eval.PValue {
-	return re.to.Value()
+	return re.to.(Node).Value()
 }

@@ -7,7 +7,6 @@ import (
 
 type nodeJob struct {
 	n *node
-	c eval.Context
 }
 
 type jobCounter struct {
@@ -27,13 +26,13 @@ func nodeWorker(id int, nodeJobs <-chan *nodeJob, done chan<- bool) {
 	for nj := range nodeJobs {
 		func(job *nodeJob) {
 			defer func() {
-				if getJobCounter(job.c).decrement() == 0 {
+				if getJobCounter(job.n.Context()).decrement() == 0 {
 					// Last node job done. Close nodeJobs channel
 					done <- true
-					close(getNodeJobs(job.c))
+					close(getNodeJobs(job.n.Context()))
 				}
 			}()
-			job.n.evaluate(nj.c)
+			job.n.evaluate()
 		}(nj)
 	}
 }
@@ -45,7 +44,8 @@ func scheduleNodes(c eval.Context, nodes eval.IndexedValue) {
 		nodeJobs := getNodeJobs(c)
 		nodes.Each(func(ch eval.PValue) {
 			jc.increment()
-			nodeJobs <- &nodeJob{n: ch.(*node), c: c.Fork()}
+			nd := ch.(*node)
+			nodeJobs <- &nodeJob{n: nd}
 		})
 	}
 }

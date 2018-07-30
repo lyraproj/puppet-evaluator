@@ -140,7 +140,7 @@ func (c *evalCtx) Fork() eval.Context {
 	copy(s, c.stack)
 	clone := c.clone()
 	if clone.scope != nil {
-		clone.scope = NewParentedScope(clone.scope, c.language == eval.LangJavaScript)
+		clone.scope = NewParentedScope(clone.scope.Fork(), c.language == eval.LangJavaScript)
 	}
 	clone.loader = eval.NewParentedLoader(clone.loader)
 	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)

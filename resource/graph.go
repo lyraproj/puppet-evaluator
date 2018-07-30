@@ -139,7 +139,7 @@ func (cg *concurrentGraph) AddNode(n graph.Node) {
 }
 
 func (cg *concurrentGraph) NewEdge(from, to graph.Node) graph.Edge {
-	return &edge{from.(*node), to.(*node), false}
+	return &edge{from, to, false}
 }
 
 func (cg *concurrentGraph) RemoveEdge(fid, tid int64) {

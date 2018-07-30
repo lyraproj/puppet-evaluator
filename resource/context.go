@@ -75,7 +75,7 @@ func setCurrentNode(c eval.Context, n *node) {
 	c.Set(CURRENT_NODE, n)
 }
 
-func getExternalEdgesTo(c eval.Context) []graph.Node {
+func getExternalEdgesFrom(c eval.Context) []graph.Node {
 	if rs, ok := c.Get(EXTERNAL_EDGES_TO); ok {
 		return rs.([]graph.Node)
 	}
@@ -96,7 +96,7 @@ func getJobCounter(c eval.Context) *jobCounter {
 	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: JOB_COUNTER}))
 }
 
-func setExternalEdgesTo(c eval.Context, edges []graph.Node) {
+func setExternalEdgesFrom(c eval.Context, edges []graph.Node) {
 	c.Set(EXTERNAL_EDGES_TO, edges)
 }
 

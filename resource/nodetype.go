@@ -36,6 +36,9 @@ type (
 
 		Location() issue.Location
 
+		// Context used when this node was created (defines scope)
+		Context() eval.Context
+
 		// Resolved returns true if all promises has been fulfilled for this
 		// value. In essence, that means that this node is not appointed by
 		// edges from any unresolved nodes and that the contained expression has
@@ -64,6 +67,7 @@ type (
 		resolved chan bool
 
 		value     eval.PValue
+
 		resources map[string]*handle
 
 		// invocable value (mutualy exclusive to the expression
@@ -79,8 +83,14 @@ type (
 		error issue.Reported
 
 		results []eval.PValue
+
+		context eval.Context
 	}
 )
+
+func (rn *node) Context() eval.Context {
+	return rn.context
+}
 
 func (rn *node) Equals(other interface{}, guard eval.Guard) bool {
 	on, ok := other.(*node)
@@ -201,6 +211,7 @@ func newNode(c eval.Context, expression parser.Expression, parameters ...eval.PV
 	node.parameters = parameters
 	node.resources = map[string]*handle{}
 	node.value = nil
+	node.context = c.Fork()
 	g.AddNode(node)
 	return node
 }
@@ -214,6 +225,7 @@ func newNode2(c eval.Context, lambda eval.InvocableValue) *node {
 	node.parameters = []eval.PValue{}
 	node.resources = map[string]*handle{}
 	node.value = nil
+	node.context = c.Fork()
 	g.AddNode(node)
 	return node
 }
@@ -232,7 +244,8 @@ func (rn *node) ID() int64 {
 	return rn.id
 }
 
-func (rn *node) evaluate(c eval.Context) {
+func (rn *node) evaluate() {
+	c := rn.context
 	done := func() bool {
 		rn.resolveLock.Lock()
 		if rn.value != nil {
@@ -250,7 +263,6 @@ func (rn *node) evaluate(c eval.Context) {
 		// Ensure that all nodes that has an edge to this node have been
 		// fully resolved.
 		c.Scope().Set(`pnr`, rn.waitForEdgesTo(c))
-
 		value, err := c.Evaluator().(*resourceEval).evaluateNodeExpression(c, rn)
 		if err == nil {
 			rn.update(c, value, getResources(c))

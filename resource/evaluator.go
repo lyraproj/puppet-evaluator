@@ -95,7 +95,7 @@ func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.P
 	setCurrentNode(c, rn)
 	g := GetGraph(c)
 	extEdges := g.From(rn.ID())
-	setExternalEdgesTo(c, extEdges)
+	setExternalEdgesFrom(c, extEdges)
 	setResources(c, map[string]*handle{})
 
 	var lambda eval.InvocableValue
@@ -159,8 +159,6 @@ func (re *resourceEval) CallFunction(name string, args []eval.PValue, call parse
 	case parallel, sequential:
 		// This is not a real function call but rather a node scheduling instruction
 		return re.createEdgesWithArgument(c, name, args, call)
-
-		// Schedule the nodes that will call the lambda
 	default:
 		return re.evaluator.CallFunction(name, args, call, c)
 	}
@@ -241,7 +239,7 @@ func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, arg
 func createEdgesForNodes(c eval.Context, nodes []Node, name string) eval.PValue {
 	cn := getCurrentNode(c)
 	g := GetGraph(c).(graph.DirectedBuilder)
-	extEdges := getExternalEdgesTo(c)
+	extEdges := getExternalEdgesFrom(c)
 
 	if name == parallel {
 		edges := make([]eval.PValue, len(nodes))
@@ -297,50 +295,93 @@ func (re *resourceEval) eval_AccessExpression(expr *parser.AccessExpression, c e
 }
 
 func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {
-	edges := []Edge{}
 	switch expr.Operator() {
 	case `->`:
-		edges = createEdges(c, expr.Lhs(), expr.Rhs(), false, edges)
+		return re.createEdges(c, expr.Lhs(), expr.Rhs(), false)
 	case `~>`:
-		edges = createEdges(c, expr.Lhs(), expr.Rhs(), true, edges)
+		return re.createEdges(c, expr.Lhs(), expr.Rhs(), true)
 	case `<-`:
-		edges = createEdges(c, expr.Rhs(), expr.Lhs(), false, edges)
+		return re.createEdges(c, expr.Rhs(), expr.Lhs(), false)
 	default:
-		edges = createEdges(c, expr.Rhs(), expr.Lhs(), true, edges)
+		return re.createEdges(c, expr.Rhs(), expr.Lhs(), true)
 	}
-	cn := getCurrentNode(c)
-	g := GetGraph(c).(graph.DirectedBuilder)
-
-	extEdges := getExternalEdgesTo(c)
-	for _, e := range edges {
-		for _, cnTo := range extEdges {
-			// RHS of edge must evaluate before any edges external to the current node evaluates
-			exEdge := g.Edge(cn.ID(), cnTo.ID()).(Edge)
-			g.SetEdge(newEdge(e.To().(Node), cnTo.(Node), exEdge.Subscribe()))
-		}
-
-		// Create edge from current to LHS of edge
-		g.SetEdge(newEdge(cn, e.From().(Node), false))
-		g.SetEdge(e)
-	}
-	if len(edges) == 1 {
-		return edges[0]
-	}
-	evs := make([]eval.PValue, len(edges))
-	for i, e := range edges {
-		evs[i] = e
-	}
-	return types.WrapArray(evs)
 }
 
-func createEdges(c eval.Context, lhs, rhs parser.Expression, subscribe bool, edges []Edge) []Edge {
-	rhsNodes := createNodes(c, rhs, []Node{})
-	for _, lhsNode := range createNodes(c, lhs, []Node{}) {
-		for _, rhsNode := range rhsNodes {
-			edges = append(edges, newEdge(lhsNode, rhsNode, subscribe))
+func (re *resourceEval) createEdges(c eval.Context, first, second parser.Expression, subscribe bool) eval.PValue {
+	// Evaluate first as part of this evaluation. We don't care about the actual evaluation result but we do
+	// care about side effects.
+	if r, ok := first.(*parser.RelationshipExpression); ok {
+		// Only one side of this can be evaluated so we need to reorder the actual expression
+		f := parser.DefaultFactory()
+		switch r.Operator() {
+		case `->`:
+			return re.createEdges(c, r.Lhs(), f.RelOp(`->`, r.Rhs(), second, r.Locator(), r.ByteOffset(), r.ByteLength()), false)
+		case `~>`:
+			return re.createEdges(c, r.Lhs(), f.RelOp(`~>`, r.Rhs(), second, r.Locator(), r.ByteOffset(), r.ByteLength()), true)
+		case `<-`:
+			return re.createEdges(c, r.Rhs(), f.RelOp(`->`, r.Lhs(), second, r.Locator(), r.ByteOffset(), r.ByteLength()), false)
+		default:
+			return re.createEdges(c, r.Rhs(), f.RelOp(`~>`, r.Lhs(), second, r.Locator(), r.ByteOffset(), r.ByteLength()), true)
 		}
 	}
-	return edges
+
+
+	var er eval.PValue = nil
+
+	edges := make([]eval.PValue, 0)
+	if ae, ok := first.(*parser.AccessExpression); ok {
+		if qn, ok := ae.Operand().(*parser.QualifiedName); ok && (qn.Name() == parallel || qn.Name() == sequential) {
+			// Deal with parallel[expr, ...] and sequential[expr, ...]
+			nes := ae.Keys()
+			nodes := make([]Node, len(nes))
+			for i, ne := range nes {
+				nodes[i] = newNode(c, ne)
+			}
+			efn := createEdgesForNodes(c, nodes, qn.Name())
+			if arr, ok := efn.(*types.ArrayValue); ok {
+				arr.AppendTo(edges)
+			} else {
+				edges = append(edges, efn)
+			}
+		} else {
+			er = re.Eval(first, c)
+		}
+	} else {
+		er = re.Eval(first, c)
+	}
+
+	cn := getCurrentNode(c)
+	g := GetGraph(c).(graph.DirectedBuilder)
+	leafs := findLeafs(g, cn, []Node{})
+	for _, rn := range createNodes(c, second, []Node{}) {
+		// Create edge leafs of from current
+		for _, leaf := range leafs {
+			edge := newEdge(leaf.(Node), rn, subscribe)
+			g.SetEdge(edge)
+			edges = append(edges, edge)
+		}
+	}
+
+	if er == nil {
+		if len(edges) == 1 {
+			er = edges[0]
+		} else {
+			er = types.WrapArray(edges)
+		}
+	}
+	return er
+}
+
+func findLeafs(g graph.Directed, n graph.Node, leafs []Node) []Node {
+	depNodes := g.From(n.ID())
+	if len(depNodes) == 0 {
+		leafs = append(leafs, n.(Node))
+	} else {
+		for _, l := range depNodes {
+			leafs = findLeafs(g, l, leafs)
+		}
+	}
+	return leafs
 }
 
 func createNodes(c eval.Context, expr parser.Expression, nodes []Node) []Node {

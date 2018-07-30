@@ -25,6 +25,10 @@ type (
 		// ephemeral scope is quaraneed to be popped before this method returns.
 		WithLocalScope(producer Producer) PValue
 
+		// Fork Creates a copy of this scope. If the scope is parented, the copy will
+		// contain a fork of the parent
+		Fork() Scope
+
 		// Get returns a named variable from this scope together with a boolean indicating
 		// if the variable was found or not
 		Get(name string) (value PValue, found bool)

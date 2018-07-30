@@ -115,7 +115,7 @@ Examples('when using the YAML Puppet parser',
         |YAML
       String([resource('my::a[/a/b]')])
       |SRC
-    Evaluates_to(`[My::A('title' => '/a/b', 'ensure' => 'absent', 'mode' => 384)]`)),
+    Evaluates_with(Notice('Applying my::a[/a/a]', 'Applying my::b[x]', 'Applying my::b[y]', 'Applying my::b[z]', 'Applying my::c[a]', 'Applying my::c[b]', 'Applying my::c[c]', 'Applying my::a[/a/b]', 'Applying my::a[test-a]'))),
 
   Example('variables are set with _setvar',
     Given(@(SRC)),
