@@ -142,14 +142,15 @@ func (t *typedName) IsParent(o TypedName) bool {
 	tps := t.nameParts
 	ops := o.NameParts()
 	top := len(tps)
-	if top > len(ops) {
+	if top < len(ops) {
 		for idx := 0; idx < top; idx++ {
 			if tps[idx] != ops[idx] {
 				return false
 			}
 		}
+		return true
 	}
-	return true
+	return false
 }
 
 func (t *typedName) RelativeTo(parent TypedName) (TypedName, bool) {
