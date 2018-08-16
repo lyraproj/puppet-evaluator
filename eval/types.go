@@ -157,6 +157,10 @@ type (
 		// and initializes that instance from the given src
 		FromReflectedValue(c Context, src reflect.Value) PuppetObject
 
+		// Parent returns the type that this type inherits from or nil if
+		// the type doesn't have a parent
+		Parent() PType
+
 		// ToReflectedValue copies values from src to dest. The src argument
 		// must be an instance of the receiver. The dest argument must be
 		// a reflected struct. The src must be able to deliver a value to

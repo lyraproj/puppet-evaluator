@@ -636,6 +636,10 @@ func (t *objectType) Parameters2(includeName bool) []eval.PValue {
 	return []eval.PValue{WrapStringPValue(t.initHash(includeName))}
 }
 
+func (t *objectType) Parent() eval.PType {
+	return t.parent
+}
+
 func (t *objectType) Resolve(c eval.Context) eval.PType {
 	if t.initHashExpression != nil {
 		ihe := t.initHashExpression

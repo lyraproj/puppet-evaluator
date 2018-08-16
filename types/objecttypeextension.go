@@ -122,6 +122,10 @@ func (te *objectTypeExtension) FromReflectedValue(c eval.Context, src reflect.Va
 	return te.baseType.FromReflectedValue(c, src)
 }
 
+func (te *objectTypeExtension) Parent() eval.PType {
+	return te.baseType.Parent()
+}
+
 func (te *objectTypeExtension) ToReflectedValue(c eval.Context, src eval.PuppetObject, dest reflect.Value) {
 	te.baseType.ToReflectedValue(c, src, dest)
 }
