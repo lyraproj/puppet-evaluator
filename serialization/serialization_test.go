@@ -40,32 +40,32 @@ func ExampleToDataConverter_Convert() {
 		fmt.Println(NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver)))
 		return nil
 	})
-	// Output: {'__pcore_type__' => 'SemVer', '__pcore_value__' => '1.0.0'}
+	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}
 }
 
 func ExampleDataToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		buf := bytes.NewBufferString(``)
-		DataToJson(ctx, types.WrapHash4(ctx, map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`}), buf, eval.EMPTY_MAP)
+		DataToJson(ctx, types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), buf, eval.EMPTY_MAP)
 		fmt.Println(buf)
 		return nil
 	})
-	// Output: {"__pcore_type__":"SemVer","__pcore_value__":"1.0.0"}
+	// Output: {"__ptype":"SemVer","__pvalue":"1.0.0"}
 }
 
 func ExampleJsonToData() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		buf := bytes.NewBufferString(`{"__pcore_type__":"SemVer","__pcore_value__":"1.0.0"}`)
+		buf := bytes.NewBufferString(`{"__ptype":"SemVer","__pvalue":"1.0.0"}`)
 		data := JsonToData(ctx, `/tmp/ver.json`, buf)
 		fmt.Println(data)
 		return nil
 	})
-	// Output: {'__pcore_type__' => 'SemVer', '__pcore_value__' => '1.0.0'}
+	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}
 }
 
 func ExampleFromDataConverter_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		data := types.WrapHash4(ctx, map[string]interface{}{`__pcore_type__`: `SemVer`, `__pcore_value__`: `1.0.0`})
+		data := types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)

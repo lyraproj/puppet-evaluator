@@ -46,12 +46,12 @@ const (
 	EX_URI            = Extension(0x39)
 
 	// PCORE_TYPE_KEY is the key used to signify the type of a serialized value
-	PCORE_TYPE_KEY = `__pcore_type__`
+	PCORE_TYPE_KEY = `__ptype`
 
 	// PCORE_VALUE_KEY is used when the value can be represented as, and recreated from, a single string that can
 	// be passed to a `from_string` method or an array of values that can be passed to the default
 	// initializer method.
-	PCORE_VALUE_KEY = `__pcore_value__`
+	PCORE_VALUE_KEY = `__pvalue`
 
 	// PCORE_TYPE_HASH is used for hashes that contain keys that are not of type String
 	PCORE_TYPE_HASH = `Hash`
