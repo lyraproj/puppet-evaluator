@@ -9,10 +9,10 @@ import (
 	"reflect"
 	"regexp"
 	"time"
+	"testing"
 
 	// Initialize pcore
 	_ "github.com/puppetlabs/go-evaluator/pcore"
-	"testing"
 )
 
 func ExampleWrap() {
