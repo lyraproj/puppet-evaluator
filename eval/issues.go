@@ -65,6 +65,7 @@ const (
 	EVAL_MISSING_TYPE_PARAMETER                    = `EVAL_MISSING_TYPE_PARAMETER`
 	EVAL_MULTI_ERROR                               = `EVAL_MULTI_ERROR`
 	EVAL_NO_ATTRIBUTE_READER                       = `EVAL_NO_ATTRIBUTE_READER`
+	EVAL_NO_CURRENT_CONTEXT                        = `EVAL_NO_CURRENT_CONTEXT`
 	EVAL_NO_DEFINITION                             = `EVAL_NO_DEFINITION`
 	EVAL_NOT_COLLECTION_AT                         = `EVAL_NOT_COLLECTION_AT`
 	EVAL_NOT_EXPECTED_TYPESET                      = `EVAL_NOT_EXPECTED_TYPESET`
@@ -120,6 +121,7 @@ const (
 	EVAL_UNKNOWN_TASK                              = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                          = `EVAL_UNKNOWN_VARIABLE`
 	EVAL_UNRESOLVED_TYPE                           = `EVAL_UNRESOLVED_TYPE`
+	EVAL_UNRESOLVED_TYPE_OF                        = `EVAL_UNRESOLVED_TYPE_OF`
 	EVAL_UNSUPPORTED_STRING_FORMAT                 = `EVAL_UNSUPPORTED_STRING_FORMAT`
 	EVAL_WRONG_DEFINITION                          = `EVAL_WRONG_DEFINITION`
 )
@@ -254,6 +256,8 @@ func init() {
 
 	issue.Hard(EVAL_NO_ATTRIBUTE_READER, `No attribute reader is implemented for %{label}`)
 
+	issue.Hard(EVAL_NO_CURRENT_CONTEXT, `There is no current evaluation context`)
+
 	issue.Hard(EVAL_NO_DEFINITION, `The code loaded from %{source} does not define the %{type} '%{name}`)
 
 	issue.Hard(EVAL_NOT_COLLECTION_AT, `The given data does not contain a Collection at %{walked_path}, got '%{klass}'`)
@@ -364,6 +368,8 @@ func init() {
 	issue.Hard(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
 
 	issue.Hard(EVAL_UNRESOLVED_TYPE, `Reference to unresolved type '%{typeString}'`)
+
+	issue.Hard(EVAL_UNRESOLVED_TYPE_OF, `Unable to resolve attribute '%{navigation}' of type '%{type}'`)
 
 	issue.Hard(EVAL_UNSUPPORTED_STRING_FORMAT, `Illegal format '%<format>c' specified for value of %{type} type - expected one of the characters '%{supported_formats}'`)
 

@@ -9,7 +9,11 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-evaluator/threadlocal"
+	"runtime"
 )
+
+const PuppetContextKey = `puppet.context`
 
 type (
 	evalCtx struct {
@@ -25,6 +29,16 @@ type (
 		vars         map[string]interface{}
 	}
 )
+
+func init() {
+	eval.CurrentContext = func() eval.Context {
+		if ctx, ok := threadlocal.Get(PuppetContextKey); ok {
+			return ctx.(eval.Context)
+		}
+		_, file, line, _ := runtime.Caller(1)
+		panic(issue.NewReported(eval.EVAL_NO_CURRENT_CONTEXT, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
+	}
+}
 
 func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
 	return WithParent(context.Background(), evaluator, loader, newImplementationRegistry())

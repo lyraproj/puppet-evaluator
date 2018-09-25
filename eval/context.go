@@ -135,3 +135,5 @@ type Context interface {
 	// dynamic expressions within such expressions
 	Static() bool
 }
+
+var CurrentContext func() Context

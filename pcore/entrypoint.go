@@ -19,6 +19,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
+	"github.com/puppetlabs/go-evaluator/threadlocal"
 )
 
 type (
@@ -62,6 +63,9 @@ func InitializePuppet() {
 	resource.InitBuiltinResources(c)
 	c.DoWithLoader(eval.StaticResourceLoader(), c.ResolveResolvables)
 	topImplRegistry = c.ImplementationRegistry()
+
+	threadlocal.Init()
+	threadlocal.Set(impl.PuppetContextKey, c)
 }
 
 func (p *pcoreImpl) Reset() {

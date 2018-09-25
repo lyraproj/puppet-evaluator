@@ -3,6 +3,8 @@ package resource
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"sync/atomic"
+	"github.com/puppetlabs/go-evaluator/threadlocal"
+	"github.com/puppetlabs/go-evaluator/impl"
 )
 
 type nodeJob struct {
@@ -26,12 +28,15 @@ func nodeWorker(id int, nodeJobs <-chan *nodeJob, done chan<- bool) {
 	for nj := range nodeJobs {
 		func(job *nodeJob) {
 			defer func() {
+				threadlocal.Cleanup()
 				if getJobCounter(job.n.Context()).decrement() == 0 {
 					// Last node job done. Close nodeJobs channel
 					done <- true
 					close(getNodeJobs(job.n.Context()))
 				}
 			}()
+			threadlocal.Init()
+			threadlocal.Set(impl.PuppetContextKey, job.n.Context())
 			job.n.evaluate()
 		}(nj)
 	}
