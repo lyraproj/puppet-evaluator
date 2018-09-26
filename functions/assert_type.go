@@ -6,12 +6,12 @@ import (
 )
 
 func assertType(c eval.Context, t eval.PType, v eval.PValue, b eval.Lambda) eval.PValue {
-	if eval.IsInstance(c, t, v) {
+	if eval.IsInstance(t, v) {
 		return v
 	}
 	vt := eval.DetailedValueType(v)
 	if b == nil {
-		panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
 	}
 	return b.Call(c, nil, t, vt)
 }

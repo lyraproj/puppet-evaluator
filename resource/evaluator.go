@@ -31,7 +31,7 @@ func NewEvaluator(logger eval.Logger) Evaluator {
 
 func defaultApplyFunc(c eval.Context, resources []eval.PuppetObject) ([]eval.PuppetObject, error) {
 	for _, h := range resources {
-		text := types.WrapString(fmt.Sprintf("Applying %s", Reference(c, h)))
+		text := types.WrapString(fmt.Sprintf("Applying %s", Reference(h)))
 		log.Println(text)
 		c.Logger().Log(eval.NOTICE, text)
 	}
@@ -87,7 +87,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	case 1:
 		return eval.UNDEF, errors[0]
 	default:
-		return eval.UNDEF, eval.Error(c, eval.EVAL_MULTI_ERROR, issue.H{`errors`: errors})
+		return eval.UNDEF, eval.Error(eval.EVAL_MULTI_ERROR, issue.H{`errors`: errors})
 	}
 }
 
@@ -202,7 +202,7 @@ func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, arg
 
 	// Emulate "each" style iteration with either one or two arguments
 	nodes := make([]Node, 0, 8)
-	eval.AssertInstance(c, name, types.DefaultIterableType(), arg)
+	eval.AssertInstance(name, types.DefaultIterableType(), arg)
 	if hash, ok := arg.(*types.HashValue); ok {
 		if np == 2 {
 			hash.EachPair(func(k, v eval.PValue) {

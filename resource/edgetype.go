@@ -50,7 +50,7 @@ func (re *edge) From() graph.Node {
 	return re.from
 }
 
-func (re *edge) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (re *edge) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `from`:
 		return re.from.(eval.PValue), true

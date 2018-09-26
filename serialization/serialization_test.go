@@ -16,7 +16,7 @@ func ExampleDataRoundtrip() {
 		v := types.WrapSemVer(ver)
 		fmt.Printf("%T '%s'\n", v, v)
 
-		dc := NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
 		data := dc.Convert(v)
 
 		buf := bytes.NewBufferString(``)
@@ -37,7 +37,7 @@ func ExampleDataRoundtrip() {
 func ExampleToDataConverter_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		ver, _ := semver.NewVersion(1, 0, 0)
-		fmt.Println(NewToDataConverter(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver)))
+		fmt.Println(NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver)))
 		return nil
 	})
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}

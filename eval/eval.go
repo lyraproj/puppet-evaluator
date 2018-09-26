@@ -32,7 +32,7 @@ func Go(f func()) {
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error func(c Context, issueCode issue.Code, args issue.H) issue.Reported
+var Error func(issueCode issue.Code, args issue.H) issue.Reported
 
 // Error2 creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
@@ -40,4 +40,4 @@ var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) iss
 
 // Warning creates a Reported with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
-var Warning func(c Context, issueCode issue.Code, args issue.H) issue.Reported
+var Warning func(issueCode issue.Code, args issue.H) issue.Reported

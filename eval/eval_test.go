@@ -17,10 +17,10 @@ import (
 
 func ExampleWrap() {
 	// Wrap native Go types
-	str := eval.Wrap("hello")
-	idx := eval.Wrap(23)
-	flt := eval.Wrap(123.34)
-	bl := eval.Wrap(true)
+	str := eval.Wrap(nil, "hello")
+	idx := eval.Wrap(nil, 23)
+	flt := eval.Wrap(nil, 123.34)
+	bl := eval.Wrap(nil, true)
 	und := eval.UNDEF
 
 	fmt.Printf("'%s' is a %s\n", str, str.Type())
@@ -39,7 +39,7 @@ func ExampleWrap() {
 
 func ExampleWrap_slice() {
 	// Wrap native Go slice
-	arr := eval.Wrap([]interface{}{1, 2.2, true, nil, "hello"})
+	arr := eval.Wrap(nil, []interface{}{1, 2.2, true, nil, "hello"})
 	fmt.Printf("%s is an %s\n", arr, arr.Type())
 
 	// Output:
@@ -48,7 +48,7 @@ func ExampleWrap_slice() {
 
 func ExampleWrap_hash() {
 	// Wrap native Go hash
-	hsh := eval.Wrap(map[string]interface{}{
+	hsh := eval.Wrap(nil, map[string]interface{}{
 		"first":  1,
 		"second": 2.2,
 		"third":  "three",
@@ -76,8 +76,8 @@ func ExamplePcore_parseType() {
 func ExamplePcore_isInstance() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
-		fmt.Println(eval.IsInstance(ctx, pcoreType, eval.Wrap("foo")))
-		fmt.Println(eval.IsInstance(ctx, pcoreType, eval.Wrap("bar")))
+		fmt.Println(eval.IsInstance(pcoreType, eval.Wrap(ctx, "foo")))
+		fmt.Println(eval.IsInstance(pcoreType, eval.Wrap(ctx, "bar")))
 		return nil
 	})
 	// Output:
@@ -99,12 +99,12 @@ func ExamplePcore_parseTypeError() {
 func ExampleReflector_reflectArray() {
 	c := eval.Puppet.RootContext()
 
-	av := eval.Wrap([]interface{}{`hello`, 3}).(*types.ArrayValue)
-	ar := c.Reflector().Reflect(av, nil)
+	av := eval.Wrap(nil, []interface{}{`hello`, 3}).(*types.ArrayValue)
+	ar := c.Reflector().Reflect(av)
 	fmt.Printf("%s %v\n", ar.Type(), ar)
 
-	av = eval.Wrap([]interface{}{`hello`, `world`}).(*types.ArrayValue)
-	ar = c.Reflector().Reflect(av, nil)
+	av = eval.Wrap(nil, []interface{}{`hello`, `world`}).(*types.ArrayValue)
+	ar = c.Reflector().Reflect(av)
 	fmt.Printf("%s %v\n", ar.Type(), ar)
 	// Output:
 	// []interface {} [hello 3]
@@ -122,7 +122,7 @@ func ExampleReflector_reflectToArray() {
 	ts := &TestStruct{}
 	rv := reflect.ValueOf(ts).Elem()
 
-	av := eval.Wrap([]string{`hello`, `world`})
+	av := eval.Wrap(nil, []string{`hello`, `world`})
 
 	rf := c.Reflector()
 	rf.ReflectTo(av, rv.Field(0))
@@ -145,7 +145,7 @@ func ExampleReflector_reflectToHash() {
 	var values map[string]eval.PValue
 
 	c := eval.Puppet.RootContext()
-	hv := eval.Wrap(map[string]string{`x`: `hello`, `y`: `world`})
+	hv := eval.Wrap(nil, map[string]string{`x`: `hello`, `y`: `world`})
 
 	rf := c.Reflector()
 	rf.ReflectTo(hv, reflect.ValueOf(&strings))
@@ -176,7 +176,7 @@ func ExampleReflector_reflectToBytes() {
 	c := eval.Puppet.RootContext()
 
 	rf := c.Reflector()
-	bv := eval.Wrap([]byte{1, 2, 3})
+	bv := eval.Wrap(nil, []byte{1, 2, 3})
 	rf.ReflectTo(bv, reflect.ValueOf(&buf))
 	fmt.Println(buf)
 
@@ -201,7 +201,7 @@ func ExampleReflector_reflectToFloat() {
 	rv := reflect.ValueOf(ts).Elem()
 	n := rv.NumField()
 	for i := 0; i < n; i++ {
-		fv := eval.Wrap(float64(10+i+1) / 10.0)
+		fv := eval.Wrap(nil, float64(10+i+1) / 10.0)
 		rf.ReflectTo(fv, rv.Field(i))
 	}
 	fmt.Println(ts)
@@ -230,7 +230,7 @@ func ExampleReflector_reflectToInt() {
 	rv := reflect.ValueOf(ts).Elem()
 	n := rv.NumField()
 	for i := 0; i < n; i++ {
-		rf.ReflectTo(eval.Wrap(10+i), rv.Field(i))
+		rf.ReflectTo(eval.Wrap(nil, 10+i), rv.Field(i))
 	}
 	fmt.Println(ts)
 	// Output: &{10 11 12 13 14 15 16 17 18 19 20 21}
@@ -239,7 +239,7 @@ func ExampleReflector_reflectToInt() {
 func ExampleReflector_reflectToRegexp() {
 	var expr *regexp.Regexp
 
-	rx := eval.Wrap(regexp.MustCompile("[a-z]*"))
+	rx := eval.Wrap(nil, regexp.MustCompile("[a-z]*"))
 	eval.Puppet.RootContext().Reflector().ReflectTo(rx, reflect.ValueOf(&expr))
 
 	fmt.Println(expr)
@@ -249,7 +249,7 @@ func ExampleReflector_reflectToRegexp() {
 func ExampleReflector_reflectToTimespan() {
 	var span time.Duration
 
-	rx := eval.Wrap(time.Duration(1234))
+	rx := eval.Wrap(nil, time.Duration(1234))
 	eval.Puppet.RootContext().Reflector().ReflectTo(rx, reflect.ValueOf(&span))
 
 	fmt.Println(span)
@@ -260,7 +260,7 @@ func ExampleReflector_reflectToTimestamp() {
 	var tx time.Time
 
 	tm, _ := time.Parse(time.RFC3339, "2018-05-11T06:31:22+01:00")
-	tv := eval.Wrap(tm)
+	tv := eval.Wrap(nil, tm)
 	eval.Puppet.RootContext().Reflector().ReflectTo(tv, reflect.ValueOf(&tx))
 
 	fmt.Println(tx.Format(time.RFC3339))
@@ -271,7 +271,7 @@ func ExampleReflector_reflectToTersion() {
 	var version semver.Version
 
 	ver, _ := semver.ParseVersion(`1.2.3`)
-	vv := eval.Wrap(ver)
+	vv := eval.Wrap(nil, ver)
 	eval.Puppet.RootContext().Reflector().ReflectTo(vv, reflect.ValueOf(&version))
 
 	fmt.Println(version)
@@ -344,7 +344,7 @@ func ExampleImplementationRegistry() {
 	ir.RegisterType(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
-	ev := eval.Wrap2(c, ts)
+	ev := eval.Wrap(c, ts)
 	fmt.Println(ev)
 	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip' => '12345'), 'active' => true)
 }
@@ -384,7 +384,7 @@ func ExampleImplementationRegistry_tags() {
 	ir.RegisterType(c, `My::Person`, reflect.TypeOf(&TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
-	ev := eval.Wrap2(c, ts)
+	ev := eval.Wrap(c, ts)
 	fmt.Println(ev)
 	// Output: My::Person('name' => 'Bob Tester', 'age' => 34, 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true)
 }
@@ -420,7 +420,7 @@ func ExampleReflector_objectTypeFromReflect() {
 	fmt.Println(tExtPerson)
 
 	ts := &TestExtendedPerson{TestPerson{`Bob Tester`, &TestAddress{`Example Road 23`, `12345`}}, 34, true}
-	ev := eval.Wrap2(c, ts)
+	ev := eval.Wrap(c, ts)
 	fmt.Println(ev)
 
 	// Output:
@@ -462,7 +462,7 @@ func ExampleReflector_typeSetFromReflect() {
 	ep := &ExtendedPerson{Person{`Bob Tester`, &Address{`Example Road 23`, `12345`}}, 34, true}
 
 	// Wrap the instance as a PValue and print it
-	fmt.Println(eval.Wrap2(c, ep))
+	fmt.Println(eval.Wrap(c, ep))
 
 	// Output:
 	// TypeSet[{

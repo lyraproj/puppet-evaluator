@@ -150,7 +150,7 @@ func (t *StringType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *StringType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *StringType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `size_type_or_value`:
 		if t.value == `` {
@@ -190,7 +190,7 @@ func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *StringType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *StringType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && t.size.IsInstance3(len(str.String())) && (t.value == `` || t.value == str.String())
 }
@@ -399,7 +399,7 @@ func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(c, value, reflect.String)
+	assertKind(value, reflect.String)
 	if value.Kind() == reflect.Interface {
 		value.Set(sv.Reflect(c))
 	} else {

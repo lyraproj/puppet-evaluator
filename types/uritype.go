@@ -113,7 +113,7 @@ func init() {
 				}
 				u, err := ParseURI2(str, strict)
 				if err != nil {
-					panic(eval.Error(c, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+					panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 				}
 				return WrapURI(u)
 			})
@@ -186,7 +186,7 @@ func NewUriType2(args ...eval.PValue) *UriType {
 func ParseURI(str string) *url.URL {
 	uri, err := url.Parse(str)
 	if err != nil {
-		panic(eval.Error(nil, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 	}
 	return uri
 }
@@ -261,7 +261,7 @@ func (t *UriType) Equals(other interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *UriType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *UriType) Get(key string) (value eval.PValue, ok bool) {
 	if key == `parameters` {
 		switch t.parameters.(type) {
 		case *UndefValue:
@@ -297,7 +297,7 @@ func (t *UriType) IsAssignable(other eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *UriType) IsInstance(c eval.Context, other eval.PValue, g eval.Guard) bool {
+func (t *UriType) IsInstance(other eval.PValue, g eval.Guard) bool {
 	if ov, ok := other.(*UriValue); ok {
 		switch t.parameters.(type) {
 		case *UndefValue:
@@ -305,7 +305,7 @@ func (t *UriType) IsInstance(c eval.Context, other eval.PValue, g eval.Guard) bo
 		default:
 			ovUri := ov.URL()
 			return t.paramsAsHash().AllPairs(func(k, v eval.PValue) bool {
-				return eval.PuppetMatch(c, v, getURLField(ovUri, k.String()))
+				return eval.PuppetMatch(nil, v, getURLField(ovUri, k.String()))
 			})
 		}
 	}
@@ -418,7 +418,7 @@ func (u *UriValue) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (u *UriValue) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (u *UriValue) Get(key string) (eval.PValue, bool) {
 	if member, ok := members[key]; ok {
 		return member(u.URL()), true
 	}

@@ -32,7 +32,7 @@ func DataToNative(c eval.Context, value eval.PValue) interface{} {
 		hv.EachPair(func(k, v eval.PValue) { result[assertString(c, k)] = DataToNative(c, v) })
 		return result
 	default:
-		panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultDataType(), value.Type())}))
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultDataType(), value.Type())}))
 	}
 }
 
@@ -52,18 +52,18 @@ func JsonToData(c eval.Context, path string, in io.Reader) eval.PValue {
 	var parsedValue interface{}
 	err := d.Decode(&parsedValue)
 	if err == nil {
-		return NativeToData(parsedValue)
+		return NativeToData(c, parsedValue)
 	}
-	panic(eval.Error(c, eval.EVAL_TASK_BAD_JSON, issue.H{`path`: path, `detail`: err}))
+	panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: path, `detail`: err}))
 }
 
-func NativeToData(value interface{}) eval.PValue {
-	return eval.Wrap(value)
+func NativeToData(c eval.Context, value interface{}) eval.PValue {
+	return eval.Wrap(c, value)
 }
 
 func assertString(c eval.Context, value eval.PValue) string {
 	if s, ok := value.(*types.StringValue); ok {
 		return s.String()
 	}
-	panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultStringType(), value.Type())}))
+	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultStringType(), value.Type())}))
 }

@@ -22,8 +22,8 @@ type (
 	}
 )
 
-func (h *handle) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
-	return h.value.Get(c, key)
+func (h *handle) Get(key string) (value eval.PValue, ok bool) {
+	return h.value.Get(key)
 }
 
 func (h *handle) InitHash() eval.KeyedValue {
@@ -44,7 +44,7 @@ func (h *handle) Equals(other interface{}, guard eval.Guard) bool {
 
 func (h *handle) Replace(value eval.PuppetObject) {
 	if !eval.Equals(h.value.Type(), value.Type()) {
-		panic(eval.Error(nil, EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{`expected_type`: h.value.Type().String(), `actual_type`: value.Type().String()}))
+		panic(eval.Error(EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{`expected_type`: h.value.Type().String(), `actual_type`: value.Type().String()}))
 	}
 	h.value = value
 }

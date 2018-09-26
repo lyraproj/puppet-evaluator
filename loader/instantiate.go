@@ -71,12 +71,12 @@ func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn e
 		} else if taskSource == `` {
 			taskSource = sourceRef
 		} else {
-			panic(eval.Error(ctx, eval.EVAL_TASK_TOO_MANY_FILES, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
+			panic(eval.Error(eval.EVAL_TASK_TOO_MANY_FILES, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
 		}
 	}
 
 	if taskSource == `` {
-		panic(eval.Error(ctx, eval.EVAL_TASK_NO_EXECUTABLE_FOUND, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
+		panic(eval.Error(eval.EVAL_TASK_NO_EXECUTABLE_FOUND, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
 	}
 	task := createTask(ctx, loader, name, taskSource, metadata)
 	origin := metadata
@@ -95,12 +95,12 @@ func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSourc
 	d := json.NewDecoder(bytes.NewReader(jsonText))
 	d.UseNumber()
 	if err := d.Decode(&parsedValue); err != nil {
-		panic(eval.Error(ctx, eval.EVAL_TASK_BAD_JSON, issue.H{`path`: metadata, `detail`: err}))
+		panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: metadata, `detail`: err}))
 	}
 	if jo, ok := parsedValue.(map[string]interface{}); ok {
 		return createTaskFromHash(ctx, name, taskSource, jo)
 	}
-	panic(eval.Error(ctx, eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
+	panic(eval.Error(eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
 }
 
 func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[string]interface{}) eval.PValue {
@@ -129,7 +129,7 @@ func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[stri
 	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.CONSTRUCTOR, `Task`)); ok {
 		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapHash4(ctx, arguments))
 	}
-	panic(eval.Error(ctx, eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
+	panic(eval.Error(eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains

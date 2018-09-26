@@ -180,7 +180,7 @@ func (t *TupleType) Generic() eval.PType {
 	return NewTupleType(alterTypes(t.types, generalize), t.size)
 }
 
-func (t *TupleType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *TupleType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `types`:
 		tps := make([]eval.PValue, len(t.types))
@@ -201,7 +201,7 @@ func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	switch o.(type) {
 	case *ArrayType:
 		at := o.(*ArrayType)
-		if !GuardedIsInstance(nil, t.givenOrActualSize, WrapInteger(at.size.Min()), g) {
+		if !GuardedIsInstance(t.givenOrActualSize, WrapInteger(at.size.Min()), g) {
 			return false
 		}
 		top := len(t.types)
@@ -218,7 +218,7 @@ func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 
 	case *TupleType:
 		tt := o.(*TupleType)
-		if !(t.size == nil || GuardedIsInstance(nil, t.size, WrapInteger(tt.givenOrActualSize.Min()), g)) {
+		if !(t.size == nil || GuardedIsInstance(t.size, WrapInteger(tt.givenOrActualSize.Min()), g)) {
 			return false
 		}
 
@@ -246,14 +246,14 @@ func (t *TupleType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *TupleType) IsInstance(c eval.Context, v eval.PValue, g eval.Guard) bool {
+func (t *TupleType) IsInstance(v eval.PValue, g eval.Guard) bool {
 	if iv, ok := v.(*ArrayValue); ok {
-		return t.IsInstance2(c, iv, g)
+		return t.IsInstance2(iv, g)
 	}
 	return false
 }
 
-func (t *TupleType) IsInstance2(c eval.Context, vs eval.IndexedValue, g eval.Guard) bool {
+func (t *TupleType) IsInstance2(vs eval.IndexedValue, g eval.Guard) bool {
 	osz := vs.Len()
 	if !t.givenOrActualSize.IsInstance3(osz) {
 		return false
@@ -266,7 +266,7 @@ func (t *TupleType) IsInstance2(c eval.Context, vs eval.IndexedValue, g eval.Gua
 
 	tdx := 0
 	for idx := 0; idx < osz; idx++ {
-		if !GuardedIsInstance(c, t.types[tdx], vs.At(idx), g) {
+		if !GuardedIsInstance(t.types[tdx], vs.At(idx), g) {
 			return false
 		}
 		if tdx < last {
@@ -276,7 +276,7 @@ func (t *TupleType) IsInstance2(c eval.Context, vs eval.IndexedValue, g eval.Gua
 	return true
 }
 
-func (t *TupleType) IsInstance3(c eval.Context, vs []eval.PValue, g eval.Guard) bool {
+func (t *TupleType) IsInstance3(vs []eval.PValue, g eval.Guard) bool {
 	osz := len(vs)
 	if !t.givenOrActualSize.IsInstance3(osz) {
 		return false
@@ -289,7 +289,7 @@ func (t *TupleType) IsInstance3(c eval.Context, vs []eval.PValue, g eval.Guard) 
 
 	tdx := 0
 	for idx := 0; idx < osz; idx++ {
-		if !GuardedIsInstance(c, t.types[tdx], vs[idx], g) {
+		if !GuardedIsInstance(t.types[tdx], vs[idx], g) {
 			return false
 		}
 		if tdx < last {

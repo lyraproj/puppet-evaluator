@@ -50,7 +50,7 @@ func matchPatterns(c eval.Context, s string, v eval.PValue) eval.PValue {
 
 func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.PValue {
 	if rx.PatternString() == `` {
-		panic(eval.Error(c, eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
+		panic(eval.Error(eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
 	}
 
 	g := rx.Match(s)

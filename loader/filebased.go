@@ -211,7 +211,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
 						return entry
 					}
 				}
-				panic(eval.Error(c, eval.EVAL_NOT_EXPECTED_TYPESET, issue.H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
+				panic(eval.Error(eval.EVAL_NOT_EXPECTED_TYPESET, issue.H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
 			}
 		default:
 			return nil
@@ -280,7 +280,7 @@ func (l *fileBasedLoader) instantiate(c eval.Context, smartPath SmartPath, name 
 func (l *fileBasedLoader) GetContent(c eval.Context, path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(eval.Error(c, eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))
+		panic(eval.Error(eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))
 	}
 	return content
 }

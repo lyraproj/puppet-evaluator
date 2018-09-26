@@ -92,7 +92,7 @@ func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 	return ok && t.patternString == ot.patternString
 }
 
-func (t *RegexpType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `pattern`:
 		if t.patternString == `` {
@@ -108,7 +108,7 @@ func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok && (t.patternString == `` || t.patternString == rx.patternString)
 }
 
-func (t *RegexpType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *RegexpType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
 	return ok && (t.patternString == `` || t.patternString == rx.PatternString())
 }
@@ -142,7 +142,7 @@ func (t *RegexpType) Regexp() *regexp.Regexp {
 		pattern, err := regexp.Compile(t.patternString)
 		if err != nil {
 			t.lock.Unlock()
-			panic(eval.Error(nil, eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
 		}
 		t.pattern = pattern
 	}
@@ -223,7 +223,7 @@ func (sv *RegexpValue) Reflect(c eval.Context) reflect.Value {
 func (sv *RegexpValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := sv.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }

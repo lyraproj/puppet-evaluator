@@ -57,7 +57,7 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 		return DefaultRuntimeType()
 	}
 	if runtimeName == `go` && name != `` {
-		panic(eval.Error(nil, eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
+		panic(eval.Error(eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
 	}
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }
@@ -133,7 +133,7 @@ func (t *RuntimeType) Generic() eval.PType {
 	return runtimeType_DEFAULT
 }
 
-func (t *RuntimeType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *RuntimeType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `runtime`:
 		if t.runtime == `` {
@@ -177,7 +177,7 @@ func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *RuntimeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	rt, ok := o.(*RuntimeValue)
 	if !ok {
 		return false
@@ -259,7 +259,7 @@ func (rv *RuntimeValue) Equals(o interface{}, g eval.Guard) bool {
 func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(c, eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
 	}
 	return reflect.ValueOf(rv.value)
 }
@@ -267,10 +267,10 @@ func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 func (rv *RuntimeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(c, eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
 	}
 	if !gt.AssignableTo(dest.Type()) {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(reflect.ValueOf(rv.value))
 }

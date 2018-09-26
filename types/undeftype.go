@@ -43,7 +43,7 @@ func (t *UndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok
 }
 
-func (t *UndefType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *UndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return o == _UNDEF
 }
 
@@ -86,7 +86,7 @@ func (uv *UndefValue) Reflect(c eval.Context) reflect.Value {
 
 func (uv *UndefValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Kind().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Kind().String()}))
 	}
 	value.Set(reflect.Zero(value.Type()))
 }

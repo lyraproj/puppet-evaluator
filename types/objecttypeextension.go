@@ -54,8 +54,8 @@ func (te *objectTypeExtension) Generalize() eval.PType {
 	return te.baseType
 }
 
-func (te *objectTypeExtension) Get(c eval.Context, key string) (eval.PValue, bool) {
-	return te.baseType.Get(c, key)
+func (te *objectTypeExtension) Get(key string) (eval.PValue, bool) {
+	return te.baseType.Get(key)
 }
 
 func (te *objectTypeExtension) HasHashConstructor() bool {
@@ -80,8 +80,8 @@ func (te *objectTypeExtension) IsParameterized() bool {
 	return true
 }
 
-func (te *objectTypeExtension) IsInstance(c eval.Context, v eval.PValue, g eval.Guard) bool {
-	return te.baseType.IsInstance(c, v, g) && te.testInstance(c, v, g)
+func (te *objectTypeExtension) IsInstance(v eval.PValue, g eval.Guard) bool {
+	return te.baseType.IsInstance(v, g) && te.testInstance(v, g)
 }
 
 func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
@@ -146,7 +146,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
-		panic(eval.Error(c, eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
+		panic(eval.Error(eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
 	}
 	te.baseType = baseType
 	namedArgs := false
@@ -155,11 +155,11 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	}
 
 	if namedArgs {
-		namedArgs = pts.Len() >= 1 && !eval.IsInstance(c, pvs[0].(*typeParameter).Type(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
 	checkParam := func(tp *typeParameter, v eval.PValue) eval.PValue {
-		return eval.AssertInstance(c, func() string { return tp.Label() }, tp.Type(), v)
+		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
 	}
 
 	byName := hash.NewStringHash(pts.Len())
@@ -169,7 +169,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 			pn := k.String()
 			tp := pts.Get(pn, nil)
 			if tp == nil {
-				panic(eval.Error(c, eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
+				panic(eval.Error(eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !eval.Equals(pv, WrapDefault()) {
 				byName.Put(pn, checkParam(tp.(*typeParameter), pv))
@@ -187,7 +187,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 		}
 	}
 	if byName.IsEmpty() {
-		panic(eval.Error(c, eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
+		panic(eval.Error(eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
 	}
 	te.parameters = byName
 }
@@ -229,9 +229,10 @@ func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g ev
 //
 // This method is only called when the given value is found to be an instance of the base type of
 // this extension.
-func (te *objectTypeExtension) testInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (te *objectTypeExtension) testInstance(o eval.PValue, g eval.Guard) bool {
+	c := eval.CurrentContext()
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
-		v2, ok := te.baseType.GetValue(c, key, o)
+		v2, ok := te.baseType.GetValue(key, o)
 		return ok && eval.PuppetMatch(c, v2, v1.(eval.PValue))
 	})
 }

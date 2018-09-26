@@ -96,7 +96,7 @@ func (t *CollectionType) Generic() eval.PType {
 	return collectionType_DEFAULT
 }
 
-func (t *CollectionType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *CollectionType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `size_type`:
 		if t.size == nil {
@@ -128,7 +128,7 @@ func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return t.size.IsAssignable(osz, g)
 }
 
-func (t *CollectionType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *CollectionType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 

@@ -308,7 +308,7 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 
 func (f *goFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) eval.PValue {
 	for _, d := range f.dispatchers {
-		if d.Signature().CallableWith(c, args, block) {
+		if d.Signature().CallableWith(args, block) {
 			return d.Call(c, block, args...)
 		}
 	}
@@ -451,7 +451,7 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 						continue
 					}
 					d := c.Evaluate(p.pExpr.Value())
-					if !eval.IsInstance(c, p.pType, d) {
+					if !eval.IsInstance(p.pType, d) {
 						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.pType, d.Type())))
 					}
 					ap[idx] = d
@@ -462,7 +462,7 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 		}
 
 		for idx, arg := range args {
-			AssertArgument(c, name, idx, parameters[idx].pType, arg)
+			AssertArgument(name, idx, parameters[idx].pType, arg)
 		}
 
 		scope := c.Scope()
@@ -470,7 +470,7 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 			scope.Set(p.pExpr.Name(), args[idx])
 		}
 		v = c.Evaluate(body)
-		if !eval.IsInstance(c, signature.ReturnType(), v) {
+		if !eval.IsInstance(signature.ReturnType(), v) {
 			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`,
 				name, signature.ReturnType().String(), eval.DetailedValueType(v).String()))
 		}
@@ -478,8 +478,8 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 	})
 }
 
-func AssertArgument(c eval.Context, name string, index int, pt eval.PType, arg eval.PValue) {
-	if !eval.IsInstance(c, pt, arg) {
+func AssertArgument(name string, index int, pt eval.PType, arg eval.PValue) {
+	if !eval.IsInstance(pt, arg) {
 		panic(types.NewIllegalArgumentType2(name, index, pt.String(), arg))
 	}
 }

@@ -248,7 +248,7 @@ func (t *HashType) Generic() eval.PType {
 	return NewHashType(eval.GenericType(t.keyType), eval.GenericType(t.valueType), nil)
 }
 
-func (t *HashType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *HashType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `key_type`:
 		return t.keyType, true
@@ -284,10 +284,10 @@ func (t *HashType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *HashType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *HashType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if v, ok := o.(*HashValue); ok && t.size.IsInstance3(v.Len()) {
 		for _, entry := range v.entries {
-			if !(GuardedIsInstance(c, t.keyType, entry.key, g) && GuardedIsInstance(c, t.valueType, entry.value, g)) {
+			if !(GuardedIsInstance(t.keyType, entry.key, g) && GuardedIsInstance(t.valueType, entry.value, g)) {
 				return false
 			}
 		}
@@ -322,6 +322,15 @@ func (t *HashType) Parameters() []eval.PValue {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
+}
+
+func (t *HashType) ReflectType() (reflect.Type, bool) {
+	if kt, ok := ReflectType(t.keyType); ok {
+		if vt, ok := ReflectType(t.valueType); ok {
+			return reflect.MapOf(kt, vt), true
+		}
+	}
+	return nil, false
 }
 
 func (t *HashType) Resolve(c eval.Context) eval.PType {
@@ -843,13 +852,13 @@ func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
 	m := reflect.MakeMapWithSize(ht, hv.Len())
 	rf := c.Reflector()
 	for _, e := range hv.entries {
-		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
+		m.SetMapIndex(rf.Reflect2(e.key, keyType), rf.Reflect2(e.value, valueType))
 	}
 	return m
 }
 
 func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(c, value, reflect.Map)
+	assertKind(value, reflect.Map)
 	ht := value.Type()
 	if ht.Kind() == reflect.Interface {
 		ok := false
@@ -862,7 +871,7 @@ func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 	m := reflect.MakeMapWithSize(value.Type(), hv.Len())
 	rf := c.Reflector()
 	for _, e := range hv.entries {
-		m.SetMapIndex(rf.Reflect(e.key, keyType), rf.Reflect(e.value, valueType))
+		m.SetMapIndex(rf.Reflect2(e.key, keyType), rf.Reflect2(e.value, valueType))
 	}
 	value.Set(m)
 }

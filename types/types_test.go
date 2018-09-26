@@ -34,7 +34,7 @@ func ExampleNewTupleType() {
 
 func ExampleWrapHash() {
 	type M map[string]interface{}
-	a := eval.Wrap(M{
+	a := eval.Wrap(nil, M{
 		`foo`: 23,
 		`fee`: `hello`,
 		`fum`: M{

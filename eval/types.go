@@ -12,7 +12,7 @@ type (
 	PType interface {
 		PValue
 
-		IsInstance(c Context, o PValue, g Guard) bool
+		IsInstance(o PValue, g Guard) bool
 
 		IsAssignable(t PType, g Guard) bool
 
@@ -100,7 +100,7 @@ type (
 		Kind() AttributeKind
 
 		// Get returs this attributes value in the given instance
-		Get(c Context, instance PValue) PValue
+		Get(instance PValue) PValue
 
 		// HasValue returns true if a value has been defined for this attribute.
 		HasValue() bool
@@ -109,7 +109,7 @@ type (
 		Default(value PValue) bool
 
 		// Value returns the value of this attribute, or raises an error if no value has been defined.
-		Value(c Context) PValue
+		Value() PValue
 	}
 
 	ObjFunc interface {
@@ -117,7 +117,7 @@ type (
 	}
 
 	ReadableObject interface {
-		Get(c Context, key string) (value PValue, ok bool)
+		Get(key string) (value PValue, ok bool)
 	}
 
 	CallableObject interface {
@@ -135,7 +135,7 @@ type (
 
 		RequiredCount() int
 
-		PositionalFromHash(c Context, hash KeyedValue) []PValue
+		PositionalFromHash(hash KeyedValue) []PValue
 	}
 
 	ObjectType interface {
@@ -214,7 +214,7 @@ var CommonType func(a PType, b PType) PType
 
 var GenericType func(t PType) PType
 
-var IsInstance func(c Context, puppetType PType, value PValue) bool
+var IsInstance func(puppetType PType, value PValue) bool
 
 // IsAssignable answers if t is assignable to this type
 var IsAssignable func(puppetType PType, other PType) bool
@@ -265,16 +265,16 @@ func Any2(array IndexedValue, predicate Predicate) bool {
 	return false
 }
 
-func AssertType(c Context, pfx interface{}, expected, actual PType) PType {
+func AssertType(pfx interface{}, expected, actual PType) PType {
 	if !IsAssignable(expected, actual) {
-		panic(Error(c, EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
+		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
 	}
 	return actual
 }
 
-func AssertInstance(c Context, pfx interface{}, expected PType, value PValue) PValue {
-	if !IsInstance(c, expected, value) {
-		panic(Error(c, EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
+func AssertInstance(pfx interface{}, expected PType, value PValue) PValue {
+	if !IsInstance(expected, value) {
+		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
 	}
 	return value
 }
@@ -342,7 +342,7 @@ func New(c Context, t PType, args ...PValue) PValue {
 	if ctor, ok := Load(c, NewTypedName(CONSTRUCTOR, t.Name())); ok {
 		return ctor.(Function).Call(c, nil, args...)
 	}
-	panic(Error(c, EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
+	panic(Error(EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
 }
 
 func Reduce(elements []PValue, memo PValue, reductor BiMapper) PValue {

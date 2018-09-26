@@ -176,7 +176,7 @@ func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *SemVerType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *SemVerType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `ranges`:
 		return WrapArray(t.Parameters()), true
@@ -208,7 +208,7 @@ func (t *SemVerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *SemVerType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *SemVerType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if v, ok := o.(*SemVerValue); ok {
 		return t.vRange.Includes(v.Version())
 	}
@@ -252,7 +252,7 @@ func (v *SemVerValue) Reflect(c eval.Context) reflect.Value {
 func (v *SemVerValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := v.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }

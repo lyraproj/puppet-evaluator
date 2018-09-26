@@ -223,7 +223,7 @@ func (t *StructType) Elements() []*StructElement {
 	return t.elements
 }
 
-func (t *StructType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *StructType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `elements`:
 		els := make([]eval.PValue, len(t.elements))
@@ -292,7 +292,7 @@ func (t *StructType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *StructType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *StructType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	ov, ok := o.(*HashValue)
 	if !ok {
 		return false
@@ -306,7 +306,7 @@ func (t *StructType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) boo
 				return false
 			}
 		} else {
-			if !GuardedIsInstance(c, element.value, v, g) {
+			if !GuardedIsInstance(element.value, v, g) {
 				return false
 			}
 			matched++

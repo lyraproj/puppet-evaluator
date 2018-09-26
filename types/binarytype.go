@@ -96,7 +96,7 @@ func (t *BinaryType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok
 }
 
-func (t *BinaryType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *BinaryType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*BinaryValue)
 	return ok
 }
@@ -136,7 +136,7 @@ func BinaryFromFile(c eval.Context, path string) *BinaryValue {
 	if bf, ok := BinaryFromFile2(c, path); ok {
 		return bf
 	}
-	panic(eval.Error(c, eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
+	panic(eval.Error(eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
 }
 
 // BinaryFromFile2 opens file appointed by the given path for reading and returns
@@ -154,14 +154,14 @@ func BinaryFromFile2(c eval.Context, path string) (*BinaryValue, bool) {
 				return nil, false
 			}
 			if os.IsPermission(serr) {
-				panic(eval.Error(c, eval.EVAL_FILE_READ_DENIED, issue.H{`path`: path}))
+				panic(eval.Error(eval.EVAL_FILE_READ_DENIED, issue.H{`path`: path}))
 			}
 		} else {
 			if stat.IsDir() {
-				panic(eval.Error(c, eval.EVAL_IS_DIRECTORY, issue.H{`path`: path}))
+				panic(eval.Error(eval.EVAL_IS_DIRECTORY, issue.H{`path`: path}))
 			}
 		}
-		panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
+		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
 	}
 	return WrapBinary(bytes), true
 }
@@ -218,14 +218,14 @@ func (bv *BinaryValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(c, value, reflect.Slice)
+	assertKind(value, reflect.Slice)
 	switch value.Type().Elem().Kind() {
 	case reflect.Int8, reflect.Uint8:
 		value.SetBytes(bv.bytes)
 	case reflect.Interface:
 		value.Set(reflect.ValueOf(bv.bytes))
 	default:
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `[]byte`, `actual`: fmt.Sprintf(`[]%s`, value.Kind())}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `[]byte`, `actual`: fmt.Sprintf(`[]%s`, value.Kind())}))
 	}
 }
 

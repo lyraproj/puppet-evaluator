@@ -18,17 +18,17 @@ func (ov *objectValue) Initialize(c eval.Context, values []eval.PValue) {
 		ov.InitFromHash(c, makeValueHash(ov.typ.AttributesInfo(), values))
 		return
 	}
-	fillValueSlice(c, values, ov.typ.AttributesInfo().Attributes())
+	fillValueSlice(values, ov.typ.AttributesInfo().Attributes())
 	ov.values = values
 }
 
 func (ov *objectValue) InitFromHash(c eval.Context, hash eval.KeyedValue) {
 	typ := ov.typ.(*objectType)
-	va := typ.AttributesInfo().PositionalFromHash(c, hash)
+	va := typ.AttributesInfo().PositionalFromHash(hash)
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
 		typ.typeParameters(true).EachPair(func(k string, v interface{}) {
-			if pv, ok := hash.Get4(k); ok && eval.IsInstance(c, v.(*typeParameter).typ, pv) {
+			if pv, ok := hash.Get4(k); ok && eval.IsInstance(v.(*typeParameter).typ, pv) {
 				params = append(params, WrapHashEntry2(k, pv))
 			}
 		})
@@ -52,25 +52,25 @@ func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) eval.
 }
 
 // Ensure that all entries in the value slice that are nil receive default values from the given attributes
-func fillValueSlice(c eval.Context, values []eval.PValue, attrs []eval.Attribute) {
+func fillValueSlice(values []eval.PValue, attrs []eval.Attribute) {
 	for ix, v := range values {
 		if v == nil {
 			at := attrs[ix]
 			if !at.HasValue() {
-				panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_ATTRIBUTE, issue.H{`label`: at.Label()}))
+				panic(eval.Error(eval.EVAL_MISSING_REQUIRED_ATTRIBUTE, issue.H{`label`: at.Label()}))
 			}
-			values[ix] = at.Value(c)
+			values[ix] = at.Value()
 		}
 	}
 }
 
-func (o *objectValue) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (o *objectValue) Get(key string) (eval.PValue, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
 			return o.values[idx], ok
 		}
-		return pi.Attributes()[idx].Value(c), ok
+		return pi.Attributes()[idx].Value(), ok
 	}
 	return nil, false
 }
@@ -105,7 +105,7 @@ func makeValueHash(pi eval.AttributesInfo, values []eval.PValue) *HashValue {
 	entries := make([]*HashEntry, 0, len(posToName))
 	for i, v := range values {
 		attr := pi.Attributes()[i]
-		if !(attr.HasValue() && eval.Equals(v, attr.Value(nil))) {
+		if !(attr.HasValue() && eval.Equals(v, attr.Value())) {
 			entries = append(entries, WrapHashEntry2(attr.Name(), v))
 		}
 	}

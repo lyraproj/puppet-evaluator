@@ -99,7 +99,7 @@ func (t *IteratorType) Generic() eval.PType {
 	return NewIteratorType(eval.GenericType(t.typ))
 }
 
-func (t *IteratorType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *IteratorType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -114,9 +114,9 @@ func (t *IteratorType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *IteratorType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *IteratorType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if it, ok := o.(eval.Iterator); ok {
-		return GuardedIsInstance(c, t.typ, it.ElementType(), g)
+		return GuardedIsInstance(t.typ, it.ElementType(), g)
 	}
 	return false
 }

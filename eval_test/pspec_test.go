@@ -20,9 +20,9 @@ func TestPSpecs(t *testing.T) {
 				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
 					planName := args[0].String()
 					if plan, ok := eval.Load(c, eval.NewTypedName(eval.PLAN, planName)); ok {
-						return eval.Wrap(plan)
+						return eval.Wrap(nil, plan)
 					}
-					panic(eval.Error(c, eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
+					panic(eval.Error(eval.EVAL_UNKNOWN_PLAN, issue.H{`name`: planName}))
 				})
 			})
 
@@ -34,7 +34,7 @@ func TestPSpecs(t *testing.T) {
 					if task, ok := eval.Load(c, eval.NewTypedName(eval.TASK, taskName)); ok {
 						return task.(eval.PValue)
 					}
-					panic(eval.Error(c, eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
+					panic(eval.Error(eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
 				})
 			})
 
@@ -62,7 +62,7 @@ func TestPSpecs(t *testing.T) {
 					if len(args) > 1 {
 						options = args[1].(eval.KeyedValue)
 					}
-					return serialization.NewToDataConverter(c, options).Convert(args[0])
+					return serialization.NewToDataConverter(options).Convert(args[0])
 				})
 			})
 

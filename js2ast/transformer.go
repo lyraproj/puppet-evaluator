@@ -28,7 +28,7 @@ func JavaScriptToAST(c eval.Context, filename string, content []byte) parser.Exp
 	InitJavaScript(c)
 	program, err := jsparser.ParseFile(nil, filename, content, 0)
 	if err != nil {
-		panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `JavaScript`, `detail`: err.Error()}))
+		panic(eval.Error(eval.EVAL_PARSE_ERROR, issue.H{`language`: `JavaScript`, `detail`: err.Error()}))
 	}
 	jp := &transformer{c, parser.NewLocator(filename, string(content)), parser.DefaultFactory(), false, false}
 	return jp.transformProgram(program)
@@ -68,7 +68,7 @@ func (jp *transformer) transformAssign(jsAsg *ast.AssignExpression) parser.Expre
 		rhs = jp.f.Arithmetic(op.String(), lhs, rhs, jp.l, lpos(jsAsg), llen(jsAsg))
 		op = token.ASSIGN
 	default:
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsAsg}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsAsg}))
 	}
 	return jp.f.Assignment(op.String(), lhs, rhs, jp.l, lpos(jsAsg), llen(jsAsg))
 }
@@ -90,7 +90,7 @@ func (jp *transformer) transformBinary(jsBinary *ast.BinaryExpression) parser.Ex
 	case token.LOGICAL_OR:
 		return jp.f.Or(lhs, rhs, jp.l, lpos(jsBinary), llen(jsBinary))
 	default:
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsBinary}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsBinary}))
 	}
 }
 
@@ -111,7 +111,7 @@ func (jp *transformer) transformBranch(jsBranch *ast.BranchStatement) parser.Exp
 	case token.BREAK:
 		fn = `break`
 	default:
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsBranch}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsBranch}))
 	}
 	return jp.f.CallNamed(
 		jp.f.QualifiedName(fn, jp.l, st, ln), false, []parser.Expression{}, nil, jp.l, st, ln)
@@ -180,7 +180,7 @@ func (jp *transformer) transformDeclarations(decls []ast.Declaration, ns string,
 			// Also included as statements
 			continue
 		}
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: decl}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: decl}))
 	}
 	return defs
 }
@@ -197,7 +197,7 @@ func (jp *transformer) transformDot(jsDot *ast.DotExpression) parser.Expression 
 			return jp.f.QualifiedReference(
 				qrl.Name()+`::`+qrr.Name(), jp.l, lpos(jsDot), llen(jsDot))
 		}
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsDot}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsDot}))
 	}
 	if jp.functor {
 		return jp.f.NamedAccess(
@@ -266,7 +266,7 @@ func (jp *transformer) transformExpression(jsExpr ast.Expression) parser.Express
 	case *ast.VariableExpression:
 		return jp.transformVariable(jsExpr.(*ast.VariableExpression))
 	default:
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsExpr}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsExpr}))
 	}
 }
 
@@ -306,7 +306,7 @@ func (jp *transformer) transformFor(jsFor *ast.ForStatement) parser.Expression {
 func (jp *transformer) transformForIn(jsForIn *ast.ForInStatement) parser.Expression {
 	id, ok := jsForIn.Into.(*ast.Identifier)
 	if !ok {
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsForIn}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsForIn}))
 	}
 
 	st := lpos(jsForIn)
@@ -322,7 +322,7 @@ func (jp *transformer) transformForIn(jsForIn *ast.ForInStatement) parser.Expres
 
 func (jp *transformer) transformFunction(jsFunc *ast.FunctionLiteral) parser.Expression {
 	if jsFunc.Name != nil {
-		panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsFunc}))
+		panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsFunc}))
 	}
 
 	lambda := jp.lambda
@@ -427,7 +427,7 @@ func (jp *transformer) transformNull(null *ast.NullLiteral) parser.Expression {
 }
 
 func (jp *transformer) transformNumber(jsNum *ast.NumberLiteral) parser.Expression {
-	val := eval.Wrap(jsNum.Value)
+	val := eval.Wrap(jp.c, jsNum.Value)
 	if fp, ok := val.(*types.FloatValue); ok {
 		return jp.f.Float(fp.Float(), jp.l, lpos(jsNum), llen(jsNum))
 	}
@@ -546,7 +546,7 @@ func (jp *transformer) transformStatement(stmt ast.Statement, el []parser.Expres
 	case *ast.WhileStatement:
 		return append(el, jp.transformWhileStatement(stmt.(*ast.WhileStatement)))
 	}
-	panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_STATEMENT, issue.H{`stmt`: stmt}))
+	panic(eval.Error(EVAL_JS_UNHANDLED_STATEMENT, issue.H{`stmt`: stmt}))
 }
 
 func (jp *transformer) transformString(jsStr *ast.StringLiteral) parser.Expression {
@@ -592,7 +592,7 @@ func (jp *transformer) transformUnary(jsUnary *ast.UnaryExpression) parser.Expre
 			return NewUnaryNumericExpression(v, jsUnary.Postfix, false, jp.l, lpos(jsUnary), llen(jsUnary))
 		}
 	}
-	panic(eval.Error(jp.c, EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsUnary}))
+	panic(eval.Error(EVAL_JS_UNHANDLED_EXPRESSION, issue.H{`expr`: jsUnary}))
 }
 
 func (jp *transformer) transformVariableStatement(jsVar *ast.VariableStatement, el []parser.Expression) []parser.Expression {

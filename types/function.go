@@ -26,24 +26,24 @@ func newFunction(c eval.Context, name string, container *objectType, initHash *H
 }
 
 func (f *function) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
-	eval.AssertInstance(c, func() string { return fmt.Sprintf(`initializer function for %s[%s]`, container.Label(), name) }, TYPE_FUNCTION, initHash)
+	eval.AssertInstance(func() string { return fmt.Sprintf(`initializer function for %s[%s]`, container.Label(), name) }, TYPE_FUNCTION, initHash)
 	f.annotatedMember.initialize(c, `function`, name, container, initHash)
 }
 
 func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
-	if a.CallableType().(*CallableType).CallableWith(c, args, block) {
+	if a.CallableType().(*CallableType).CallableWith(args, block) {
 		if co, ok := receiver.(eval.CallableObject); ok {
 			if result, ok := co.Call(c, a.name, args, block); ok {
 				return result
 			}
 		}
-		panic(eval.Error(c, eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
+		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
 	}
 	types := make([]eval.PValue, len(args))
 	for i, a := range args {
 		types[i] = a.Type()
 	}
-	panic(eval.Error(c, eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
 		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
 }
 

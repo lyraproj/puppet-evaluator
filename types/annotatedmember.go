@@ -82,7 +82,7 @@ func assertOverride(c eval.Context, a eval.AnnotatedMember, parentMembers *hash.
 	parentMember, _ := parentMembers.Get(a.Name(), nil).(eval.AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
-			panic(eval.Error(c, eval.EVAL_OVERRIDDEN_NOT_FOUND, issue.H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
+			panic(eval.Error(eval.EVAL_OVERRIDDEN_NOT_FOUND, issue.H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
 		}
 	} else {
 		assertCanBeOverridden(c, parentMember, a)
@@ -91,19 +91,19 @@ func assertOverride(c eval.Context, a eval.AnnotatedMember, parentMembers *hash.
 
 func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.AnnotatedMember) {
 	if a.FeatureType() != member.FeatureType() {
-		panic(eval.Error(c, eval.EVAL_OVERRIDE_MEMBER_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.EVAL_OVERRIDE_MEMBER_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 	if a.Final() {
 		aa, ok := a.(eval.Attribute)
 		if !(ok && aa.Kind() == CONSTANT && member.(eval.Attribute).Kind() == CONSTANT) {
-			panic(eval.Error(c, eval.EVAL_OVERRIDE_OF_FINAL, issue.H{`member`: member.Label(), `label`: a.Label()}))
+			panic(eval.Error(eval.EVAL_OVERRIDE_OF_FINAL, issue.H{`member`: member.Label(), `label`: a.Label()}))
 		}
 	}
 	if !member.Override() {
-		panic(eval.Error(c, eval.EVAL_OVERRIDE_IS_MISSING, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.EVAL_OVERRIDE_IS_MISSING, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 	if !eval.IsAssignable(a.Type(), member.Type()) {
-		panic(eval.Error(c, eval.EVAL_OVERRIDE_TYPE_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.EVAL_OVERRIDE_TYPE_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 }
 

@@ -166,7 +166,7 @@ func NewFromDataConverter(ctx eval.Context, options eval.KeyedValue) *FromDataCo
 			if resolved, ok := resolveJsonPath(f.context, f.root, path); ok {
 				return f.buildValue(resolved)
 			}
-			panic(eval.Error(ctx, eval.EVAL_BAD_JSON_PATH, issue.H{path: path}))
+			panic(eval.Error(eval.EVAL_BAD_JSON_PATH, issue.H{path: path}))
 		},
 	}
 	f.defaultFunc = func(hash eval.KeyedValue, typeValue eval.PValue) eval.PValue {
@@ -182,7 +182,7 @@ func NewFromDataConverter(ctx eval.Context, options eval.KeyedValue) *FromDataCo
 			typ := f.withoutValue(func() eval.PValue { return f.Convert(typeHash) })
 			if typ, ok := typeValue.(*types.HashValue); ok {
 				if !f.allowUnresolved {
-					panic(eval.Error(ctx, eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
+					panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
 				}
 				return hash
 			}
@@ -191,7 +191,7 @@ func NewFromDataConverter(ctx eval.Context, options eval.KeyedValue) *FromDataCo
 		typ := f.context.ParseType(typeValue)
 		if tr, ok := typ.(*types.TypeReferenceType); ok {
 			if !f.allowUnresolved {
-				panic(eval.Error(ctx, eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tr.String()}))
+				panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tr.String()}))
 			}
 			return hash
 		}
@@ -354,14 +354,14 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.PType, value eval.PVal
 			if ot.HasHashConstructor() {
 				return f.buildValue(eval.New(f.context, typ, hash))
 			}
-			return f.buildValue(eval.New(f.context, typ, ot.AttributesInfo().PositionalFromHash(f.context, hash)...))
+			return f.buildValue(eval.New(f.context, typ, ot.AttributesInfo().PositionalFromHash(hash)...))
 		}
 		return f.buildValue(eval.New(f.context, typ, hash))
 	}
 	if str, ok := value.(*types.StringValue); ok {
 		return f.buildValue(eval.New(f.context, typ, str))
 	}
-	panic(eval.Error(f.context, eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
+	panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
 }
 
 func (f *FromDataConverter) allocate(typ eval.PType) (eval.ObjectValue, bool) {

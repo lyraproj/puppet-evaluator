@@ -74,18 +74,18 @@ func (pr *parentedImplRegistry) ReflectedToPtype(t reflect.Type) (string, bool) 
 func assertUnregisteredStruct(c eval.Context, ir eval.ImplementationRegistry, t string, r reflect.Type) reflect.Type {
 	if rt, ok := ir.PTypeToReflected(t); ok {
 		if r.String() != rt.String() {
-			panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t}))
+			panic(eval.Error(eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t}))
 		}
 	}
 	if tn, ok := ir.ReflectedToPtype(r); ok {
 		if tn != t {
-			panic(eval.Error(c, eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: r.String()}))
+			panic(eval.Error(eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: r.String()}))
 		}
 	}
 	if st := structType(r); st != nil {
 		return st
 	}
-	panic(eval.Error(c, eval.EVAL_IMPL_IS_NOT_STRUCT, issue.H{`type`: r.String()}))
+	panic(eval.Error(eval.EVAL_IMPL_IS_NOT_STRUCT, issue.H{`type`: r.String()}))
 }
 
 func structType(t reflect.Type) reflect.Type {

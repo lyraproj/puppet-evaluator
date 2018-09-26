@@ -44,7 +44,11 @@ type Reflector interface {
 
 	// Reflect returns the reflected value of the native value held
 	// by the given src
-	Reflect(src PValue, rt reflect.Type) reflect.Value
+	Reflect(src PValue) reflect.Value
+
+	// Reflect2 returns the reflected value of given type from the native value held
+	// by the given src
+	Reflect2(src PValue, rt reflect.Type) reflect.Value
 
 	// ReflectTo assigns the native value of src to dest
 	ReflectTo(src PValue, dest reflect.Value)

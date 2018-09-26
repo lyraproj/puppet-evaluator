@@ -26,7 +26,7 @@ func (r *reflector) StructName(prefix string, t reflect.Type, isDecl bool) strin
 	}
 	if name, ok := r.c.ImplementationRegistry().ReflectedToPtype(t); ok {
 		if isDecl && !strings.HasPrefix(name, prefix) {
-			panic(eval.Error(r.c, eval.EVAL_TYPESET_ILLEGAL_NAME_PREFIX, issue.H{`name`: name, `expected_prefix`: prefix}))
+			panic(eval.Error(eval.EVAL_TYPESET_ILLEGAL_NAME_PREFIX, issue.H{`name`: name, `expected_prefix`: prefix}))
 		}
 		return name
 	}
@@ -42,17 +42,21 @@ func (r *reflector) FieldName(f *reflect.StructField) string {
 	return issue.CamelToSnakeCase(f.Name)
 }
 
-func (r *reflector) Reflect(src eval.PValue, rt reflect.Type) reflect.Value {
+func (r *reflector) Reflect(src eval.PValue) reflect.Value {
+	if sn, ok := src.(eval.PReflected); ok {
+		return sn.Reflect(r.c)
+	}
+	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: src.Type()}))
+}
+
+func (r *reflector) Reflect2(src eval.PValue, rt reflect.Type) reflect.Value {
 	if rt != nil && rt.Kind() == reflect.Interface && rt.AssignableTo(pValueType) {
 		sv := reflect.ValueOf(src)
 		if sv.Type().AssignableTo(rt) {
 			return sv
 		}
 	}
-	if sn, ok := src.(eval.PReflected); ok {
-		return sn.Reflect(r.c)
-	}
-	panic(eval.Error(r.c, eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: src.Type()}))
+	return r.Reflect(src)
 }
 
 // ReflectTo assigns the native value of src to dest
@@ -60,11 +64,11 @@ func (r *reflector) ReflectTo(src eval.PValue, dest reflect.Value) {
 	if dest.Kind() == reflect.Ptr && !dest.CanSet() {
 		dest = dest.Elem()
 	}
-	assertSettable(r.c, dest)
+	assertSettable(dest)
 	if dest.Kind() == reflect.Interface && dest.Type().AssignableTo(pValueType) {
 		sv := reflect.ValueOf(src)
 		if !sv.Type().AssignableTo(dest.Type()) {
-			panic(eval.Error(r.c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: sv.Type().String(), `actual`: dest.Type().String()}))
+			panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: sv.Type().String(), `actual`: dest.Type().String()}))
 		}
 		dest.Set(sv)
 	} else {
@@ -75,7 +79,7 @@ func (r *reflector) ReflectTo(src eval.PValue, dest reflect.Value) {
 			po := src.(eval.PuppetObject)
 			po.Type().(eval.ObjectType).ToReflectedValue(r.c, po, dest)
 		default:
-			panic(eval.Error(r.c, eval.EVAL_INVALID_SOURCE_FOR_SET, issue.H{`type`: src.Type()}))
+			panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_SET, issue.H{`type`: src.Type()}))
 		}
 	}
 }
@@ -142,7 +146,7 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, st
 		// Convenience. If a value is declared as being undef, then make the
 		// type Optional if undef isn't an acceptable value
 		if val != nil && eval.Equals(val, eval.UNDEF) {
-			if !typ.IsInstance(r.c, eval.UNDEF, nil) {
+			if !typ.IsInstance(eval.UNDEF, nil) {
 				typ = NewOptionalType(typ)
 			}
 		}
@@ -185,16 +189,16 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 	return NewTypeSetType(eval.RUNTIME_NAME_AUTHORITY, typeSetName, WrapHash(es))
 }
 
-func assertSettable(c eval.Context, value reflect.Value) {
+func assertSettable(value reflect.Value) {
 	if !value.CanSet() {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Type().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Type().String()}))
 	}
 }
 
-func assertKind(c eval.Context, value reflect.Value, kind reflect.Kind) {
+func assertKind(value reflect.Value, kind reflect.Kind) {
 	vk := value.Kind()
 	if vk != kind && vk != reflect.Interface {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: kind.String(), `actual`: vk.String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: kind.String(), `actual`: vk.String()}))
 	}
 }
 
@@ -203,7 +207,7 @@ func (r *reflector) checkStructType(t reflect.Type) reflect.Type {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		panic(eval.Error(r.c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Struct`, `actual`: t.Kind().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Struct`, `actual`: t.Kind().String()}))
 	}
 	return t
 }

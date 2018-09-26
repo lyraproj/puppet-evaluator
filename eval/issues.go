@@ -120,6 +120,7 @@ const (
 	EVAL_UNKNOWN_PLAN                              = `EVAL_UNKNOWN_PLAN`
 	EVAL_UNKNOWN_TASK                              = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                          = `EVAL_UNKNOWN_VARIABLE`
+	EVAL_UNREFLECTABLE_VALUE                       = `EVAL_UNREFLECTABLE_VALUE`
 	EVAL_UNRESOLVED_TYPE                           = `EVAL_UNRESOLVED_TYPE`
 	EVAL_UNRESOLVED_TYPE_OF                        = `EVAL_UNRESOLVED_TYPE_OF`
 	EVAL_UNSUPPORTED_STRING_FORMAT                 = `EVAL_UNSUPPORTED_STRING_FORMAT`
@@ -366,6 +367,8 @@ func init() {
 	issue.Hard(EVAL_UNKNOWN_TASK, `Task not found: '%{name}'`)
 
 	issue.Hard(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
+
+	issue.Hard(EVAL_UNREFLECTABLE_VALUE, `Unable to create a reflect.Value from value of type '%{type}'`)
 
 	issue.Hard(EVAL_UNRESOLVED_TYPE, `Reference to unresolved type '%{typeString}'`)
 

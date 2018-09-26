@@ -107,7 +107,7 @@ func (t *EnumType) Generic() eval.PType {
 	return enumType_DEFAULT
 }
 
-func (t *EnumType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *EnumType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `values`:
 		return WrapArray(t.pvalues()), true
@@ -128,14 +128,14 @@ func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 
 	if st, ok := o.(*StringType); ok {
-		return eval.IsInstance(nil, t, WrapString(st.value))
+		return eval.IsInstance(t, WrapString(st.value))
 	}
 
 	if en, ok := o.(*EnumType); ok {
 		oEnums := en.values
 		if len(oEnums) > 0 && (t.caseInsensitive || !en.caseInsensitive) {
 			for _, v := range en.values {
-				if !eval.IsInstance(nil, t, WrapString(v)) {
+				if !eval.IsInstance(t, WrapString(v)) {
 					return false
 				}
 			}
@@ -145,7 +145,7 @@ func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *EnumType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *EnumType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if str, ok := o.(*StringValue); ok {
 		if len(t.values) == 0 {
 			return true

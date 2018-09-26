@@ -41,7 +41,7 @@ func (t *DefaultType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return o == defaultType_DEFAULT
 }
 
-func (t *DefaultType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *DefaultType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*DefaultValue)
 	return ok
 }

@@ -185,8 +185,7 @@ var IsTruthy func(tv PValue) bool
 
 var ToInt func(v PValue) (int64, bool)
 var ToFloat func(v PValue) (float64, bool)
-var Wrap func(v interface{}) PValue
-var Wrap2 func(c Context, v interface{}) PValue
+var Wrap func(c Context, v interface{}) PValue
 
 func ToString(t PValue) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)

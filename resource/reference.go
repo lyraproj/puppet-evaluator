@@ -12,7 +12,7 @@ import (
 
 // FindNode returns the node that contains a given resource reference
 func FindNode(c eval.Context, v eval.PValue) (Node, bool) {
-	ref, err := reference(c, v)
+	ref, err := reference(v)
 	if err != nil {
 		return nil, false
 	}
@@ -26,8 +26,8 @@ func FindNode(c eval.Context, v eval.PValue) (Node, bool) {
 
 // Reference returns the string T[<title>] where T is the lower case name of a resource type
 // and <title> is the unique title of the instance that is referenced
-func Reference(c eval.Context, value eval.PValue) string {
-	n, err := reference(c, value)
+func Reference(value eval.PValue) string {
+	n, err := reference(value)
 	if err != nil {
 		panic(err)
 	}
@@ -67,14 +67,14 @@ func getTitles(c eval.Context, expr parser.Expression, titles []string) []string
 	return titles
 }
 
-func reference(c eval.Context, value eval.PValue) (string, issue.Reported) {
+func reference(value eval.PValue) (string, issue.Reported) {
 	switch value.(type) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)
-		if title, ok := resource.Get(c, `title`); ok {
+		if title, ok := resource.Get(`title`); ok {
 			return fmt.Sprintf(`%s[%s]`, strings.ToLower(resource.Type().Name()), title.String()), nil
 		}
-		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
+		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
 	case eval.ParameterizedType:
 		pt := value.(eval.ParameterizedType)
 		params := pt.Parameters()
@@ -87,7 +87,7 @@ func reference(c eval.Context, value eval.PValue) (string, issue.Reported) {
 		if name, title, ok := SplitRef(value.String()); ok {
 			return fmt.Sprintf(`%s[%s]`, strings.ToLower(name), title), nil
 		}
-		return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
+		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
 	}
-	return ``, eval.Error(c, EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
+	return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
 }

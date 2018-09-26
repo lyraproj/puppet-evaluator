@@ -128,7 +128,7 @@ func intFromConvertible(c eval.Context, from eval.PValue, radix int) int64 {
 		if err == nil {
 			return i
 		}
-		panic(eval.Error(c, eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
+		panic(eval.Error(eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
 	}
 }
 
@@ -210,7 +210,7 @@ func (t *IntegerType) Generic() eval.PType {
 	return integerType_DEFAULT
 }
 
-func (t *IntegerType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *IntegerType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -236,7 +236,7 @@ func (t *IntegerType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *IntegerType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *IntegerType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if n, ok := toInt(o); ok {
 		return t.IsInstance2(n)
 	}
@@ -343,7 +343,7 @@ func (iv *IntegerValue) Reflect(c eval.Context) reflect.Value {
 
 func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
 	}
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -353,7 +353,7 @@ func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	case reflect.Interface:
 		value.Set(reflect.ValueOf(iv.Int()))
 	default:
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
 	}
 }
 

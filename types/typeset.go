@@ -131,7 +131,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 				r.typeSet = ts
 				return
 			}
-			panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_MISMATCH, issue.H{`name`: r.owner.name, `ref_name`: r.name, `version_range`: r.versionRange, `actual`: ts.version}))
+			panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_MISMATCH, issue.H{`name`: r.owner.name, `ref_name`: r.name, `version_range`: r.versionRange, `actual`: ts.version}))
 		}
 	}
 	var v interface{}
@@ -139,7 +139,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 		v = loadedEntry.Value()
 	}
 	if v == nil {
-		panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
+		panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
 	}
 	var typeName string
 	if vt, ok := v.(eval.PType); ok {
@@ -149,7 +149,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 	} else {
 		typeName = fmt.Sprintf("%T", v)
 	}
-	panic(eval.Error(c, eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}))
+	panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_BAD_TYPE, issue.H{`name`: r.owner.name, `ref_name`: r.name, `type_name`: typeName}))
 }
 
 var typeSetType_DEFAULT = &typeSet{
@@ -179,7 +179,7 @@ func (t *typeSet) Initialize(c eval.Context, args []eval.PValue) {
 			return
 		}
 	}
-	panic(eval.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an TypeSet data type`}))
+	panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an TypeSet data type`}))
 }
 
 func NewTypeSetType(na eval.URI, name string, initHashExpression interface{}) eval.TypeSet {
@@ -229,13 +229,13 @@ func (t *typeSet) Generic() eval.PType {
 }
 
 func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
-	eval.AssertInstance(c, `typeset initializer`, TYPE_TYPESET_INIT, initHash)
+	eval.AssertInstance(`typeset initializer`, TYPE_TYPESET_INIT, initHash)
 	t.name = stringArg(initHash, KEY_NAME, t.name)
 	t.nameAuthority = uriArg(c, initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
 
 	t.pcoreVersion = versionArg(c, initHash, eval.KEY_PCORE_VERSION, nil)
 	if !eval.PARSABLE_PCORE_VERSIONS.Includes(t.pcoreVersion) {
-		panic(eval.Error(nil, eval.EVAL_UNHANDLED_PCORE_VERSION,
+		panic(eval.Error(eval.EVAL_UNHANDLED_PCORE_VERSION,
 			issue.H{`name`: t.name, `expected_range`: eval.PARSABLE_PCORE_VERSIONS, `pcore_version`: t.pcoreVersion}))
 	}
 	t.pcoreURI = uriArg(c, initHash, eval.KEY_PCORE_URI, ``)
@@ -254,12 +254,12 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			refAlias := k.String()
 
 			if t.types.IncludesKey(k) {
-				panic(eval.Error(nil, eval.EVAL_TYPESET_ALIAS_COLLIDES,
+				panic(eval.Error(eval.EVAL_TYPESET_ALIAS_COLLIDES,
 					issue.H{`name`: t.name, `ref_alias`: refAlias}))
 			}
 
 			if _, ok := refMap[refAlias]; ok {
-				panic(eval.Error(nil, eval.EVAL_TYPESET_REFERENCE_DUPLICATE,
+				panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_DUPLICATE,
 					issue.H{`name`: t.name, `ref_alias`: refAlias}))
 			}
 
@@ -275,7 +275,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			if ranges, found := naRoots[refName]; found {
 				for _, rng := range ranges {
 					if rng.Intersection(ref.versionRange) != nil {
-						panic(eval.Error(nil, eval.EVAL_TYPESET_REFERENCE_OVERLAP,
+						panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_OVERLAP,
 							issue.H{`name`: t.name, `ref_na`: refNA, `ref_name`: refName}))
 					}
 				}
@@ -292,7 +292,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.annotatable.initialize(initHash.(*HashValue))
 }
 
-func (t *typeSet) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *typeSet) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case eval.KEY_PCORE_URI:
 		if t.pcoreURI == `` {
@@ -371,7 +371,7 @@ func (t *typeSet) InitHash() eval.KeyedValue {
 	return WrapStringPValue(t.initHash())
 }
 
-func (t *typeSet) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *typeSet) IsInstance(o eval.PValue, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 

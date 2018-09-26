@@ -97,7 +97,7 @@ func (rn *node) Equals(other interface{}, guard eval.Guard) bool {
 	return ok && rn.id == on.id
 }
 
-func (rn *node) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (rn *node) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `id`:
 		return types.WrapInteger(rn.id), true
@@ -299,29 +299,29 @@ func (rn *node) apply(c eval.Context) {
 		if err != nil {
 			ir, ok := err.(issue.Reported)
 			if !ok {
-				ir = eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: err.Error()})
+				ir = eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()})
 			}
 			results = append(results, NewErrorResult(types.WrapInteger(rn.ID()), eval.ErrorFromReported(c, ir)))
 			rn.error = ir
 		} else {
 			if len(applyResults) != len(rs) {
-				panic(eval.Error(c, EVAL_APPLY_FUNCTION_SIZE_MISMATCH, issue.H{`expected`: len(rs), `actual`: len(applyResults)}))
+				panic(eval.Error(EVAL_APPLY_FUNCTION_SIZE_MISMATCH, issue.H{`expected`: len(rs), `actual`: len(applyResults)}))
 			}
 			for ix, ar := range applyResults {
 				r := rs[ix]
 				if err, ok := ar.(eval.ErrorObject); ok {
-					results = append(results, NewErrorResult(types.WrapString(Reference(c, r)), err))
+					results = append(results, NewErrorResult(types.WrapString(Reference(r)), err))
 				} else {
 					if ar == nil {
-						panic(eval.Error(c, EVAL_APPLY_FUNCTION_NIL_RETURN, issue.NO_ARGS))
+						panic(eval.Error(EVAL_APPLY_FUNCTION_NIL_RETURN, issue.NO_ARGS))
 					}
-					rh, _ := resources.Get4(Reference(c, r))
+					rh, _ := resources.Get4(Reference(r))
 					if arp, ok := ar.(eval.PuppetObject); ok {
 						// Update handle
 						rh.(*handle).Replace(arp)
-						results = append(results, NewResult(types.WrapString(Reference(c, r)), arp, ``))
+						results = append(results, NewResult(types.WrapString(Reference(r)), arp, ``))
 					} else {
-						panic(eval.Error(c, EVAL_APPLY_FUNCTION_INVALID_RETURN, issue.H{`value`: ar}))
+						panic(eval.Error(EVAL_APPLY_FUNCTION_INVALID_RETURN, issue.H{`value`: ar}))
 					}
 				}
 			}
@@ -337,7 +337,7 @@ func (rn *node) update(c eval.Context, value eval.PValue, resources map[string]*
 	for ref, rh := range resources {
 		if h, ok := rn.resources[ref]; ok {
 			if h.value != nil {
-				panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(h.location)}))
+				panic(eval.Error(EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(h.location)}))
 			}
 			h.location = rh.location
 			h.value = rh.value

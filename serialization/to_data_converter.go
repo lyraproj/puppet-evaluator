@@ -17,21 +17,19 @@ type (
 		symbolAsString  bool
 		richData        bool
 		messagePrefix   string
-		context         eval.Context
 		path            []eval.PValue
 		values          map[eval.PValue]interface{}
 		recursiveLock   map[eval.PValue]bool
 	}
 )
 
-func NewToDataConverter(ctx eval.Context, options eval.KeyedValue) *ToDataConverter {
+func NewToDataConverter(options eval.KeyedValue) *ToDataConverter {
 	t := &ToDataConverter{}
 	t.typeByReference = options.Get5(`type_by_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.localReference = options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.symbolAsString = options.Get5(`symbol_as_string`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
 	t.richData = options.Get5(`rich_data`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
 	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
-	t.context = ctx
 	return t
 }
 
@@ -46,7 +44,7 @@ func (t *ToDataConverter) toJsonPath(path []eval.PValue) string {
 	for _, v := range path {
 		if v == nil {
 			s.WriteString(`[null]`)
-		} else if eval.IsInstance(t.context, types.DefaultScalarType(), v) {
+		} else if eval.IsInstance(types.DefaultScalarType(), v) {
 			s.WriteByte('[')
 			v.ToString(s, types.PROGRAM, nil)
 			s.WriteByte(']')
@@ -62,14 +60,14 @@ func (t *ToDataConverter) pathToString() string {
 }
 
 func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
-	if value == eval.UNDEF || eval.IsInstance(t.context, types.DefaultDataType(), value) {
+	if value == eval.UNDEF || eval.IsInstance(types.DefaultDataType(), value) {
 		return value
 	}
 	if value == types.WrapDefault() {
 		if t.richData {
 			return types.SingletonHash2(PCORE_TYPE_KEY, types.WrapString(string(PCORE_TYPE_DEFAULT)))
 		}
-		eval.Warning(t.context, eval.EVAL_SERIALIZATION_DEFAULT_CONVERTED_TO_STRING, issue.H{`path`: t.pathToString()})
+		eval.Warning(eval.EVAL_SERIALIZATION_DEFAULT_CONVERTED_TO_STRING, issue.H{`path`: t.pathToString()})
 		return types.WrapString(`default`)
 	}
 
@@ -122,7 +120,7 @@ func (t *ToDataConverter) withRecursiveGuard(value eval.PValue, producer eval.Pr
 		t.recursiveLock = map[eval.PValue]bool{value: true}
 	} else {
 		if _, ok := t.recursiveLock[value]; ok {
-			panic(eval.Error(t.context, eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.Type().Name()}))
+			panic(eval.Error(eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.Type().Name()}))
 		}
 		t.recursiveLock[value] = true
 	}
@@ -156,7 +154,7 @@ func (t *ToDataConverter) unkownToStringWithWarning(value eval.PValue) eval.PVal
 		klass = value.Type().Name()
 	}
 	if warn {
-		eval.Warning(t.context, eval.EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, issue.H{`path`: t.pathToString(), `klass`: klass, `value`: s})
+		eval.Warning(eval.EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, issue.H{`path`: t.pathToString(), `klass`: klass, `value`: s})
 	}
 	return types.WrapString(s)
 }
@@ -245,7 +243,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 		attrs := ai.Attributes()
 		args := make([]eval.PValue, len(attrs))
 		for i, a := range attrs {
-			args[i] = a.Get(t.context, value)
+			args[i] = a.Get(value)
 		}
 
 		for i := len(args) - 1; i >= ai.RequiredCount(); i-- {

@@ -31,9 +31,9 @@ func UnmarshalYaml(c eval.Context, data []byte) eval.PValue {
 		var itm interface{}
 		err2 := yaml.Unmarshal([]byte(data), &itm)
 		if err2 != nil {
-			panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
+			panic(eval.Error(eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
 		}
-		return eval.Wrap(itm)
+		return eval.Wrap(c, itm)
 	}
-	return eval.Wrap(ms)
+	return eval.Wrap(c, ms)
 }

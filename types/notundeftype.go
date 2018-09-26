@@ -84,7 +84,7 @@ func (t *NotUndefType) Generic() eval.PType {
 	return NewNotUndefType(eval.GenericType(t.typ))
 }
 
-func (t *NotUndefType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *NotUndefType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -96,8 +96,8 @@ func (t *NotUndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return !GuardedIsAssignable(o, undefType_DEFAULT, g) && GuardedIsAssignable(t.typ, o, g)
 }
 
-func (t *NotUndefType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
-	return o != _UNDEF && GuardedIsInstance(c, t.typ, o, g)
+func (t *NotUndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
+	return o != _UNDEF && GuardedIsInstance(t.typ, o, g)
 }
 
 func (t *NotUndefType) MetaType() eval.ObjectType {

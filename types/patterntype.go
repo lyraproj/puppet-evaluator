@@ -83,7 +83,7 @@ func (t *PatternType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *PatternType) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (t *PatternType) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `patterns`:
 		return WrapArray(t.Parameters()), true
@@ -114,7 +114,7 @@ func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *PatternType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *PatternType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && (len(t.regexps) == 0 || utils.MatchesString(MapToRegexps(t.regexps), str.String()))
 }

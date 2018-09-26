@@ -65,8 +65,8 @@ func (rt *objectTypeAndCtor) Creator() eval.DispatchFunction {
 }
 
 // isInstance answers if value is an instance of the given puppeType
-func isInstance(c eval.Context, puppetType eval.PType, value eval.PValue) bool {
-	return GuardedIsInstance(c, puppetType, value, nil)
+func isInstance(puppetType eval.PType, value eval.PValue) bool {
+	return GuardedIsInstance(puppetType, value, nil)
 }
 
 // isAssignable answers if t is assignable to this type
@@ -103,8 +103,8 @@ func resolve(c eval.Context, t eval.PType) eval.PType {
 	return t
 }
 
-func GuardedIsInstance(c eval.Context, a eval.PType, v eval.PValue, g eval.Guard) bool {
-	return a.IsInstance(c, v, g)
+func GuardedIsInstance(a eval.PType, v eval.PValue, g eval.Guard) bool {
+	return a.IsInstance(v, g)
 }
 
 func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {
@@ -380,10 +380,7 @@ func init() {
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
-	eval.Wrap = func(v interface{}) eval.PValue {
-		return wrap(nil, v)
-	}
-	eval.Wrap2 = wrap
+	eval.Wrap = wrap
 	eval.WrapType = wrapType
 }
 
@@ -763,7 +760,7 @@ func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.U
 	if t, ok := v.(*StringValue); ok {
 		str := t.String()
 		if _, err := ParseURI2(str, true); err != nil {
-			panic(eval.Error(c, eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 		}
 		return eval.URI(str)
 	}
@@ -781,7 +778,7 @@ func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Versi
 	if s, ok := v.(*StringValue); ok {
 		sv, error := semver.ParseVersion(s.String())
 		if error != nil {
-			panic(eval.Error(c, eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
 		}
 		return sv
 	}
@@ -799,7 +796,7 @@ func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d semver.
 	if s, ok := v.(*StringValue); ok {
 		sr, error := semver.ParseVersionRange(s.String())
 		if error != nil {
-			panic(eval.Error(c, eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
 		}
 		return sr
 	}

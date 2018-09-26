@@ -48,7 +48,7 @@ func InitJavaScript(c eval.Context) {
 			d.Param(`Type`)
 			d.Param(`Any`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return types.WrapBoolean(eval.IsInstance(c, args[0].(eval.PType), args[1]))
+				return types.WrapBoolean(eval.IsInstance(args[0].(eval.PType), args[1]))
 			})
 		})
 

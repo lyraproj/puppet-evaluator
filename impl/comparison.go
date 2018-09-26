@@ -230,7 +230,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 	result := false
 	switch b.(type) {
 	case eval.PType:
-		result = eval.IsInstance(c, b.(eval.PType), a)
+		result = eval.IsInstance(b.(eval.PType), a)
 
 	case *types.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp

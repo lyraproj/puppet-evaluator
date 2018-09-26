@@ -104,7 +104,7 @@ func (t *CallableType) BlockType() eval.PType {
 	return t.blockType
 }
 
-func (t *CallableType) CallableWith(c eval.Context, args []eval.PValue, block eval.Lambda) bool {
+func (t *CallableType) CallableWith(args []eval.PValue, block eval.Lambda) bool {
 	if block != nil {
 		cb := t.blockType
 		switch cb.(type) {
@@ -123,7 +123,7 @@ func (t *CallableType) CallableWith(c eval.Context, args []eval.PValue, block ev
 		// Required block but non provided
 		return false
 	}
-	return t.paramsType.IsInstance3(c, args, nil)
+	return t.paramsType.IsInstance3(args, nil)
 }
 
 func (t *CallableType) Accept(v eval.Visitor, g eval.Guard) {
@@ -156,7 +156,7 @@ func (t *CallableType) Generic() eval.PType {
 	return callableType_DEFAULT
 }
 
-func (t *CallableType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *CallableType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `param_types`:
 		if t.paramsType == nil {
@@ -215,7 +215,7 @@ func (t *CallableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return isAssignable(oc.blockType, t.blockType)
 }
 
-func (t *CallableType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *CallableType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if l, ok := o.(eval.Lambda); ok {
 		return isAssignable(t, l.Type())
 	}

@@ -94,7 +94,7 @@ func (r *result) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (r *result) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (r *result) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `error`:
 		if err, ok := r.Error(); ok {
@@ -211,7 +211,7 @@ func (rs *resultSet) ErrorSet() ResultSet {
 
 func (rs *resultSet) At(c eval.Context, id eval.PValue) (eval.PValue, bool) {
 	if rt, ok := id.(eval.ParameterizedType); ok {
-		id = types.WrapString(Reference(c, rt))
+		id = types.WrapString(Reference(rt))
 	}
 	return rs.results.Find(func(r eval.PValue) bool { return eval.Equals(id, r.(Result).Id()) })
 }
@@ -235,7 +235,7 @@ func (rs *resultSet) Results() eval.IndexedValue {
 	return rs.results
 }
 
-func (rs *resultSet) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (rs *resultSet) Get(key string) (value eval.PValue, ok bool) {
 	if key == `results` {
 		return rs.results, true
 	}

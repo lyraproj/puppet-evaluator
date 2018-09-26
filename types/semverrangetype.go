@@ -126,7 +126,7 @@ func (t *SemVerRangeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return ok
 }
 
-func (t *SemVerRangeType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *SemVerRangeType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeValue)
 	return ok
 }
@@ -165,7 +165,7 @@ func (bv *SemVerRangeValue) Reflect(c eval.Context) reflect.Value {
 func (bv *SemVerRangeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := bv.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(c, eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }

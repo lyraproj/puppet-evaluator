@@ -13,9 +13,9 @@ func createResources(c eval.Context, typ eval.PValue, resources eval.KeyedValue,
 	rType, ok := typ.(eval.ObjectType)
 	if !ok {
 		if ld, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, strings.ToLower(typ.String()))); ok {
-			rType = eval.AssertType(c, `type`, resourceType, ld.(eval.PType)).(eval.ObjectType)
+			rType = eval.AssertType(`type`, resourceType, ld.(eval.PType)).(eval.ObjectType)
 		} else {
-			panic(eval.Error(c, eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: typ}))
+			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: typ}))
 		}
 	}
 
@@ -112,7 +112,7 @@ func initResourceFunctions() {
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Type[Resource],String]`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				ref := types.WrapString(Reference(c, args[0]))
+				ref := types.WrapString(Reference(args[0]))
 				if r, ok := Resources(c).Get(ref); ok {
 					return r
 				}
@@ -128,7 +128,7 @@ func initResourceFunctions() {
 		func(d eval.Dispatch) {
 			d.Param(`Resource`)
 			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return types.WrapString(Reference(c, args[0]))
+				return types.WrapString(Reference(args[0]))
 			})
 		},
 	)

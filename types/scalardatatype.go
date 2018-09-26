@@ -41,7 +41,7 @@ func (t *ScalarDataType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *ScalarDataType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *ScalarDataType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	switch o.(type) {
 	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue:
 		return true

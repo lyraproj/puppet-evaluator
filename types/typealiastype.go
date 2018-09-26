@@ -97,7 +97,7 @@ func (t *TypeAliasType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *TypeAliasType) Get(c eval.Context, key string) (eval.PValue, bool) {
+func (t *TypeAliasType) Get(key string) (eval.PValue, bool) {
 	switch key {
 	case `name`:
 		return WrapString(t.name), true
@@ -122,14 +122,14 @@ func (t *TypeAliasType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return GuardedIsAssignable(t.ResolvedType(), o, g)
 }
 
-func (t *TypeAliasType) IsInstance(c eval.Context, o eval.PValue, g eval.Guard) bool {
+func (t *TypeAliasType) IsInstance(o eval.PValue, g eval.Guard) bool {
 	if g == nil {
 		g = make(eval.Guard)
 	}
 	if g.Seen(t, o) {
 		return true
 	}
-	return GuardedIsInstance(c, t.ResolvedType(), o, g)
+	return GuardedIsInstance(t.ResolvedType(), o, g)
 }
 
 func (t *TypeAliasType) MetaType() eval.ObjectType {

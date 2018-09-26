@@ -111,7 +111,7 @@ func optLabel(args []eval.PValue) string {
 	return args[0].String()
 }
 
-func (cs *console) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (cs *console) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `name`:
 		return types.WrapString(cs.name), true

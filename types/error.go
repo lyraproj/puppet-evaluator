@@ -137,7 +137,7 @@ func (e *errorObj) Type() eval.PType {
 	return e.typ
 }
 
-func (e *errorObj) Get(c eval.Context, key string) (value eval.PValue, ok bool) {
+func (e *errorObj) Get(key string) (value eval.PValue, ok bool) {
 	switch key {
 	case `message`:
 		return WrapString(e.message), true

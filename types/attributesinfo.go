@@ -46,7 +46,7 @@ func (ai *attributesInfo) RequiredCount() int {
 	return ai.requiredCount
 }
 
-func (ai *attributesInfo) PositionalFromHash(c eval.Context, hash eval.KeyedValue) []eval.PValue {
+func (ai *attributesInfo) PositionalFromHash(hash eval.KeyedValue) []eval.PValue {
 	nameToPos := ai.NameToPos()
 	va := make([]eval.PValue, len(nameToPos))
 
@@ -56,7 +56,7 @@ func (ai *attributesInfo) PositionalFromHash(c eval.Context, hash eval.KeyedValu
 		}
 	})
 	attrs := ai.Attributes()
-	fillValueSlice(c, va, attrs)
+	fillValueSlice(va, attrs)
 	for i := len(va) - 1; i >= ai.RequiredCount(); i-- {
 		if !attrs[i].Default(va[i]) {
 			break

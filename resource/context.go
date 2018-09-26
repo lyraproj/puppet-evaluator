@@ -30,7 +30,7 @@ func GetGraph(c eval.Context) Graph {
 	if g, ok := getSharedMap(c)[NODE_GRAPH]; ok {
 		return g.(Graph)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: NODE_GRAPH}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: NODE_GRAPH}))
 }
 
 // Resources returns the resources that has been created so far in the callers context. The
@@ -52,10 +52,10 @@ func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction Appl
 
 func defineResource(c eval.Context, resource eval.PuppetObject, location issue.Location) {
 	rs := getResources(c)
-	ref := Reference(c, resource)
+	ref := Reference(resource)
 	if oh, ok := rs[ref]; ok {
 		if oh.value != nil {
-			panic(eval.Error(c, EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(oh.location)}))
+			panic(eval.Error(EVAL_DUPLICATE_RESOURCE, issue.H{`ref`: ref, `previous_location`: issue.LocationString(oh.location)}))
 		}
 		oh.value = resource
 		oh.location = location
@@ -68,7 +68,7 @@ func getCurrentNode(c eval.Context) *node {
 	if g, ok := c.Get(CURRENT_NODE); ok {
 		return g.(*node)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: CURRENT_NODE}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: CURRENT_NODE}))
 }
 
 func setCurrentNode(c eval.Context, n *node) {
@@ -79,21 +79,21 @@ func getExternalEdgesFrom(c eval.Context) []graph.Node {
 	if rs, ok := c.Get(EXTERNAL_EDGES_TO); ok {
 		return rs.([]graph.Node)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: EXTERNAL_EDGES_TO}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: EXTERNAL_EDGES_TO}))
 }
 
 func getApplyFunction(c eval.Context) ApplyFunction {
 	if rs, ok := getSharedMap(c)[APPLY_FUNCTION]; ok {
 		return rs.(ApplyFunction)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: APPLY_FUNCTION}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: APPLY_FUNCTION}))
 }
 
 func getJobCounter(c eval.Context) *jobCounter {
 	if rs, ok := getSharedMap(c)[JOB_COUNTER]; ok {
 		return rs.(*jobCounter)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: JOB_COUNTER}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: JOB_COUNTER}))
 }
 
 func setExternalEdgesFrom(c eval.Context, edges []graph.Node) {
@@ -104,7 +104,7 @@ func getResources(c eval.Context) map[string]*handle {
 	if rs, ok := c.Get(RESOURCES); ok {
 		return rs.(map[string]*handle)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: RESOURCES}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: RESOURCES}))
 }
 
 func setResources(c eval.Context, resources map[string]*handle) {
@@ -116,14 +116,14 @@ func getSharedMap(c eval.Context) map[string]interface{} {
 	if g, ok := c.Get(SHARED_MAP); ok {
 		return g.(map[string]interface{})
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: SHARED_MAP}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: SHARED_MAP}))
 }
 
 func getNodeJobs(c eval.Context) chan *nodeJob {
 	if g, ok := getSharedMap(c)[NODE_JOBS]; ok {
 		return g.(chan *nodeJob)
 	}
-	panic(eval.Error(c, eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: NODE_JOBS}))
+	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: NODE_JOBS}))
 }
 
 func sortByEntriesLocation(entries []*types.HashEntry) {

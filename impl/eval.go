@@ -79,32 +79,18 @@ func (systemLocation) Pos() int {
 }
 
 func init() {
-	eval.Error = func(c eval.Context, issueCode issue.Code, args issue.H) issue.Reported {
-		var location issue.Location
-		if c == nil {
-			location = nil
-		} else {
-			location = c.StackTop()
-		}
-		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
+	eval.Error = func(issueCode issue.Code, args issue.H) issue.Reported {
+		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.CurrentContext().StackTop())
 	}
 
 	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 	}
 
-	eval.Warning = func(c eval.Context, issueCode issue.Code, args issue.H) issue.Reported {
-		var location issue.Location
-		var logger eval.Logger
-		if c == nil {
-			location = nil
-			logger = eval.NewStdLogger()
-		} else {
-			location = c.StackTop()
-			logger = c.Logger()
-		}
-		ri := issue.NewReported(issueCode, issue.SEVERITY_WARNING, args, location)
-		logger.LogIssue(ri)
+	eval.Warning = func(issueCode issue.Code, args issue.H) issue.Reported {
+		c := eval.CurrentContext()
+		ri := issue.NewReported(issueCode, issue.SEVERITY_WARNING, args, c.StackTop())
+		c.Logger().LogIssue(ri)
 		return ri
 	}
 }
