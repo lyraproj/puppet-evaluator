@@ -60,6 +60,10 @@ type Context interface {
 	// be shallow copied
 	Fork() Context
 
+	// Go calls the given function in a new go routine. The current context is forked and becomes
+	// the CurrentContext for that routine.
+	Go(doer Doer)
+
 	// Get returns the context variable with the given key together with a bool to indicate
 	// if the key was found
 	Get(key string) (interface{}, bool)

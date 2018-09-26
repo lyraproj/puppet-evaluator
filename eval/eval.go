@@ -24,6 +24,12 @@ type ParserExtension interface {
 	Evaluate(e Evaluator, c Context) PValue
 }
 
+// Go calls the given function in a new go routine. The CurrentContext is forked and becomes
+// the CurrentContext for that routine.
+func Go(f func()) {
+	CurrentContext().Go(f)
+}
+
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
 var Error func(c Context, issueCode issue.Code, args issue.H) issue.Reported

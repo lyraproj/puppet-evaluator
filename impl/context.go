@@ -170,6 +170,15 @@ func (c *evalCtx) Fork() eval.Context {
 	return clone
 }
 
+func (c *evalCtx) Go(doer eval.Doer) {
+	go func() {
+		defer threadlocal.Cleanup()
+		threadlocal.Init()
+		threadlocal.Set(PuppetContextKey, c.Fork())
+		doer()
+	}()
+}
+
 func (c *evalCtx) Fail(message string) issue.Reported {
 	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
 }
