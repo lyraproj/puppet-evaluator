@@ -1,0 +1,59 @@
+ attach:
+   input:
+     region:
+       type: String
+       lookup: aws.region
+     tags:
+       type: Hash[String,String]
+       lookup: aws.tags
+   output:
+     vpc_id: String
+     subnet_id: String
+     internet_gateway_id: String
+   actions:
+     vpc:
+       input: [region, tags]
+       output:
+         vpc_id: String
+         subnet_id: String
+       producer:
+         - !call apply into vpc:
+             Genesis::Aws::Vpc:
+               ensure              : present
+               region              : !ref input.region
+               cidr_block          : 192.168.0.0/16
+               tags                : !ref input.tags
+               enable_dns_hostnames: true
+               enable_dns_support  : true
+         - !call notice:
+             - "Created VPC: "
+             - !ref vpc.vpc_id
+
+         - !call apply into subnet:
+             Genesis::Aws::Subnet:
+               ensure                 : present
+               region                 : !ref input.region
+               vpc_id                 : !ref vpc.vpc_id
+               cidr_block             : 192.168.1.0/24
+               tags                   : !ref input.tags
+               map_public_ip_on_launch: true
+         - !call notice:
+             - "Created Subnet: "
+             - !ref subnet.subnet_id
+         - vpc_id: !ref vpc.vpc_id
+           subnet_id: !ref subnet.subnet_id
+
+     gw:
+       input: [region, tags]
+       output:
+         internet_gateway_id: String
+       producer:
+         - !call apply into result:
+             Genesis::Aws::Vpc:
+               ensure              : present
+               region              : !ref input.region
+               tags                : !ref input.tags
+         - !call notice:
+             - "Created Internet Gateway: "
+             - !ref result.internet_gateway_id
+         - internet_gateway_id: !ref result.internet_gateway_id

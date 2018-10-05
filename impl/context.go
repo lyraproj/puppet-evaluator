@@ -210,6 +210,9 @@ func (c *evalCtx) Logger() eval.Logger {
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
+	if eval.GetSetting(`workflow`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
+	}
 	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
 	}
@@ -347,6 +350,10 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	var ta interface{}
 	var tn eval.TypedName
 	switch d.(type) {
+	case *parser.ActivityExpression:
+		wf := d.(*parser.ActivityExpression)
+		tn = eval.NewTypedName2(eval.WORKFLOW, wf.Name(), loader.NameAuthority())
+		ta = NewPuppetActivity(wf)
 	case *parser.PlanDefinition:
 		pe := d.(*parser.PlanDefinition)
 		tn = eval.NewTypedName2(eval.PLAN, pe.Name(), loader.NameAuthority())

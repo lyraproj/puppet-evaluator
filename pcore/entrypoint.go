@@ -44,6 +44,7 @@ func init() {
 	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
 	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
 	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
+	puppet.DefineSetting(`workflow`, types.DefaultBooleanType(), types.WrapBoolean(false))
 }
 
 func InitializePuppet() {
@@ -217,12 +218,23 @@ func (p *pcoreImpl) NewEvaluatorWithLogger(logger eval.Logger) eval.Evaluator {
 func (p *pcoreImpl) NewParser() validator.ParserValidator {
 	lo := make([]parser.Option, 0)
 	var v validator.Validator
+	wf := eval.GetSetting(`workflow`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
 	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
 		// Keyword 'plan' enabled. No resource expressions allowed in validation
 		lo = append(lo, parser.PARSER_TASKS_ENABLED)
-		v = validator.NewTasksChecker()
+		if wf {
+			lo = append(lo, parser.PARSER_WORKFLOW_ENABLED)
+			v = validator.NewWorkflowChecker()
+		} else {
+			v = validator.NewTasksChecker()
+		}
 	} else {
-		v = validator.NewChecker(validator.Strict(p.Get(`strict`, nil).String()))
+		if wf {
+			lo = append(lo, parser.PARSER_WORKFLOW_ENABLED)
+			v = validator.NewWorkflowChecker()
+		} else {
+			v = validator.NewChecker(validator.Strict(p.Get(`strict`, nil).String()))
+		}
 	}
 	return validator.NewParserValidator(parser.CreateParser(lo...), v)
 }

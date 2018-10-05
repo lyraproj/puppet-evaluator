@@ -53,6 +53,7 @@ const (
 	ALLOCATOR   = Namespace(`allocator`)
 	CONSTRUCTOR = Namespace(`constructor`)
 	TASK        = Namespace(`task`)
+	WORKFLOW    = Namespace(`workflow`)
 )
 
 func NewTypedName(namespace Namespace, name string) TypedName {

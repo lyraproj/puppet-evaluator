@@ -592,7 +592,7 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return e.eval_Program(expr.(*parser.Program), c)
 	case *parser.SelectorExpression:
 		return e.eval_SelectorExpression(expr.(*parser.SelectorExpression), c)
-	case *parser.FunctionDefinition, *parser.TypeAlias, *parser.TypeMapping:
+	case *parser.FunctionDefinition, *parser.PlanDefinition, *parser.ActivityExpression, *parser.TypeAlias, *parser.TypeMapping:
 		// All definitions must be processed at this time
 		return eval.UNDEF
 	case *parser.UnfoldExpression:
