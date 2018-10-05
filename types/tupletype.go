@@ -148,6 +148,18 @@ func (t *TupleType) Accept(v eval.Visitor, g eval.Guard) {
 	}
 }
 
+func (t *TupleType) At(i int) eval.PValue {
+	if i >= 0 {
+		if i < len(t.types) {
+			return t.types[i]
+		}
+		if int64(i) < t.givenOrActualSize.max {
+			return t.types[len(t.types)-1]
+		}
+	}
+	return _UNDEF
+}
+
 func (t *TupleType) CommonElementType() eval.PType {
 	top := len(t.types)
 	if top == 0 {

@@ -39,6 +39,11 @@ var topImplRegistry eval.ImplementationRegistry
 
 func init() {
 	eval.Puppet = puppet
+	puppet.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
+	puppet.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
+	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
+	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
+	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
 }
 
 func InitializePuppet() {
@@ -52,12 +57,6 @@ func InitializePuppet() {
 	}
 
 	puppet.logger = eval.NewStdLogger()
-	puppet.DefineSetting(`environment`, types.DefaultStringType(), types.WrapString(`production`))
-	puppet.DefineSetting(`environmentpath`, types.DefaultStringType(), nil)
-	puppet.DefineSetting(`module_path`, types.DefaultStringType(), nil)
-	puppet.DefineSetting(`strict`, types.NewEnumType([]string{`off`, `warning`, `error`}, true), types.WrapString(`warning`))
-	puppet.DefineSetting(`tasks`, types.DefaultBooleanType(), types.WrapBoolean(false))
-
 	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
 	c.ResolveResolvables()
 	resource.InitBuiltinResources(c)

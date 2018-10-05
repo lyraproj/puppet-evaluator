@@ -1,0 +1,31 @@
+Examples('Like type',
+  Example('can reference an attribute in an object',
+    Given(@(SRC)),
+      type MyType = Object[{
+        attributes => {
+          p1 => String
+        }
+      }]
+      assert_type(Like[MyType,p1], 'hello')
+      |-SRC
+    Evaluates_to('hello')),
+
+  Example('can reference return type of a callable',
+    Given(@(SRC)),
+      assert_type(Like[Callable[[],String],return_type], 'hello')
+      |-SRC
+    Evaluates_to('hello')),
+
+  Example('can reference parameter type of a callable',
+    Given(@(SRC)),
+      assert_type(Like[Callable[[String,Integer],Float],'param_types.1'], 31)
+      |-SRC
+    Evaluates_to(31)),
+
+  Example('can self-reference parameter type throug alias',
+    Given(@(SRC)),
+      type MyFunc = Callable[[String,Integer],Like[MyFunc,'param_types.1']]
+      String(MyFunc, '%#s')
+      |-SRC
+    Evaluates_to('MyFunc')),
+)

@@ -197,6 +197,8 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReferen
 		tp = types.NewIterableType2(args...)
 	case `iterator`:
 		tp = types.NewIteratorType2(args...)
+	case `like`:
+		tp = types.NewLikeType2(args...)
 	case `notundef`:
 		tp = types.NewNotUndefType2(args...)
 	case `object`:

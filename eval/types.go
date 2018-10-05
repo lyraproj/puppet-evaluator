@@ -29,6 +29,10 @@ type (
 		Size() PType
 	}
 
+	Resolvable interface {
+		Resolve(c Context)
+	}
+
 	ResolvableType interface {
 		PType
 

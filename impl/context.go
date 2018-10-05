@@ -260,8 +260,8 @@ func (c *evalCtx) ResolveDefinitions() {
 		c.definitions = nil
 		for _, d := range defs {
 			switch d.(type) {
-			case *puppetFunction:
-				d.(*puppetFunction).Resolve(c)
+			case eval.Resolvable:
+				d.(eval.Resolvable).Resolve(c)
 			case eval.ResolvableType:
 				c.resolveTypes(d.(eval.PType))
 			}

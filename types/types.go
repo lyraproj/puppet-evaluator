@@ -544,7 +544,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 		}
 		pv = WrapHash(els)
 	default:
-		if vr.CanInterface() {
+		if vr.IsValid() && vr.CanInterface() {
 			if pt, ok := wrapType(c, vr.Type()).(eval.ObjectType); ok {
 				pv = pt.FromReflectedValue(c, vr)
 			} else {
