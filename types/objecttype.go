@@ -652,7 +652,7 @@ func (t *objectType) Resolve(c eval.Context) eval.PType {
 		var initHash *HashValue
 		if lh, ok := ihe.(*parser.LiteralHash); ok {
 			c.DoStatic(func() {
-				initHash = c.Evaluate(lh).(*HashValue)
+				initHash = eval.Evaluate(c, lh).(*HashValue)
 			})
 		} else {
 			initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)

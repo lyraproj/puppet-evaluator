@@ -7,6 +7,8 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
+const PuppetContextKey = `puppet.context`
+
 // An Context holds all state during evaluation. Since it contains the stack, each
 // thread of execution must use a context of its own. It's expected that multiple
 // contexts share common parents for scope and loaders.
@@ -18,10 +20,6 @@ type Context interface {
 
 	// AddTypes Makes the given types known to the loader appointed by this context
 	AddTypes(types ...PType)
-
-	// Call calls a function known to the loader with arguments and an optional
-	// block.
-	Call(name string, args []PValue, block Lambda) PValue
 
 	// Delete deletes the given key from the context variable map
 	Delete(key string)
@@ -40,9 +38,6 @@ type Context interface {
 	// restored before this call returns.
 	DoWithScope(scope Scope, doer Doer)
 
-	// Evaluate evaluates the given expression using the evaluator of the receiver.
-	Evaluate(expr parser.Expression) PValue
-
 	// Evaluator returns the evaluator of the receiver.
 	Evaluator() Evaluator
 
@@ -59,10 +54,6 @@ type Context interface {
 	// loaders, and logger as this context. The stack and the map of context variables will
 	// be shallow copied
 	Fork() Context
-
-	// Go calls the given function in a new go routine. The current context is forked and becomes
-	// the CurrentContext for that routine.
-	Go(doer Doer)
 
 	// Get returns the context variable with the given key together with a bool to indicate
 	// if the key was found
@@ -138,6 +129,14 @@ type Context interface {
 	// Static returns true during evaluation of type expressions. It is used to prevent
 	// dynamic expressions within such expressions
 	Static() bool
+}
+
+// Call calls a function known to the loader with arguments and an optional
+// block.
+var Call func(c Context, name string, args []PValue, block Lambda) PValue
+
+func Evaluate(c Context, expr parser.Expression) PValue {
+	return c.Evaluator().Eval(expr, c)
 }
 
 var CurrentContext func() Context

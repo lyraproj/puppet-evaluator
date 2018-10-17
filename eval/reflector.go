@@ -50,6 +50,10 @@ type Reflector interface {
 	// by the given src
 	Reflect2(src PValue, rt reflect.Type) reflect.Value
 
+	// ReflectFieldTags reflects the name, type, and value from a reflect.StructField
+	// using the 'puppet' tag.
+	ReflectFieldTags(f *reflect.StructField)  (name string, decl KeyedValue)
+
 	// ReflectTo assigns the native value of src to dest
 	ReflectTo(src PValue, dest reflect.Value)
 

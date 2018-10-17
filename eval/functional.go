@@ -3,7 +3,11 @@ package eval
 type (
 	Doer func()
 
+	ContextDoer func(c Context)
+
 	Consumer func(value PValue)
+
+	EntryMapper func(value EntryValue) EntryValue
 
 	IndexedConsumer func(value PValue, index int)
 

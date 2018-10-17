@@ -613,7 +613,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 
 	for _, ex := range lh.Entries() {
 		entry := ex.(*parser.KeyedEntry)
-		key := c.Evaluate(entry.Key()).String()
+		key := eval.Evaluate(c, entry.Key()).String()
 		if key == KEY_TYPES || key == KEY_REFERENCES {
 			if key == KEY_TYPES {
 				typesHash = _EMPTY_MAP
@@ -628,13 +628,13 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 					if qref, ok := he.Key().(*parser.QualifiedReference); ok {
 						name = qref.Name()
 					} else {
-						name = c.Evaluate(he.Key()).String()
+						name = eval.Evaluate(c, he.Key()).String()
 					}
 					if key == KEY_TYPES {
 						// Defer type resolution until all types are known
 						types[name] = he.Value()
 					} else {
-						xes = append(xes, WrapHashEntry2(name, c.Evaluate(he.Value())))
+						xes = append(xes, WrapHashEntry2(name, eval.Evaluate(c, he.Value())))
 					}
 				}
 				if key == KEY_REFERENCES {
@@ -642,13 +642,13 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 				}
 			} else {
 				// Probably a bogus entry, will cause type error further on
-				entries = append(entries, WrapHashEntry2(key, c.Evaluate(entry.Value())))
+				entries = append(entries, WrapHashEntry2(key, eval.Evaluate(c, entry.Value())))
 				if key == KEY_TYPES {
 					typesHash = nil
 				}
 			}
 		} else {
-			entries = append(entries, WrapHashEntry2(key, c.Evaluate(entry.Value())))
+			entries = append(entries, WrapHashEntry2(key, eval.Evaluate(c, entry.Value())))
 		}
 	}
 

@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"github.com/puppetlabs/go-evaluator/threadlocal"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 )
@@ -26,8 +27,20 @@ type ParserExtension interface {
 
 // Go calls the given function in a new go routine. The CurrentContext is forked and becomes
 // the CurrentContext for that routine.
-func Go(f func()) {
-	CurrentContext().Go(f)
+func Go(f ContextDoer) {
+	Fork(CurrentContext(), f)
+}
+
+// Fork calls the given function in a new go routine. The given context is forked and becomes
+// the CurrentContext for that routine.
+func Fork(c Context, doer ContextDoer) {
+	go func() {
+		defer threadlocal.Cleanup()
+		threadlocal.Init()
+		cf := c.Fork()
+		threadlocal.Set(PuppetContextKey, cf)
+		doer(cf)
+	}()
 }
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments

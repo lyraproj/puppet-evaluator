@@ -3,6 +3,7 @@ package impl
 import (
 	"bytes"
 	"fmt"
+	"github.com/puppetlabs/go-parser/literal"
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
@@ -209,6 +210,25 @@ func (e *evaluator) eval_AndExpression(expr *parser.AndExpression, c eval.Contex
 
 func (e *evaluator) eval_OrExpression(expr *parser.OrExpression, c eval.Context) eval.PValue {
 	return types.WrapBoolean(eval.IsTruthy(e.eval(expr.Lhs(), c)) || eval.IsTruthy(e.eval(expr.Rhs(), c)))
+}
+
+func (e *evaluator) eval_Parameter(expr *parser.Parameter, c eval.Context) eval.PValue {
+	var pt eval.PType
+	if expr.Type() == nil {
+		pt = types.DefaultAnyType()
+	} else {
+		pt = c.ResolveType(expr.Type())
+	}
+
+	var value eval.PValue
+	if valueExpr := expr.Value(); valueExpr != nil {
+		if lit, ok := literal.ToLiteral(valueExpr); ok {
+			value = eval.Wrap(c, lit)
+		} else {
+			value = types.NewDeferredExpression(valueExpr)
+		}
+	}
+	return NewParameter(expr.Name(), pt, value, expr.CapturesRest())
 }
 
 func (e *evaluator) eval_BlockExpression(expr *parser.BlockExpression, c eval.Context) (result eval.PValue) {
@@ -588,6 +608,8 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.PV
 		return e.eval_LambdaExpression(expr.(*parser.LambdaExpression), c)
 	case *parser.MatchExpression:
 		return e.eval_MatchExpression(expr.(*parser.MatchExpression), c)
+	case *parser.Parameter:
+		return e.eval_Parameter(expr.(*parser.Parameter), c)
 	case *parser.Program:
 		return e.eval_Program(expr.(*parser.Program), c)
 	case *parser.SelectorExpression:

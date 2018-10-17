@@ -13,8 +13,6 @@ import (
 	"runtime"
 )
 
-const PuppetContextKey = `puppet.context`
-
 type (
 	evalCtx struct {
 		context.Context
@@ -31,8 +29,16 @@ type (
 )
 
 func init() {
+	eval.Call = func(c eval.Context, name string, args []eval.PValue, block eval.Lambda) eval.PValue {
+		tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
+		if f, ok := eval.Load(c, tn); ok {
+		return f.(eval.Function).Call(c, block, args...)
+	}
+		panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
+	}
+
 	eval.CurrentContext = func() eval.Context {
-		if ctx, ok := threadlocal.Get(PuppetContextKey); ok {
+		if ctx, ok := threadlocal.Get(eval.PuppetContextKey); ok {
 			return ctx.(eval.Context)
 		}
 		_, file, line, _ := runtime.Caller(1)
@@ -73,14 +79,6 @@ func (c *evalCtx) AddTypes(types ...eval.PType) {
 		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
 	}
 	c.resolveTypes(types...)
-}
-
-func (c *evalCtx) Call(name string, args []eval.PValue, block eval.Lambda) eval.PValue {
-	tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
-	if f, ok := eval.Load(c, tn); ok {
-		return f.(eval.Function).Call(c, block, args...)
-	}
-	panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
 }
 
 func (c *evalCtx) DefiningLoader() eval.DefiningLoader {
@@ -141,10 +139,6 @@ func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issu
 	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 }
 
-func (c *evalCtx) Evaluate(expr parser.Expression) eval.PValue {
-	return c.evaluator.Eval(expr, c)
-}
-
 func (c *evalCtx) Evaluator() eval.Evaluator {
 	return c.evaluator
 }
@@ -168,15 +162,6 @@ func (c *evalCtx) Fork() eval.Context {
 		clone.vars = cv
 	}
 	return clone
-}
-
-func (c *evalCtx) Go(doer eval.Doer) {
-	go func() {
-		defer threadlocal.Cleanup()
-		threadlocal.Init()
-		threadlocal.Set(PuppetContextKey, c.Fork())
-		doer()
-	}()
 }
 
 func (c *evalCtx) Fail(message string) issue.Reported {
@@ -279,7 +264,7 @@ func (c *evalCtx) ResolveResolvables() {
 func (c *evalCtx) ResolveType(expr parser.Expression) eval.PType {
 	var resolved eval.PValue
 	c.DoStatic(func() {
-		resolved = c.Evaluate(expr)
+		resolved = eval.Evaluate(c, expr)
 	})
 	if pt, ok := resolved.(eval.PType); ok {
 		return pt

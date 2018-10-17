@@ -13,11 +13,6 @@ import (
 )
 
 type (
-	parameter struct {
-		pType eval.PType
-		pExpr *parser.Parameter
-	}
-
 	typeDecl struct {
 		name string
 		decl string
@@ -68,19 +63,44 @@ type (
 	puppetLambda struct {
 		signature  *types.CallableType
 		expression *parser.LambdaExpression
-		parameters []*parameter
+		parameters []eval.Parameter
+	}
+
+	PuppetFunction interface {
+		eval.Function
+		Signature() eval.Signature
+		Expression() parser.Definition
+		ReturnType() parser.Expression
+		Parameters() []eval.Parameter
 	}
 
 	puppetFunction struct {
 		signature  *types.CallableType
 		expression *parser.FunctionDefinition
-		parameters []*parameter
+		parameters []eval.Parameter
 	}
 
 	puppetPlan struct {
 		puppetFunction
 	}
 )
+
+func parametersFromSignature(s eval.Signature) []eval.Parameter {
+	paramNames := s.ParameterNames()
+	count := len(paramNames)
+	tuple := s.ParametersType().(*types.TupleType)
+	tz := tuple.Size()
+	capture := -1
+	if tz.Max() > int64(count) {
+		capture = count - 1
+	}
+	paramTypes := s.ParametersType().(*types.TupleType).Types()
+	ps := make([]eval.Parameter, len(paramNames))
+	for i, paramName := range paramNames {
+		ps[i] = NewParameter(paramName, paramTypes[i], nil, i == capture)
+	}
+	return ps
+}
 
 func (l *lambda) Equals(other interface{}, guard eval.Guard) bool {
 	if ol, ok := other.(*lambda); ok {
@@ -110,9 +130,17 @@ func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) 
 	return
 }
 
+func (l *goLambda) Parameters() []eval.Parameter {
+	return parametersFromSignature(l.signature)
+}
+
 func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
 	result = l.function(c, args, block)
 	return
+}
+
+func (l *goLambdaWithBlock) Parameters() []eval.Parameter {
+	return parametersFromSignature(l.signature)
 }
 
 var emptyTypeBuilder = &localTypeBuilder{[]*typeDecl{}}
@@ -362,10 +390,10 @@ func (f *goFunction) Type() eval.PType {
 }
 
 func NewPuppetLambda(expr *parser.LambdaExpression, c eval.Context) eval.Lambda {
-	rps := resolveParameters(c, expr.Parameters())
-	sg := createTupleType(rps)
+	rps := ResolveParameters(c, expr.Parameters())
+	sg := CreateTupleType(rps)
 
-	return &puppetLambda{types.NewCallableType(sg, resolveReturnType(c, expr.ReturnType()), nil), expr, rps}
+	return &puppetLambda{types.NewCallableType(sg, ResolveReturnType(c, expr.ReturnType()), nil), expr, rps}
 }
 
 func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
@@ -381,13 +409,17 @@ func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PVal
 			}
 		}
 	}()
-	v = doCall(c, `lambda`, l.parameters, l.signature, l.expression.Body(), args)
+	v = CallBlock(c, `lambda`, l.parameters, l.signature, l.expression.Body(), args)
 	return
 }
 
 func (l *puppetLambda) Equals(other interface{}, guard eval.Guard) bool {
 	ol, ok := other.(*puppetLambda)
 	return ok && l.signature.Equals(ol.signature, guard)
+}
+
+func (l *puppetLambda) Parameters() []eval.Parameter {
+	return l.parameters
 }
 
 func (l *puppetLambda) Signature() eval.Signature {
@@ -427,7 +459,7 @@ func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PV
 			}
 		}
 	}()
-	v = doCall(c, f.Name(), f.parameters, f.signature, f.expression.Body(), args)
+	v = CallBlock(c, f.Name(), f.parameters, f.signature, f.expression.Body(), args)
 	return
 }
 
@@ -435,7 +467,7 @@ func (f *puppetFunction) Signature() eval.Signature {
 	return f.signature
 }
 
-func doCall(c eval.Context, name string, parameters []*parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
+func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
 	return c.Scope().WithLocalScope(func() (v eval.PValue) {
 		na := len(args)
 		np := len(parameters)
@@ -446,13 +478,16 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
 					p := parameters[idx]
-					if p.pExpr.Value() == nil {
+					if p.Value() == nil {
 						ap[idx] = eval.UNDEF
 						continue
 					}
-					d := c.Evaluate(p.pExpr.Value())
-					if !eval.IsInstance(p.pType, d) {
-						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.pType, d.Type())))
+					d := p.Value()
+					if df, ok := d.(types.Deferred); ok {
+						d = df.Resolve(c)
+					}
+					if !eval.IsInstance(p.ValueType(), d) {
+						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.ValueType(), d.Type())))
 					}
 					ap[idx] = d
 				}
@@ -462,14 +497,14 @@ func doCall(c eval.Context, name string, parameters []*parameter, signature *typ
 		}
 
 		for idx, arg := range args {
-			AssertArgument(name, idx, parameters[idx].pType, arg)
+			AssertArgument(name, idx, parameters[idx].ValueType(), arg)
 		}
 
 		scope := c.Scope()
 		for idx, p := range parameters {
-			scope.Set(p.pExpr.Name(), args[idx])
+			scope.Set(p.Name(), args[idx])
 		}
-		v = c.Evaluate(body)
+		v = eval.Evaluate(c, body)
 		if !eval.IsInstance(signature.ReturnType(), v) {
 			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`,
 				name, signature.ReturnType().String(), eval.DetailedValueType(v).String()))
@@ -488,13 +523,41 @@ func (f *puppetFunction) Dispatchers() []eval.Lambda {
 	return []eval.Lambda{f}
 }
 
+func (f *puppetFunction) Defaults() []eval.PValue {
+	dflts := make([]eval.PValue, len(f.parameters))
+	for i, p := range f.parameters {
+		dflts[i] = p.Value()
+	}
+	return dflts
+}
+
 func (f *puppetFunction) Equals(other interface{}, guard eval.Guard) bool {
 	of, ok := other.(*puppetFunction)
 	return ok && f.signature.Equals(of.signature, guard)
 }
 
+func (f *puppetFunction) Expression() parser.Definition {
+	return f.expression
+}
+
 func (f *puppetFunction) Name() string {
 	return f.expression.Name()
+}
+
+func (f *puppetFunction) Parameters() []eval.Parameter {
+	return f.parameters
+}
+
+func (f *puppetFunction) Resolve(c eval.Context) {
+	if f.parameters != nil {
+		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
+	}
+	f.parameters = ResolveParameters(c, f.expression.Parameters())
+	f.signature = types.NewCallableType(CreateTupleType(f.parameters), ResolveReturnType(c, f.expression.ReturnType()), nil)
+}
+
+func (f *puppetFunction) ReturnType() parser.Expression {
+	return f.expression.ReturnType()
 }
 
 func (f *puppetFunction) String() string {
@@ -510,14 +573,6 @@ func (f *puppetFunction) Type() eval.PType {
 	return f.signature
 }
 
-func (f *puppetFunction) Resolve(c eval.Context) {
-	if f.parameters != nil {
-		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
-	}
-	f.parameters = resolveParameters(c, f.expression.Parameters())
-	f.signature = types.NewCallableType(createTupleType(f.parameters), resolveReturnType(c, f.expression.ReturnType()), nil)
-}
-
 func NewPuppetPlan(expr *parser.PlanDefinition) *puppetPlan {
 	return &puppetPlan{puppetFunction{expression: &expr.FunctionDefinition}}
 }
@@ -531,40 +586,33 @@ func (p *puppetPlan) String() string {
 	return eval.ToString(p)
 }
 
-func createTupleType(params []*parameter) *types.TupleType {
+func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	min := 0
 	max := len(params)
 	tps := make([]eval.PType, max)
 	for idx, p := range params {
-		tps[idx] = p.pType
-		if p.pExpr.Value() == nil {
+		tps[idx] = p.ValueType()
+		if p.Value() == nil {
 			min++
 		}
-		if p.pExpr.CapturesRest() {
+		if p.CapturesRest() {
 			max = math.MaxInt64
 		}
 	}
 	return types.NewTupleType(tps, types.NewIntegerType(int64(min), int64(max)))
 }
 
-func resolveReturnType(c eval.Context, typeExpr parser.Expression) eval.PType {
+func ResolveReturnType(c eval.Context, typeExpr parser.Expression) eval.PType {
 	if typeExpr == nil {
 		return types.DefaultAnyType()
 	}
 	return c.ResolveType(typeExpr)
 }
 
-func resolveParameters(c eval.Context, eps []parser.Expression) []*parameter {
-	pps := make([]*parameter, len(eps))
+func ResolveParameters(c eval.Context, eps []parser.Expression) []eval.Parameter {
+	pps := make([]eval.Parameter, len(eps))
 	for idx, ep := range eps {
-		pd := ep.(*parser.Parameter)
-		var pt eval.PType
-		if pd.Type() == nil {
-			pt = types.DefaultAnyType()
-		} else {
-			pt = c.ResolveType(pd.Type())
-		}
-		pps[idx] = &parameter{pt, pd}
+		pps[idx] = eval.Evaluate(c, ep).(eval.Parameter)
 	}
 	return pps
 }

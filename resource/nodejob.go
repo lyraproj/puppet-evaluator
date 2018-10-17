@@ -2,9 +2,8 @@ package resource
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
-	"sync/atomic"
 	"github.com/puppetlabs/go-evaluator/threadlocal"
-	"github.com/puppetlabs/go-evaluator/impl"
+	"sync/atomic"
 )
 
 type nodeJob struct {
@@ -36,7 +35,7 @@ func nodeWorker(id int, nodeJobs <-chan *nodeJob, done chan<- bool) {
 				}
 			}()
 			threadlocal.Init()
-			threadlocal.Set(impl.PuppetContextKey, job.n.Context())
+			threadlocal.Set(eval.PuppetContextKey, job.n.Context())
 			job.n.evaluate()
 		}(nj)
 	}

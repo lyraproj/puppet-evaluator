@@ -813,6 +813,14 @@ func (hv *HashValue) Map(mapper eval.Mapper) eval.IndexedValue {
 	return WrapArray(mapped)
 }
 
+func (hv *HashValue) MapEntries(mapper eval.EntryMapper) eval.KeyedValue {
+	mapped := make([]*HashEntry, len(hv.entries))
+	for i, e := range hv.entries {
+		mapped[i] = mapper(e).(*HashEntry)
+	}
+	return WrapHash(mapped)
+}
+
 func (hv *HashValue) MapValues(mapper eval.Mapper) eval.KeyedValue {
 	mapped := make([]*HashEntry, len(hv.entries))
 	for i, e := range hv.entries {

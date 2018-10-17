@@ -150,7 +150,15 @@ type (
 		// the given key and its value
 		GetEntry(key string) (EntryValue, bool)
 
+		IncludesKey(o PValue) bool
+
+		IncludesKey2(o string) bool
+
 		Keys() IndexedValue
+
+		// MapEntries returns a new KeyedValue with both keys and values
+		// converted using the given mapper function
+		MapEntries(mapper EntryMapper) KeyedValue
 
 		// MapValues returns a new KeyedValue with the exact same keys as
 		// before but where each value has been converted using the given

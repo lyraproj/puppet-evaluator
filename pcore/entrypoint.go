@@ -65,7 +65,7 @@ func InitializePuppet() {
 	topImplRegistry = c.ImplementationRegistry()
 
 	threadlocal.Init()
-	threadlocal.Set(impl.PuppetContextKey, c)
+	threadlocal.Set(eval.PuppetContextKey, c)
 }
 
 func (p *pcoreImpl) Reset() {

@@ -36,7 +36,7 @@ func YamlToAST(c eval.Context, filename string, content []byte) parser.Expressio
 // eval.Context. The result of the evaluation is returned.
 func EvaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
 	c.SetLanguage(eval.LangYAML)
-	return c.Evaluate(YamlToAST(c, filename, content))
+	return eval.Evaluate(c, YamlToAST(c, filename, content))
 }
 
 // transformMap transforms the supplied yaml.MapSlice into a parser.Expression. It will

@@ -98,7 +98,7 @@ func ReflectType(src eval.PType) (reflect.Type, bool) {
 func (r *reflector) TagHash(f *reflect.StructField) (eval.KeyedValue, bool) {
 	if tag := f.Tag.Get(tagName); tag != `` {
 		tagExpr := r.c.ParseAndValidate(``, `{`+tag+`}`, true)
-		if tagHash, ok := r.c.Evaluate(tagExpr).(eval.KeyedValue); ok {
+		if tagHash, ok := eval.Evaluate(r.c, tagExpr).(eval.KeyedValue); ok {
 			return tagHash, true
 		}
 	}
@@ -116,50 +116,52 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, st
 			continue
 		}
 
-		name := ``
-		var typ eval.PType
-		var val eval.PValue
-
-		as := make([]*HashEntry, 0)
-
-		if fh, ok := r.TagHash(&f); ok {
-			if v, ok := fh.Get4(`name`); ok {
-				name = v.String()
-			}
-			if v, ok := fh.GetEntry(`kind`); ok {
-				as = append(as, v.(*HashEntry))
-			}
-			if v, ok := fh.GetEntry(`value`); ok {
-				val = v.Value()
-				as = append(as, v.(*HashEntry))
-			}
-			if v, ok := fh.Get4(`type`); ok {
-				if t, ok := v.(eval.PType); ok {
-					typ = t
-				}
-			}
-		}
-
-		if typ == nil {
-			typ = eval.WrapType(r.c, f.Type)
-		}
-		// Convenience. If a value is declared as being undef, then make the
-		// type Optional if undef isn't an acceptable value
-		if val != nil && eval.Equals(val, eval.UNDEF) {
-			if !typ.IsInstance(eval.UNDEF, nil) {
-				typ = NewOptionalType(typ)
-			}
-		}
-		as = append(as, WrapHashEntry2(`type`, typ))
-		if name == `` {
-			name = issue.CamelToSnakeCase(f.Name)
-		}
-
-		es = append(es, WrapHashEntry2(name, WrapHash(as)))
+		name, decl := r.ReflectFieldTags(&f)
+		es = append(es, WrapHashEntry2(name, decl))
 	}
 	ot := NewObjectType(typeName, parent, SingletonHash2(`attributes`, WrapHash(es)))
 	r.c.ImplementationRegistry().RegisterType(r.c, typeName, structType)
 	return ot
+}
+
+func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl eval.KeyedValue) {
+	as := make([]*HashEntry, 0)
+	var val eval.PValue
+	var typ eval.PType
+
+	if fh, ok := r.TagHash(f); ok {
+		if v, ok := fh.Get4(`name`); ok {
+			name = v.String()
+		}
+		if v, ok := fh.GetEntry(`kind`); ok {
+			as = append(as, v.(*HashEntry))
+		}
+		if v, ok := fh.GetEntry(`value`); ok {
+			val = v.Value()
+			as = append(as, v.(*HashEntry))
+		}
+		if v, ok := fh.Get4(`type`); ok {
+			if t, ok := v.(eval.PType); ok {
+				typ = t
+			}
+		}
+	}
+
+	if typ == nil {
+		typ = eval.WrapType(r.c, f.Type)
+	}
+	// Convenience. If a value is declared as being undef, then make the
+	// type Optional if undef isn't an acceptable value
+	if val != nil && eval.Equals(val, eval.UNDEF) {
+		if !typ.IsInstance(eval.UNDEF, nil) {
+			typ = NewOptionalType(typ)
+		}
+	}
+	as = append(as, WrapHashEntry2(`type`, typ))
+	if name == `` {
+		name = issue.CamelToSnakeCase(f.Name)
+	}
+	return name, WrapHash(as)
 }
 
 func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Version, structTypes ...reflect.Type) eval.TypeSet {
