@@ -16,7 +16,7 @@ type (
 	typeDecl struct {
 		name string
 		decl string
-		tp   eval.PType
+		tp   eval.Type
 	}
 
 	functionBuilder struct {
@@ -33,10 +33,10 @@ type (
 		fb            *functionBuilder
 		min           int64
 		max           int64
-		types         []eval.PType
-		blockType     eval.PType
+		types         []eval.Type
+		blockType     eval.Type
 		optionalBlock bool
-		returnType    eval.PType
+		returnType    eval.Type
 		function      eval.DispatchFunction
 		function2     eval.DispatchFunctionWithBlock
 	}
@@ -117,7 +117,7 @@ func (l *lambda) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	io.WriteString(bld, `lambda`)
 }
 
-func (l *lambda) Type() eval.PType {
+func (l *lambda) Type() eval.Type {
 	return l.signature
 }
 
@@ -125,7 +125,7 @@ func (l *lambda) Signature() eval.Signature {
 	return l.signature
 }
 
-func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
+func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (result eval.Value) {
 	result = l.function(c, args)
 	return
 }
@@ -134,7 +134,7 @@ func (l *goLambda) Parameters() []eval.Parameter {
 	return parametersFromSignature(l.signature)
 }
 
-func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (result eval.PValue) {
+func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (result eval.Value) {
 	result = l.function(c, args, block)
 	return
 }
@@ -163,7 +163,7 @@ func buildFunction(name string, localTypes eval.LocalTypesCreator, creators []ev
 }
 
 func (fb *functionBuilder) newDispatchBuilder() *dispatchBuilder {
-	return &dispatchBuilder{fb: fb, types: make([]eval.PType, 0, 8), min: 0, max: 0, optionalBlock: false, blockType: nil, returnType: nil}
+	return &dispatchBuilder{fb: fb, types: make([]eval.Type, 0, 8), min: 0, max: 0, optionalBlock: false, blockType: nil, returnType: nil}
 }
 
 func (fb *functionBuilder) Name() string {
@@ -209,7 +209,7 @@ func (tb *localTypeBuilder) Type(name string, decl string) {
 	tb.localTypes = append(tb.localTypes, &typeDecl{name, decl, nil})
 }
 
-func (tb *localTypeBuilder) Type2(name string, tp eval.PType) {
+func (tb *localTypeBuilder) Type2(name string, tp eval.Type) {
 	tb.localTypes = append(tb.localTypes, &typeDecl{name, ``, tp})
 }
 
@@ -242,7 +242,7 @@ func (db *dispatchBuilder) Param(tp string) {
 	db.Param2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) Param2(tp eval.PType) {
+func (db *dispatchBuilder) Param2(tp eval.Type) {
 	db.assertNotAfterRepeated()
 	if db.min < db.max {
 		panic(`Required parameters must not come after optional parameters in a dispatch`)
@@ -256,7 +256,7 @@ func (db *dispatchBuilder) OptionalParam(tp string) {
 	db.OptionalParam2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) OptionalParam2(tp eval.PType) {
+func (db *dispatchBuilder) OptionalParam2(tp eval.Type) {
 	db.assertNotAfterRepeated()
 	db.types = append(db.types, tp)
 	db.max++
@@ -266,7 +266,7 @@ func (db *dispatchBuilder) RepeatedParam(tp string) {
 	db.RepeatedParam2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) RepeatedParam2(tp eval.PType) {
+func (db *dispatchBuilder) RepeatedParam2(tp eval.Type) {
 	db.assertNotAfterRepeated()
 	db.types = append(db.types, tp)
 	db.max = math.MaxInt64
@@ -276,7 +276,7 @@ func (db *dispatchBuilder) RequiredRepeatedParam(tp string) {
 	db.RequiredRepeatedParam2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) RequiredRepeatedParam2(tp eval.PType) {
+func (db *dispatchBuilder) RequiredRepeatedParam2(tp eval.Type) {
 	db.assertNotAfterRepeated()
 	db.types = append(db.types, tp)
 	db.min++
@@ -287,7 +287,7 @@ func (db *dispatchBuilder) Block(tp string) {
 	db.Block2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) Block2(tp eval.PType) {
+func (db *dispatchBuilder) Block2(tp eval.Type) {
 	if db.returnType != nil {
 		panic(`Block specified more than once`)
 	}
@@ -298,7 +298,7 @@ func (db *dispatchBuilder) OptionalBlock(tp string) {
 	db.OptionalBlock2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) OptionalBlock2(tp eval.PType) {
+func (db *dispatchBuilder) OptionalBlock2(tp eval.Type) {
 	db.Block2(tp)
 	db.optionalBlock = true
 }
@@ -307,7 +307,7 @@ func (db *dispatchBuilder) Returns(tp string) {
 	db.Returns2(types.NewTypeReferenceType(tp))
 }
 
-func (db *dispatchBuilder) Returns2(tp eval.PType) {
+func (db *dispatchBuilder) Returns2(tp eval.Type) {
 	if db.returnType != nil {
 		panic(`Returns specified more than once`)
 	}
@@ -334,7 +334,7 @@ func (db *dispatchBuilder) assertNotAfterRepeated() {
 	}
 }
 
-func (f *goFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) eval.PValue {
+func (f *goFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Value) eval.Value {
 	for _, d := range f.dispatchers {
 		if d.Signature().CallableWith(args, block) {
 			return d.Call(c, block, args...)
@@ -380,9 +380,9 @@ func (f *goFunction) ToString(bld io.Writer, format eval.FormatContext, g eval.R
 	fmt.Fprintf(bld, `function %s`, f.name)
 }
 
-func (f *goFunction) Type() eval.PType {
+func (f *goFunction) Type() eval.Type {
 	top := len(f.dispatchers)
-	variants := make([]eval.PType, top)
+	variants := make([]eval.Type, top)
 	for idx := 0; idx < top; idx++ {
 		variants[idx] = f.dispatchers[idx].Type()
 	}
@@ -396,7 +396,7 @@ func NewPuppetLambda(expr *parser.LambdaExpression, c eval.Context) eval.Lambda 
 	return &puppetLambda{types.NewCallableType(sg, ResolveReturnType(c, expr.ReturnType()), nil), expr, rps}
 }
 
-func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
+func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (v eval.Value) {
 	if block != nil {
 		panic(errors.NewArgumentsError(`lambda`, `nested lambdas are not supported`))
 	}
@@ -435,7 +435,7 @@ func (l *puppetLambda) ToString(bld io.Writer, format eval.FormatContext, g eval
 	io.WriteString(bld, `lambda`)
 }
 
-func (l *puppetLambda) Type() eval.PType {
+func (l *puppetLambda) Type() eval.Type {
 	return l.signature
 }
 
@@ -443,7 +443,7 @@ func NewPuppetFunction(expr *parser.FunctionDefinition) *puppetFunction {
 	return &puppetFunction{expression: expr}
 }
 
-func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.PValue) (v eval.PValue) {
+func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (v eval.Value) {
 	if block != nil {
 		panic(errors.NewArgumentsError(f.Name(), `Puppet functions does not yet support lambdas`))
 	}
@@ -467,14 +467,14 @@ func (f *puppetFunction) Signature() eval.Signature {
 	return f.signature
 }
 
-func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.PValue) eval.PValue {
-	return c.Scope().WithLocalScope(func() (v eval.PValue) {
+func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.Value) eval.Value {
+	return c.Scope().WithLocalScope(func() (v eval.Value) {
 		na := len(args)
 		np := len(parameters)
 		if np > na {
 			// Resolve parameter defaults in special parameter scope and assign values to function scope
-			c.Scope().WithLocalScope(func() eval.PValue {
-				ap := make([]eval.PValue, np)
+			c.Scope().WithLocalScope(func() eval.Value {
+				ap := make([]eval.Value, np)
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
 					p := parameters[idx]
@@ -513,7 +513,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 	})
 }
 
-func AssertArgument(name string, index int, pt eval.PType, arg eval.PValue) {
+func AssertArgument(name string, index int, pt eval.Type, arg eval.Value) {
 	if !eval.IsInstance(pt, arg) {
 		panic(types.NewIllegalArgumentType2(name, index, pt.String(), arg))
 	}
@@ -523,8 +523,8 @@ func (f *puppetFunction) Dispatchers() []eval.Lambda {
 	return []eval.Lambda{f}
 }
 
-func (f *puppetFunction) Defaults() []eval.PValue {
-	dflts := make([]eval.PValue, len(f.parameters))
+func (f *puppetFunction) Defaults() []eval.Value {
+	dflts := make([]eval.Value, len(f.parameters))
 	for i, p := range f.parameters {
 		dflts[i] = p.Value()
 	}
@@ -569,7 +569,7 @@ func (f *puppetFunction) ToString(bld io.Writer, format eval.FormatContext, g ev
 	io.WriteString(bld, f.Name())
 }
 
-func (f *puppetFunction) Type() eval.PType {
+func (f *puppetFunction) Type() eval.Type {
 	return f.signature
 }
 
@@ -589,7 +589,7 @@ func (p *puppetPlan) String() string {
 func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	min := 0
 	max := len(params)
-	tps := make([]eval.PType, max)
+	tps := make([]eval.Type, max)
 	for idx, p := range params {
 		tps[idx] = p.ValueType()
 		if p.Value() == nil {
@@ -602,7 +602,7 @@ func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	return types.NewTupleType(tps, types.NewIntegerType(int64(min), int64(max)))
 }
 
-func ResolveReturnType(c eval.Context, typeExpr parser.Expression) eval.PType {
+func ResolveReturnType(c eval.Context, typeExpr parser.Expression) eval.Type {
 	if typeExpr == nil {
 		return types.DefaultAnyType()
 	}

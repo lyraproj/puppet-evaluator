@@ -4,7 +4,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 )
 
-var _EMPTY_ARRAY = WrapArray([]eval.PValue{})
+var _EMPTY_ARRAY = WrapArray([]eval.Value{})
 var _EMPTY_MAP = WrapHash([]*HashEntry{})
 var _EMPTY_STRING = WrapString(``)
 var _UNDEF = WrapUndef()

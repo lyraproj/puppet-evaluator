@@ -9,7 +9,7 @@ import (
 
 type (
 	IteratorType struct {
-		typ eval.PType
+		typ eval.Type
 	}
 
 	iteratorValue struct {
@@ -17,13 +17,13 @@ type (
 	}
 
 	indexedIterator struct {
-		elementType eval.PType
+		elementType eval.Type
 		pos         int
-		indexed     eval.IndexedValue
+		indexed     eval.List
 	}
 
 	mappingIterator struct {
-		elementType eval.PType
+		elementType eval.Type
 		mapFunc     eval.Mapper
 		base        eval.Iterator
 	}
@@ -48,7 +48,7 @@ func init() {
 					value => Any
 				},
 			}
-		}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewIteratorType2(args...)
 		})
 }
@@ -57,19 +57,19 @@ func DefaultIteratorType() *IteratorType {
 	return iteratorType_DEFAULT
 }
 
-func NewIteratorType(elementType eval.PType) *IteratorType {
+func NewIteratorType(elementType eval.Type) *IteratorType {
 	if elementType == nil || elementType == anyType_DEFAULT {
 		return DefaultIteratorType()
 	}
 	return &IteratorType{elementType}
 }
 
-func NewIteratorType2(args ...eval.PValue) *IteratorType {
+func NewIteratorType2(args ...eval.Value) *IteratorType {
 	switch len(args) {
 	case 0:
 		return DefaultIteratorType()
 	case 1:
-		containedType, ok := args[0].(eval.PType)
+		containedType, ok := args[0].(eval.Type)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Iterator[]`, 0, `Type`, args[0]))
 		}
@@ -84,7 +84,7 @@ func (t *IteratorType) Accept(v eval.Visitor, g eval.Guard) {
 	t.typ.Accept(v, g)
 }
 
-func (t *IteratorType) Default() eval.PType {
+func (t *IteratorType) Default() eval.Type {
 	return iteratorType_DEFAULT
 }
 
@@ -95,11 +95,11 @@ func (t *IteratorType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *IteratorType) Generic() eval.PType {
+func (t *IteratorType) Generic() eval.Type {
 	return NewIteratorType(eval.GenericType(t.typ))
 }
 
-func (t *IteratorType) Get(key string) (value eval.PValue, ok bool) {
+func (t *IteratorType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -107,14 +107,14 @@ func (t *IteratorType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *IteratorType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *IteratorType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if it, ok := o.(*IteratorType); ok {
 		return GuardedIsAssignable(t.typ, it.typ, g)
 	}
 	return false
 }
 
-func (t *IteratorType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *IteratorType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if it, ok := o.(eval.Iterator); ok {
 		return GuardedIsInstance(t.typ, it.ElementType(), g)
 	}
@@ -129,22 +129,22 @@ func (t *IteratorType) Name() string {
 	return `Iterator`
 }
 
-func (t *IteratorType) Parameters() []eval.PValue {
+func (t *IteratorType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{t.typ}
+	return []eval.Value{t.typ}
 }
 
 func (t *IteratorType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *IteratorType) ElementType() eval.PType {
+func (t *IteratorType) ElementType() eval.Type {
 	return t.typ
 }
 
-func (t *IteratorType) Resolve(c eval.Context) eval.PType {
+func (t *IteratorType) Resolve(c eval.Context) eval.Type {
 	t.typ = resolve(c, t.typ)
 	return t
 }
@@ -153,7 +153,7 @@ func (t *IteratorType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *IteratorType) Type() eval.PType {
+func (t *IteratorType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -161,7 +161,7 @@ func WrapIterator(iter eval.Iterator) eval.IteratorValue {
 	return &iteratorValue{iter}
 }
 
-func (it *iteratorValue) AsArray() eval.IndexedValue {
+func (it *iteratorValue) AsArray() eval.List {
 	return it.iterator.AsArray()
 }
 
@@ -172,7 +172,7 @@ func (it *iteratorValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (it *iteratorValue) Type() eval.PType {
+func (it *iteratorValue) Type() eval.Type {
 	return NewIteratorType(it.iterator.ElementType())
 }
 
@@ -198,7 +198,7 @@ func stopIteration() {
 	}
 }
 
-func find(iter eval.Iterator, predicate eval.Predicate, dflt eval.PValue, dfltProducer eval.Producer) (result eval.PValue) {
+func find(iter eval.Iterator, predicate eval.Predicate, dflt eval.Value, dfltProducer eval.Producer) (result eval.Value) {
 	defer stopIteration()
 
 	result = eval.UNDEF
@@ -278,7 +278,7 @@ func any(iter eval.Iterator, predicate eval.Predicate) (result bool) {
 	return
 }
 
-func reduce2(iter eval.Iterator, value eval.PValue, redactor eval.BiMapper) (result eval.PValue) {
+func reduce2(iter eval.Iterator, value eval.Value, redactor eval.BiMapper) (result eval.Value) {
 	defer stopIteration()
 
 	result = value
@@ -292,7 +292,7 @@ func reduce2(iter eval.Iterator, value eval.PValue, redactor eval.BiMapper) (res
 	return
 }
 
-func reduce(iter eval.Iterator, redactor eval.BiMapper) eval.PValue {
+func reduce(iter eval.Iterator, redactor eval.BiMapper) eval.Value {
 	v, ok := iter.Next()
 	if !ok {
 		return _UNDEF
@@ -300,8 +300,8 @@ func reduce(iter eval.Iterator, redactor eval.BiMapper) eval.PValue {
 	return reduce2(iter, v, redactor)
 }
 
-func asArray(iter eval.Iterator) (result eval.IndexedValue) {
-	el := make([]eval.PValue, 0, 16)
+func asArray(iter eval.Iterator) (result eval.List) {
+	el := make([]eval.Value, 0, 16)
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok := err.(*errors.StopIteration); ok {
@@ -342,23 +342,23 @@ func (ai *indexedIterator) EachWithIndex(consumer eval.BiConsumer) {
 	eachWithIndex(ai, consumer)
 }
 
-func (ai *indexedIterator) ElementType() eval.PType {
+func (ai *indexedIterator) ElementType() eval.Type {
 	return ai.elementType
 }
 
-func (ai *indexedIterator) Find(predicate eval.Predicate) eval.PValue {
+func (ai *indexedIterator) Find(predicate eval.Predicate) eval.Value {
 	return find(ai, predicate, _UNDEF, nil)
 }
 
-func (ai *indexedIterator) Find2(predicate eval.Predicate, dflt eval.PValue) eval.PValue {
+func (ai *indexedIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {
 	return find(ai, predicate, dflt, nil)
 }
 
-func (ai *indexedIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.PValue {
+func (ai *indexedIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.Value {
 	return find(ai, predicate, nil, dflt)
 }
 
-func (ai *indexedIterator) Next() (eval.PValue, bool) {
+func (ai *indexedIterator) Next() (eval.Value, bool) {
 	pos := ai.pos + 1
 	if pos < ai.indexed.Len() {
 		ai.pos = pos
@@ -367,15 +367,15 @@ func (ai *indexedIterator) Next() (eval.PValue, bool) {
 	return _UNDEF, false
 }
 
-func (ai *indexedIterator) Map(elementType eval.PType, mapFunc eval.Mapper) eval.IteratorValue {
+func (ai *indexedIterator) Map(elementType eval.Type, mapFunc eval.Mapper) eval.IteratorValue {
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *indexedIterator) Reduce(redactor eval.BiMapper) eval.PValue {
+func (ai *indexedIterator) Reduce(redactor eval.BiMapper) eval.Value {
 	return reduce(ai, redactor)
 }
 
-func (ai *indexedIterator) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+func (ai *indexedIterator) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	return reduce2(ai, initialValue, redactor)
 }
 
@@ -387,7 +387,7 @@ func (ai *indexedIterator) Select(predicate eval.Predicate) eval.IteratorValue {
 	return WrapIterator(&predicateIterator{predicate, true, ai})
 }
 
-func (ai *indexedIterator) AsArray() eval.IndexedValue {
+func (ai *indexedIterator) AsArray() eval.List {
 	return ai.indexed
 }
 
@@ -399,7 +399,7 @@ func (ai *predicateIterator) Any(predicate eval.Predicate) bool {
 	return any(ai, predicate)
 }
 
-func (ai *predicateIterator) Next() (v eval.PValue, ok bool) {
+func (ai *predicateIterator) Next() (v eval.Value, ok bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok = err.(*errors.StopIteration); ok {
@@ -432,31 +432,31 @@ func (ai *predicateIterator) EachWithIndex(consumer eval.BiConsumer) {
 	eachWithIndex(ai, consumer)
 }
 
-func (ai *predicateIterator) ElementType() eval.PType {
+func (ai *predicateIterator) ElementType() eval.Type {
 	return ai.base.ElementType()
 }
 
-func (ai *predicateIterator) Find(predicate eval.Predicate) eval.PValue {
+func (ai *predicateIterator) Find(predicate eval.Predicate) eval.Value {
 	return find(ai, predicate, _UNDEF, nil)
 }
 
-func (ai *predicateIterator) Find2(predicate eval.Predicate, dflt eval.PValue) eval.PValue {
+func (ai *predicateIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {
 	return find(ai, predicate, dflt, nil)
 }
 
-func (ai *predicateIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.PValue {
+func (ai *predicateIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.Value {
 	return find(ai, predicate, nil, dflt)
 }
 
-func (ai *predicateIterator) Map(elementType eval.PType, mapFunc eval.Mapper) eval.IteratorValue {
+func (ai *predicateIterator) Map(elementType eval.Type, mapFunc eval.Mapper) eval.IteratorValue {
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *predicateIterator) Reduce(redactor eval.BiMapper) eval.PValue {
+func (ai *predicateIterator) Reduce(redactor eval.BiMapper) eval.Value {
 	return reduce(ai, redactor)
 }
 
-func (ai *predicateIterator) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+func (ai *predicateIterator) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	return reduce2(ai, initialValue, redactor)
 }
 
@@ -468,7 +468,7 @@ func (ai *predicateIterator) Select(predicate eval.Predicate) eval.IteratorValue
 	return WrapIterator(&predicateIterator{predicate, true, ai})
 }
 
-func (ai *predicateIterator) AsArray() eval.IndexedValue {
+func (ai *predicateIterator) AsArray() eval.List {
 	return asArray(ai)
 }
 
@@ -480,7 +480,7 @@ func (ai *mappingIterator) Any(predicate eval.Predicate) bool {
 	return any(ai, predicate)
 }
 
-func (ai *mappingIterator) Next() (v eval.PValue, ok bool) {
+func (ai *mappingIterator) Next() (v eval.Value, ok bool) {
 	v, ok = ai.base.Next()
 	if !ok {
 		v = _UNDEF
@@ -498,31 +498,31 @@ func (ai *mappingIterator) EachWithIndex(consumer eval.BiConsumer) {
 	eachWithIndex(ai, consumer)
 }
 
-func (ai *mappingIterator) ElementType() eval.PType {
+func (ai *mappingIterator) ElementType() eval.Type {
 	return ai.elementType
 }
 
-func (ai *mappingIterator) Find(predicate eval.Predicate) eval.PValue {
+func (ai *mappingIterator) Find(predicate eval.Predicate) eval.Value {
 	return find(ai, predicate, _UNDEF, nil)
 }
 
-func (ai *mappingIterator) Find2(predicate eval.Predicate, dflt eval.PValue) eval.PValue {
+func (ai *mappingIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {
 	return find(ai, predicate, dflt, nil)
 }
 
-func (ai *mappingIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.PValue {
+func (ai *mappingIterator) Find3(predicate eval.Predicate, dflt eval.Producer) eval.Value {
 	return find(ai, predicate, nil, dflt)
 }
 
-func (ai *mappingIterator) Map(elementType eval.PType, mapFunc eval.Mapper) eval.IteratorValue {
+func (ai *mappingIterator) Map(elementType eval.Type, mapFunc eval.Mapper) eval.IteratorValue {
 	return WrapIterator(&mappingIterator{elementType, mapFunc, ai})
 }
 
-func (ai *mappingIterator) Reduce(redactor eval.BiMapper) eval.PValue {
+func (ai *mappingIterator) Reduce(redactor eval.BiMapper) eval.Value {
 	return reduce(ai, redactor)
 }
 
-func (ai *mappingIterator) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+func (ai *mappingIterator) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	return reduce2(ai, initialValue, redactor)
 }
 
@@ -534,6 +534,6 @@ func (ai *mappingIterator) Select(predicate eval.Predicate) eval.IteratorValue {
 	return WrapIterator(&predicateIterator{predicate, true, ai})
 }
 
-func (ai *mappingIterator) AsArray() eval.IndexedValue {
+func (ai *mappingIterator) AsArray() eval.List {
 	return asArray(ai)
 }

@@ -56,11 +56,11 @@ var TYPE_TYPESET_INIT = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS)})
 
 func init() {
-	oneArgCtor := func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewTypeSetType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
 	TypeSet_Type = newObjectType2(`Pcore::typeSet`, Any_Type,
-		WrapHash3(map[string]eval.PValue{
+		WrapHash3(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_TYPESET_INIT)}),
 		// Hash constructor is equal to the positional arguments constructor
 		oneArgCtor, oneArgCtor)
@@ -142,9 +142,9 @@ func (r *typeSetReference) resolve(c eval.Context) {
 		panic(eval.Error(eval.EVAL_TYPESET_REFERENCE_UNRESOLVED, issue.H{`name`: r.owner.name, `ref_name`: r.name}))
 	}
 	var typeName string
-	if vt, ok := v.(eval.PType); ok {
+	if vt, ok := v.(eval.Type); ok {
 		typeName = vt.Name()
-	} else if vv, ok := v.(eval.PValue); ok {
+	} else if vv, ok := v.(eval.Value); ok {
 		typeName = vv.Type().Name()
 	} else {
 		typeName = fmt.Sprintf("%T", v)
@@ -172,9 +172,9 @@ func AllocTypeSetType() *typeSet {
 	}
 }
 
-func (t *typeSet) Initialize(c eval.Context, args []eval.PValue) {
+func (t *typeSet) Initialize(c eval.Context, args []eval.Value) {
 	if len(args) == 1 {
-		if h, ok := args[0].(eval.KeyedValue); ok {
+		if h, ok := args[0].(eval.OrderedMap); ok {
 			t.InitFromHash(c, h)
 			return
 		}
@@ -213,7 +213,7 @@ func (t *typeSet) Accept(v eval.Visitor, g eval.Guard) {
 	// TODO: Visit typeset members
 }
 
-func (t *typeSet) Default() eval.PType {
+func (t *typeSet) Default() eval.Type {
 	return typeSetType_DEFAULT
 }
 
@@ -224,11 +224,11 @@ func (t *typeSet) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *typeSet) Generic() eval.PType {
+func (t *typeSet) Generic() eval.Type {
 	return DefaultTypeSetType()
 }
 
-func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
+func (t *typeSet) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	eval.AssertInstance(`typeset initializer`, TYPE_TYPESET_INIT, initHash)
 	t.name = stringArg(initHash, KEY_NAME, t.name)
 	t.nameAuthority = uriArg(c, initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
@@ -241,7 +241,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.pcoreURI = uriArg(c, initHash, eval.KEY_PCORE_URI, ``)
 	t.version = versionArg(c, initHash, KEY_VERSION, nil)
 	t.types = hashArg(initHash, KEY_TYPES)
-	t.types.EachKey(func(kv eval.PValue) {
+	t.types.EachKey(func(kv eval.Value) {
 		key := kv.String()
 		t.dcToCcMap[strings.ToLower(key)] = key
 	})
@@ -250,7 +250,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	if !refs.IsEmpty() {
 		refMap := make(map[string]*typeSetReference, 7)
 		rootMap := make(map[eval.URI]map[string][]semver.VersionRange, 7)
-		refs.EachPair(func(k, v eval.PValue) {
+		refs.EachPair(func(k, v eval.Value) {
 			refAlias := k.String()
 
 			if t.types.IncludesKey(k) {
@@ -292,7 +292,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.annotatable.initialize(initHash.(*HashValue))
 }
 
-func (t *typeSet) Get(key string) (value eval.PValue, ok bool) {
+func (t *typeSet) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case eval.KEY_PCORE_URI:
 		if t.pcoreURI == `` {
@@ -321,7 +321,7 @@ func (t *typeSet) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *typeSet) GetType(typedName eval.TypedName) (eval.PType, bool) {
+func (t *typeSet) GetType(typedName eval.TypedName) (eval.Type, bool) {
 	if !(typedName.Namespace() == eval.TYPE && typedName.NameAuthority() == t.nameAuthority) {
 		return nil, false
 	}
@@ -357,25 +357,25 @@ func (t *typeSet) GetType(typedName eval.TypedName) (eval.PType, bool) {
 	}
 }
 
-func (t *typeSet) GetType2(name string) (eval.PType, bool) {
-	v := t.types.Get6(name, func() eval.PValue {
+func (t *typeSet) GetType2(name string) (eval.Type, bool) {
+	v := t.types.Get6(name, func() eval.Value {
 		return t.types.Get5(t.dcToCcMap[name], nil)
 	})
-	if found, ok := v.(eval.PType); ok {
+	if found, ok := v.(eval.Type); ok {
 		return found, true
 	}
 	return nil, false
 }
 
-func (t *typeSet) InitHash() eval.KeyedValue {
+func (t *typeSet) InitHash() eval.OrderedMap {
 	return WrapStringPValue(t.initHash())
 }
 
-func (t *typeSet) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *typeSet) IsInstance(o eval.Value, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 
-func (t *typeSet) IsAssignable(other eval.PType, g eval.Guard) bool {
+func (t *typeSet) IsAssignable(other eval.Type, g eval.Guard) bool {
 	if ot, ok := other.(*typeSet); ok {
 		return t.Equals(typeSetType_DEFAULT, g) || t.Equals(ot, g)
 	}
@@ -398,14 +398,14 @@ func (t *typeSet) TypedName() eval.TypedName {
 	return t.typedName
 }
 
-func (t *typeSet) Parameters() []eval.PValue {
+func (t *typeSet) Parameters() []eval.Value {
 	if t.Equals(typeSetType_DEFAULT, nil) {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{t.InitHash()}
+	return []eval.Value{t.InitHash()}
 }
 
-func (t *typeSet) Resolve(c eval.Context) eval.PType {
+func (t *typeSet) Resolve(c eval.Context) eval.Type {
 	ihe := t.initHashExpression
 	if ihe == nil {
 		return t
@@ -428,7 +428,7 @@ func (t *typeSet) Resolve(c eval.Context) eval.PType {
 		ref.resolve(c)
 	}
 	c.DoWithLoader(eval.NewTypeSetLoader(c.Loader(), t), func() {
-		t.types = t.types.MapValues(func(tp eval.PValue) eval.PValue {
+		t.types = t.types.MapValues(func(tp eval.Value) eval.Value {
 			if rtp, ok := tp.(eval.ResolvableType); ok {
 				return rtp.Resolve(c)
 			}
@@ -438,7 +438,7 @@ func (t *typeSet) Resolve(c eval.Context) eval.PType {
 	return t
 }
 
-func (t *typeSet) Types() eval.KeyedValue {
+func (t *typeSet) Types() eval.OrderedMap {
 	return t.types
 }
 
@@ -467,7 +467,7 @@ func (t *typeSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	}
 }
 
-func (t *typeSet) Type() eval.PType {
+func (t *typeSet) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -519,7 +519,7 @@ func (t *typeSet) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatCon
 				io.WriteString(b, ` `)
 			}
 		}
-		value := vi.(eval.PValue)
+		value := vi.(eval.Value)
 		if f.IsAlt() {
 			io.WriteString(b, "\n")
 			io.WriteString(b, padding2)
@@ -533,7 +533,7 @@ func (t *typeSet) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatCon
 			// The keys should not be quoted in this hash
 			io.WriteString(b, `{`)
 			first3 := true
-			value.(*HashValue).EachPair(func(typeName, typ eval.PValue) {
+			value.(*HashValue).EachPair(func(typeName, typ eval.Value) {
 				if first3 {
 					first3 = false
 				} else {
@@ -656,7 +656,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 	nameAuth := t.resolveNameAuthority(result, c, lh)
 	if len(types) > 0 {
 		factory := parser.DefaultFactory()
-		typesMap := make(map[string]eval.PValue, len(types))
+		typesMap := make(map[string]eval.Value, len(types))
 		for typeName, value := range types {
 			fullName := fmt.Sprintf(`%s::%s`, t.name, typeName)
 			if rde, ok := value.(*parser.ResourceDefaultsExpression); ok {

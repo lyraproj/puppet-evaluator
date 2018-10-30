@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 )
 
-func callNew(c eval.Context, typ eval.PValue, args []eval.PValue, block eval.Lambda) eval.PValue {
+func callNew(c eval.Context, typ eval.Value, args []eval.Value, block eval.Lambda) eval.Value {
 	// Always make an attempt to load the named type
 	// TODO: This should be a properly checked load but it currently isn't because some receivers in the PSpec
 	// evaluator are not proper types yet.
@@ -48,7 +48,7 @@ func init() {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return callNew(c, args[0], args[1:], block)
 			})
 		},
@@ -57,8 +57,8 @@ func init() {
 			d.Param(`Type`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
-				pt := args[0].(eval.PType)
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
+				pt := args[0].(eval.Type)
 				return assertType(c, pt, callNew(c, pt, args[1:], block), nil)
 			})
 		},

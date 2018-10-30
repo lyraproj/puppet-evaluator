@@ -8,13 +8,13 @@ import (
 type (
 	setting struct {
 		name         string
-		value        eval.PValue
-		defaultValue eval.PValue
-		valueType    eval.PType
+		value        eval.Value
+		defaultValue eval.Value
+		valueType    eval.Type
 	}
 )
 
-func (s *setting) get() eval.PValue {
+func (s *setting) get() eval.Value {
 	return s.value
 }
 
@@ -22,7 +22,7 @@ func (s *setting) reset() {
 	s.value = s.defaultValue
 }
 
-func (s *setting) set(value eval.PValue) {
+func (s *setting) set(value eval.Value) {
 	if !eval.IsInstance(s.valueType, value) {
 		panic(eval.DescribeMismatch(fmt.Sprintf(`Setting '%s'`, s.name), s.valueType, eval.DetailedValueType(value)))
 	}

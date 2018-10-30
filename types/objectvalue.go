@@ -6,14 +6,14 @@ import (
 	"io"
 )
 
-func AllocObjectValue(typ eval.ObjectType) eval.ObjectValue {
+func AllocObjectValue(typ eval.ObjectType) eval.Object {
 	if typ.IsMetaType() {
 		return AllocObjectType()
 	}
 	return &objectValue{typ, eval.EMPTY_VALUES}
 }
 
-func (ov *objectValue) Initialize(c eval.Context, values []eval.PValue) {
+func (ov *objectValue) Initialize(c eval.Context, values []eval.Value) {
 	if len(values) > 0 && ov.typ.IsParameterized() {
 		ov.InitFromHash(c, makeValueHash(ov.typ.AttributesInfo(), values))
 		return
@@ -22,7 +22,7 @@ func (ov *objectValue) Initialize(c eval.Context, values []eval.PValue) {
 	ov.values = values
 }
 
-func (ov *objectValue) InitFromHash(c eval.Context, hash eval.KeyedValue) {
+func (ov *objectValue) InitFromHash(c eval.Context, hash eval.OrderedMap) {
 	typ := ov.typ.(*objectType)
 	va := typ.AttributesInfo().PositionalFromHash(hash)
 	if len(va) > 0 && typ.IsParameterized() {
@@ -33,26 +33,26 @@ func (ov *objectValue) InitFromHash(c eval.Context, hash eval.KeyedValue) {
 			}
 		})
 		if len(params) > 0 {
-			ov.typ = NewObjectTypeExtension(c, typ, []eval.PValue{WrapHash(params)})
+			ov.typ = NewObjectTypeExtension(c, typ, []eval.Value{WrapHash(params)})
 		}
 	}
 	ov.values = va
 }
 
-func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.PValue) eval.ObjectValue {
+func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.Value) eval.Object {
 	ov := AllocObjectValue(typ)
 	ov.Initialize(c, values)
 	return ov
 }
 
-func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) eval.ObjectValue {
+func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) eval.Object {
 	ov := AllocObjectValue(typ)
 	ov.InitFromHash(c, hash)
 	return ov
 }
 
 // Ensure that all entries in the value slice that are nil receive default values from the given attributes
-func fillValueSlice(values []eval.PValue, attrs []eval.Attribute) {
+func fillValueSlice(values []eval.Value, attrs []eval.Attribute) {
 	for ix, v := range values {
 		if v == nil {
 			at := attrs[ix]
@@ -64,7 +64,7 @@ func fillValueSlice(values []eval.PValue, attrs []eval.Attribute) {
 	}
 }
 
-func (o *objectValue) Get(key string) (eval.PValue, bool) {
+func (o *objectValue) Get(key string) (eval.Value, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
@@ -90,17 +90,17 @@ func (o *objectValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	ObjectToString(o, s, b, g)
 }
 
-func (o *objectValue) Type() eval.PType {
+func (o *objectValue) Type() eval.Type {
 	return o.typ
 }
 
-func (o *objectValue) InitHash() eval.KeyedValue {
+func (o *objectValue) InitHash() eval.OrderedMap {
 	return makeValueHash(o.typ.AttributesInfo(), o.values)
 }
 
 // Turn a positional argument list into a hash. The hash will exclude all values
 // that are equal to the default value of the corresponding attribute
-func makeValueHash(pi eval.AttributesInfo, values []eval.PValue) *HashValue {
+func makeValueHash(pi eval.AttributesInfo, values []eval.Value) *HashValue {
 	posToName := pi.PosToName()
 	entries := make([]*HashEntry, 0, len(posToName))
 	for i, v := range values {

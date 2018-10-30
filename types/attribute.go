@@ -23,7 +23,7 @@ var TYPE_ATTRIBUTE_CALLABLE = NewCallableType2(NewIntegerType(0, 0))
 type attribute struct {
 	annotatedMember
 	kind  eval.AttributeKind
-	value eval.PValue
+	value eval.Value
 }
 
 func newAttribute(c eval.Context, name string, container *objectType, initHash *HashValue) eval.Attribute {
@@ -60,11 +60,11 @@ func (a *attribute) initialize(c eval.Context, name string, container *objectTyp
 	}
 }
 
-func (a *attribute) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (a *attribute) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
 	if block == nil && len(args) == 0 {
 		return a.Get(receiver)
 	}
-	types := make([]eval.PValue, len(args))
+	types := make([]eval.Value, len(args))
 	for i, a := range args {
 		types[i] = a.Type()
 	}
@@ -72,7 +72,7 @@ func (a *attribute) Call(c eval.Context, receiver eval.PValue, block eval.Lambda
 		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
 }
 
-func (a *attribute) Default(value eval.PValue) bool {
+func (a *attribute) Default(value eval.Value) bool {
 	return eval.Equals(a.value, value)
 }
 
@@ -95,11 +95,11 @@ func (a *attribute) initHash() *hash.StringHash {
 	return hash
 }
 
-func (a *attribute) InitHash() eval.KeyedValue {
+func (a *attribute) InitHash() eval.OrderedMap {
 	return WrapStringPValue(a.initHash())
 }
 
-func (a *attribute) Value() eval.PValue {
+func (a *attribute) Value() eval.Value {
 	if a.value == nil {
 		panic(eval.Error(eval.EVAL_ATTRIBUTE_HAS_NO_VALUE, issue.H{`label`: a.Label()}))
 	}
@@ -110,7 +110,7 @@ func (a *attribute) FeatureType() string {
 	return `attribute`
 }
 
-func (a *attribute) Get(instance eval.PValue) eval.PValue {
+func (a *attribute) Get(instance eval.Value) eval.Value {
 	if a.kind == CONSTANT {
 		return a.value
 	}
@@ -131,7 +131,7 @@ func (a *attribute) Equals(other interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (a *attribute) CallableType() eval.PType {
+func (a *attribute) CallableType() eval.Type {
 	return TYPE_ATTRIBUTE_CALLABLE
 }
 

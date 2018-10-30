@@ -26,7 +26,7 @@ func init() {
 		}`)
 }
 
-func NewObjectTypeExtension(c eval.Context, baseType eval.ObjectType, initParameters []eval.PValue) *objectTypeExtension {
+func NewObjectTypeExtension(c eval.Context, baseType eval.ObjectType, initParameters []eval.Value) *objectTypeExtension {
 	o := &objectTypeExtension{}
 	o.initialize(c, baseType.(*objectType), initParameters)
 	return o
@@ -41,7 +41,7 @@ func (te *objectTypeExtension) Constructor() eval.Function {
 	return te.baseType.Constructor()
 }
 
-func (te *objectTypeExtension) Default() eval.PType {
+func (te *objectTypeExtension) Default() eval.Type {
 	return te.baseType.Default()
 }
 
@@ -50,11 +50,11 @@ func (te *objectTypeExtension) Equals(other interface{}, g eval.Guard) bool {
 	return ok && te.baseType.Equals(op.baseType, g) && te.parameters.Equals(op.parameters, g)
 }
 
-func (te *objectTypeExtension) Generalize() eval.PType {
+func (te *objectTypeExtension) Generalize() eval.Type {
 	return te.baseType
 }
 
-func (te *objectTypeExtension) Get(key string) (eval.PValue, bool) {
+func (te *objectTypeExtension) Get(key string) (eval.Value, bool) {
 	return te.baseType.Get(key)
 }
 
@@ -62,7 +62,7 @@ func (te *objectTypeExtension) HasHashConstructor() bool {
 	return te.baseType.HasHashConstructor()
 }
 
-func (te *objectTypeExtension) IsAssignable(t eval.PType, g eval.Guard) bool {
+func (te *objectTypeExtension) IsAssignable(t eval.Type, g eval.Guard) bool {
 	if ote, ok := t.(*objectTypeExtension); ok {
 		return te.baseType.IsAssignable(ote.baseType, g) && te.testAssignable(ote.parameters, g)
 	}
@@ -80,7 +80,7 @@ func (te *objectTypeExtension) IsParameterized() bool {
 	return true
 }
 
-func (te *objectTypeExtension) IsInstance(v eval.PValue, g eval.Guard) bool {
+func (te *objectTypeExtension) IsInstance(v eval.Value, g eval.Guard) bool {
 	return te.baseType.IsInstance(v, g) && te.testInstance(v, g)
 }
 
@@ -96,13 +96,13 @@ func (te *objectTypeExtension) Name() string {
 	return te.baseType.Name()
 }
 
-func (te *objectTypeExtension) Parameters() []eval.PValue {
+func (te *objectTypeExtension) Parameters() []eval.Value {
 	pts := te.baseType.typeParameters(true)
 	n := pts.Len()
 	if n > 2 {
-		return []eval.PValue{WrapStringPValue(te.parameters)}
+		return []eval.Value{WrapStringPValue(te.parameters)}
 	}
-	params := make([]eval.PValue, 0, n)
+	params := make([]eval.Value, 0, n)
 	top := 0
 	idx := 0
 	pts.EachKey(func(k string) {
@@ -112,7 +112,7 @@ func (te *objectTypeExtension) Parameters() []eval.PValue {
 		} else {
 			v = WrapDefault()
 		}
-		params = append(params, v.(eval.PValue))
+		params = append(params, v.(eval.Value))
 		idx++
 	})
 	return params[:top]
@@ -122,7 +122,7 @@ func (te *objectTypeExtension) FromReflectedValue(c eval.Context, src reflect.Va
 	return te.baseType.FromReflectedValue(c, src)
 }
 
-func (te *objectTypeExtension) Parent() eval.PType {
+func (te *objectTypeExtension) Parent() eval.Type {
 	return te.baseType.Parent()
 }
 
@@ -138,11 +138,11 @@ func (te *objectTypeExtension) ToString(bld io.Writer, format eval.FormatContext
 	TypeToString(te, bld, format, g)
 }
 
-func (te *objectTypeExtension) Type() eval.PType {
+func (te *objectTypeExtension) Type() eval.Type {
 	return &TypeType{te}
 }
 
-func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, initParameters []eval.PValue) {
+func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, initParameters []eval.Value) {
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
@@ -158,14 +158,14 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
-	checkParam := func(tp *typeParameter, v eval.PValue) eval.PValue {
+	checkParam := func(tp *typeParameter, v eval.Value) eval.Value {
 		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
 	}
 
 	byName := hash.NewStringHash(pts.Len())
 	if namedArgs {
 		hash := initParameters[0].(*HashValue)
-		hash.EachPair(func(k, pv eval.PValue) {
+		hash.EachPair(func(k, pv eval.Value) {
 			pn := k.String()
 			tp := pts.Get(pn, nil)
 			if tp == nil {
@@ -208,13 +208,13 @@ func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g ev
 	// been assigned at this point)
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
 		if v2, ok := paramValues.Get3(key); ok {
-			a := v2.(eval.PValue)
-			b := v1.(eval.PValue)
+			a := v2.(eval.Value)
+			b := v1.(eval.Value)
 			if eval.PuppetMatch(nil, a, b) {
 				return true
 			}
-			if at, ok := a.(eval.PType); ok {
-				if bt, ok := b.(eval.PType); ok {
+			if at, ok := a.(eval.Type); ok {
+				if bt, ok := b.(eval.Type); ok {
 					return eval.IsAssignable(bt, at)
 				}
 			}
@@ -229,10 +229,10 @@ func (te *objectTypeExtension) testAssignable(paramValues *hash.StringHash, g ev
 //
 // This method is only called when the given value is found to be an instance of the base type of
 // this extension.
-func (te *objectTypeExtension) testInstance(o eval.PValue, g eval.Guard) bool {
+func (te *objectTypeExtension) testInstance(o eval.Value, g eval.Guard) bool {
 	c := eval.CurrentContext()
 	return te.parameters.AllPair(func(key string, v1 interface{}) bool {
 		v2, ok := te.baseType.GetValue(key, o)
-		return ok && eval.PuppetMatch(c, v2, v1.(eval.PValue))
+		return ok && eval.PuppetMatch(c, v2, v1.(eval.Value))
 	})
 }

@@ -12,7 +12,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`get_edges`,
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					if from, ok := resource.FindNode(c, args[0]); ok {
 						return resource.GetGraph(c).Edges(from)
 					}
@@ -23,7 +23,7 @@ func TestPSpecs(t *testing.T) {
 
 		eval.NewGoFunction(`get_resources`,
 			func(d eval.Dispatch) {
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					return resource.Resources(c)
 				})
 			},
@@ -32,7 +32,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`nodes_from`,
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					if from, ok := resource.FindNode(c, args[0]); ok {
 						return resource.GetGraph(c).FromNode(from)
 					}
@@ -44,7 +44,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`nodes_to`,
 			func(d eval.Dispatch) {
 				d.Param(`Variant[Resource,Type[Resource],String]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					if to, ok := resource.FindNode(c, args[0]); ok {
 						return resource.GetGraph(c).ToNode(to)
 					}

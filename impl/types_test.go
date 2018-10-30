@@ -8,8 +8,8 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func toType(pt interface{}) eval.PType {
-	return pt.(eval.PType)
+func toType(pt interface{}) eval.Type {
+	return pt.(eval.Type)
 }
 
 func TestAssignability(t *testing.T) {

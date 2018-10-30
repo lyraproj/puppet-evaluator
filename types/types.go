@@ -65,16 +65,16 @@ func (rt *objectTypeAndCtor) Creator() eval.DispatchFunction {
 }
 
 // isInstance answers if value is an instance of the given puppeType
-func isInstance(puppetType eval.PType, value eval.PValue) bool {
+func isInstance(puppetType eval.Type, value eval.Value) bool {
 	return GuardedIsInstance(puppetType, value, nil)
 }
 
 // isAssignable answers if t is assignable to this type
-func isAssignable(puppetType eval.PType, other eval.PType) bool {
+func isAssignable(puppetType eval.Type, other eval.Type) bool {
 	return GuardedIsAssignable(puppetType, other, nil)
 }
 
-func generalize(a eval.PType) eval.PType {
+func generalize(a eval.Type) eval.Type {
 	if g, ok := a.(eval.Generalizable); ok {
 		return g.Generic()
 	}
@@ -84,30 +84,30 @@ func generalize(a eval.PType) eval.PType {
 	return a
 }
 
-func defaultFor(t eval.PType) eval.PType {
+func defaultFor(t eval.Type) eval.Type {
 	if g, ok := t.(eval.ParameterizedType); ok {
 		return g.Default()
 	}
 	return t
 }
 
-func normalize(t eval.PType) eval.PType {
+func normalize(t eval.Type) eval.Type {
 	// TODO: Implement for ParameterizedType
 	return t
 }
 
-func resolve(c eval.Context, t eval.PType) eval.PType {
+func resolve(c eval.Context, t eval.Type) eval.Type {
 	if rt, ok := t.(eval.ResolvableType); ok {
 		return rt.Resolve(c)
 	}
 	return t
 }
 
-func GuardedIsInstance(a eval.PType, v eval.PValue, g eval.Guard) bool {
+func GuardedIsInstance(a eval.Type, v eval.Value, g eval.Guard) bool {
 	return a.IsInstance(v, g)
 }
 
-func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {
+func GuardedIsAssignable(a eval.Type, b eval.Type, g eval.Guard) bool {
 	if a == anyType_DEFAULT {
 		return true
 	}
@@ -135,13 +135,13 @@ func GuardedIsAssignable(a eval.PType, b eval.PType, g eval.Guard) bool {
 	return a.IsAssignable(b, g)
 }
 
-func UniqueTypes(types []eval.PType) []eval.PType {
+func UniqueTypes(types []eval.Type) []eval.Type {
 	top := len(types)
 	if top < 2 {
 		return types
 	}
 
-	result := make([]eval.PType, 0, top)
+	result := make([]eval.Type, 0, top)
 	exists := make(map[eval.HashKey]bool, top)
 	for _, t := range types {
 		key := eval.ToKey(t)
@@ -153,26 +153,26 @@ func UniqueTypes(types []eval.PType) []eval.PType {
 	return result
 }
 
-// ValueSlice convert a slice of values that implement the eval.PValue interface to []eval.PValue. The
+// ValueSlice convert a slice of values that implement the eval.Value interface to []eval.Value. The
 // method will panic if the given argument is not a slice or array, or if not all
-// elements implement the eval.PValue interface
-func ValueSlice(slice interface{}) []eval.PValue {
+// elements implement the eval.Value interface
+func ValueSlice(slice interface{}) []eval.Value {
 	sv := reflect.ValueOf(slice)
 	top := sv.Len()
-	result := make([]eval.PValue, top)
+	result := make([]eval.Value, top)
 	for idx := 0; idx < top; idx++ {
-		result[idx] = sv.Index(idx).Interface().(eval.PValue)
+		result[idx] = sv.Index(idx).Interface().(eval.Value)
 	}
 	return result
 }
 
-func UniqueValues(values []eval.PValue) []eval.PValue {
+func UniqueValues(values []eval.Value) []eval.Value {
 	top := len(values)
 	if top < 2 {
 		return values
 	}
 
-	result := make([]eval.PValue, 0, top)
+	result := make([]eval.Value, 0, top)
 	exists := make(map[eval.HashKey]bool, top)
 	for _, v := range values {
 		key := eval.ToKey(v)
@@ -184,11 +184,11 @@ func UniqueValues(values []eval.PValue) []eval.PValue {
 	return result
 }
 
-func NewIllegalArgumentType2(name string, index int, expected string, actual eval.PValue) errors.InstantiationError {
+func NewIllegalArgumentType2(name string, index int, expected string, actual eval.Value) errors.InstantiationError {
 	return errors.NewIllegalArgumentType(name, index, expected, eval.DetailedValueType(actual).String())
 }
 
-func TypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func TypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), t.Type())
 	switch f.FormatChar() {
 	case 's', 'p':
@@ -205,7 +205,7 @@ func TypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetec
 	}
 }
 
-func basicTypeToString(t eval.PType, b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func basicTypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	name := t.Name()
 	if ex, ok := s.Property(`expanded`); !(ok && ex == `true`) {
 		switch t.(type) {
@@ -235,28 +235,28 @@ func stripTypeSetName(tsName, name string) string {
 	return name
 }
 
-type alterFunc func(t eval.PType) eval.PType
+type alterFunc func(t eval.Type) eval.Type
 
-func alterTypes(types []eval.PType, function alterFunc) []eval.PType {
-	al := make([]eval.PType, len(types))
+func alterTypes(types []eval.Type, function alterFunc) []eval.Type {
+	al := make([]eval.Type, len(types))
 	for idx, t := range types {
 		al[idx] = function(t)
 	}
 	return al
 }
 
-func toTypes(types eval.IndexedValue) ([]eval.PType, int) {
+func toTypes(types eval.List) ([]eval.Type, int) {
 	top := types.Len()
 	if top == 1 {
-		if a, ok := types.At(0).(eval.IndexedValue); ok {
+		if a, ok := types.At(0).(eval.List); ok {
 			if _, ok = a.(*StringValue); !ok {
 				return toTypes(a)
 			}
 		}
 	}
-	result := make([]eval.PType, 0, top)
-	if types.All(func(t eval.PValue) bool {
-		if pt, ok := t.(eval.PType); ok {
+	result := make([]eval.Type, 0, top)
+	if types.All(func(t eval.Value) bool {
+		if pt, ok := t.(eval.Type); ok {
 			result = append(result, pt)
 			return true
 		}
@@ -275,16 +275,16 @@ func DefaultRichDataType() *TypeAliasType {
 	return richDataType_DEFAULT
 }
 
-func NilAs(dflt, t eval.PType) eval.PType {
+func NilAs(dflt, t eval.Type) eval.Type {
 	if t == nil {
 		t = dflt
 	}
 	return t
 }
 
-func CopyAppend(types []eval.PType, t eval.PType) []eval.PType {
+func CopyAppend(types []eval.Type, t eval.Type) []eval.Type {
 	top := len(types)
-	tc := make([]eval.PType, top+1, top+1)
+	tc := make([]eval.Type, top+1, top+1)
 	copy(tc, types)
 	tc[top] = t
 	return tc
@@ -292,13 +292,13 @@ func CopyAppend(types []eval.PType, t eval.PType) []eval.PType {
 
 var dataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`Data`}}
 var dataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
-var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]eval.PType{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
+var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]eval.Type{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
 
-var richKeyType_DEFAULT = &VariantType{[]eval.PType{stringType_DEFAULT, numericType_DEFAULT}}
+var richKeyType_DEFAULT = &VariantType{[]eval.Type{stringType_DEFAULT, numericType_DEFAULT}}
 var richDataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`RichData`}}
 var richDataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
-	[]eval.PType{scalarType_DEFAULT,
+	[]eval.Type{scalarType_DEFAULT,
 		binaryType_DEFAULT,
 		defaultType_DEFAULT,
 		objectType_DEFAULT,
@@ -308,7 +308,7 @@ var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
 		richDataArrayType_DEFAULT,
 		richDataHashType_DEFAULT}}, nil}
 
-var resolvableTypes = make([]eval.PType, 0, 16)
+var resolvableTypes = make([]eval.Type, 0, 16)
 var resolvableTypesLock sync.Mutex
 
 type BuildFunctionArgs struct {
@@ -332,29 +332,29 @@ func init() {
 	eval.IsAssignable = isAssignable
 	eval.IsInstance = isInstance
 
-	eval.DetailedValueType = func(value eval.PValue) eval.PType {
+	eval.DetailedValueType = func(value eval.Value) eval.Type {
 		if dt, ok := value.(eval.DetailedTypeValue); ok {
 			return dt.DetailedType()
 		}
 		return value.Type()
 	}
 
-	eval.GenericType = func(t eval.PType) eval.PType {
+	eval.GenericType = func(t eval.Type) eval.Type {
 		if g, ok := t.(eval.Generalizable); ok {
 			return g.Generic()
 		}
 		return t
 	}
 
-	eval.GenericValueType = func(value eval.PValue) eval.PType {
+	eval.GenericValueType = func(value eval.Value) eval.Type {
 		return eval.GenericType(value.Type())
 	}
 
-	eval.ToArray = func(elements []eval.PValue) eval.IndexedValue {
+	eval.ToArray = func(elements []eval.Value) eval.List {
 		return WrapArray(elements)
 	}
 
-	eval.ToKey = func(value eval.PValue) eval.HashKey {
+	eval.ToKey = func(value eval.Value) eval.HashKey {
 		if hk, ok := value.(eval.HashKeyValue); ok {
 			return hk.ToKey()
 		}
@@ -363,7 +363,7 @@ func init() {
 		return eval.HashKey(b.String())
 	}
 
-	eval.IsTruthy = func(tv eval.PValue) bool {
+	eval.IsTruthy = func(tv eval.Value) bool {
 		switch tv.(type) {
 		case *UndefValue:
 			return false
@@ -392,11 +392,11 @@ func newGoConstructor2(typeName string, localTypes eval.LocalTypesCreator, creat
 	registerGoConstructor(&BuildFunctionArgs{typeName, localTypes, creators})
 }
 
-func PopDeclaredTypes() (types []eval.PType) {
+func PopDeclaredTypes() (types []eval.Type) {
 	resolvableTypesLock.Lock()
 	types = resolvableTypes
 	if len(types) > 0 {
-		resolvableTypes = make([]eval.PType, 0, 16)
+		resolvableTypes = make([]eval.Type, 0, 16)
 	}
 	resolvableTypesLock.Unlock()
 	return
@@ -424,10 +424,10 @@ func registerResolvableType(tp eval.ResolvableType) {
 	resolvableTypesLock.Unlock()
 }
 
-func appendKey(b *bytes.Buffer, v eval.PValue) {
+func appendKey(b *bytes.Buffer, v eval.Value) {
 	if hk, ok := v.(eval.StreamHashKeyValue); ok {
 		hk.ToKey(b)
-	} else if pt, ok := v.(eval.PType); ok {
+	} else if pt, ok := v.(eval.Type); ok {
 		b.WriteByte(1)
 		b.WriteByte(HK_TYPE)
 		b.Write([]byte(pt.Name()))
@@ -445,10 +445,10 @@ func appendKey(b *bytes.Buffer, v eval.PValue) {
 
 // Special hash key generation for type parameters which might be hashes
 // using string keys
-func appendTypeParamKey(b *bytes.Buffer, v eval.PValue) {
+func appendTypeParamKey(b *bytes.Buffer, v eval.Value) {
 	if h, ok := v.(*HashValue); ok {
 		b.WriteByte(2)
-		h.EachPair(func(k, v eval.PValue) {
+		h.EachPair(func(k, v eval.Value) {
 			b.Write([]byte(k.String()))
 			b.WriteByte(3)
 			appendTypeParamKey(b, v)
@@ -458,12 +458,12 @@ func appendTypeParamKey(b *bytes.Buffer, v eval.PValue) {
 	}
 }
 
-func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
+func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	switch v.(type) {
 	case nil:
 		pv = _UNDEF
-	case eval.PValue:
-		pv = v.(eval.PValue)
+	case eval.Value:
+		pv = v.(eval.Value)
 	case string:
 		pv = WrapString(v.(string))
 	case int64:
@@ -486,12 +486,12 @@ func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 		pv = WrapTimespan(v.(time.Duration))
 	case time.Time:
 		pv = WrapTimestamp(v.(time.Time))
-	case []eval.PValue:
-		pv = WrapArray(v.([]eval.PValue))
+	case []eval.Value:
+		pv = WrapArray(v.([]eval.Value))
 	case map[string]interface{}:
 		pv = WrapHash4(c, v.(map[string]interface{}))
-	case map[string]eval.PValue:
-		pv = WrapHash3(v.(map[string]eval.PValue))
+	case map[string]eval.Value:
+		pv = WrapHash3(v.(map[string]eval.Value))
 	case yaml.MapSlice:
 		ms := v.(yaml.MapSlice)
 		es := make([]*HashEntry, len(ms))
@@ -517,7 +517,7 @@ func wrap(c eval.Context, v interface{}) (pv eval.PValue) {
 	return pv
 }
 
-func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
+func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
 	switch vr.Kind() {
 	case reflect.String:
 		pv = WrapString(vr.String())
@@ -531,7 +531,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 		pv = WrapFloat(vr.Float())
 	case reflect.Slice, reflect.Array:
 		top := vr.Len()
-		els := make([]eval.PValue, top)
+		els := make([]eval.Value, top)
 		for i := 0; i < top; i++ {
 			els[i] = wrap(c, interfaceOrNil(vr.Index(i)))
 		}
@@ -557,7 +557,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.PValue) {
 	return pv
 }
 
-func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
+func wrapType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 	pt = DefaultAnyType()
 	switch vt.Kind() {
 	case reflect.String:
@@ -593,7 +593,7 @@ func wrapType(c eval.Context, vt reflect.Type) (pt eval.PType) {
 	case reflect.Struct:
 		if it, ok := c.ImplementationRegistry().ReflectedToPtype(vt); ok {
 			if lt, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, it)); ok {
-				pt = lt.(eval.PType)
+				pt = lt.(eval.Type)
 			} else {
 				pt = NewTypeReferenceType(it)
 			}
@@ -609,7 +609,7 @@ func interfaceOrNil(vr reflect.Value) interface{} {
 	return nil
 }
 
-func newTypeAlias(name, typeDecl string) eval.PType {
+func newTypeAlias(name, typeDecl string) eval.Type {
 	p := parser.CreateParser()
 	_, fileName, fileLine, _ := runtime.Caller(1)
 	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
@@ -645,8 +645,8 @@ func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.T
 	}
 }
 
-func createTypeDefinition(na eval.URI, name string, body parser.Expression) eval.PType {
-	var ta eval.PType
+func createTypeDefinition(na eval.URI, name string, body parser.Expression) eval.Type {
+	var ta eval.Type
 	switch body.(type) {
 	case *parser.QualifiedReference:
 		ta = NewTypeAliasType(name, body, nil)
@@ -691,7 +691,7 @@ func extractParentName(hash *parser.LiteralHash) string {
 	return ``
 }
 
-func createMetaType(na eval.URI, name string, typeName string, parentName string, hash *parser.LiteralHash) eval.PType {
+func createMetaType(na eval.URI, name string, typeName string, parentName string, hash *parser.LiteralHash) eval.Type {
 	if parentName == `` {
 		switch typeName {
 		case `Object`:
@@ -704,22 +704,22 @@ func createMetaType(na eval.URI, name string, typeName string, parentName string
 	return NewObjectType(name, NewTypeReferenceType(parentName), hash)
 }
 
-func argError(e eval.PType, a eval.PValue) errors.InstantiationError {
+func argError(e eval.Type, a eval.Value) errors.InstantiationError {
 	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.Type()))
 }
 
-func typeArg(hash eval.KeyedValue, key string, d eval.PType) eval.PType {
+func typeArg(hash eval.OrderedMap, key string, d eval.Type) eval.Type {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
-	if t, ok := v.(eval.PType); ok {
+	if t, ok := v.(eval.Type); ok {
 		return t
 	}
 	panic(argError(DefaultTypeType(), v))
 }
 
-func hashArg(hash eval.KeyedValue, key string) *HashValue {
+func hashArg(hash eval.OrderedMap, key string) *HashValue {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return _EMPTY_MAP
@@ -730,7 +730,7 @@ func hashArg(hash eval.KeyedValue, key string) *HashValue {
 	panic(argError(DefaultHashType(), v))
 }
 
-func boolArg(hash eval.KeyedValue, key string, d bool) bool {
+func boolArg(hash eval.OrderedMap, key string, d bool) bool {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -741,7 +741,7 @@ func boolArg(hash eval.KeyedValue, key string, d bool) bool {
 	panic(argError(DefaultBooleanType(), v))
 }
 
-func stringArg(hash eval.KeyedValue, key string, d string) string {
+func stringArg(hash eval.OrderedMap, key string, d string) string {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -752,7 +752,7 @@ func stringArg(hash eval.KeyedValue, key string, d string) string {
 	panic(argError(DefaultStringType(), v))
 }
 
-func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.URI {
+func uriArg(c eval.Context, hash eval.OrderedMap, key string, d eval.URI) eval.URI {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -770,7 +770,7 @@ func uriArg(c eval.Context, hash eval.KeyedValue, key string, d eval.URI) eval.U
 	panic(argError(DefaultUriType(), v))
 }
 
-func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Version) semver.Version {
+func versionArg(c eval.Context, hash eval.OrderedMap, key string, d semver.Version) semver.Version {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -788,7 +788,7 @@ func versionArg(c eval.Context, hash eval.KeyedValue, key string, d semver.Versi
 	panic(argError(DefaultSemVerType(), v))
 }
 
-func versionRangeArg(c eval.Context, hash eval.KeyedValue, key string, d semver.VersionRange) semver.VersionRange {
+func versionRangeArg(c eval.Context, hash eval.OrderedMap, key string, d semver.VersionRange) semver.VersionRange {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d

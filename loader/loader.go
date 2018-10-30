@@ -17,7 +17,7 @@ type (
 
 	basicLoader struct {
 		lock         sync.RWMutex
-		namedEntries map[string]eval.Entry
+		namedEntries map[string]eval.LoaderEntry
 	}
 
 	parentedLoader struct {
@@ -31,8 +31,8 @@ type (
 	}
 )
 
-var staticLoader = &basicLoader{namedEntries: make(map[string]eval.Entry, 64)}
-var staticResourceLoader = &parentedLoader{basicLoader: basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent: staticLoader}
+var staticLoader = &basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}
+var staticResourceLoader = &parentedLoader{basicLoader: basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}, parent: staticLoader}
 var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
@@ -46,11 +46,11 @@ func init() {
 	}
 
 	eval.NewParentedLoader = func(parent eval.Loader) eval.DefiningLoader {
-		return &parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}
+		return &parentedLoader{basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}, parent}
 	}
 
-	eval.NewTypeSetLoader = func(parent eval.Loader, typeSet eval.PType) eval.TypeSetLoader {
-		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.Entry, 64)}, parent}, typeSet.(eval.TypeSet)}
+	eval.NewTypeSetLoader = func(parent eval.Loader, typeSet eval.Type) eval.TypeSetLoader {
+		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}, parent}, typeSet.(eval.TypeSet)}
 	}
 
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
@@ -59,7 +59,7 @@ func init() {
 		resolvableFunctionsLock.Unlock()
 	}
 
-	eval.NewLoaderEntry = func(value interface{}, origin issue.Location) eval.Entry {
+	eval.NewLoaderEntry = func(value interface{}, origin issue.Location) eval.LoaderEntry {
 		return &loaderEntry{value, origin}
 	}
 
@@ -118,18 +118,18 @@ func load(c eval.Context, name eval.TypedName) (interface{}, bool) {
 	return entry.Value(), true
 }
 
-func (l *basicLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
+func (l *basicLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	return l.GetEntry(name)
 }
 
-func (l *basicLoader) GetEntry(name eval.TypedName) eval.Entry {
+func (l *basicLoader) GetEntry(name eval.TypedName) eval.LoaderEntry {
 	l.lock.RLock()
 	v := l.namedEntries[name.MapKey()]
 	l.lock.RUnlock()
 	return v
 }
 
-func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
+func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval.LoaderEntry {
 	l.lock.Lock()
 	if old, ok := l.namedEntries[name.MapKey()]; ok && old.Value() != nil {
 		l.lock.Unlock()
@@ -144,7 +144,7 @@ func (l *basicLoader) NameAuthority() eval.URI {
 	return eval.RUNTIME_NAME_AUTHORITY
 }
 
-func (l *parentedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
+func (l *parentedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	entry := l.parent.LoadEntry(c, name)
 	if entry == nil || entry.Value() == nil {
 		entry = l.basicLoader.LoadEntry(c, name)
@@ -160,11 +160,11 @@ func (l *parentedLoader) Parent() eval.Loader {
 	return l.parent
 }
 
-func (l *typeSetLoader) TypeSet() eval.PType {
+func (l *typeSetLoader) TypeSet() eval.Type {
 	return l.typeSet
 }
 
-func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
+func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	if tp, ok := l.typeSet.GetType(name); ok {
 		return &loaderEntry{tp, nil}
 	}
@@ -179,6 +179,6 @@ func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entr
 	return entry
 }
 
-func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.Entry) eval.Entry {
+func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval.LoaderEntry {
 	return l.parent.(eval.DefiningLoader).SetEntry(name, entry)
 }

@@ -17,7 +17,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`load_plan`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					planName := args[0].String()
 					if plan, ok := eval.Load(c, eval.NewTypedName(eval.PLAN, planName)); ok {
 						return eval.Wrap(nil, plan)
@@ -29,10 +29,10 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`load_task`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					taskName := args[0].String()
 					if task, ok := eval.Load(c, eval.NewTypedName(eval.TASK, taskName)); ok {
-						return task.(eval.PValue)
+						return task.(eval.Value)
 					}
 					panic(eval.Error(eval.EVAL_UNKNOWN_TASK, issue.H{`name`: taskName}))
 				})
@@ -41,7 +41,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`to_symbol`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					return types.WrapRuntime(serialization.Symbol(args[0].String()))
 				})
 			})
@@ -57,10 +57,10 @@ func TestPSpecs(t *testing.T) {
   Optional['rich_data'] => Boolean,
   Optional['message_prefix'] => String
 ]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
-						options = args[1].(eval.KeyedValue)
+						options = args[1].(eval.OrderedMap)
 					}
 					return serialization.NewToDataConverter(options).Convert(args[0])
 				})
@@ -73,10 +73,10 @@ func TestPSpecs(t *testing.T) {
 					`Struct[
 					Optional['allow_unresolved'] => Boolean
 				]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
-						options = args[1].(eval.KeyedValue)
+						options = args[1].(eval.OrderedMap)
 					}
 					return serialization.NewFromDataConverter(c, options).Convert(args[0])
 				})
@@ -90,10 +90,10 @@ func TestPSpecs(t *testing.T) {
 					Optional['prefix'] => String,
 					Optional['indent'] => String
 				]`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					options := eval.EMPTY_MAP
 					if len(args) > 1 {
-						options = args[1].(eval.KeyedValue)
+						options = args[1].(eval.OrderedMap)
 					}
 					out := bytes.NewBufferString(``)
 					serialization.DataToJson(c, args[0], out, options)
@@ -104,7 +104,7 @@ func TestPSpecs(t *testing.T) {
 		eval.NewGoFunction(`json_to_data`,
 			func(d eval.Dispatch) {
 				d.Param(`String`)
-				d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					return serialization.JsonToData(c, ``, strings.NewReader(args[0].String()))
 				})
 			})

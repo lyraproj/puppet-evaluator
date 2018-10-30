@@ -142,6 +142,6 @@ func GuardedReverseIndexFrom(a []Equality, b Equality, startPos int, g Guard) in
 //   int and float values with same value are considered equal
 //   string comparisons are case insensitive
 //
-var PuppetEquals func(a, b PValue) bool
+var PuppetEquals func(a, b Value) bool
 
-var PuppetMatch func(c Context, a, b PValue) bool
+var PuppetMatch func(c Context, a, b Value) bool

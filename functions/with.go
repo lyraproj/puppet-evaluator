@@ -9,7 +9,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.RepeatedParam(`Any`)
 			d.Block(`Callable`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return block.Call(c, nil, args...)
 			})
 		},

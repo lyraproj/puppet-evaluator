@@ -10,7 +10,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return types.WrapString(types.PuppetSprintf(args[0].String(), args[1:]...))
 			})
 		})

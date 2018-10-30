@@ -71,7 +71,7 @@ func (f *format) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	io.WriteString(bld, f.origFmt)
 }
 
-func (f *format) Type() eval.PType {
+func (f *format) Type() eval.Type {
 	return WrapRuntime(f).Type()
 }
 
@@ -150,7 +150,7 @@ var EXPANDED = newFormatContext2(DEFAULT_INDENTATION, DEFAULT_FORMATS, map[strin
 
 var PROGRAM = newFormatContext2(DEFAULT_INDENTATION, eval.FormatMap(SingletonHash(DefaultAnyType(), DEFAULT_OBJECT_FORMAT)), nil)
 
-func newFormatContext(t eval.PType, format eval.Format, indentation eval.Indentation) eval.FormatContext {
+func newFormatContext(t eval.Type, format eval.Format, indentation eval.Indentation) eval.FormatContext {
 	return &formatContext{indentation, WrapHash([]*HashEntry{WrapHashEntry(t, format)}), nil}
 }
 
@@ -160,7 +160,7 @@ func newFormatContext2(indentation eval.Indentation, formatMap eval.FormatMap, p
 
 var TYPE_STRING_FORMAT = NewVariantType(DefaultStringType(), DefaultDefaultType(), DefaultHashType())
 
-func newFormatContext3(value eval.PValue, format eval.PValue) (context eval.FormatContext, err error) {
+func newFormatContext3(value eval.Value, format eval.Value) (context eval.FormatContext, err error) {
 	eval.AssertInstance(`String format`, TYPE_STRING_FORMAT, format)
 
 	defer func() {
@@ -192,15 +192,15 @@ func mergeFormats(lower eval.FormatMap, higher eval.FormatMap) eval.FormatMap {
 	}
 
 	higherKeys := higher.Keys()
-	normLower := WrapHash2(eval.Reject2(lower.Entries(), func(lev eval.PValue) bool {
+	normLower := WrapHash2(eval.Reject2(lower.Entries(), func(lev eval.Value) bool {
 		le := lev.(*HashEntry)
-		return eval.Any2(higherKeys, func(hk eval.PValue) bool {
-			return !hk.Equals(le.Key(), nil) && eval.IsAssignable(hk.(eval.PType), le.Key().(eval.PType))
+		return eval.Any2(higherKeys, func(hk eval.Value) bool {
+			return !hk.Equals(le.Key(), nil) && eval.IsAssignable(hk.(eval.Type), le.Key().(eval.Type))
 		})
 	}))
 
 	merged := make([]*HashEntry, 0, 8)
-	normLower.Keys().AddAll(higherKeys).Unique().Each(func(k eval.PValue) {
+	normLower.Keys().AddAll(higherKeys).Unique().Each(func(k eval.Value) {
 		if low, ok := normLower.Get(k); ok {
 			if high, ok := higher.Get(k); ok {
 				merged = append(merged, WrapHashEntry(k, merge(low.(eval.Format), high.(eval.Format))))
@@ -215,8 +215,8 @@ func mergeFormats(lower eval.FormatMap, higher eval.FormatMap) eval.FormatMap {
 	})
 
 	sort.Slice(merged, func(ax, bx int) bool {
-		a := merged[ax].Key().(eval.PType)
-		b := merged[bx].Key().(eval.PType)
+		a := merged[ax].Key().(eval.Type)
+		b := merged[bx].Key().(eval.Type)
 		if a.Equals(b, nil) {
 			return false
 		}
@@ -267,7 +267,7 @@ func merge(low eval.Format, high eval.Format) eval.Format {
 	}
 }
 
-func typeRank(pt eval.PType) int {
+func typeRank(pt eval.Type) int {
 	switch pt.(type) {
 	case *NumericType, *IntegerType, *FloatType:
 		return 13
@@ -294,9 +294,9 @@ var TYPE_STRING_FORMAT_TYPE_HASH = NewHashType(DefaultTypeType(), NewVariantType
 func NewFormatMap(h *HashValue) eval.FormatMap {
 	eval.AssertInstance(`String format type hash`, TYPE_STRING_FORMAT_TYPE_HASH, h)
 	result := make([]*HashEntry, h.Len())
-	h.EachWithIndex(func(elem eval.PValue, idx int) {
+	h.EachWithIndex(func(elem eval.Value, idx int) {
 		entry := elem.(*HashEntry)
-		pt := entry.Key().(eval.PType)
+		pt := entry.Key().(eval.Type)
 		v := entry.Value()
 		if s, ok := v.(*StringValue); ok {
 			result[idx] = WrapHashEntry(pt, newFormat(s.String()))
@@ -307,7 +307,7 @@ func NewFormatMap(h *HashValue) eval.FormatMap {
 	return eval.FormatMap(WrapHash(result))
 }
 
-func NewFormatMap2(t eval.PType, tf eval.Format, fm eval.FormatMap) eval.FormatMap {
+func NewFormatMap2(t eval.Type, tf eval.Format, fm eval.FormatMap) eval.FormatMap {
 	return mergeFormats(fm, eval.FormatMap(WrapHash([]*HashEntry{{t, tf}})))
 }
 
@@ -367,7 +367,7 @@ func (c *formatContext) SetProperty(key, value string) {
 	}
 }
 
-func (c *formatContext) UnsupportedFormat(t eval.PType, supportedFormats string, actualFormat eval.Format) error {
+func (c *formatContext) UnsupportedFormat(t eval.Type, supportedFormats string, actualFormat eval.Format) error {
 	return eval.Error(eval.EVAL_UNSUPPORTED_STRING_FORMAT, issue.H{`format`: actualFormat.FormatChar(), `type`: t.Name(), `supported_formats`: supportedFormats})
 }
 
@@ -691,7 +691,7 @@ func (r *stringReader) Next() (rune, bool) {
 
 // PuppetSprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
-func PuppetSprintf(s string, args ...eval.PValue) string {
+func PuppetSprintf(s string, args ...eval.Value) string {
 	buf := bytes.NewBufferString(``)
 	fprintf(buf, `sprintf`, s, args...)
 	return buf.String()
@@ -699,11 +699,11 @@ func PuppetSprintf(s string, args ...eval.PValue) string {
 
 // PuppetFprintf is like fmt.Fprintf but using named arguments accessed with %{key} formatting instructions
 // and using Puppet StringFormatter for evaluating formatting specifications
-func PuppetFprintf(buf io.Writer, s string, args ...eval.PValue) {
+func PuppetFprintf(buf io.Writer, s string, args ...eval.Value) {
 	fprintf(buf, `fprintf`, s, args...)
 }
 
-func fprintf(buf io.Writer, callerName string, s string, args ...eval.PValue) {
+func fprintf(buf io.Writer, callerName string, s string, args ...eval.Value) {
 	// Transform the map into a slice of values and a map that maps a key to the position
 	// of its value in the slice.
 	// Transform all %{key} to %[pos]
@@ -711,7 +711,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...eval.PValue) {
 	var ok bool
 	rdr := &stringReader{0, s}
 
-	consumeAndApplyPattern := func(v eval.PValue) {
+	consumeAndApplyPattern := func(v eval.Value) {
 		f := bytes.NewBufferString(`%`)
 		for ok {
 			f.WriteRune(c)

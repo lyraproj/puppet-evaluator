@@ -19,7 +19,7 @@ type Context interface {
 	AddDefinitions(expression parser.Expression)
 
 	// AddTypes Makes the given types known to the loader appointed by this context
-	AddTypes(types ...PType)
+	AddTypes(types ...Type)
 
 	// Delete deletes the given key from the context variable map
 	Delete(key string)
@@ -59,7 +59,7 @@ type Context interface {
 	// if the key was found
 	Get(key string) (interface{}, bool)
 
-	// ImplementationRegistry returns the registry that holds mappings between PType and reflect.Type
+	// ImplementationRegistry returns the registry that holds mappings between Type and reflect.Type
 	ImplementationRegistry() ImplementationRegistry
 
 	// Language returns the language used when parsing the original source
@@ -80,15 +80,15 @@ type Context interface {
 	// an issue.Reported unless the parsing and evaluation was succesful.
 	ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
 
-	// ParseType parses and evaluates the given PValue into a PType. It will panic with
+	// ParseType parses and evaluates the given Value into a Type. It will panic with
 	// an issue.Reported unless the parsing was succesfull and the result is evaluates
-	// to a PType
-	ParseType(str PValue) PType
+	// to a Type
+	ParseType(str Value) Type
 
-	// ParseType2 parses and evaluates the given string into a PType. It will panic with
+	// ParseType2 parses and evaluates the given string into a Type. It will panic with
 	// an issue.Reported unless the parsing was succesfull and the result is evaluates
-	// to a PType
-	ParseType2(typeString string) PType
+	// to a Type
+	ParseType2(typeString string) Type
 
 	// Reflector returns a Reflector capable of converting to and from refleced values
 	// and types
@@ -99,10 +99,10 @@ type Context interface {
 	// Resolve types, constructions, or functions that has been recently added
 	ResolveResolvables()
 
-	// ResolveType evaluates the given Expression into a PType. It will panic with
+	// ResolveType evaluates the given Expression into a Type. It will panic with
 	// an issue.Reported unless the evaluation was succesfull and the result
-	// is evaluates to a PType
-	ResolveType(expr parser.Expression) PType
+	// is evaluates to a Type
+	ResolveType(expr parser.Expression) Type
 
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
@@ -133,9 +133,9 @@ type Context interface {
 
 // Call calls a function known to the loader with arguments and an optional
 // block.
-var Call func(c Context, name string, args []PValue, block Lambda) PValue
+var Call func(c Context, name string, args []Value, block Lambda) Value
 
-func Evaluate(c Context, expr parser.Expression) PValue {
+func Evaluate(c Context, expr parser.Expression) Value {
 	return c.Evaluator().Eval(expr, c)
 }
 

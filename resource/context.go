@@ -35,7 +35,7 @@ func GetGraph(c eval.Context) Graph {
 
 // Resources returns the resources that has been created so far in the callers context. The
 // hash is sorted by file name and location of where the resource was instantitated.
-func Resources(c eval.Context) eval.KeyedValue {
+func Resources(c eval.Context) eval.OrderedMap {
 	rs := getResources(c)
 	entries := make([]*types.HashEntry, 0, len(rs))
 	for k, r := range rs {
@@ -45,7 +45,7 @@ func Resources(c eval.Context) eval.KeyedValue {
 	return types.WrapHash(entries)
 }
 
-func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction ApplyFunction) (eval.PValue, error) {
+func EvaluateAndApply(c eval.Context, expr parser.Expression, applyFunction ApplyFunction) (eval.Value, error) {
 	c.Set(APPLY_FUNCTION, applyFunction) // Propagated to shared map in Evaluate
 	return c.Evaluator().Evaluate(c, expr)
 }
@@ -127,11 +127,11 @@ func getNodeJobs(c eval.Context) chan *nodeJob {
 }
 
 func sortByEntriesLocation(entries []*types.HashEntry) {
-	v := make([]eval.PValue, len(entries))
+	v := make([]eval.Value, len(entries))
 	for i, e := range entries {
 		v[i] = e
 	}
-	types.WrapArray(v).Sort(func(a, b eval.PValue) bool {
+	types.WrapArray(v).Sort(func(a, b eval.Value) bool {
 		l1 := a.(*types.HashEntry).Value().(issue.Located).Location()
 		if l1 == nil {
 			return true
@@ -148,7 +148,7 @@ func sortByEntriesLocation(entries []*types.HashEntry) {
 			return ld < 0
 		}
 		return l1.File() < l2.File()
-	}).EachWithIndex(func(e eval.PValue, i int) {
+	}).EachWithIndex(func(e eval.Value, i int) {
 		entries[i] = e.(*types.HashEntry)
 	})
 }

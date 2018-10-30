@@ -25,7 +25,7 @@ var semVerRangeType_DEFAULT = &SemVerRangeType{}
 var SemVerRange_Type eval.ObjectType
 
 func init() {
-	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	SemVerRange_Type = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultSemVerRangeType()
 	})
 
@@ -37,7 +37,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeString`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				v, err := semver.ParseVersionRange(args[0].String())
 				if err != nil {
 					panic(errors.NewIllegalArgument(`SemVerRange`, 0, err.Error()))
@@ -50,7 +50,7 @@ func init() {
 			d.Param(`Variant[Default,SemVer]`)
 			d.Param(`Variant[Default,SemVer]`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				var start semver.Version
 				if _, ok := args[0].(*DefaultValue); ok {
 					start = semver.Min
@@ -73,7 +73,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerRangeHash`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
 				start := hash.Get5(`min`, nil).(*SemVerValue).Version()
 
@@ -121,12 +121,12 @@ func (t *SemVerRangeType) String() string {
 	return `SemVerRange`
 }
 
-func (t *SemVerRangeType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *SemVerRangeType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeType)
 	return ok
 }
 
-func (t *SemVerRangeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *SemVerRangeType) IsInstance(o eval.Value, g eval.Guard) bool {
 	_, ok := o.(*SemVerRangeValue)
 	return ok
 }
@@ -139,7 +139,7 @@ func (t *SemVerRangeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDe
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerRangeType) Type() eval.PType {
+func (t *SemVerRangeType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -207,6 +207,6 @@ func (bv *SemVerRangeValue) ToKey(b *bytes.Buffer) {
 	bv.rng.ToString(b)
 }
 
-func (bv *SemVerRangeValue) Type() eval.PType {
+func (bv *SemVerRangeValue) Type() eval.Type {
 	return DefaultSemVerRangeType()
 }

@@ -29,7 +29,7 @@ func init() {
   attributes => {
     value => { type => Optional[Boolean], value => undef }
   }
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewBooleanType2(args...)
 	})
 }
@@ -46,7 +46,7 @@ func NewBooleanType(value bool) *BooleanType {
 	return &BooleanType{n}
 }
 
-func NewBooleanType2(args ...eval.PValue) *BooleanType {
+func NewBooleanType2(args ...eval.Value) *BooleanType {
 	switch len(args) {
 	case 0:
 		return DefaultBooleanType()
@@ -64,11 +64,11 @@ func (t *BooleanType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *BooleanType) Default() eval.PType {
+func (t *BooleanType) Default() eval.Type {
 	return booleanType_DEFAULT
 }
 
-func (t *BooleanType) Generic() eval.PType {
+func (t *BooleanType) Generic() eval.Type {
 	return booleanType_DEFAULT
 }
 
@@ -79,7 +79,7 @@ func (t *BooleanType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *BooleanType) Get(key string) (eval.PValue, bool) {
+func (t *BooleanType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `value`:
 		switch t.value {
@@ -107,25 +107,25 @@ func (t *BooleanType) String() string {
 	return `Boolean`
 }
 
-func (t *BooleanType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *BooleanType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanType); ok {
 		return t.value == -1 || t.value == bo.value
 	}
 	return false
 }
 
-func (t *BooleanType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *BooleanType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if bo, ok := o.(*BooleanValue); ok {
 		return t.value == -1 || t.value == bo.value
 	}
 	return false
 }
 
-func (t *BooleanType) Parameters() []eval.PValue {
+func (t *BooleanType) Parameters() []eval.Value {
 	if t.value == -1 {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{&BooleanValue{t.value}}
+	return []eval.Value{&BooleanValue{t.value}}
 }
 
 func (t *BooleanType) ReflectType() (reflect.Type, bool) {
@@ -136,7 +136,7 @@ func (t *BooleanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *BooleanType) Type() eval.PType {
+func (t *BooleanType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -226,6 +226,6 @@ func (bv *BooleanValue) ToKey() eval.HashKey {
 	return eval.HashKey([]byte{1, HK_BOOLEAN, 0})
 }
 
-func (bv *BooleanValue) Type() eval.PType {
+func (bv *BooleanValue) Type() eval.Type {
 	return DefaultBooleanType()
 }

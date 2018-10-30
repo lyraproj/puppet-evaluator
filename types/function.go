@@ -30,7 +30,7 @@ func (f *function) initialize(c eval.Context, name string, container *objectType
 	f.annotatedMember.initialize(c, `function`, name, container, initHash)
 }
 
-func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
 	if a.CallableType().(*CallableType).CallableWith(args, block) {
 		if co, ok := receiver.(eval.CallableObject); ok {
 			if result, ok := co.Call(c, a.name, args, block); ok {
@@ -39,7 +39,7 @@ func (a *function) Call(c eval.Context, receiver eval.PValue, block eval.Lambda,
 		}
 		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
 	}
-	types := make([]eval.PValue, len(args))
+	types := make([]eval.Value, len(args))
 	for i, a := range args {
 		types[i] = a.Type()
 	}
@@ -62,10 +62,10 @@ func (f *function) Label() string {
 	return fmt.Sprintf(`function %s[%s]`, f.container.Label(), f.Name())
 }
 
-func (f *function) CallableType() eval.PType {
+func (f *function) CallableType() eval.Type {
 	return f.typ.(*CallableType)
 }
 
-func (f *function) InitHash() eval.KeyedValue {
+func (f *function) InitHash() eval.OrderedMap {
 	return WrapStringPValue(f.initHash())
 }

@@ -8,7 +8,7 @@ import (
 // A PReflectedType is implemented by PTypes that can have a potential to
 // present themselves as a reflect.Type
 type PReflectedType interface {
-	PType
+	Type
 
 	// ReflectType returns the reflect.Type that corresponds to the receiver
 	// if possible
@@ -24,18 +24,18 @@ type PReflected interface {
 
 // An ImplementationRegistry contains mappings between ObjectType and reflect.Type
 type ImplementationRegistry interface {
-	// RegisterType registers the mapping between the given PType name and reflect.Type
+	// RegisterType registers the mapping between the given Type name and reflect.Type
 	RegisterType(c Context, t string, r reflect.Type)
 
-	// PTypeToReflected returns the reflect.Type for the given PType name
+	// PTypeToReflected returns the reflect.Type for the given Type name
 	PTypeToReflected(t string) (reflect.Type, bool)
 
-	// ReflectedToPtype returns the PType name for the given reflect.Type
+	// ReflectedToPtype returns the Type name for the given reflect.Type
 	ReflectedToPtype(t reflect.Type) (string, bool)
 }
 
-// A Reflector deals with conversions between PValue and reflect.Value and
-// between PType and reflect.Type
+// A Reflector deals with conversions between Value and reflect.Value and
+// between Type and reflect.Type
 type Reflector interface {
 	// FieldName returns the puppet name for the given field. The puppet name is
 	// either picked from the 'puppet' tag of the field or the result of
@@ -44,32 +44,32 @@ type Reflector interface {
 
 	// Reflect returns the reflected value of the native value held
 	// by the given src
-	Reflect(src PValue) reflect.Value
+	Reflect(src Value) reflect.Value
 
 	// Reflect2 returns the reflected value of given type from the native value held
 	// by the given src
-	Reflect2(src PValue, rt reflect.Type) reflect.Value
+	Reflect2(src Value, rt reflect.Type) reflect.Value
 
 	// ReflectFieldTags reflects the name, type, and value from a reflect.StructField
 	// using the 'puppet' tag.
-	ReflectFieldTags(f *reflect.StructField)  (name string, decl KeyedValue)
+	ReflectFieldTags(f *reflect.StructField)  (name string, decl OrderedMap)
 
 	// ReflectTo assigns the native value of src to dest
-	ReflectTo(src PValue, dest reflect.Value)
+	ReflectTo(src Value, dest reflect.Value)
 
-	// ReflectType returns the reflected type of the given PType if possible. Only
+	// ReflectType returns the reflected type of the given Type if possible. Only
 	// PTypes that represent a value can be represented as a reflected type. Types
 	// like Any, Default, Unit, or Variant have no reflected type representation
-	ReflectType(src PType) (reflect.Type, bool)
+	ReflectType(src Type) (reflect.Type, bool)
 
 	// ObjectTypeFromReflect creates an Object type based on the given reflected type
 	// which has to be a struct or a pointer to a struct
-	ObjectTypeFromReflect(typeName string, parent PType, structType reflect.Type) ObjectType
+	ObjectTypeFromReflect(typeName string, parent Type, structType reflect.Type) ObjectType
 
 	// TypeSetFromReflect creates a TypeSet based on the given reflected types which have
 	// to be structs or pointer to structs
 	TypeSetFromReflect(typeSetName string, version semver.Version, structTypes ...reflect.Type) TypeSet
 
 	// TagHash returns the parsed and evaluated hash from the 'puppet' tag
-	TagHash(f *reflect.StructField) (KeyedValue, bool)
+	TagHash(f *reflect.StructField) (OrderedMap, bool)
 }

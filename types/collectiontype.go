@@ -19,7 +19,7 @@ func init() {
   attributes => {
     'size_type' => { type => Type[Integer], value => Integer[0] }
   }
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewCollectionType2(args...)
 	})
 }
@@ -35,7 +35,7 @@ func NewCollectionType(size *IntegerType) *CollectionType {
 	return &CollectionType{size}
 }
 
-func NewCollectionType2(args ...eval.PValue) *CollectionType {
+func NewCollectionType2(args ...eval.Value) *CollectionType {
 	switch len(args) {
 	case 0:
 		return DefaultCollectionType()
@@ -81,7 +81,7 @@ func (t *CollectionType) Accept(v eval.Visitor, g eval.Guard) {
 	t.size.Accept(v, g)
 }
 
-func (t *CollectionType) Default() eval.PType {
+func (t *CollectionType) Default() eval.Type {
 	return collectionType_DEFAULT
 }
 
@@ -92,11 +92,11 @@ func (t *CollectionType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *CollectionType) Generic() eval.PType {
+func (t *CollectionType) Generic() eval.Type {
 	return collectionType_DEFAULT
 }
 
-func (t *CollectionType) Get(key string) (eval.PValue, bool) {
+func (t *CollectionType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `size_type`:
 		if t.size == nil {
@@ -108,7 +108,7 @@ func (t *CollectionType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *CollectionType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	var osz *IntegerType
 	switch o.(type) {
 	case *CollectionType:
@@ -128,7 +128,7 @@ func (t *CollectionType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return t.size.IsAssignable(osz, g)
 }
 
-func (t *CollectionType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *CollectionType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 
@@ -140,7 +140,7 @@ func (t *CollectionType) Name() string {
 	return `Collection`
 }
 
-func (t *CollectionType) Parameters() []eval.PValue {
+func (t *CollectionType) Parameters() []eval.Value {
 	if *t.size == *IntegerType_POSITIVE {
 		return eval.EMPTY_VALUES
 	}
@@ -159,7 +159,7 @@ func (t *CollectionType) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 	TypeToString(t, b, s, g)
 }
 
-func (t *CollectionType) Type() eval.PType {
+func (t *CollectionType) Type() eval.Type {
 	return &TypeType{t}
 }
 

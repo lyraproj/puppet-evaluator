@@ -20,7 +20,7 @@ var binaryType_DEFAULT = &BinaryType{}
 var Binary_Type eval.ObjectType
 
 func init() {
-	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultBinaryType()
 	})
 
@@ -35,7 +35,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.OptionalParam(`Encoding`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				str := args[0].String()
 				f := `%B`
 				if len(args) > 1 {
@@ -47,23 +47,23 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Array[ByteInteger]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return BinaryFromArray(args[0].(eval.IndexedValue))
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				return BinaryFromArray(args[0].(eval.List))
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`StringHash`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				hv := args[0].(eval.KeyedValue)
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				hv := args[0].(eval.OrderedMap)
 				return BinaryFromString(hv.Get5(`value`, eval.UNDEF).String(), hv.Get5(`format`, eval.UNDEF).String())
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`ArrayHash`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return BinaryFromArray(args[0].(eval.IndexedValue))
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				return BinaryFromArray(args[0].(eval.List))
 			})
 		},
 	)
@@ -91,12 +91,12 @@ func (t *BinaryType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *BinaryType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *BinaryType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	_, ok := o.(*BinaryType)
 	return ok
 }
 
-func (t *BinaryType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *BinaryType) IsInstance(o eval.Value, g eval.Guard) bool {
 	_, ok := o.(*BinaryValue)
 	return ok
 }
@@ -121,7 +121,7 @@ func (t *BinaryType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *BinaryType) Type() eval.PType {
+func (t *BinaryType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -193,7 +193,7 @@ func BinaryFromString(str string, f string) *BinaryValue {
 	panic(errors.NewIllegalArgument(`BinaryFromString`, 0, err.Error()))
 }
 
-func BinaryFromArray(array eval.IndexedValue) *BinaryValue {
+func BinaryFromArray(array eval.List) *BinaryValue {
 	top := array.Len()
 	result := make([]byte, top)
 	for idx := 0; idx < top; idx++ {
@@ -270,7 +270,7 @@ func (bv *BinaryValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	f.ApplyStringFlags(b, str, f.IsAlt())
 }
 
-func (bv *BinaryValue) Type() eval.PType {
+func (bv *BinaryValue) Type() eval.Type {
 	return DefaultBinaryType()
 }
 

@@ -10,7 +10,7 @@ func init() {
 	eval.NewGoFunction(`fail`,
 		func(d eval.Dispatch) {
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				w := bytes.NewBufferString(``)
 				for ix, arg := range args {
 					if ix > 0 {

@@ -38,7 +38,7 @@ func init() {
 			value => undef
 		},
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewStringType2(args...)
 		})
 
@@ -58,7 +58,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
 			d.OptionalParam(`Formats`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				fmt := NONE
 				if len(args) > 1 {
 					var err error
@@ -98,7 +98,7 @@ func NewStringType(rng *IntegerType, s string) *StringType {
 	return &StringType{NewIntegerType(sz, sz), s}
 }
 
-func NewStringType2(args ...eval.PValue) *StringType {
+func NewStringType2(args ...eval.Value) *StringType {
 	var rng *IntegerType
 	var ok bool
 	switch len(args) {
@@ -139,7 +139,7 @@ func (t *StringType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *StringType) Default() eval.PType {
+func (t *StringType) Default() eval.Type {
 	return stringType_DEFAULT
 }
 
@@ -150,7 +150,7 @@ func (t *StringType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *StringType) Get(key string) (value eval.PValue, ok bool) {
+func (t *StringType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `size_type_or_value`:
 		if t.value == `` {
@@ -161,7 +161,7 @@ func (t *StringType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *StringType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if st, ok := o.(*StringType); ok {
 		if t.value == `` {
 			return t.size.IsAssignable(st.size, g)
@@ -190,7 +190,7 @@ func (t *StringType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *StringType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *StringType) IsInstance(o eval.Value, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && t.size.IsInstance3(len(str.String())) && (t.value == `` || t.value == str.String())
 }
@@ -203,7 +203,7 @@ func (t *StringType) Name() string {
 	return `String`
 }
 
-func (t *StringType) Parameters() []eval.PValue {
+func (t *StringType) Parameters() []eval.Value {
 	if t.value != `` || *t.size == *IntegerType_POSITIVE {
 		return eval.EMPTY_VALUES
 	}
@@ -226,7 +226,7 @@ func (t *StringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *StringType) Type() eval.PType {
+func (t *StringType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -237,7 +237,7 @@ func (t *StringType) Value() string {
 func WrapString(str string) *StringValue {
 	return (*StringValue)(NewStringType(nil, str))
 }
-func (sv *StringValue) Add(v eval.PValue) eval.IndexedValue {
+func (sv *StringValue) Add(v eval.Value) eval.List {
 	if ov, ok := v.(*StringValue); ok {
 		return WrapString(sv.String() + ov.String())
 	}
@@ -246,9 +246,9 @@ func (sv *StringValue) Add(v eval.PValue) eval.IndexedValue {
 
 var ONE_CHAR_STRING_TYPE = NewStringType(NewIntegerType(1, 1), ``)
 
-func (sv *StringValue) AddAll(tv eval.IndexedValue) eval.IndexedValue {
+func (sv *StringValue) AddAll(tv eval.List) eval.List {
 	s := bytes.NewBufferString(sv.String())
-	tv.Each(func(e eval.PValue) {
+	tv.Each(func(e eval.Value) {
 		ev, ok := e.(*StringValue)
 		if !ok {
 			panic(fmt.Sprintf(`No auto conversion from %s to String`, e.Type().String()))
@@ -276,32 +276,32 @@ func (sv *StringValue) Any(predicate eval.Predicate) bool {
 	return false
 }
 
-func (sv *StringValue) AppendTo(slice []eval.PValue) []eval.PValue {
+func (sv *StringValue) AppendTo(slice []eval.Value) []eval.Value {
 	for _, c := range sv.String() {
 		slice = append(slice, WrapString(string(c)))
 	}
 	return slice
 }
 
-func (sv *StringValue) At(i int) eval.PValue {
+func (sv *StringValue) At(i int) eval.Value {
 	if i >= 0 && i < len(sv.String()) {
 		return WrapString(sv.String()[i : i+1])
 	}
 	return _UNDEF
 }
 
-func (sv *StringValue) Delete(v eval.PValue) eval.IndexedValue {
+func (sv *StringValue) Delete(v eval.Value) eval.List {
 	panic(`Operation not supported`)
 }
 
-func (sv *StringValue) DeleteAll(tv eval.IndexedValue) eval.IndexedValue {
+func (sv *StringValue) DeleteAll(tv eval.List) eval.List {
 	panic(`Operation not supported`)
 }
 
-func (sv *StringValue) Elements() []eval.PValue {
+func (sv *StringValue) Elements() []eval.Value {
 	str := sv.String()
 	top := len(str)
-	el := make([]eval.PValue, top)
+	el := make([]eval.Value, top)
 	for idx, c := range str {
 		el[idx] = WrapString(string(c))
 	}
@@ -332,7 +332,7 @@ func (sv *StringValue) EachWithIndex(consumer eval.IndexedConsumer) {
 	}
 }
 
-func (sv *StringValue) ElementType() eval.PType {
+func (sv *StringValue) ElementType() eval.Type {
 	return ONE_CHAR_STRING_TYPE
 }
 
@@ -343,7 +343,7 @@ func (sv *StringValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (sv *StringValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
+func (sv *StringValue) Find(predicate eval.Predicate) (eval.Value, bool) {
 	for _, c := range sv.String() {
 		e := WrapString(string(c))
 		if predicate(e) {
@@ -353,7 +353,7 @@ func (sv *StringValue) Find(predicate eval.Predicate) (eval.PValue, bool) {
 	return nil, false
 }
 
-func (sv *StringValue) Flatten() eval.IndexedValue {
+func (sv *StringValue) Flatten() eval.List {
 	return sv
 }
 
@@ -373,16 +373,16 @@ func (sv *StringValue) Len() int {
 	return int((*StringType)(sv).Size().Min())
 }
 
-func (sv *StringValue) Map(mapper eval.Mapper) eval.IndexedValue {
+func (sv *StringValue) Map(mapper eval.Mapper) eval.List {
 	s := sv.String()
-	mapped := make([]eval.PValue, len(s))
+	mapped := make([]eval.Value, len(s))
 	for i, c := range s {
 		mapped[i] = mapper(WrapString(string(c)))
 	}
 	return WrapArray(mapped)
 }
 
-func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.PValue {
+func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.Value {
 	s := sv.String()
 	if len(s) == 0 {
 		return _UNDEF
@@ -390,7 +390,7 @@ func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.PValue {
 	return reduceString(s[1:], sv.At(0), redactor)
 }
 
-func (sv *StringValue) Reduce2(initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+func (sv *StringValue) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	return reduceString(sv.String(), initialValue, redactor)
 }
 
@@ -407,7 +407,7 @@ func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (sv *StringValue) Reject(predicate eval.Predicate) eval.IndexedValue {
+func (sv *StringValue) Reject(predicate eval.Predicate) eval.List {
 	selected := bytes.NewBufferString(``)
 	for _, c := range sv.String() {
 		if !predicate(WrapString(string(c))) {
@@ -417,7 +417,7 @@ func (sv *StringValue) Reject(predicate eval.Predicate) eval.IndexedValue {
 	return WrapString(selected.String())
 }
 
-func (sv *StringValue) Select(predicate eval.Predicate) eval.IndexedValue {
+func (sv *StringValue) Select(predicate eval.Predicate) eval.List {
 	selected := bytes.NewBufferString(``)
 	for _, c := range sv.String() {
 		if predicate(WrapString(string(c))) {
@@ -427,13 +427,13 @@ func (sv *StringValue) Select(predicate eval.Predicate) eval.IndexedValue {
 	return WrapString(selected.String())
 }
 
-func (sv *StringValue) Slice(i int, j int) eval.IndexedValue {
+func (sv *StringValue) Slice(i int, j int) eval.List {
 	return WrapString(sv.String()[i:j])
 }
 
 func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
 	strings := pattern.Split(sv.String(), -1)
-	result := make([]eval.PValue, len(strings))
+	result := make([]eval.Value, len(strings))
 	for i, s := range strings {
 		result[i] = WrapString(s)
 	}
@@ -476,11 +476,11 @@ func (sv *StringValue) ToKey() eval.HashKey {
 	return eval.HashKey(sv.String())
 }
 
-func (sv *StringValue) Type() eval.PType {
+func (sv *StringValue) Type() eval.Type {
 	return (*StringType)(sv)
 }
 
-func (sv *StringValue) Unique() eval.IndexedValue {
+func (sv *StringValue) Unique() eval.List {
 	s := sv.String()
 	top := len(s)
 	if top < 2 {
@@ -501,7 +501,7 @@ func (sv *StringValue) Unique() eval.IndexedValue {
 	return WrapString(result.String())
 }
 
-func reduceString(slice string, initialValue eval.PValue, redactor eval.BiMapper) eval.PValue {
+func reduceString(slice string, initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	memo := initialValue
 	for _, v := range slice {
 		memo = redactor(memo, WrapString(string(v)))

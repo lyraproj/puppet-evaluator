@@ -17,13 +17,13 @@ type (
 		symbolAsString  bool
 		richData        bool
 		messagePrefix   string
-		path            []eval.PValue
-		values          map[eval.PValue]interface{}
-		recursiveLock   map[eval.PValue]bool
+		path            []eval.Value
+		values          map[eval.Value]interface{}
+		recursiveLock   map[eval.Value]bool
 	}
 )
 
-func NewToDataConverter(options eval.KeyedValue) *ToDataConverter {
+func NewToDataConverter(options eval.OrderedMap) *ToDataConverter {
 	t := &ToDataConverter{}
 	t.typeByReference = options.Get5(`type_by_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.localReference = options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
@@ -33,13 +33,13 @@ func NewToDataConverter(options eval.KeyedValue) *ToDataConverter {
 	return t
 }
 
-func (t *ToDataConverter) Convert(value eval.PValue) eval.PValue {
-	t.path = make([]eval.PValue, 0, 16)
-	t.values = make(map[eval.PValue]interface{}, 63)
+func (t *ToDataConverter) Convert(value eval.Value) eval.Value {
+	t.path = make([]eval.Value, 0, 16)
+	t.values = make(map[eval.Value]interface{}, 63)
 	return t.toData(value)
 }
 
-func (t *ToDataConverter) toJsonPath(path []eval.PValue) string {
+func (t *ToDataConverter) toJsonPath(path []eval.Value) string {
 	s := bytes.NewBufferString(`$`)
 	for _, v := range path {
 		if v == nil {
@@ -59,7 +59,7 @@ func (t *ToDataConverter) pathToString() string {
 	return fmt.Sprintf(`%s%s`, t.messagePrefix, t.toJsonPath(t.path)[1:])
 }
 
-func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
+func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 	if value == eval.UNDEF || eval.IsInstance(types.DefaultDataType(), value) {
 		return value
 	}
@@ -71,17 +71,17 @@ func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
 		return types.WrapString(`default`)
 	}
 
-	if h, ok := value.(eval.KeyedValue); ok {
-		return t.process(h, func() eval.PValue {
-			if h.AllPairs(func(k, v eval.PValue) bool {
+	if h, ok := value.(eval.OrderedMap); ok {
+		return t.process(h, func() eval.Value {
+			if h.AllPairs(func(k, v eval.Value) bool {
 				if _, ok := k.(*types.StringValue); ok {
 					return true
 				}
 				return false
 			}) {
 				result := make([]*types.HashEntry, 0, h.Len())
-				h.EachPair(func(key, elem eval.PValue) {
-					t.with(key, func() eval.PValue {
+				h.EachPair(func(key, elem eval.Value) {
+					t.with(key, func() eval.Value {
 						elem = t.toData(elem)
 						result = append(result, types.WrapHashEntry(key, elem))
 						return elem
@@ -93,11 +93,11 @@ func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
 		})
 	}
 
-	if a, ok := value.(eval.IndexedValue); ok {
-		return t.process(a, func() eval.PValue {
-			result := make([]eval.PValue, 0, a.Len())
-			a.EachWithIndex(func(elem eval.PValue, index int) {
-				t.with(types.WrapInteger(int64(index)), func() eval.PValue {
+	if a, ok := value.(eval.List); ok {
+		return t.process(a, func() eval.Value {
+			result := make([]eval.Value, 0, a.Len())
+			a.EachWithIndex(func(elem eval.Value, index int) {
+				t.with(types.WrapInteger(int64(index)), func() eval.Value {
 					elem = t.toData(elem)
 					result = append(result, elem)
 					return elem
@@ -108,16 +108,16 @@ func (t *ToDataConverter) toData(value eval.PValue) eval.PValue {
 	}
 
 	if sv, ok := value.(*types.SensitiveValue); ok {
-		return t.process(sv, func() eval.PValue {
-			return types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SENSITIVE), PCORE_VALUE_KEY: t.toData(sv.Unwrap())})
+		return t.process(sv, func() eval.Value {
+			return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SENSITIVE), PCORE_VALUE_KEY: t.toData(sv.Unwrap())})
 		})
 	}
 	return t.unknownToData(value)
 }
 
-func (t *ToDataConverter) withRecursiveGuard(value eval.PValue, producer eval.Producer) eval.PValue {
+func (t *ToDataConverter) withRecursiveGuard(value eval.Value, producer eval.Producer) eval.Value {
 	if t.recursiveLock == nil {
-		t.recursiveLock = map[eval.PValue]bool{value: true}
+		t.recursiveLock = map[eval.Value]bool{value: true}
 	} else {
 		if _, ok := t.recursiveLock[value]; ok {
 			panic(eval.Error(eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.Type().Name()}))
@@ -129,14 +129,14 @@ func (t *ToDataConverter) withRecursiveGuard(value eval.PValue, producer eval.Pr
 	return v
 }
 
-func (t *ToDataConverter) unknownToData(value eval.PValue) eval.PValue {
+func (t *ToDataConverter) unknownToData(value eval.Value) eval.Value {
 	if t.richData {
 		return t.valueToDataHash(value)
 	}
 	return t.unkownToStringWithWarning(value)
 }
 
-func (t *ToDataConverter) unkownToStringWithWarning(value eval.PValue) eval.PValue {
+func (t *ToDataConverter) unkownToStringWithWarning(value eval.Value) eval.Value {
 	warn := true
 	klass := ``
 	s := ``
@@ -159,20 +159,20 @@ func (t *ToDataConverter) unkownToStringWithWarning(value eval.PValue) eval.PVal
 	return types.WrapString(s)
 }
 
-func (t *ToDataConverter) process(value eval.PValue, producer eval.Producer) eval.PValue {
+func (t *ToDataConverter) process(value eval.Value, producer eval.Producer) eval.Value {
 	if t.localReference {
 		if ref, ok := t.values[value]; ok {
-			if hash, ok := ref.(eval.KeyedValue); ok {
+			if hash, ok := ref.(eval.OrderedMap); ok {
 				return hash
 			}
-			jsonRef := t.toJsonPath(ref.([]eval.PValue))
+			jsonRef := t.toJsonPath(ref.([]eval.Value))
 			if jsonRef == `` {
 				// Complex key and hence no way to reference the prior value. The value must therefore be
 				// duplicated which in turn introduces a risk for endless recursion in case of self
 				// referencing structures
 				return t.withRecursiveGuard(value, producer)
 			}
-			v := types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: types.WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: types.WrapString(jsonRef)})
+			v := types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: types.WrapString(jsonRef)})
 			t.values[value] = v
 			return v
 		}
@@ -182,20 +182,20 @@ func (t *ToDataConverter) process(value eval.PValue, producer eval.Producer) eva
 	return t.withRecursiveGuard(value, producer)
 }
 
-func (t *ToDataConverter) with(key eval.PValue, producer eval.Producer) eval.PValue {
+func (t *ToDataConverter) with(key eval.Value, producer eval.Producer) eval.Value {
 	t.path = append(t.path, key)
 	value := producer()
 	t.path = t.path[0 : len(t.path)-1]
 	return value
 }
 
-func (t *ToDataConverter) nonStringKeyedHashToData(hash eval.KeyedValue) eval.PValue {
+func (t *ToDataConverter) nonStringKeyedHashToData(hash eval.OrderedMap) eval.Value {
 	if t.richData {
 		return t.toKeyExtendedHash(hash)
 	}
 	result := make([]*types.HashEntry, 0, hash.Len())
-	hash.EachPair(func(key, elem eval.PValue) {
-		t.with(key, func() eval.PValue {
+	hash.EachPair(func(key, elem eval.Value) {
+		t.with(key, func() eval.Value {
 			if _, ok := key.(*types.StringValue); !ok {
 				key = t.unkownToStringWithWarning(key)
 			}
@@ -206,18 +206,18 @@ func (t *ToDataConverter) nonStringKeyedHashToData(hash eval.KeyedValue) eval.PV
 	return types.WrapHash(result)
 }
 
-func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
+func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 	if rt, ok := value.(*types.RuntimeValue); ok {
 		if !t.symbolAsString {
 			if sym, ok := rt.Interface().(Symbol); ok {
-				return types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SYMBOL), PCORE_VALUE_KEY: types.WrapString(string(sym))})
+				return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SYMBOL), PCORE_VALUE_KEY: types.WrapString(string(sym))})
 			}
 		}
 		return t.unkownToStringWithWarning(value)
 	}
 
-	var vt eval.PType
-	if tp, ok := value.(eval.PType); ok {
+	var vt eval.Type
+	if tp, ok := value.(eval.Type); ok {
 		// The Type of Type X is a Type[X]. To create instances of X we need the MetaType (the Object
 		// describing the type X)
 		vt = tp.MetaType()
@@ -227,21 +227,21 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 
 	pcoreTv := t.pcoreTypeToData(vt)
 	if ss, ok := value.(eval.SerializeAsString); ok {
-		return types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: pcoreTv, PCORE_VALUE_KEY: types.WrapString(ss.SerializationString())})
+		return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: pcoreTv, PCORE_VALUE_KEY: types.WrapString(ss.SerializationString())})
 	}
 
 	if po, ok := value.(eval.PuppetObject); ok {
-		ih := t.toData(po.InitHash()).(eval.KeyedValue)
+		ih := t.toData(po.InitHash()).(eval.OrderedMap)
 		entries := make([]*types.HashEntry, 0, ih.Len())
 		entries = append(entries, types.WrapHashEntry2(PCORE_TYPE_KEY, pcoreTv))
-		ih.Each(func(v eval.PValue) { entries = append(entries, v.(*types.HashEntry)) })
+		ih.Each(func(v eval.Value) { entries = append(entries, v.(*types.HashEntry)) })
 		return types.WrapHash(entries)
 	}
 
 	if ot, ok := vt.(eval.ObjectType); ok {
 		ai := ot.AttributesInfo()
 		attrs := ai.Attributes()
-		args := make([]eval.PValue, len(attrs))
+		args := make([]eval.Value, len(attrs))
 		for i, a := range attrs {
 			args[i] = a.Get(value)
 		}
@@ -256,7 +256,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 		entries = append(entries, types.WrapHashEntry2(PCORE_TYPE_KEY, pcoreTv))
 		for i, a := range args {
 			key := types.WrapString(attrs[i].Name())
-			t.with(key, func() eval.PValue {
+			t.with(key, func() eval.Value {
 				a = t.toData(a)
 				entries = append(entries, types.WrapHashEntry(key, a))
 				return a
@@ -268,19 +268,19 @@ func (t *ToDataConverter) valueToDataHash(value eval.PValue) eval.PValue {
 	return t.unkownToStringWithWarning(value)
 }
 
-func (t *ToDataConverter) pcoreTypeToData(pcoreType eval.PType) eval.PValue {
+func (t *ToDataConverter) pcoreTypeToData(pcoreType eval.Type) eval.Value {
 	typeName := pcoreType.Name()
 	if t.typeByReference || strings.HasPrefix(typeName, `Pcore::`) {
 		return types.WrapString(typeName)
 	}
-	return t.with(types.WrapString(PCORE_TYPE_KEY), func() eval.PValue { return t.toData(pcoreType) })
+	return t.with(types.WrapString(PCORE_TYPE_KEY), func() eval.Value { return t.toData(pcoreType) })
 }
 
-func (t *ToDataConverter) toKeyExtendedHash(hash eval.KeyedValue) eval.PValue {
-	pairs := make([]eval.PValue, 0, 2*hash.Len())
-	hash.EachPair(func(key, value eval.PValue) {
+func (t *ToDataConverter) toKeyExtendedHash(hash eval.OrderedMap) eval.Value {
+	pairs := make([]eval.Value, 0, 2*hash.Len())
+	hash.EachPair(func(key, value eval.Value) {
 		key = t.toData(key)
-		pairs = append(pairs, key, t.with(key, func() eval.PValue { return t.toData(value) }))
+		pairs = append(pairs, key, t.with(key, func() eval.Value { return t.toData(value) }))
 	})
-	return types.WrapHash3(map[string]eval.PValue{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: types.WrapArray(pairs)})
+	return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: types.WrapArray(pairs)})
 }

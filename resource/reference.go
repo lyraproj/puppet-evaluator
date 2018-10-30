@@ -11,7 +11,7 @@ import (
 )
 
 // FindNode returns the node that contains a given resource reference
-func FindNode(c eval.Context, v eval.PValue) (Node, bool) {
+func FindNode(c eval.Context, v eval.Value) (Node, bool) {
 	ref, err := reference(v)
 	if err != nil {
 		return nil, false
@@ -26,7 +26,7 @@ func FindNode(c eval.Context, v eval.PValue) (Node, bool) {
 
 // Reference returns the string T[<title>] where T is the lower case name of a resource type
 // and <title> is the unique title of the instance that is referenced
-func Reference(value eval.PValue) string {
+func Reference(value eval.Value) string {
 	n, err := reference(value)
 	if err != nil {
 		panic(err)
@@ -62,12 +62,12 @@ func getTitles(c eval.Context, expr parser.Expression, titles []string) []string
 	case *parser.QualifiedReference:
 		titles = append(titles, expr.(*parser.QualifiedReference).Name())
 	case parser.LiteralValue:
-		titles = append(titles, eval.Call(c, `new`, []eval.PValue{types.DefaultStringType(), eval.Evaluate(c, expr)}, nil).String())
+		titles = append(titles, eval.Call(c, `new`, []eval.Value{types.DefaultStringType(), eval.Evaluate(c, expr)}, nil).String())
 	}
 	return titles
 }
 
-func reference(value eval.PValue) (string, issue.Reported) {
+func reference(value eval.Value) (string, issue.Reported) {
 	switch value.(type) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)

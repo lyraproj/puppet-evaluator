@@ -11,7 +11,7 @@ type AnyType struct{}
 var Any_Type eval.ObjectType
 
 func init() {
-	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultAnyType()
 	})
 }
@@ -29,11 +29,11 @@ func (t *AnyType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *AnyType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *AnyType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return true
 }
 
-func (t *AnyType) IsInstance(v eval.PValue, g eval.Guard) bool {
+func (t *AnyType) IsInstance(v eval.Value, g eval.Guard) bool {
 	return true
 }
 
@@ -53,7 +53,7 @@ func (t *AnyType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *AnyType) Type() eval.PType {
+func (t *AnyType) Type() eval.Type {
 	return &TypeType{t}
 }
 

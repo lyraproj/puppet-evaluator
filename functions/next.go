@@ -9,7 +9,7 @@ func init() {
 	eval.NewGoFunction(`next`,
 		func(d eval.Dispatch) {
 			d.OptionalParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := eval.UNDEF
 				if len(args) > 0 {
 					arg = args[0]

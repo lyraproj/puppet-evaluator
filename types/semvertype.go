@@ -33,7 +33,7 @@ func init() {
       value => []
     }
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewSemVerType2(args...)
 		})
 
@@ -47,7 +47,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerString`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				v, err := semver.ParseVersion(args[0].String())
 				if err != nil {
 					panic(errors.NewIllegalArgument(`SemVer`, 0, err.Error()))
@@ -62,7 +62,7 @@ func init() {
 			d.Param(`PositiveInteger`)
 			d.OptionalParam(`SemVerQualifier`)
 			d.OptionalParam(`SemVerQualifier`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				argc := len(args)
 				major := args[0].(*IntegerValue).Int()
 				minor := args[1].(*IntegerValue).Int()
@@ -85,7 +85,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`SemVerHash`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
 				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
 				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
@@ -121,24 +121,24 @@ func NewSemVerType(vr semver.VersionRange) *SemVerType {
 	return &SemVerType{vr}
 }
 
-func NewSemVerType2(limits ...eval.PValue) *SemVerType {
+func NewSemVerType2(limits ...eval.Value) *SemVerType {
 	return NewSemVerType3(WrapArray(limits))
 }
 
-func NewSemVerType3(limits eval.IndexedValue) *SemVerType {
+func NewSemVerType3(limits eval.List) *SemVerType {
 	argc := limits.Len()
 	if argc == 0 {
 		return DefaultSemVerType()
 	}
 
 	if argc == 1 {
-		if ranges, ok := limits.At(0).(eval.IndexedValue); ok {
+		if ranges, ok := limits.At(0).(eval.List); ok {
 			return NewSemVerType3(ranges)
 		}
 	}
 
 	var finalRange semver.VersionRange
-	limits.EachWithIndex(func(arg eval.PValue, idx int) {
+	limits.EachWithIndex(func(arg eval.Value, idx int) {
 		var rng semver.VersionRange
 		str, ok := arg.(*StringValue)
 		if ok {
@@ -167,7 +167,7 @@ func (t *SemVerType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *SemVerType) Default() eval.PType {
+func (t *SemVerType) Default() eval.Type {
 	return semVerType_DEFAULT
 }
 
@@ -176,7 +176,7 @@ func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *SemVerType) Get(key string) (eval.PValue, bool) {
+func (t *SemVerType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `ranges`:
 		return WrapArray(t.Parameters()), true
@@ -201,32 +201,32 @@ func (t *SemVerType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *SemVerType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *SemVerType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if vt, ok := o.(*SemVerType); ok {
 		return vt.vRange.IsAsRestrictiveAs(t.vRange)
 	}
 	return false
 }
 
-func (t *SemVerType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *SemVerType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if v, ok := o.(*SemVerValue); ok {
 		return t.vRange.Includes(v.Version())
 	}
 	return false
 }
 
-func (t *SemVerType) Parameters() []eval.PValue {
+func (t *SemVerType) Parameters() []eval.Value {
 	if t.vRange.Equals(semver.MatchAll) {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{WrapString(t.vRange.String())}
+	return []eval.Value{WrapString(t.vRange.String())}
 }
 
 func (t *SemVerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerType) Type() eval.PType {
+func (t *SemVerType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -286,6 +286,6 @@ func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	}
 }
 
-func (v *SemVerValue) Type() eval.PType {
+func (v *SemVerValue) Type() eval.Type {
 	return (*SemVerType)(v)
 }

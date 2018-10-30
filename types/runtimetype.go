@@ -43,7 +43,7 @@ func init() {
       value => undef
     }
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewRuntimeType2(args...)
 		})
 }
@@ -62,7 +62,7 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }
 
-func NewRuntimeType2(args ...eval.PValue) *RuntimeType {
+func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 	top := len(args)
 	if top > 3 {
 		panic(errors.NewIllegalArgumentCount(`Runtime[]`, `0 - 3`, len(args)))
@@ -77,7 +77,7 @@ func NewRuntimeType2(args ...eval.PValue) *RuntimeType {
 	}
 
 	var pattern *RegexpType
-	var name eval.PValue
+	var name eval.Value
 	if top == 1 {
 		name = eval.EMPTY_STRING
 	} else {
@@ -115,7 +115,7 @@ func (t *RuntimeType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *RuntimeType) Default() eval.PType {
+func (t *RuntimeType) Default() eval.Type {
 	return runtimeType_DEFAULT
 }
 
@@ -129,11 +129,11 @@ func (t *RuntimeType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) Generic() eval.PType {
+func (t *RuntimeType) Generic() eval.Type {
 	return runtimeType_DEFAULT
 }
 
-func (t *RuntimeType) Get(key string) (eval.PValue, bool) {
+func (t *RuntimeType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `runtime`:
 		if t.runtime == `` {
@@ -153,7 +153,7 @@ func (t *RuntimeType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *RuntimeType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if rt, ok := o.(*RuntimeType); ok {
 		if t.goType != nil && rt.goType != nil {
 			return rt.goType.AssignableTo(t.goType)
@@ -177,7 +177,7 @@ func (t *RuntimeType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *RuntimeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *RuntimeType) IsInstance(o eval.Value, g eval.Guard) bool {
 	rt, ok := o.(*RuntimeValue)
 	if !ok {
 		return false
@@ -205,11 +205,11 @@ func (t *RuntimeType) Name() string {
 	return `Runtime`
 }
 
-func (t *RuntimeType) Parameters() []eval.PValue {
+func (t *RuntimeType) Parameters() []eval.Value {
 	if t.runtime == `` {
 		return eval.EMPTY_VALUES
 	}
-	ps := make([]eval.PValue, 0, 2)
+	ps := make([]eval.Value, 0, 2)
 	ps = append(ps, WrapString(t.runtime))
 	if t.name != `` {
 		ps = append(ps, WrapString(t.name))
@@ -232,7 +232,7 @@ func (t *RuntimeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *RuntimeType) Type() eval.PType {
+func (t *RuntimeType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -283,7 +283,7 @@ func (rv *RuntimeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	utils.PuppetQuote(b, fmt.Sprintf(`%v`, rv.value))
 }
 
-func (rv *RuntimeValue) Type() eval.PType {
+func (rv *RuntimeValue) Type() eval.Type {
 	return rv.puppetType
 }
 

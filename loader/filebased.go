@@ -40,7 +40,7 @@ func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables .
 	paths := make(map[eval.Namespace][]SmartPath, len(loadables))
 	loader := &fileBasedLoader{
 		parentedLoader: parentedLoader{
-			basicLoader: basicLoader{namedEntries: make(map[string]eval.Entry, 64)},
+			basicLoader: basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)},
 			parent:      parent},
 		path:            path,
 		initPlanName:    eval.NewTypedName2(eval.PLAN, `init`, parent.NameAuthority()),
@@ -123,7 +123,7 @@ func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	}
 }
 
-func (l *fileBasedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Entry {
+func (l *fileBasedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	entry := l.parentedLoader.LoadEntry(c, name)
 	if entry == nil {
 		entry = l.find(c, name)
@@ -143,7 +143,7 @@ func (l *fileBasedLoader) isGlobal() bool {
 	return l.moduleName == `` || l.moduleName == `environment`
 }
 
-func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.Entry {
+func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	if name.IsQualified() {
 		// The name is in a name space.
 		if l.moduleName != name.NameParts()[0] {
@@ -272,7 +272,7 @@ func (l *fileBasedLoader) ensureIndexed(sp SmartPath) {
 	}
 }
 
-func (l *fileBasedLoader) instantiate(c eval.Context, smartPath SmartPath, name eval.TypedName, origins []string) eval.Entry {
+func (l *fileBasedLoader) instantiate(c eval.Context, smartPath SmartPath, name eval.TypedName, origins []string) eval.LoaderEntry {
 	smartPath.Instantiator()(c, l, name, origins)
 	return l.GetEntry(name)
 }

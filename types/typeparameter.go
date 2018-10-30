@@ -23,7 +23,7 @@ func (t *typeParameter) initHash() *hash.StringHash {
 	return hash
 }
 
-func (t *typeParameter) InitHash() eval.KeyedValue {
+func (t *typeParameter) InitHash() eval.OrderedMap {
 	return WrapStringPValue(t.initHash())
 }
 

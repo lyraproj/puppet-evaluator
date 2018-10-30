@@ -37,7 +37,7 @@ func JavaScriptToAST(c eval.Context, filename string, content []byte) parser.Exp
 // EvaluateJavaScript calls JavaScriptToAST to parse and transform the given JavaScript content into
 // a Puppet AST which is then evaluated by the eval.Evaluator obtained from the given
 // eval.Context. The result of the evaluation is returned.
-func EvaluateJavaScript(c eval.Context, filename string, content []byte) (eval.PValue, error) {
+func EvaluateJavaScript(c eval.Context, filename string, content []byte) (eval.Value, error) {
 	program := JavaScriptToAST(c, filename, content)
 	log.Println(program.ToPN())
 	c.AddDefinitions(program)

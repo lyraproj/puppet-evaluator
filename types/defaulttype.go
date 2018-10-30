@@ -19,7 +19,7 @@ var defaultType_DEFAULT = &DefaultType{}
 var Default_Type eval.ObjectType
 
 func init() {
-	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultDefaultType()
 	})
 }
@@ -37,11 +37,11 @@ func (t *DefaultType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *DefaultType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *DefaultType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return o == defaultType_DEFAULT
 }
 
-func (t *DefaultType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *DefaultType) IsInstance(o eval.Value, g eval.Guard) bool {
 	_, ok := o.(*DefaultValue)
 	return ok
 }
@@ -62,7 +62,7 @@ func (t *DefaultType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *DefaultType) Type() eval.PType {
+func (t *DefaultType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -99,6 +99,6 @@ func (dv *DefaultValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	}
 }
 
-func (dv *DefaultValue) Type() eval.PType {
+func (dv *DefaultValue) Type() eval.Type {
 	return DefaultDefaultType()
 }

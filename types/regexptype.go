@@ -37,7 +37,7 @@ func init() {
       value => undef
     }
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewRegexpType2(args...)
 		})
 }
@@ -61,7 +61,7 @@ func NewRegexpTypeR(pattern *regexp.Regexp) *RegexpType {
 	return &RegexpType{pattern: pattern, patternString: patternString}
 }
 
-func NewRegexpType2(args ...eval.PValue) *RegexpType {
+func NewRegexpType2(args ...eval.Value) *RegexpType {
 	switch len(args) {
 	case 0:
 		return regexpType_DEFAULT
@@ -83,7 +83,7 @@ func (t *RegexpType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *RegexpType) Default() eval.PType {
+func (t *RegexpType) Default() eval.Type {
 	return regexpType_DEFAULT
 }
 
@@ -92,7 +92,7 @@ func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 	return ok && t.patternString == ot.patternString
 }
 
-func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
+func (t *RegexpType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `pattern`:
 		if t.patternString == `` {
@@ -103,12 +103,12 @@ func (t *RegexpType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *RegexpType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *RegexpType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	rx, ok := o.(*RegexpType)
 	return ok && (t.patternString == `` || t.patternString == rx.patternString)
 }
 
-func (t *RegexpType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *RegexpType) IsInstance(o eval.Value, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
 	return ok && (t.patternString == `` || t.patternString == rx.PatternString())
 }
@@ -121,11 +121,11 @@ func (t *RegexpType) Name() string {
 	return `Regexp`
 }
 
-func (t *RegexpType) Parameters() []eval.PValue {
+func (t *RegexpType) Parameters() []eval.Value {
 	if t.patternString == `` {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{WrapRegexp(t.patternString)}
+	return []eval.Value{WrapRegexp(t.patternString)}
 }
 
 func (t *RegexpType) ReflectType() (reflect.Type, bool) {
@@ -158,7 +158,7 @@ func (t *RegexpType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *RegexpType) Type() eval.PType {
+func (t *RegexpType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -242,6 +242,6 @@ func (sv *RegexpValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	utils.RegexpQuote(b, sv.patternString)
 }
 
-func (sv *RegexpValue) Type() eval.PType {
+func (sv *RegexpValue) Type() eval.Type {
 	return (*RegexpType)(sv)
 }

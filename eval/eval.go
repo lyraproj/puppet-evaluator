@@ -10,19 +10,19 @@ import (
 // the parser. An implementation must be re-entrant.
 type Evaluator interface {
 	// CallFunction evaluates the given function call
-	CallFunction(name string, args []PValue, call parser.CallExpression, c Context) PValue
+	CallFunction(name string, args []Value, call parser.CallExpression, c Context) Value
 
-	Evaluate(c Context, expression parser.Expression) (PValue, issue.Reported)
+	Evaluate(c Context, expression parser.Expression) (Value, issue.Reported)
 
 	// Eval should be considered internal. The only reason it is public is to allow
 	// the evaluator to be extended. This is subject to change. Don't use
-	Eval(expression parser.Expression, c Context) PValue
+	Eval(expression parser.Expression, c Context) Value
 
 	Logger() Logger
 }
 
 type ParserExtension interface {
-	Evaluate(e Evaluator, c Context) PValue
+	Evaluate(e Evaluator, c Context) Value
 }
 
 // Go calls the given function in a new go routine. The CurrentContext is forked and becomes

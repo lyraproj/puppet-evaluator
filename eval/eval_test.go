@@ -54,7 +54,7 @@ func ExampleWrap_hash() {
 		"third":  "three",
 		"nested": []string{"hello", "world"},
 	})
-	nst, _ := hsh.(eval.KeyedValue).Get4("nested")
+	nst, _ := hsh.(eval.OrderedMap).Get4("nested")
 	fmt.Printf("'%s' is a %s\n", hsh, hsh.Type())
 	fmt.Printf("hsh['nested'] == %s, an instance of %s\n", nst, nst.Type())
 
@@ -115,7 +115,7 @@ func ExampleReflector_reflectToArray() {
 	type TestStruct struct {
 		Strings    []string
 		Interfaces []interface{}
-		Values     []eval.PValue
+		Values     []eval.Value
 	}
 
 	c := eval.Puppet.RootContext()
@@ -142,7 +142,7 @@ func ExampleReflector_reflectToArray() {
 func ExampleReflector_reflectToHash() {
 	var strings map[string]string
 	var interfaces map[string]interface{}
-	var values map[string]eval.PValue
+	var values map[string]eval.Value
 
 	c := eval.Puppet.RootContext()
 	hv := eval.Wrap(nil, map[string]string{`x`: `hello`, `y`: `world`})
@@ -191,7 +191,7 @@ func ExampleReflector_reflectToFloat() {
 	type TestStruct struct {
 		SmallFloat float32
 		BigFloat   float64
-		APValue    eval.PValue
+		APValue    eval.Value
 		IValue     interface{}
 	}
 
@@ -220,7 +220,7 @@ func ExampleReflector_reflectToInt() {
 		AnUInt16 uint16
 		AnUInt32 uint32
 		AnUInt64 uint64
-		APValue  eval.PValue
+		APValue  eval.Value
 		IValue   interface{}
 	}
 
@@ -461,7 +461,7 @@ func ExampleReflector_typeSetFromReflect() {
 	// Create an instance of something included in the TypeSet
 	ep := &ExtendedPerson{Person{`Bob Tester`, &Address{`Example Road 23`, `12345`}}, 34, true}
 
-	// Wrap the instance as a PValue and print it
+	// Wrap the instance as a Value and print it
 	fmt.Println(eval.Wrap(c, ep))
 
 	// Output:

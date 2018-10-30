@@ -23,7 +23,7 @@ type (
 	Scope interface {
 		// WithLocalScope pushes an ephemeral scope and calls the producer. The
 		// ephemeral scope is quaraneed to be popped before this method returns.
-		WithLocalScope(producer Producer) PValue
+		WithLocalScope(producer Producer) Value
 
 		// Fork Creates a copy of this scope. If the scope is parented, the copy will
 		// contain a fork of the parent
@@ -31,11 +31,11 @@ type (
 
 		// Get returns a named variable from this scope together with a boolean indicating
 		// if the variable was found or not
-		Get(name string) (value PValue, found bool)
+		Get(name string) (value Value, found bool)
 
 		// Set assignes a named variable to this scope provided that the name didn't
 		// already exist. It returns a boolean indicating success.
-		Set(name string, value PValue) bool
+		Set(name string, value Value) bool
 
 		// RxSet assigns the result of a regular expression match to this scope. It
 		// will be available until the current ephemeral scope it is popped or a new
@@ -44,7 +44,7 @@ type (
 
 		// RxGet returns a numeric variable that has been assigned by RxSet together
 		// with a boolean indicating success.
-		RxGet(index int) (value PValue, found bool)
+		RxGet(index int) (value Value, found bool)
 
 		// State returns NotFound, Global, or Local
 		State(name string) VariableState

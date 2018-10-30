@@ -11,9 +11,9 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Optional[Collection]`)
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				walkedPath := []eval.PValue{}
-				return types.WrapArray(args).Reduce(func(d, k eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				walkedPath := []eval.Value{}
+				return types.WrapArray(args).Reduce(func(d, k eval.Value) eval.Value {
 					if eval.Equals(eval.UNDEF, k) {
 						return eval.UNDEF
 					}

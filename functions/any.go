@@ -5,21 +5,21 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func anyIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.PValue {
-	return types.WrapBoolean(arg.Iterator().Any(func(v eval.PValue) bool { return eval.IsTruthy(block.Call(c, nil, v)) }))
+func anyIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.Value {
+	return types.WrapBoolean(arg.Iterator().Any(func(v eval.Value) bool { return eval.IsTruthy(block.Call(c, nil, v)) }))
 }
 
-func anyIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
+func anyIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.Value {
 	index := int64(-1)
-	return types.WrapBoolean(iter.Iterator().Any(func(v eval.PValue) bool {
+	return types.WrapBoolean(iter.Iterator().Any(func(v eval.Value) bool {
 		index++
 		return eval.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
 	}))
 }
 
-func anyHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.PValue {
-	return types.WrapBoolean(iter.Iterator().Any(func(v eval.PValue) bool {
-		vi := v.(eval.IndexedValue)
+func anyHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.Value {
+	return types.WrapBoolean(iter.Iterator().Any(func(v eval.Value) bool {
+		vi := v.(eval.List)
 		return eval.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
 	}))
 }
@@ -29,7 +29,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return anyIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
@@ -37,7 +37,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return anyHashIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
@@ -45,7 +45,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return anyIterator(c, args[0].(eval.IterableValue), block)
 			})
 		},
@@ -53,7 +53,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				iter := args[0].(eval.IterableValue)
 				if iter.IsHashStyle() {
 					return anyHashIterator(c, iter, block)

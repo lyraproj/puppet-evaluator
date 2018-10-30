@@ -21,11 +21,11 @@ import (
 var Object_Type eval.ObjectType
 
 func init() {
-	oneArgCtor := func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewObjectType2(ctx, args...)
 	}
 	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
-		WrapHash3(map[string]eval.PValue{
+		WrapHash3(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
 		oneArgCtor, oneArgCtor)
 }
@@ -88,7 +88,7 @@ type (
 		annotatable
 		hashKey             eval.HashKey
 		name                string
-		parent              eval.PType
+		parent              eval.Type
 		creators            []eval.DispatchFunction
 		parameters          *hash.StringHash // map doesn't preserve order
 		attributes          *hash.StringHash
@@ -104,7 +104,7 @@ type (
 
 	objectValue struct {
 		typ    eval.ObjectType
-		values []eval.PValue
+		values []eval.Value
 	}
 )
 
@@ -136,9 +136,9 @@ func AllocObjectType() *objectType {
 		functions:   hash.EMPTY_STRINGHASH}
 }
 
-func (t *objectType) Initialize(c eval.Context, args []eval.PValue) {
+func (t *objectType) Initialize(c eval.Context, args []eval.Value) {
 	if len(args) == 1 {
-		if hash, ok := args[0].(eval.KeyedValue); ok {
+		if hash, ok := args[0].(eval.OrderedMap); ok {
 			t.InitFromHash(c, hash)
 			return
 		}
@@ -146,7 +146,7 @@ func (t *objectType) Initialize(c eval.Context, args []eval.PValue) {
 	panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an Object data type`}))
 }
 
-func NewObjectType(name string, parent eval.PType, initHashExpression interface{}) *objectType {
+func NewObjectType(name string, parent eval.Type, initHashExpression interface{}) *objectType {
 	obj := AllocObjectType()
 	if name == `` {
 		if h, ok := initHashExpression.(*HashValue); ok {
@@ -164,7 +164,7 @@ func NewObjectType(name string, parent eval.PType, initHashExpression interface{
 	return obj
 }
 
-func NewObjectType2(c eval.Context, args ...eval.PValue) *objectType {
+func NewObjectType2(c eval.Context, args ...eval.Value) *objectType {
 	argc := len(args)
 	switch argc {
 	case 0:
@@ -211,7 +211,7 @@ func (t *objectType) Constructor() eval.Function {
 	return t.ctor
 }
 
-func (t *objectType) Default() eval.PType {
+func (t *objectType) Default() eval.Type {
 	return objectType_DEFAULT
 }
 
@@ -265,7 +265,7 @@ func (t *objectType) FromReflectedValue(c eval.Context, src reflect.Value) eval.
 	return eval.New(c, t, WrapHash(entries)).(eval.PuppetObject)
 }
 
-func (t *objectType) Get(key string) (value eval.PValue, ok bool) {
+func (t *objectType) Get(key string) (value eval.Value, ok bool) {
 	if key == `_pcore_init_hash` {
 		return t.InitHash(), true
 	}
@@ -294,7 +294,7 @@ func (t *objectType) GetFunction(name string) eval.Function {
 	return f
 }
 
-func (t *objectType) GetValue(key string, o eval.PValue) (value eval.PValue, ok bool) {
+func (t *objectType) GetValue(key string, o eval.Value) (value eval.Value, ok bool) {
 	if pu, ok := o.(eval.ReadableObject); ok {
 		return pu.Get(key)
 	}
@@ -308,7 +308,7 @@ func (t *objectType) HasHashConstructor() bool {
 	return t.creators == nil || len(t.creators) == 2
 }
 
-func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver string, typeString *StringValue) eval.PType {
+func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver string, typeString *StringValue) eval.Type {
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
@@ -330,7 +330,7 @@ func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver s
 	return c.ParseType(typeString)
 }
 
-func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
+func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	eval.AssertInstance(`object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
 	t.parameters = hash.EMPTY_STRINGHASH
 	t.attributes = hash.EMPTY_STRINGHASH
@@ -342,7 +342,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 			if pn, ok := pt.(*StringValue); ok {
 				t.parent = t.parseAttributeType(c, ``, `parent`, pn)
 			} else {
-				t.parent = pt.(eval.PType)
+				t.parent = pt.(eval.Type)
 			}
 		}
 	}
@@ -361,10 +361,10 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	typeParameters := hashArg(initHash, KEY_TYPE_PARAMETERS)
 	if !typeParameters.IsEmpty() {
 		parameters := hash.NewStringHash(typeParameters.Len())
-		typeParameters.EachPair(func(k, v eval.PValue) {
+		typeParameters.EachPair(func(k, v eval.Value) {
 			key := k.String()
-			var paramType eval.PType
-			var paramValue eval.PValue
+			var paramType eval.Type
+			var paramValue eval.Value
 			if ph, ok := v.(*HashValue); ok {
 				eval.AssertInstance(
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
@@ -378,7 +378,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 				} else {
 					paramType = eval.AssertInstance(
 						func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
-						DefaultTypeType(), v).(eval.PType)
+						DefaultTypeType(), v).(eval.Type)
 				}
 				paramValue = nil
 			}
@@ -398,17 +398,17 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	constants := hashArg(initHash, KEY_CONSTANTS)
 	attributes := hashArg(initHash, KEY_ATTRIBUTES)
 	attrSpecs := hash.NewStringHash(constants.Len() + attributes.Len())
-	attributes.EachPair(func(k, v eval.PValue) {
+	attributes.EachPair(func(k, v eval.Value) {
 		attrSpecs.Put(k.String(), v)
 	})
 
 	if !constants.IsEmpty() {
-		constants.EachPair(func(k, v eval.PValue) {
+		constants.EachPair(func(k, v eval.Value) {
 			key := k.String()
 			if attrSpecs.Includes(key) {
 				panic(eval.Error(eval.EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, issue.H{`label`: t.Label(), `key`: key}))
 			}
-			value := v.(eval.PValue)
+			value := v.(eval.Value)
 			attrSpec := issue.H{
 				KEY_TYPE:  eval.Generalize(value.Type()),
 				KEY_VALUE: value,
@@ -421,17 +421,17 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	if !attrSpecs.IsEmpty() {
 		attributes := hash.NewStringHash(attrSpecs.Len())
 		attrSpecs.EachPair(func(key string, ifv interface{}) {
-			value := ifv.(eval.PValue)
+			value := ifv.(eval.Value)
 			attrSpec, ok := value.(*HashValue)
 			if !ok {
-				var attrType eval.PType
+				var attrType eval.Type
 				if tn, ok := value.(*StringValue); ok {
 					// Type name. Load the type.
 					attrType = t.parseAttributeType(c, `attribute`, key, tn)
 				} else {
 					attrType = eval.AssertInstance(
 						func() string { return fmt.Sprintf(`attribute %s[%s]`, t.Label(), key) },
-						DefaultTypeType(), value).(eval.PType)
+						DefaultTypeType(), value).(eval.Type)
 				}
 				hash := issue.H{KEY_TYPE: attrType}
 				if _, ok = attrType.(*OptionalType); ok {
@@ -450,20 +450,20 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	funcSpecs := hashArg(initHash, KEY_FUNCTIONS)
 	if !funcSpecs.IsEmpty() {
 		functions := hash.NewStringHash(funcSpecs.Len())
-		funcSpecs.EachPair(func(key, value eval.PValue) {
+		funcSpecs.EachPair(func(key, value eval.Value) {
 			if attributes.IncludesKey(key) {
 				panic(eval.Error(eval.EVAL_MEMBER_NAME_CONFLICT, issue.H{`label`: fmt.Sprintf(`function %s[%s]`, t.Label(), key)}))
 			}
 			funcSpec, ok := value.(*HashValue)
 			if !ok {
-				var funcType eval.PType
+				var funcType eval.Type
 				if tn, ok := value.(*StringValue); ok {
 					// Type name. Load the type.
 					funcType = t.parseAttributeType(c, `function`, key.String(), tn)
 				} else {
 					funcType = eval.AssertInstance(
 						func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
-						TYPE_FUNCTION_TYPE, value).(eval.PType)
+						TYPE_FUNCTION_TYPE, value).(eval.Type)
 				}
 				funcSpec = WrapHash4(c, issue.H{KEY_TYPE: funcType})
 			}
@@ -518,7 +518,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	if ok {
 		serialization := make([]string, se.Len())
 		var optFound eval.Attribute
-		se.EachWithIndex(func(elem eval.PValue, i int) {
+		se.EachWithIndex(func(elem eval.Value, i int) {
 			attrName := elem.String()
 			var attr eval.Attribute
 			ok := false
@@ -551,11 +551,11 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.KeyedValue) {
 	t.annotatable.initialize(initHash.(*HashValue))
 }
 
-func (t *objectType) InitHash() eval.KeyedValue {
+func (t *objectType) InitHash() eval.OrderedMap {
 	return WrapStringPValue(t.initHash(true))
 }
 
-func (t *objectType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *objectType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	var ot *objectType
 	switch o.(type) {
 	case *objectType:
@@ -575,7 +575,7 @@ func (t *objectType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *objectType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *objectType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return isAssignable(t, o.Type())
 }
 
@@ -625,28 +625,28 @@ func (t *objectType) Name() string {
 	return t.name
 }
 
-func (t *objectType) Parameters() []eval.PValue {
+func (t *objectType) Parameters() []eval.Value {
 	return t.Parameters2(true)
 }
 
-func (t *objectType) Parameters2(includeName bool) []eval.PValue {
+func (t *objectType) Parameters2(includeName bool) []eval.Value {
 	if t == objectType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{WrapStringPValue(t.initHash(includeName))}
+	return []eval.Value{WrapStringPValue(t.initHash(includeName))}
 }
 
-func (t *objectType) Parent() eval.PType {
+func (t *objectType) Parent() eval.Type {
 	return t.parent
 }
 
-func (t *objectType) Resolve(c eval.Context) eval.PType {
+func (t *objectType) Resolve(c eval.Context) eval.Type {
 	if t.initHashExpression != nil {
 		ihe := t.initHashExpression
 		t.initHashExpression = nil
 
 		if prt, ok := t.parent.(eval.ResolvableType); ok {
-			t.parent = resolveTypeRefs(c, prt).(eval.PType)
+			t.parent = resolveTypeRefs(c, prt).(eval.Type)
 		}
 
 		var initHash *HashValue
@@ -766,7 +766,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 			continue
 		}
 
-		value := ih.Get(key, nil).(eval.PValue)
+		value := ih.Get(key, nil).(eval.Value)
 		if first2 {
 			first2 = false
 		} else {
@@ -786,7 +786,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 			// The keys should not be quoted in this hash
 			io.WriteString(b, `{`)
 			first3 := true
-			value.(*HashValue).EachPair(func(name, typ eval.PValue) {
+			value.(*HashValue).EachPair(func(name, typ eval.Value) {
 				if first3 {
 					first3 = false
 				} else {
@@ -826,7 +826,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 	}
 }
 
-func (t *objectType) Type() eval.PType {
+func (t *objectType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -924,7 +924,7 @@ func (t *objectType) createInitType() *StructType {
 		switch attr.Kind() {
 		case CONSTANT, DERIVED:
 		default:
-			var key eval.PType
+			var key eval.Type
 			if attr.HasValue() {
 				key = NewOptionalType3(attr.Name())
 			} else {
@@ -948,17 +948,17 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			return
 		}
 	} else {
-		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.Value) eval.Value {
 			return AllocObjectValue(t)
 		}), nil))
 
 		functions = []eval.DispatchFunction{
 			// Positional argument creator
-			func(c eval.Context, args []eval.PValue) eval.PValue {
+			func(c eval.Context, args []eval.Value) eval.Value {
 				return NewObjectValue(c, t, args)
 			},
 			// Named argument creator
-			func(c eval.Context, args []eval.PValue) eval.PValue {
+			func(c eval.Context, args []eval.Value) eval.Value {
 				return NewObjectValue2(c, t, args[0].(*HashValue))
 			}}
 	}
@@ -1035,14 +1035,14 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		h.Put(KEY_FUNCTIONS, compressedMembersHash(t.functions))
 	}
 	if t.equality != nil {
-		ev := make([]eval.PValue, len(t.equality))
+		ev := make([]eval.Value, len(t.equality))
 		for i, e := range t.equality {
 			ev[i] = WrapString(e)
 		}
 		h.Put(KEY_EQUALITY, WrapArray(ev))
 	}
 	if t.serialization != nil {
-		sv := make([]eval.PValue, len(t.serialization))
+		sv := make([]eval.Value, len(t.serialization))
 		for i, s := range t.serialization {
 			sv[i] = WrapString(s)
 		}
@@ -1058,12 +1058,12 @@ func (t *objectType) members(includeParent bool) *hash.StringHash {
 }
 
 func (t *objectType) namedInitSignature() eval.Signature {
-	return NewCallableType(NewTupleType([]eval.PType{t.createInitType()}, NewIntegerType(1, 1)), t, nil)
+	return NewCallableType(NewTupleType([]eval.Type{t.createInitType()}, NewIntegerType(1, 1)), t, nil)
 }
 
 func (t *objectType) positionalInitSignature() eval.Signature {
 	ai := t.AttributesInfo()
-	argTypes := make([]eval.PType, len(ai.Attributes()))
+	argTypes := make([]eval.Type, len(ai.Attributes()))
 	for i, attr := range ai.Attributes() {
 		argTypes[i] = attr.Type()
 	}
@@ -1114,13 +1114,13 @@ func compressedMembersHash(mh *hash.StringHash) *HashValue {
 	return WrapHash(he)
 }
 
-func resolveTypeRefs(c eval.Context, v eval.PValue) eval.PValue {
+func resolveTypeRefs(c eval.Context, v eval.Value) eval.Value {
 	switch v.(type) {
 	case *HashValue:
 		hv := v.(*HashValue)
 		he := make([]*HashEntry, hv.Len())
 		i := 0
-		hv.EachPair(func(key, value eval.PValue) {
+		hv.EachPair(func(key, value eval.Value) {
 			he[i] = WrapHashEntry(
 				resolveTypeRefs(c, key), resolveTypeRefs(c, value))
 			i++
@@ -1128,9 +1128,9 @@ func resolveTypeRefs(c eval.Context, v eval.PValue) eval.PValue {
 		return WrapHash(he)
 	case *ArrayValue:
 		av := v.(*ArrayValue)
-		ae := make([]eval.PValue, av.Len())
+		ae := make([]eval.Value, av.Len())
 		i := 0
-		av.Each(func(value eval.PValue) {
+		av.Each(func(value eval.Value) {
 			ae[i] = resolveTypeRefs(c, value)
 			i++
 		})
@@ -1161,7 +1161,7 @@ func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eva
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
 }
 
-func newObjectType2(name string, parent eval.PType, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
+func newObjectType2(name string, parent eval.Type, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
 	ta := NewObjectType(name, parent, initHash)
 	ta.setCreators(creators...)
 	registerResolvableType(ta)

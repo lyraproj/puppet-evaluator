@@ -19,10 +19,10 @@ func init() {
       name  => { type => Pattern[/\A[$]?[a-z][a-z0-9_]*(?:::[a-z][a-z0-9_]*)*\z/] },
       arguments => { type => Optional[Array[Any]], value => undef},
     }}`,
-		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewDeferred2(ctx, args...)
 		},
-		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		func(ctx eval.Context, args []eval.Value) eval.Value {
 			return newDeferredFromHash(ctx, args[0].(*HashValue))
 		})
 
@@ -31,9 +31,9 @@ func init() {
 }
 
 type Deferred interface {
-	eval.PValue
+	eval.Value
 
-	Resolve(c eval.Context) eval.PValue
+	Resolve(c eval.Context) eval.Value
 }
 
 type deferred struct {
@@ -41,11 +41,11 @@ type deferred struct {
   arguments *ArrayValue
 }
 
-func NewDeferred(name string, arguments ...eval.PValue) *deferred {
+func NewDeferred(name string, arguments ...eval.Value) *deferred {
 	return &deferred{name, WrapArray(arguments)}
 }
 
-func NewDeferred2(c eval.Context, args ...eval.PValue) *deferred {
+func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
 	argc := len(args)
 	if argc < 1 || argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`deferred[]`, `1 - 2`, argc))
@@ -93,11 +93,11 @@ func (e *deferred) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	ObjectToString(e, s, b, g)
 }
 
-func (e *deferred) Type() eval.PType {
+func (e *deferred) Type() eval.Type {
 	return deferredType
 }
 
-func (e *deferred) Get(key string) (value eval.PValue, ok bool) {
+func (e *deferred) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `name`:
 		return WrapString(e.name), true
@@ -107,14 +107,14 @@ func (e *deferred) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (e *deferred) InitHash() eval.KeyedValue {
+func (e *deferred) InitHash() eval.OrderedMap {
 	return WrapHash([]*HashEntry{WrapHashEntry2(`name`, WrapString(e.name)), WrapHashEntry2(`arguments`, e.arguments)})
 }
 
-func (e *deferred) Resolve(c eval.Context) eval.PValue {
+func (e *deferred) Resolve(c eval.Context) eval.Value {
 	fn := e.name
 
-	var args []eval.PValue
+	var args []eval.Value
 	if fn[0] == '$' {
 		vn := fn[1:]
 		vv, ok := c.Scope().Get(vn)
@@ -126,9 +126,9 @@ func (e *deferred) Resolve(c eval.Context) eval.PValue {
 			return vv
 		}
 		fn = `dig`
-		args = append(make([]eval.PValue, 0, 1 + e.arguments.Len()), vv)
+		args = append(make([]eval.Value, 0, 1 + e.arguments.Len()), vv)
 	} else {
-		args = make([]eval.PValue, 0, e.arguments.Len())
+		args = make([]eval.Value, 0, e.arguments.Len())
 	}
 	args = e.arguments.AppendTo(args)
 	for i, a := range args {
@@ -139,16 +139,16 @@ func (e *deferred) Resolve(c eval.Context) eval.PValue {
 
 // ResolveDeferred will resolve all occurences of a DeferredValue in its
 // given argument. Array and Hash arguments will be resolved recursively.
-func ResolveDeferred(c eval.Context, a eval.PValue) eval.PValue {
+func ResolveDeferred(c eval.Context, a eval.Value) eval.Value {
 	switch a.(type) {
 	case Deferred:
 		a = a.(Deferred).Resolve(c)
 	case *ArrayValue:
-		a = a.(*ArrayValue).Map(func(v eval.PValue) eval.PValue {
+		a = a.(*ArrayValue).Map(func(v eval.Value) eval.Value {
 			return ResolveDeferred(c, v)
 		})
 	case *HashValue:
-		a = a.(*HashValue).MapEntries(func(v eval.EntryValue) eval.EntryValue {
+		a = a.(*HashValue).MapEntries(func(v eval.MapEntry) eval.MapEntry {
 			return WrapHashEntry(ResolveDeferred(c, v.Key()), ResolveDeferred(c, v.Value()))
 		})
 	}
@@ -177,11 +177,11 @@ func (d *deferredExpr) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	io.WriteString(b, `)`)
 }
 
-func (d *deferredExpr) Type() eval.PType {
+func (d *deferredExpr) Type() eval.Type {
 	return deferredExprType
 }
 
-func (d *deferredExpr) Resolve(c eval.Context) eval.PValue {
+func (d *deferredExpr) Resolve(c eval.Context) eval.Value {
 	return eval.Evaluate(c, d.expression)
 }
 

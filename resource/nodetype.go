@@ -28,7 +28,7 @@ type (
 	// pointing to it has been evaluated
 	Node interface {
 		graph.Node
-		eval.PValue
+		eval.Value
 
 		// Error returns an error if the evaluation of the node was unsuccessful, otherwise
 		// nil is returned
@@ -49,12 +49,12 @@ type (
 		Resource(ref string) (eval.PuppetObject, bool)
 
 		// Resource returns the resources kept by this node that corresponds to the given ref
-		Resources() eval.KeyedValue
+		Resources() eval.OrderedMap
 
 		// Value returns the result of evaluating the node expression. This is a potentially blocking
 		// operation. In all nodes appointing this node must be resolved and the contained expression must
 		// be evaluated before the result can be produced.
-		Value() eval.PValue
+		Value() eval.Value
 	}
 
 	// node represents a PuppetObject in the graph with a unique ID
@@ -66,7 +66,7 @@ type (
 		// Broadcast channel. Will be closed when node is resolved
 		resolved chan bool
 
-		value     eval.PValue
+		value     eval.Value
 
 		resources map[string]*handle
 
@@ -77,12 +77,12 @@ type (
 		expression parser.Expression
 
 		// parameters to lambda (only valid when expression is a lambda)
-		parameters []eval.PValue
+		parameters []eval.Value
 
 		// Set in case node evaluation ended in error
 		error issue.Reported
 
-		results []eval.PValue
+		results []eval.Value
 
 		context eval.Context
 	}
@@ -97,7 +97,7 @@ func (rn *node) Equals(other interface{}, guard eval.Guard) bool {
 	return ok && rn.id == on.id
 }
 
-func (rn *node) Get(key string) (value eval.PValue, ok bool) {
+func (rn *node) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `id`:
 		return types.WrapInteger(rn.id), true
@@ -109,10 +109,10 @@ func (rn *node) Get(key string) (value eval.PValue, ok bool) {
 	return eval.UNDEF, false
 }
 
-func (rn *node) InitHash() eval.KeyedValue {
+func (rn *node) InitHash() eval.OrderedMap {
 	<-rn.resolved
 	rn.lock.RLock()
-	hash := map[string]eval.PValue{
+	hash := map[string]eval.Value{
 		`id`: types.WrapInteger(rn.id),
 	}
 	hash[`value`] = rn.value
@@ -135,7 +135,7 @@ func (rn *node) Resolved() bool {
 	return resolved
 }
 
-func (rn *node) Resources() eval.KeyedValue {
+func (rn *node) Resources() eval.OrderedMap {
 	<-rn.resolved
 	rn.lock.RLock()
 	entries := make([]*types.HashEntry, 0, len(rn.resources))
@@ -155,24 +155,24 @@ func (rn *node) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	types.ObjectToString(rn, s, b, g)
 }
 
-func (rn *node) Type() eval.PType {
+func (rn *node) Type() eval.Type {
 	return Node_Type
 }
 
-func (rn *node) Value() eval.PValue {
+func (rn *node) Value() eval.Value {
 	<-rn.resolved
 	rn.lock.RLock()
 	value := rn.value
 	rn.lock.RUnlock()
 	if edge, ok := value.(Edge); ok {
 		value = edge.To().(Node).Value()
-	} else if maybeEdges, ok := value.(*types.ArrayValue); ok && maybeEdges.All(func(e eval.PValue) bool {
+	} else if maybeEdges, ok := value.(*types.ArrayValue); ok && maybeEdges.All(func(e eval.Value) bool {
 		_, ok := e.(Edge)
 		return ok
 	}) {
 		toUnique := make(map[int64]bool, maybeEdges.Len())
-		toValues := make([]eval.PValue, 0)
-		maybeEdges.Each(func(e eval.PValue) {
+		toValues := make([]eval.Value, 0)
+		maybeEdges.Each(func(e eval.Value) {
 			n := e.(Edge).To()
 			if !toUnique[n.ID()] {
 				toUnique[n.ID()] = true
@@ -188,14 +188,14 @@ func (rn *node) Value() eval.PValue {
 	return value
 }
 
-func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
+func appendResults(results []eval.Value, nv eval.Value) []eval.Value {
 	switch nv.(type) {
 	case ResultSet:
 		results = nv.(ResultSet).Results().AppendTo(results)
 	case Result:
 		results = append(results, nv)
 	case *types.ArrayValue:
-		nv.(eval.IndexedValue).Each(func(e eval.PValue) {
+		nv.(eval.List).Each(func(e eval.Value) {
 			results = appendResults(results, e)
 		})
 	}
@@ -203,7 +203,7 @@ func appendResults(results []eval.PValue, nv eval.PValue) []eval.PValue {
 }
 
 // Creates an unevaluated node, aware of all resources that uses static titles
-func newNode(c eval.Context, expression parser.Expression, parameters ...eval.PValue) *node {
+func newNode(c eval.Context, expression parser.Expression, parameters ...eval.Value) *node {
 	g := GetGraph(c).(graph.DirectedBuilder)
 	node := g.NewNode().(*node)
 	node.lambda = nil
@@ -222,7 +222,7 @@ func newNode2(c eval.Context, lambda eval.InvocableValue) *node {
 	node := g.NewNode().(*node)
 	node.lambda = lambda
 	node.expression = &parser.Nop{}
-	node.parameters = []eval.PValue{}
+	node.parameters = []eval.Value{}
 	node.resources = map[string]*handle{}
 	node.value = nil
 	node.context = c.Fork()
@@ -282,13 +282,13 @@ func (rn *node) evaluate() {
 func (rn *node) apply(c eval.Context) {
 	resources := rn.Resources()
 	rcount := resources.Len()
-	results := make([]eval.PValue, 0, rcount+1)
+	results := make([]eval.Value, 0, rcount+1)
 	if _, ok := rn.expression.(*parser.ResourceExpression); !ok {
 		results = appendResults(results, rn.value)
 	}
 	if rcount > 0 {
 		rs := make([]eval.PuppetObject, 0, rcount)
-		resources.EachValue(func(r eval.PValue) {
+		resources.EachValue(func(r eval.Value) {
 			h := r.(*handle)
 			if h.value != nil {
 				rs = append(rs, h.value)
@@ -332,7 +332,7 @@ func (rn *node) apply(c eval.Context) {
 	scheduleNodes(c, GetGraph(c).FromNode(rn))
 }
 
-func (rn *node) update(c eval.Context, value eval.PValue, resources map[string]*handle) {
+func (rn *node) update(c eval.Context, value eval.Value, resources map[string]*handle) {
 	rn.value = value
 	for ref, rh := range resources {
 		if h, ok := rn.resources[ref]; ok {
@@ -391,7 +391,7 @@ func (rn *node) waitForEdgesTo(c eval.Context) ResultSet {
 		// A new chech must be made if the list of nodes have changed
 		parentsNow := g.To(rn.ID())
 		if sameNodes(parents, parentsNow) {
-			results := make([]eval.PValue, 0)
+			results := make([]eval.Value, 0)
 			for _, before := range parents {
 				results = append(results, before.(*node).results...)
 			}

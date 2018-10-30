@@ -15,7 +15,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.Param(`Patterns`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return matchPatterns(c, args[0].String(), args[1])
 			})
 		},
@@ -23,9 +23,9 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Array[String]`)
 			d.Param(`Patterns`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				p := args[1]
-				return args[0].(*types.ArrayValue).Map(func(arg eval.PValue) eval.PValue {
+				return args[0].(*types.ArrayValue).Map(func(arg eval.Value) eval.Value {
 					return matchPatterns(c, arg.String(), p)
 				})
 			})
@@ -33,7 +33,7 @@ func init() {
 	)
 }
 
-func matchPatterns(c eval.Context, s string, v eval.PValue) eval.PValue {
+func matchPatterns(c eval.Context, s string, v eval.Value) eval.Value {
 	switch v.(type) {
 	case *types.RegexpValue:
 		return matchRegexp(c, s, v.(*types.RegexpValue))
@@ -48,7 +48,7 @@ func matchPatterns(c eval.Context, s string, v eval.PValue) eval.PValue {
 	}
 }
 
-func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.PValue {
+func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.Value {
 	if rx.PatternString() == `` {
 		panic(eval.Error(eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
 	}
@@ -57,16 +57,16 @@ func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.PValue {
 	if g == nil {
 		return eval.UNDEF
 	}
-	rs := make([]eval.PValue, len(g))
+	rs := make([]eval.Value, len(g))
 	for i, s := range g {
 		rs[i] = types.WrapString(s)
 	}
 	return types.WrapArray(rs)
 }
 
-func matchArray(c eval.Context, s string, ar *types.ArrayValue) eval.PValue {
+func matchArray(c eval.Context, s string, ar *types.ArrayValue) eval.Value {
 	result := eval.UNDEF
-	ar.Find(func(p eval.PValue) bool {
+	ar.Find(func(p eval.Value) bool {
 		r := matchPatterns(c, s, p)
 		if r == eval.UNDEF {
 			return false

@@ -11,7 +11,7 @@ type ScalarDataType struct{}
 var ScalarData_Type eval.ObjectType
 
 func init() {
-	ScalarData_Type = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	ScalarData_Type = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultScalarDataType()
 	})
 }
@@ -29,7 +29,7 @@ func (t *ScalarDataType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *ScalarDataType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *ScalarDataType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	switch o.(type) {
 	case *ScalarDataType:
 		return true
@@ -41,7 +41,7 @@ func (t *ScalarDataType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *ScalarDataType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *ScalarDataType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
 	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue:
 		return true
@@ -65,7 +65,7 @@ func (t *ScalarDataType) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 	TypeToString(t, b, s, g)
 }
 
-func (t *ScalarDataType) Type() eval.PType {
+func (t *ScalarDataType) Type() eval.Type {
 	return &TypeType{t}
 }
 

@@ -5,25 +5,25 @@ type (
 
 	ContextDoer func(c Context)
 
-	Consumer func(value PValue)
+	Consumer func(value Value)
 
-	EntryMapper func(value EntryValue) EntryValue
+	EntryMapper func(value MapEntry) MapEntry
 
-	IndexedConsumer func(value PValue, index int)
+	IndexedConsumer func(value Value, index int)
 
-	SliceConsumer func(value IndexedValue)
+	SliceConsumer func(value List)
 
-	Mapper func(value PValue) PValue
+	Mapper func(value Value) Value
 
-	Predicate func(value PValue) bool
+	Predicate func(value Value) bool
 
-	Producer func() PValue
+	Producer func() Value
 
-	TypeMapper func(value PType) PValue
+	TypeMapper func(value Type) Value
 
-	BiConsumer func(v1 PValue, v2 PValue)
+	BiConsumer func(v1 Value, v2 Value)
 
-	BiPredicate func(v1 PValue, v2 PValue) bool
+	BiPredicate func(v1 Value, v2 Value) bool
 
-	BiMapper func(v1 PValue, v2 PValue) PValue
+	BiMapper func(v1 Value, v2 Value) Value
 )

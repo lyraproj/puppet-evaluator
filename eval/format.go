@@ -6,10 +6,10 @@ import (
 )
 
 type (
-	FormatMap KeyedValue
+	FormatMap OrderedMap
 
 	Format interface {
-		PValue
+		Value
 		HasStringFlags() bool
 		ApplyStringFlags(b io.Writer, str string, quoted bool)
 		Width() int
@@ -45,7 +45,7 @@ type (
 		Property(key string) (string, bool)
 		Properties() map[string]string
 		SetProperty(key, value string)
-		UnsupportedFormat(t PType, supportedFormats string, actualFormat Format) error
+		UnsupportedFormat(t Type, supportedFormats string, actualFormat Format) error
 		WithProperties(properties map[string]string) FormatContext
 	}
 )
@@ -58,17 +58,17 @@ var PRETTY FormatContext
 
 var NewFormat func(format string) Format
 var NewIndentation func(indenting bool, level int) Indentation
-var NewFormatContext func(t PType, format Format, indentation Indentation) FormatContext
+var NewFormatContext func(t Type, format Format, indentation Indentation) FormatContext
 var NewFormatContext2 func(indentation Indentation, formatMap FormatMap, properties map[string]string) FormatContext
-var NewFormatContext3 func(value PValue, format PValue) (FormatContext, error)
+var NewFormatContext3 func(value Value, format Value) (FormatContext, error)
 
-func GetFormat(f FormatMap, t PType) Format {
-	v := f.Iterator().Find(func(ev PValue) bool {
-		entry := ev.(EntryValue)
-		return IsAssignable(entry.Key().(PType), t)
+func GetFormat(f FormatMap, t Type) Format {
+	v := f.Iterator().Find(func(ev Value) bool {
+		entry := ev.(MapEntry)
+		return IsAssignable(entry.Key().(Type), t)
 	})
 	if v != UNDEF {
-		return v.(EntryValue).Value().(Format)
+		return v.(MapEntry).Value().(Format)
 	}
 	return DEFAULT_FORMAT
 }

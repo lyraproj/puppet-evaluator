@@ -46,11 +46,11 @@ func (ai *attributesInfo) RequiredCount() int {
 	return ai.requiredCount
 }
 
-func (ai *attributesInfo) PositionalFromHash(hash eval.KeyedValue) []eval.PValue {
+func (ai *attributesInfo) PositionalFromHash(hash eval.OrderedMap) []eval.Value {
 	nameToPos := ai.NameToPos()
-	va := make([]eval.PValue, len(nameToPos))
+	va := make([]eval.Value, len(nameToPos))
 
-	hash.EachPair(func(k eval.PValue, v eval.PValue) {
+	hash.EachPair(func(k eval.Value, v eval.Value) {
 		if ix, ok := nameToPos[k.String()]; ok {
 			va[ix] = v
 		}

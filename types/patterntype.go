@@ -20,7 +20,7 @@ func init() {
 	attributes => {
 		patterns => Array[Regexp]
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewPatternType2(args...)
 		})
 }
@@ -33,11 +33,11 @@ func NewPatternType(regexps []*RegexpType) *PatternType {
 	return &PatternType{regexps}
 }
 
-func NewPatternType2(regexps ...eval.PValue) *PatternType {
+func NewPatternType2(regexps ...eval.Value) *PatternType {
 	return NewPatternType3(WrapArray(regexps))
 }
 
-func NewPatternType3(regexps eval.IndexedValue) *PatternType {
+func NewPatternType3(regexps eval.List) *PatternType {
 
 	cnt := regexps.Len()
 	switch cnt {
@@ -50,7 +50,7 @@ func NewPatternType3(regexps eval.IndexedValue) *PatternType {
 	}
 
 	rs := make([]*RegexpType, cnt)
-	regexps.EachWithIndex(func(arg eval.PValue, idx int) {
+	regexps.EachWithIndex(func(arg eval.Value, idx int) {
 		switch arg.(type) {
 		case *RegexpType:
 			rs[idx] = arg.(*RegexpType)
@@ -72,7 +72,7 @@ func (t *PatternType) Accept(v eval.Visitor, g eval.Guard) {
 	}
 }
 
-func (t *PatternType) Default() eval.PType {
+func (t *PatternType) Default() eval.Type {
 	return patternType_DEFAULT
 }
 
@@ -83,7 +83,7 @@ func (t *PatternType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *PatternType) Get(key string) (value eval.PValue, ok bool) {
+func (t *PatternType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `patterns`:
 		return WrapArray(t.Parameters()), true
@@ -91,7 +91,7 @@ func (t *PatternType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *PatternType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if _, ok := o.(*PatternType); ok {
 		return len(t.regexps) == 0
 	}
@@ -114,7 +114,7 @@ func (t *PatternType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *PatternType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *PatternType) IsInstance(o eval.Value, g eval.Guard) bool {
 	str, ok := o.(*StringValue)
 	return ok && (len(t.regexps) == 0 || utils.MatchesString(MapToRegexps(t.regexps), str.String()))
 }
@@ -127,12 +127,12 @@ func (t *PatternType) Name() string {
 	return `Pattern`
 }
 
-func (t *PatternType) Parameters() []eval.PValue {
+func (t *PatternType) Parameters() []eval.Value {
 	top := len(t.regexps)
 	if top == 0 {
 		return eval.EMPTY_VALUES
 	}
-	rxs := make([]eval.PValue, top)
+	rxs := make([]eval.Value, top)
 	for idx, rx := range t.regexps {
 		rxs[idx] = WrapRegexp(rx.patternString)
 	}
@@ -140,7 +140,7 @@ func (t *PatternType) Parameters() []eval.PValue {
 }
 
 func (t *PatternType) Patterns() *ArrayValue {
-	rxs := make([]eval.PValue, len(t.regexps))
+	rxs := make([]eval.Value, len(t.regexps))
 	for idx, rx := range t.regexps {
 		rxs[idx] = rx
 	}
@@ -159,7 +159,7 @@ func (t *PatternType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *PatternType) Type() eval.PType {
+func (t *PatternType) Type() eval.Type {
 	return &TypeType{t}
 }
 

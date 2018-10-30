@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-var resourceType eval.PType
+var resourceType eval.Type
 
 type Resource struct {
 	Title string

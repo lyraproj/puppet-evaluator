@@ -5,8 +5,8 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func eachIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.PValue {
-	arg.Iterator().Each(func(v eval.PValue) { block.Call(c, nil, v) })
+func eachIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.Value {
+	arg.Iterator().Each(func(v eval.Value) { block.Call(c, nil, v) })
 	return eval.UNDEF
 }
 
@@ -22,15 +22,15 @@ func InitJavaScript(c eval.Context) {
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Array,String]`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
-				return eachIterator(c, args[0].(eval.IndexedValue), block)
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
+				return eachIterator(c, args[0].(eval.List), block)
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return eachIterator(c, args[0].(*types.HashValue).Keys(), block)
 			})
 		})
@@ -47,8 +47,8 @@ func InitJavaScript(c eval.Context) {
 		func(d eval.Dispatch) {
 			d.Param(`Type`)
 			d.Param(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
-				return types.WrapBoolean(eval.IsInstance(args[0].(eval.PType), args[1]))
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				return types.WrapBoolean(eval.IsInstance(args[0].(eval.Type), args[1]))
 			})
 		})
 

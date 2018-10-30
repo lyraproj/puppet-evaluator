@@ -14,7 +14,7 @@ type reflector struct {
 	c eval.Context
 }
 
-var pValueType = reflect.TypeOf([]eval.PValue{}).Elem()
+var pValueType = reflect.TypeOf([]eval.Value{}).Elem()
 
 func NewReflector(c eval.Context) eval.Reflector {
 	return &reflector{c}
@@ -42,14 +42,14 @@ func (r *reflector) FieldName(f *reflect.StructField) string {
 	return issue.CamelToSnakeCase(f.Name)
 }
 
-func (r *reflector) Reflect(src eval.PValue) reflect.Value {
+func (r *reflector) Reflect(src eval.Value) reflect.Value {
 	if sn, ok := src.(eval.PReflected); ok {
 		return sn.Reflect(r.c)
 	}
 	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: src.Type()}))
 }
 
-func (r *reflector) Reflect2(src eval.PValue, rt reflect.Type) reflect.Value {
+func (r *reflector) Reflect2(src eval.Value, rt reflect.Type) reflect.Value {
 	if rt != nil && rt.Kind() == reflect.Interface && rt.AssignableTo(pValueType) {
 		sv := reflect.ValueOf(src)
 		if sv.Type().AssignableTo(rt) {
@@ -60,7 +60,7 @@ func (r *reflector) Reflect2(src eval.PValue, rt reflect.Type) reflect.Value {
 }
 
 // ReflectTo assigns the native value of src to dest
-func (r *reflector) ReflectTo(src eval.PValue, dest reflect.Value) {
+func (r *reflector) ReflectTo(src eval.Value, dest reflect.Value) {
 	if dest.Kind() == reflect.Ptr && !dest.CanSet() {
 		dest = dest.Elem()
 	}
@@ -84,28 +84,28 @@ func (r *reflector) ReflectTo(src eval.PValue, dest reflect.Value) {
 	}
 }
 
-func (r *reflector) ReflectType(src eval.PType) (reflect.Type, bool) {
+func (r *reflector) ReflectType(src eval.Type) (reflect.Type, bool) {
 	return ReflectType(src)
 }
 
-func ReflectType(src eval.PType) (reflect.Type, bool) {
+func ReflectType(src eval.Type) (reflect.Type, bool) {
 	if sn, ok := src.(eval.PReflectedType); ok {
 		return sn.ReflectType()
 	}
 	return nil, false
 }
 
-func (r *reflector) TagHash(f *reflect.StructField) (eval.KeyedValue, bool) {
+func (r *reflector) TagHash(f *reflect.StructField) (eval.OrderedMap, bool) {
 	if tag := f.Tag.Get(tagName); tag != `` {
 		tagExpr := r.c.ParseAndValidate(``, `{`+tag+`}`, true)
-		if tagHash, ok := eval.Evaluate(r.c, tagExpr).(eval.KeyedValue); ok {
+		if tagHash, ok := eval.Evaluate(r.c, tagExpr).(eval.OrderedMap); ok {
 			return tagHash, true
 		}
 	}
 	return nil, false
 }
 
-func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, structType reflect.Type) eval.ObjectType {
+func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, structType reflect.Type) eval.ObjectType {
 	structType = r.checkStructType(structType)
 	nf := structType.NumField()
 	es := make([]*HashEntry, 0, nf)
@@ -124,10 +124,10 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.PType, st
 	return ot
 }
 
-func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl eval.KeyedValue) {
+func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl eval.OrderedMap) {
 	as := make([]*HashEntry, 0)
-	var val eval.PValue
-	var typ eval.PType
+	var val eval.Value
+	var typ eval.Type
 
 	if fh, ok := r.TagHash(f); ok {
 		if v, ok := fh.Get4(`name`); ok {
@@ -141,7 +141,7 @@ func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl 
 			as = append(as, v.(*HashEntry))
 		}
 		if v, ok := fh.Get4(`type`); ok {
-			if t, ok := v.(eval.PType); ok {
+			if t, ok := v.(eval.Type); ok {
 				typ = t
 			}
 		}
@@ -168,7 +168,7 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 	types := make([]*HashEntry, 0)
 	prefix := typeSetName + `::`
 	for _, structType := range structTypes {
-		var parent eval.PType
+		var parent eval.Type
 		structType = r.checkStructType(structType)
 		nf := structType.NumField()
 		if nf > 0 {

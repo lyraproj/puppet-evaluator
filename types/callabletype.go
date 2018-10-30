@@ -9,8 +9,8 @@ import (
 
 type CallableType struct {
 	paramsType *TupleType
-	returnType eval.PType
-	blockType  eval.PType // Callable or Optional[Callable]
+	returnType eval.Type
+	blockType  eval.Type // Callable or Optional[Callable]
 }
 
 var Callable_Type eval.ObjectType
@@ -32,7 +32,7 @@ func init() {
       value => undef
     }
   }
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewCallableType2(args...)
 		})
 }
@@ -41,36 +41,36 @@ func DefaultCallableType() *CallableType {
 	return callableType_DEFAULT
 }
 
-func NewCallableType(paramsType *TupleType, returnType eval.PType, blockType eval.PType) *CallableType {
+func NewCallableType(paramsType *TupleType, returnType eval.Type, blockType eval.Type) *CallableType {
 	return &CallableType{paramsType, returnType, blockType}
 }
 
-func NewCallableType2(args ...eval.PValue) *CallableType {
+func NewCallableType2(args ...eval.Value) *CallableType {
 	return NewCallableType3(WrapArray(args))
 }
 
-func NewCallableType3(args eval.IndexedValue) *CallableType {
+func NewCallableType3(args eval.List) *CallableType {
 	argc := args.Len()
 	if argc == 0 {
 		return DefaultCallableType()
 	}
 
 	var (
-		rt    eval.PType
-		block eval.PType
+		rt    eval.Type
+		block eval.Type
 		ok    bool
 	)
 
 	if argc == 2 {
 		// check for [[params, block], return]
-		var iv eval.IndexedValue
-		if iv, ok = args.At(0).(eval.IndexedValue); ok {
+		var iv eval.List
+		if iv, ok = args.At(0).(eval.List); ok {
 			argc = iv.Len()
 			if argc < 0 || argc > 2 {
 				panic(NewIllegalArgumentType2(`Callable[]`, 0, `Tuple[Type[Tuple], Type[CallableType, 1, 2]]]`, args.At(0)))
 			}
 
-			if rt, ok = args.At(1).(eval.PType); !ok {
+			if rt, ok = args.At(1).(eval.Type); !ok {
 				panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))
 			}
 
@@ -97,14 +97,14 @@ func NewCallableType3(args eval.IndexedValue) *CallableType {
 	return NewCallableType(tupleFromArgs(true, args), rt, block)
 }
 
-func (t *CallableType) BlockType() eval.PType {
+func (t *CallableType) BlockType() eval.Type {
 	if t.blockType == nil {
 		return nil // Return untyped nil
 	}
 	return t.blockType
 }
 
-func (t *CallableType) CallableWith(args []eval.PValue, block eval.Lambda) bool {
+func (t *CallableType) CallableWith(args []eval.Value, block eval.Lambda) bool {
 	if block != nil {
 		cb := t.blockType
 		switch cb.(type) {
@@ -143,7 +143,7 @@ func (t *CallableType) BlockName() string {
 	return `block`
 }
 
-func (t *CallableType) Default() eval.PType {
+func (t *CallableType) Default() eval.Type {
 	return callableType_DEFAULT
 }
 
@@ -152,11 +152,11 @@ func (t *CallableType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *CallableType) Generic() eval.PType {
+func (t *CallableType) Generic() eval.Type {
 	return callableType_DEFAULT
 }
 
-func (t *CallableType) Get(key string) (eval.PValue, bool) {
+func (t *CallableType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `param_types`:
 		if t.paramsType == nil {
@@ -178,7 +178,7 @@ func (t *CallableType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *CallableType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *CallableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	oc, ok := o.(*CallableType)
 	if !ok {
 		return false
@@ -215,7 +215,7 @@ func (t *CallableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return isAssignable(oc.blockType, t.blockType)
 }
 
-func (t *CallableType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *CallableType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if l, ok := o.(eval.Lambda); ok {
 		return isAssignable(t, l.Type())
 	}
@@ -241,33 +241,33 @@ func (t *CallableType) ParameterNames() []string {
 	return r
 }
 
-func (t *CallableType) Parameters() (params []eval.PValue) {
+func (t *CallableType) Parameters() (params []eval.Value) {
 	if *t == *callableType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
 	tupleParams := t.paramsType.Parameters()
 	if len(tupleParams) == 0 {
-		params = []eval.PValue{ZERO, ZERO}
+		params = []eval.Value{ZERO, ZERO}
 	} else {
-		params = eval.Select1(tupleParams, func(p eval.PValue) bool { _, ok := p.(*UnitType); return !ok })
+		params = eval.Select1(tupleParams, func(p eval.Value) bool { _, ok := p.(*UnitType); return !ok })
 	}
 	if t.blockType != nil {
 		params = append(params, t.blockType)
 	}
 	if t.returnType != nil {
-		params = []eval.PValue{WrapArray(params), t.returnType}
+		params = []eval.Value{WrapArray(params), t.returnType}
 	}
 	return params
 }
 
-func (t *CallableType) ParametersType() eval.PType {
+func (t *CallableType) ParametersType() eval.Type {
 	if t.paramsType == nil {
 		return nil // Return untyped nil
 	}
 	return t.paramsType
 }
 
-func (t *CallableType) Resolve(c eval.Context) eval.PType {
+func (t *CallableType) Resolve(c eval.Context) eval.Type {
 	if t.paramsType != nil {
 		t.paramsType = resolve(c, t.paramsType).(*TupleType)
 	}
@@ -280,7 +280,7 @@ func (t *CallableType) Resolve(c eval.Context) eval.PType {
 	return t
 }
 
-func (t *CallableType) ReturnType() eval.PType {
+func (t *CallableType) ReturnType() eval.Type {
 	return t.returnType
 }
 
@@ -288,7 +288,7 @@ func (t *CallableType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *CallableType) Type() eval.PType {
+func (t *CallableType) Type() eval.Type {
 	return &TypeType{t}
 }
 

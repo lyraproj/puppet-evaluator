@@ -142,7 +142,7 @@ func (p *pcoreImpl) Loader(key string) eval.Loader {
 	return nil
 }
 
-func (p *pcoreImpl) DefineSetting(key string, valueType eval.PType, dflt eval.PValue) {
+func (p *pcoreImpl) DefineSetting(key string, valueType eval.Type, dflt eval.Value) {
 	s := &setting{name: key, valueType: valueType, defaultValue: dflt}
 	if dflt != nil {
 		s.set(dflt)
@@ -152,7 +152,7 @@ func (p *pcoreImpl) DefineSetting(key string, valueType eval.PType, dflt eval.PV
 	p.lock.Unlock()
 }
 
-func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.PValue {
+func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.Value {
 	p.lock.RLock()
 	v, ok := p.settings[key]
 	p.lock.RUnlock()
@@ -239,7 +239,7 @@ func (p *pcoreImpl) NewParser() validator.ParserValidator {
 	return validator.NewParserValidator(parser.CreateParser(lo...), v)
 }
 
-func (p *pcoreImpl) Set(key string, value eval.PValue) {
+func (p *pcoreImpl) Set(key string, value eval.Value) {
 	p.lock.RLock()
 	v, ok := p.settings[key]
 	p.lock.RUnlock()

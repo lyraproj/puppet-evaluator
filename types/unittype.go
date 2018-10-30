@@ -11,14 +11,14 @@ type UnitType struct{}
 var Unit_Type eval.ObjectType
 
 func init() {
-	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultUnitType()
 	})
 
 	newGoConstructor(`Unit`,
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return args[0]
 			})
 		},
@@ -38,11 +38,11 @@ func (t *UnitType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *UnitType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *UnitType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return true
 }
 
-func (t *UnitType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *UnitType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return true
 }
 
@@ -62,7 +62,7 @@ func (t *UnitType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *UnitType) Type() eval.PType {
+func (t *UnitType) Type() eval.Type {
 	return &TypeType{t}
 }
 

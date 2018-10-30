@@ -12,11 +12,11 @@ import (
 func ExampleUniqueValues() {
 	x := types.WrapString(`hello`)
 	y := types.WrapInteger(32)
-	types.UniqueValues([]eval.PValue{x, y})
+	types.UniqueValues([]eval.Value{x, y})
 
 	z := types.WrapString(`hello`)
 	svec := []*types.StringValue{x, z}
-	fmt.Println(types.UniqueValues([]eval.PValue{svec[0], svec[1]}))
+	fmt.Println(types.UniqueValues([]eval.Value{svec[0], svec[1]}))
 	// Output: [hello]
 }
 
@@ -27,7 +27,7 @@ func ExampleNewCallableType2() {
 }
 
 func ExampleNewTupleType() {
-	tuple := types.NewTupleType([]eval.PType{types.DefaultStringType(), types.DefaultIntegerType()}, nil)
+	tuple := types.NewTupleType([]eval.Type{types.DefaultStringType(), types.DefaultIntegerType()}, nil)
 	fmt.Println(tuple)
 	// Output: Tuple[String, Integer]
 }
@@ -47,7 +47,7 @@ func ExampleWrapHash() {
 		types.WrapHashEntry2(`fee`, types.WrapString(`hello`)),
 		types.WrapHashEntry2(`fum`, types.WrapHash([]*types.HashEntry{
 			types.WrapHashEntry2(`x`, types.WrapString(`1`)),
-			types.WrapHashEntry2(`y`, types.WrapArray([]eval.PValue{
+			types.WrapHashEntry2(`y`, types.WrapArray([]eval.Value{
 				types.WrapInteger(1), types.WrapInteger(2), types.WrapInteger(3)})),
 			types.WrapHashEntry2(`z`, types.WrapRegexp(`^[a-z]+$`))}))})
 

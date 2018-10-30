@@ -46,7 +46,7 @@ func init() {
 		from => { type => Optional[Timestamp], value => undef },
 		to => { type => Optional[Timestamp], value => undef }
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewTimestampType2(args...)
 		})
 
@@ -77,14 +77,14 @@ func init() {
 		},
 
 		func(d eval.Dispatch) {
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return WrapTimestamp(time.Now())
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Integer,Float]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				if i, ok := arg.(*IntegerValue); ok {
 					return WrapTimestamp(time.Unix(i.Int(), 0))
@@ -98,7 +98,7 @@ func init() {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Formats`)
 			d.OptionalParam(`String[1]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				formats := DEFAULT_TIMESTAMP_FORMATS
 				tz := ``
 				if len(args) > 1 {
@@ -113,7 +113,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Struct[string => String[1],Optional[format] => Formats,Optional[timezone] => String[1]]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
 				str := hash.Get5(`string`, _EMPTY_STRING).String()
 				formats := toTimestampFormats(hash.Get5(`format`, eval.UNDEF))
@@ -140,7 +140,7 @@ func TimeFromString(value string) time.Time {
 	return ParseTimestamp(value, DEFAULT_TIMESTAMP_FORMATS, ``).Time()
 }
 
-func NewTimestampType2(args ...eval.PValue) *TimestampType {
+func NewTimestampType2(args ...eval.Value) *TimestampType {
 	argc := len(args)
 	if argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`Timestamp[]`, `0 or 2`, argc))
@@ -148,7 +148,7 @@ func NewTimestampType2(args ...eval.PValue) *TimestampType {
 	if argc == 0 {
 		return timestampType_DEFAULT
 	}
-	convertArg := func(args []eval.PValue, argNo int) time.Time {
+	convertArg := func(args []eval.Value, argNo int) time.Time {
 		arg := args[argNo]
 		var (
 			t  time.Time
@@ -193,7 +193,7 @@ func (t *TimestampType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *TimestampType) Default() eval.PType {
+func (t *TimestampType) Default() eval.Type {
 	return timestampType_DEFAULT
 }
 
@@ -204,7 +204,7 @@ func (t *TimestampType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *TimestampType) Get(key string) (eval.PValue, bool) {
+func (t *TimestampType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -223,11 +223,11 @@ func (t *TimestampType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *TimestampType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TimestampType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 
-func (t *TimestampType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *TimestampType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if ot, ok := o.(*TimestampType); ok {
 		return (t.min.Before(ot.min) || t.min.Equal(ot.min)) && (t.max.After(ot.max) || t.max.Equal(ot.max))
 	}
@@ -238,17 +238,17 @@ func (t *TimestampType) MetaType() eval.ObjectType {
 	return Timestamp_Type
 }
 
-func (t *TimestampType) Parameters() []eval.PValue {
+func (t *TimestampType) Parameters() []eval.Value {
 	if t.max.Equal(MAX_TIME) {
 		if t.min.Equal(MIN_TIME) {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.PValue{WrapString(t.min.String())}
+		return []eval.Value{WrapString(t.min.String())}
 	}
 	if t.min.Equal(MIN_TIME) {
-		return []eval.PValue{WrapDefault(), WrapString(t.max.String())}
+		return []eval.Value{WrapDefault(), WrapString(t.max.String())}
 	}
-	return []eval.PValue{WrapString(t.min.String()), WrapString(t.max.String())}
+	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
 func (t *TimestampType) ReflectType() (reflect.Type, bool) {
@@ -263,7 +263,7 @@ func (t *TimestampType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	TypeToString(t, b, s, g)
 }
 
-func (t *TimestampType) Type() eval.PType {
+func (t *TimestampType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -407,7 +407,7 @@ func (tv *TimestampValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDe
 	io.WriteString(b, tv.min.Format(DEFAULT_TIMESTAMP_FORMATS[0].layout))
 }
 
-func (tv *TimestampValue) Type() eval.PType {
+func (tv *TimestampValue) Type() eval.Type {
 	return (*TimestampType)(tv)
 }
 
@@ -732,13 +732,13 @@ func notSupportedByGoTimeLayout(str string, start, pos int, description string) 
 	return eval.Error(eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start : pos+1], `description`: description})
 }
 
-func toTimestampFormats(fmt eval.PValue) []*TimestampFormat {
+func toTimestampFormats(fmt eval.Value) []*TimestampFormat {
 	formats := DEFAULT_TIMESTAMP_FORMATS
 	switch fmt.(type) {
 	case *ArrayValue:
 		fa := fmt.(*ArrayValue)
 		formats = make([]*TimestampFormat, fa.Len())
-		fa.EachWithIndex(func(f eval.PValue, i int) {
+		fa.EachWithIndex(func(f eval.Value, i int) {
 			formats[i] = DefaultTimestampFormatParser.ParseFormat(f.String())
 		})
 	case *StringValue:

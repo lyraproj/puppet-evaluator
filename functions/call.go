@@ -11,13 +11,13 @@ func init() {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return eval.Call(c, args[0].(*types.StringValue).String(), args[1:], block)
 			})
 		},
 		func(d eval.Dispatch) {
 			d.Param(`Deferred`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return args[0].(types.Deferred).Resolve(c)
 			})
 		},

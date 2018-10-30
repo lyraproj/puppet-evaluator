@@ -86,7 +86,7 @@ func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn e
 	loader.(eval.DefiningLoader).SetEntry(tn, eval.NewLoaderEntry(task, issue.NewLocation(origin, 0, 0)))
 }
 
-func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSource, metadata string) eval.PValue {
+func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSource, metadata string) eval.Value {
 	if metadata == `` {
 		return createTaskFromHash(ctx, name, taskSource, map[string]interface{}{})
 	}
@@ -103,7 +103,7 @@ func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSourc
 	panic(eval.Error(eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
 }
 
-func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[string]interface{}) eval.PValue {
+func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[string]interface{}) eval.Value {
 	arguments := make(map[string]interface{}, 7)
 	arguments[`name`] = types.WrapString(name)
 	arguments[`executable`] = types.WrapString(taskSource)

@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.PValue) {
+func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.Value) {
 	keys := expr.Keys()
 	op := expr.Operand()
 	if qr, ok := op.(*parser.QualifiedReference); ok {
@@ -32,7 +32,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 			}
 		}
 
-		args := make([]eval.PValue, len(keys))
+		args := make([]eval.Value, len(keys))
 		c.DoStatic(func() {
 			for idx, key := range keys {
 				args[idx] = e.eval(key, c)
@@ -41,7 +41,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
 	}
 
-	args := make([]eval.PValue, len(keys))
+	args := make([]eval.Value, len(keys))
 	for idx, key := range keys {
 		args[idx] = e.eval(key, c)
 	}
@@ -49,8 +49,8 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 	lhs := e.eval(op, c)
 
 	switch lhs.(type) {
-	case eval.IndexedValue:
-		return e.accessIndexedValue(expr, lhs.(eval.IndexedValue), args, c)
+	case eval.List:
+		return e.accessIndexedValue(expr, lhs.(eval.List), args, c)
 	default:
 		if tem, ok := lhs.Type().(eval.TypeWithCallableMembers); ok {
 			if mbr, ok := tem.Member(`[]`); ok {
@@ -61,7 +61,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 				// In JavaScript, x['y'] is equal to x.y
 				if s, ok := args[0].(*types.StringValue); ok {
 					if mbr, ok := tem.Member(s.String()); ok {
-						return mbr.Call(c, lhs, nil, []eval.PValue{})
+						return mbr.Call(c, lhs, nil, []eval.Value{})
 					}
 					panic(e.evalError(eval.EVAL_ATTRIBUTE_NOT_FOUND, op, issue.H{`type`: lhs.Type(), `name`: s.String()}))
 				}
@@ -71,7 +71,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
 }
 
-func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.IndexedValue, args []eval.PValue, c eval.Context) (result eval.PValue) {
+func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value, c eval.Context) (result eval.Value) {
 	nArgs := len(args)
 
 	intArg := func(index int) int {
@@ -129,7 +129,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.I
 			}
 			return eval.UNDEF
 		}
-		el := make([]eval.PValue, 0, nArgs)
+		el := make([]eval.Value, 0, nArgs)
 		for _, key := range args {
 			if v, ok := hv.Get(key); ok {
 				el = append(el, v)
@@ -168,7 +168,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.I
 	return lhs.At(pos)
 }
 
-func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.PValue, expr *parser.AccessExpression, c eval.Context) (tp eval.PType) {
+func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression, c eval.Context) (tp eval.Type) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {

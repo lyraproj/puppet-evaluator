@@ -12,7 +12,7 @@ import (
 type TypeAliasType struct {
 	name           string
 	typeExpression parser.Expression
-	resolvedType   eval.PType
+	resolvedType   eval.Type
 	loader         eval.Loader
 }
 
@@ -28,7 +28,7 @@ func init() {
 			value => undef
 		}
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewTypeAliasType2(args...)
 		})
 }
@@ -37,11 +37,11 @@ func DefaultTypeAliasType() *TypeAliasType {
 	return typeAliasType_DEFAULT
 }
 
-func NewTypeAliasType(name string, typeExpression parser.Expression, resolvedType eval.PType) *TypeAliasType {
+func NewTypeAliasType(name string, typeExpression parser.Expression, resolvedType eval.Type) *TypeAliasType {
 	return &TypeAliasType{name, typeExpression, resolvedType, nil}
 }
 
-func NewTypeAliasType2(args ...eval.PValue) *TypeAliasType {
+func NewTypeAliasType2(args ...eval.Value) *TypeAliasType {
 	switch len(args) {
 	case 0:
 		return DefaultTypeAliasType()
@@ -50,8 +50,8 @@ func NewTypeAliasType2(args ...eval.PValue) *TypeAliasType {
 		if !ok {
 			panic(NewIllegalArgumentType2(`TypeAlias`, 0, `String`, args[0]))
 		}
-		var pt eval.PType
-		if pt, ok = args[1].(eval.PType); ok {
+		var pt eval.Type
+		if pt, ok = args[1].(eval.Type); ok {
 			return NewTypeAliasType(name.String(), nil, pt)
 		}
 		var rt *RuntimeValue
@@ -78,7 +78,7 @@ func (t *TypeAliasType) Accept(v eval.Visitor, g eval.Guard) {
 	t.resolvedType.Accept(v, g)
 }
 
-func (t *TypeAliasType) Default() eval.PType {
+func (t *TypeAliasType) Default() eval.Type {
 	return typeAliasType_DEFAULT
 }
 
@@ -97,7 +97,7 @@ func (t *TypeAliasType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *TypeAliasType) Get(key string) (eval.PValue, bool) {
+func (t *TypeAliasType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `name`:
 		return WrapString(t.name), true
@@ -112,7 +112,7 @@ func (t *TypeAliasType) Loader() eval.Loader {
 	return t.loader
 }
 
-func (t *TypeAliasType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *TypeAliasType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if g == nil {
 		g = make(eval.Guard)
 	}
@@ -122,7 +122,7 @@ func (t *TypeAliasType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return GuardedIsAssignable(t.ResolvedType(), o, g)
 }
 
-func (t *TypeAliasType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TypeAliasType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if g == nil {
 		g = make(eval.Guard)
 	}
@@ -140,7 +140,7 @@ func (t *TypeAliasType) Name() string {
 	return t.name
 }
 
-func (t *TypeAliasType) Resolve(c eval.Context) eval.PType {
+func (t *TypeAliasType) Resolve(c eval.Context) eval.Type {
 	if t.resolvedType != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved type %s`, t.name))
 	}
@@ -149,7 +149,7 @@ func (t *TypeAliasType) Resolve(c eval.Context) eval.PType {
 	return t
 }
 
-func (t *TypeAliasType) ResolvedType() eval.PType {
+func (t *TypeAliasType) ResolvedType() eval.Type {
 	if t.resolvedType == nil {
 		panic(fmt.Sprintf("Reference to unresolved type '%s'", t.name))
 	}
@@ -182,7 +182,7 @@ func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	}
 }
 
-func (t *TypeAliasType) Type() eval.PType {
+func (t *TypeAliasType) Type() eval.Type {
 	return &TypeType{t}
 }
 

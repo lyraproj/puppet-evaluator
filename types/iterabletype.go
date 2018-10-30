@@ -8,7 +8,7 @@ import (
 )
 
 type IterableType struct {
-	typ eval.PType
+	typ eval.Type
 }
 
 var Iterable_Type eval.ObjectType
@@ -22,7 +22,7 @@ func init() {
 					value => Any
 				},
 			}
-		}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewIterableType2(args...)
 		})
 }
@@ -31,19 +31,19 @@ func DefaultIterableType() *IterableType {
 	return iterableType_DEFAULT
 }
 
-func NewIterableType(elementType eval.PType) *IterableType {
+func NewIterableType(elementType eval.Type) *IterableType {
 	if elementType == nil || elementType == anyType_DEFAULT {
 		return DefaultIterableType()
 	}
 	return &IterableType{elementType}
 }
 
-func NewIterableType2(args ...eval.PValue) *IterableType {
+func NewIterableType2(args ...eval.Value) *IterableType {
 	switch len(args) {
 	case 0:
 		return DefaultIterableType()
 	case 1:
-		containedType, ok := args[0].(eval.PType)
+		containedType, ok := args[0].(eval.Type)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Iterable[]`, 0, `Type`, args[0]))
 		}
@@ -58,7 +58,7 @@ func (t *IterableType) Accept(v eval.Visitor, g eval.Guard) {
 	t.typ.Accept(v, g)
 }
 
-func (t *IterableType) Default() eval.PType {
+func (t *IterableType) Default() eval.Type {
 	return iterableType_DEFAULT
 }
 
@@ -69,11 +69,11 @@ func (t *IterableType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *IterableType) Generic() eval.PType {
+func (t *IterableType) Generic() eval.Type {
 	return NewIterableType(eval.GenericType(t.typ))
 }
 
-func (t *IterableType) Get(key string) (value eval.PValue, ok bool) {
+func (t *IterableType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -81,8 +81,8 @@ func (t *IterableType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *IterableType) IsAssignable(o eval.PType, g eval.Guard) bool {
-	var et eval.PType
+func (t *IterableType) IsAssignable(o eval.Type, g eval.Guard) bool {
+	var et eval.Type
 	switch o.(type) {
 	case *ArrayType:
 		et = o.(*ArrayType).ElementType()
@@ -100,7 +100,7 @@ func (t *IterableType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return GuardedIsAssignable(t.typ, et, g)
 }
 
-func (t *IterableType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *IterableType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if iv, ok := o.(eval.IterableValue); ok {
 		return GuardedIsAssignable(t.typ, iv.ElementType(), g)
 	}
@@ -115,14 +115,14 @@ func (t *IterableType) Name() string {
 	return `Iterable`
 }
 
-func (t *IterableType) Parameters() []eval.PValue {
+func (t *IterableType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{t.typ}
+	return []eval.Value{t.typ}
 }
 
-func (t *IterableType) Resolve(c eval.Context) eval.PType {
+func (t *IterableType) Resolve(c eval.Context) eval.Type {
 	t.typ = resolve(c, t.typ)
 	return t
 }
@@ -131,7 +131,7 @@ func (t *IterableType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *IterableType) ElementType() eval.PType {
+func (t *IterableType) ElementType() eval.Type {
 	return t.typ
 }
 
@@ -139,7 +139,7 @@ func (t *IterableType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *IterableType) Type() eval.PType {
+func (t *IterableType) Type() eval.Type {
 	return &TypeType{t}
 }
 

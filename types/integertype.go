@@ -53,7 +53,7 @@ func init() {
     from => { type => Optional[Integer], value => undef },
     to => { type => Optional[Integer], value => undef }
   }
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewIntegerType2(args...)
 		})
 
@@ -68,7 +68,7 @@ func init() {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Radix`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				r := 10
 				abs := false
 				if len(args) > 1 {
@@ -89,7 +89,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				h := args[0].(*HashValue)
 				r := 10
 				abs := false
@@ -111,7 +111,7 @@ func init() {
 	)
 }
 
-func intFromConvertible(c eval.Context, from eval.PValue, radix int) int64 {
+func intFromConvertible(c eval.Context, from eval.Value, radix int) int64 {
 	switch from.(type) {
 	case *IntegerValue:
 		return from.(*IntegerValue).Int()
@@ -160,7 +160,7 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 	return &IntegerType{min, max}
 }
 
-func NewIntegerType2(limits ...eval.PValue) *IntegerType {
+func NewIntegerType2(limits ...eval.Value) *IntegerType {
 	argc := len(limits)
 	if argc == 0 {
 		return integerType_DEFAULT
@@ -191,7 +191,7 @@ func NewIntegerType2(limits ...eval.PValue) *IntegerType {
 	return NewIntegerType(min, max)
 }
 
-func (t *IntegerType) Default() eval.PType {
+func (t *IntegerType) Default() eval.Type {
 	return integerType_DEFAULT
 }
 
@@ -206,11 +206,11 @@ func (t *IntegerType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *IntegerType) Generic() eval.PType {
+func (t *IntegerType) Generic() eval.Type {
 	return integerType_DEFAULT
 }
 
-func (t *IntegerType) Get(key string) (eval.PValue, bool) {
+func (t *IntegerType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -229,14 +229,14 @@ func (t *IntegerType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *IntegerType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *IntegerType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if it, ok := o.(*IntegerType); ok {
 		return t.min <= it.min && t.max >= it.max
 	}
 	return false
 }
 
-func (t *IntegerType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *IntegerType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if n, ok := toInt(o); ok {
 		return t.IsInstance2(n)
 	}
@@ -271,25 +271,25 @@ func (t *IntegerType) Name() string {
 	return `Integer`
 }
 
-func (t *IntegerType) Parameters() []eval.PValue {
+func (t *IntegerType) Parameters() []eval.Value {
 	if t.min == math.MinInt64 {
 		if t.max == math.MaxInt64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.PValue{WrapDefault(), WrapInteger(t.max)}
+		return []eval.Value{WrapDefault(), WrapInteger(t.max)}
 	}
 	if t.max == math.MaxInt64 {
-		return []eval.PValue{WrapInteger(t.min)}
+		return []eval.Value{WrapInteger(t.min)}
 	}
-	return []eval.PValue{WrapInteger(t.min), WrapInteger(t.max)}
+	return []eval.Value{WrapInteger(t.min), WrapInteger(t.max)}
 }
 
 func (t *IntegerType) ReflectType() (reflect.Type, bool) {
 	return reflect.TypeOf(int64(0)), true
 }
 
-func (t *IntegerType) SizeParameters() []eval.PValue {
-	params := make([]eval.PValue, 2)
+func (t *IntegerType) SizeParameters() []eval.Value {
+	params := make([]eval.Value, 2)
 	params[0] = WrapInteger(t.min)
 	if t.max == math.MaxInt64 {
 		params[1] = WrapDefault()
@@ -307,7 +307,7 @@ func (t *IntegerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *IntegerType) Type() eval.PType {
+func (t *IntegerType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -469,6 +469,6 @@ func integerPrefixRadix(c byte) string {
 	}
 }
 
-func (iv *IntegerValue) Type() eval.PType {
+func (iv *IntegerValue) Type() eval.Type {
 	return (*IntegerType)(iv)
 }

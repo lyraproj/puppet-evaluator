@@ -26,8 +26,8 @@ func init() {
 			value => false
 		}
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
-			enumArgs := args[0].(eval.IndexedValue).AppendTo([]eval.PValue{})
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+			enumArgs := args[0].(eval.List).AppendTo([]eval.Value{})
 			return NewEnumType2(append(enumArgs, args[1:]...)...)
 		})
 }
@@ -50,11 +50,11 @@ func NewEnumType(enums []string, caseInsensitive bool) *EnumType {
 	return &EnumType{caseInsensitive, enums}
 }
 
-func NewEnumType2(args ...eval.PValue) *EnumType {
+func NewEnumType2(args ...eval.Value) *EnumType {
 	return NewEnumType3(WrapArray(args))
 }
 
-func NewEnumType3(args eval.IndexedValue) *EnumType {
+func NewEnumType3(args eval.List) *EnumType {
 	if args.Len() == 0 {
 		return DefaultEnumType()
 	}
@@ -73,7 +73,7 @@ func NewEnumType3(args eval.IndexedValue) *EnumType {
 		}
 	} else {
 		enums = make([]string, top)
-		args.EachWithIndex(func(arg eval.PValue, idx int) {
+		args.EachWithIndex(func(arg eval.Value, idx int) {
 			str, ok := arg.(*StringValue)
 			if !ok {
 				if ci, ok := arg.(*BooleanValue); ok && idx == top-1 {
@@ -92,7 +92,7 @@ func (t *EnumType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *EnumType) Default() eval.PType {
+func (t *EnumType) Default() eval.Type {
 	return enumType_DEFAULT
 }
 
@@ -103,11 +103,11 @@ func (t *EnumType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *EnumType) Generic() eval.PType {
+func (t *EnumType) Generic() eval.Type {
 	return enumType_DEFAULT
 }
 
-func (t *EnumType) Get(key string) (eval.PValue, bool) {
+func (t *EnumType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `values`:
 		return WrapArray(t.pvalues()), true
@@ -118,7 +118,7 @@ func (t *EnumType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *EnumType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if len(t.values) == 0 {
 		switch o.(type) {
 		case *StringType, *EnumType, *PatternType:
@@ -145,7 +145,7 @@ func (t *EnumType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	return false
 }
 
-func (t *EnumType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *EnumType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if str, ok := o.(*StringValue); ok {
 		if len(t.values) == 0 {
 			return true
@@ -179,7 +179,7 @@ func (t *EnumType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *EnumType) Parameters() []eval.PValue {
+func (t *EnumType) Parameters() []eval.Value {
 	result := t.pvalues()
 	if t.caseInsensitive {
 		result = append(result, Boolean_TRUE)
@@ -191,16 +191,16 @@ func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, f, g)
 }
 
-func (t *EnumType) Type() eval.PType {
+func (t *EnumType) Type() eval.Type {
 	return &TypeType{t}
 }
 
-func (t *EnumType) pvalues() []eval.PValue {
+func (t *EnumType) pvalues() []eval.Value {
 	top := len(t.values)
 	if top == 0 {
 		return eval.EMPTY_VALUES
 	}
-	v := make([]eval.PValue, top)
+	v := make([]eval.Value, top)
 	for idx, e := range t.values {
 		v[idx] = WrapString(e)
 	}

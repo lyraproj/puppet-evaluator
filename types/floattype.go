@@ -35,7 +35,7 @@ func init() {
     from => { type => Optional[Float], value => undef },
     to => { type => Optional[Float], value => undef }
   }
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewFloatType2(args...)
 		})
 
@@ -48,14 +48,14 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return numberFromPositionalArgs(args, false)
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return numberFromNamedArgs(args, false)
 			})
 		},
@@ -76,7 +76,7 @@ func NewFloatType(min float64, max float64) *FloatType {
 	return &FloatType{min, max}
 }
 
-func NewFloatType2(limits ...eval.PValue) *FloatType {
+func NewFloatType2(limits ...eval.Value) *FloatType {
 	argc := len(limits)
 	if argc == 0 {
 		return floatType_DEFAULT
@@ -110,7 +110,7 @@ func (t *FloatType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *FloatType) Default() eval.PType {
+func (t *FloatType) Default() eval.Type {
 	return floatType_DEFAULT
 }
 
@@ -121,11 +121,11 @@ func (t *FloatType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *FloatType) Generic() eval.PType {
+func (t *FloatType) Generic() eval.Type {
 	return floatType_DEFAULT
 }
 
-func (t *FloatType) Get(key string) (eval.PValue, bool) {
+func (t *FloatType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -144,14 +144,14 @@ func (t *FloatType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *FloatType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *FloatType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if ft, ok := o.(*FloatType); ok {
 		return t.min <= ft.min && t.max >= ft.max
 	}
 	return false
 }
 
-func (t *FloatType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *FloatType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if n, ok := toFloat(o); ok {
 		return t.min <= n && n <= t.max
 	}
@@ -174,17 +174,17 @@ func (t *FloatType) Name() string {
 	return `Float`
 }
 
-func (t *FloatType) Parameters() []eval.PValue {
+func (t *FloatType) Parameters() []eval.Value {
 	if t.min == -math.MaxFloat64 {
 		if t.max == math.MaxFloat64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.PValue{WrapDefault(), WrapFloat(t.max)}
+		return []eval.Value{WrapDefault(), WrapFloat(t.max)}
 	}
 	if t.max == math.MaxFloat64 {
-		return []eval.PValue{WrapFloat(t.min)}
+		return []eval.Value{WrapFloat(t.min)}
 	}
-	return []eval.PValue{WrapFloat(t.min), WrapFloat(t.max)}
+	return []eval.Value{WrapFloat(t.min), WrapFloat(t.max)}
 }
 
 func (t *FloatType) ReflectType() (reflect.Type, bool) {
@@ -203,7 +203,7 @@ func (t *FloatType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-func (t *FloatType) Type() eval.PType {
+func (t *FloatType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -360,6 +360,6 @@ func floatGFormat(f eval.Format, value float64) string {
 	return b.String()
 }
 
-func (fv *FloatValue) Type() eval.PType {
+func (fv *FloatValue) Type() eval.Type {
 	return (*FloatType)(fv)
 }

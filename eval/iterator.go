@@ -6,27 +6,27 @@ type (
 
 		Any(predicate Predicate) bool
 
-		AsArray() IndexedValue
+		AsArray() List
 
 		Each(consumer Consumer)
 
 		EachWithIndex(consumer BiConsumer)
 
-		ElementType() PType
+		ElementType() Type
 
-		Find(predicate Predicate) PValue
+		Find(predicate Predicate) Value
 
-		Find2(predicate Predicate, dflt PValue) PValue
+		Find2(predicate Predicate, dflt Value) Value
 
-		Find3(predicate Predicate, dflt Producer) PValue
+		Find3(predicate Predicate, dflt Producer) Value
 
-		Map(elementType PType, function Mapper) IteratorValue
+		Map(elementType Type, function Mapper) IteratorValue
 
-		Next() (PValue, bool)
+		Next() (Value, bool)
 
-		Reduce(redactor BiMapper) PValue
+		Reduce(redactor BiMapper) Value
 
-		Reduce2(initialValue PValue, redactor BiMapper) PValue
+		Reduce2(initialValue Value, redactor BiMapper) Value
 
 		Reject(predicate Predicate) IteratorValue
 

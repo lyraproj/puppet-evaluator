@@ -9,7 +9,7 @@ import (
 )
 
 type NotUndefType struct {
-	typ eval.PType
+	typ eval.Type
 }
 
 var NotUndef_Type eval.ObjectType
@@ -23,7 +23,7 @@ func init() {
 					value => Any
 				},
 			}
-		}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewNotUndefType2(args...)
 		})
 }
@@ -32,19 +32,19 @@ func DefaultNotUndefType() *NotUndefType {
 	return notUndefType_DEFAULT
 }
 
-func NewNotUndefType(containedType eval.PType) *NotUndefType {
+func NewNotUndefType(containedType eval.Type) *NotUndefType {
 	if containedType == nil || containedType == anyType_DEFAULT {
 		return DefaultNotUndefType()
 	}
 	return &NotUndefType{containedType}
 }
 
-func NewNotUndefType2(args ...eval.PValue) *NotUndefType {
+func NewNotUndefType2(args ...eval.Value) *NotUndefType {
 	switch len(args) {
 	case 0:
 		return DefaultNotUndefType()
 	case 1:
-		if containedType, ok := args[0].(eval.PType); ok {
+		if containedType, ok := args[0].(eval.Type); ok {
 			return NewNotUndefType(containedType)
 		}
 		if containedType, ok := args[0].(*StringValue); ok {
@@ -65,11 +65,11 @@ func (t *NotUndefType) Accept(v eval.Visitor, g eval.Guard) {
 	t.typ.Accept(v, g)
 }
 
-func (t *NotUndefType) ContainedType() eval.PType {
+func (t *NotUndefType) ContainedType() eval.Type {
 	return t.typ
 }
 
-func (t *NotUndefType) Default() eval.PType {
+func (t *NotUndefType) Default() eval.Type {
 	return notUndefType_DEFAULT
 }
 
@@ -80,11 +80,11 @@ func (t *NotUndefType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *NotUndefType) Generic() eval.PType {
+func (t *NotUndefType) Generic() eval.Type {
 	return NewNotUndefType(eval.GenericType(t.typ))
 }
 
-func (t *NotUndefType) Get(key string) (value eval.PValue, ok bool) {
+func (t *NotUndefType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -92,11 +92,11 @@ func (t *NotUndefType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *NotUndefType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *NotUndefType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return !GuardedIsAssignable(o, undefType_DEFAULT, g) && GuardedIsAssignable(t.typ, o, g)
 }
 
-func (t *NotUndefType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *NotUndefType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return o != _UNDEF && GuardedIsInstance(t.typ, o, g)
 }
 
@@ -108,17 +108,17 @@ func (t *NotUndefType) Name() string {
 	return `NotUndef`
 }
 
-func (t *NotUndefType) Parameters() []eval.PValue {
+func (t *NotUndefType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
 	if str, ok := t.typ.(*StringType); ok && str.value != `` {
-		return []eval.PValue{WrapString(str.value)}
+		return []eval.Value{WrapString(str.value)}
 	}
-	return []eval.PValue{t.typ}
+	return []eval.Value{t.typ}
 }
 
-func (t *NotUndefType) Resolve(c eval.Context) eval.PType {
+func (t *NotUndefType) Resolve(c eval.Context) eval.Type {
 	t.typ = resolve(c, t.typ)
 	return t
 }
@@ -135,7 +135,7 @@ func (t *NotUndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *NotUndefType) Type() eval.PType {
+func (t *NotUndefType) Type() eval.Type {
 	return &TypeType{t}
 }
 

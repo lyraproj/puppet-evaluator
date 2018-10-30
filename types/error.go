@@ -21,10 +21,10 @@ func init() {
 		  partial_result => { type => Data, value => undef },
 	  	details => { type => Optional[Hash[String[1],Data]], value => undef },
 		}}`,
-		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		func(ctx eval.Context, args []eval.Value) eval.Value {
 			return newError2(ctx, args...)
 		},
-		func(ctx eval.Context, args []eval.PValue) eval.PValue {
+		func(ctx eval.Context, args []eval.Value) eval.Value {
 			return newErrorFromHash(ctx, args[0].(*HashValue))
 		})
 
@@ -33,15 +33,15 @@ func init() {
 }
 
 type errorObj struct {
-	typ           eval.PType
+	typ           eval.Type
 	message       string
 	kind          string
 	issueCode     string
-	partialResult eval.PValue
-	details       eval.KeyedValue
+	partialResult eval.Value
+	details       eval.OrderedMap
 }
 
-func newError2(c eval.Context, args ...eval.PValue) eval.ErrorObject {
+func newError2(c eval.Context, args ...eval.Value) eval.ErrorObject {
 	nargs := len(args)
 	ev := &errorObj{partialResult: eval.UNDEF, details: eval.EMPTY_MAP}
 	ev.message = args[0].String()
@@ -61,7 +61,7 @@ func newError2(c eval.Context, args ...eval.PValue) eval.ErrorObject {
 	return ev
 }
 
-func newError(c eval.Context, message, kind, issueCode string, partialResult eval.PValue, details eval.KeyedValue) eval.ErrorObject {
+func newError(c eval.Context, message, kind, issueCode string, partialResult eval.Value, details eval.OrderedMap) eval.ErrorObject {
 	if partialResult == nil {
 		partialResult = eval.UNDEF
 	}
@@ -91,12 +91,12 @@ func newErrorFromHash(c eval.Context, hash *HashValue) eval.ErrorObject {
 	ev.kind = hash.Get5(`kind`, eval.EMPTY_STRING).String()
 	ev.issueCode = hash.Get5(`issue_code`, eval.EMPTY_STRING).String()
 	ev.partialResult = hash.Get5(`partial_result`, eval.UNDEF)
-	ev.details = hash.Get5(`details`, eval.EMPTY_MAP).(eval.KeyedValue)
+	ev.details = hash.Get5(`details`, eval.EMPTY_MAP).(eval.OrderedMap)
 	ev.initType(c)
 	return ev
 }
 
-func (e *errorObj) Details() eval.KeyedValue {
+func (e *errorObj) Details() eval.OrderedMap {
 	return e.details
 }
 
@@ -112,7 +112,7 @@ func (e *errorObj) Message() string {
 	return e.message
 }
 
-func (e *errorObj) PartialResult() eval.PValue {
+func (e *errorObj) PartialResult() eval.Value {
 	return e.partialResult
 }
 
@@ -133,11 +133,11 @@ func (e *errorObj) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	ObjectToString(e, s, b, g)
 }
 
-func (e *errorObj) Type() eval.PType {
+func (e *errorObj) Type() eval.Type {
 	return e.typ
 }
 
-func (e *errorObj) Get(key string) (value eval.PValue, ok bool) {
+func (e *errorObj) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `message`:
 		return WrapString(e.message), true
@@ -154,7 +154,7 @@ func (e *errorObj) Get(key string) (value eval.PValue, ok bool) {
 	}
 }
 
-func (e *errorObj) InitHash() eval.KeyedValue {
+func (e *errorObj) InitHash() eval.OrderedMap {
 	entries := []*HashEntry{WrapHashEntry2(`message`, WrapString(e.message))}
 	if e.kind != `` {
 		entries = append(entries, WrapHashEntry2(`kind`, WrapString(e.kind)))
@@ -182,6 +182,6 @@ func (e *errorObj) initType(c eval.Context) {
 		if e.issueCode != `` {
 			params = append(params, WrapHashEntry2(`issue_code`, WrapString(e.issueCode)))
 		}
-		e.typ = NewObjectTypeExtension(c, errorType, []eval.PValue{WrapHash(params)})
+		e.typ = NewObjectTypeExtension(c, errorType, []eval.Value{WrapHash(params)})
 	}
 }

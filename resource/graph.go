@@ -14,20 +14,20 @@ type (
 		graph.Directed
 
 		// Nodes returns all resource nodes, sorted by file, line, pos
-		AllNodes() eval.IndexedValue
+		AllNodes() eval.List
 
 		// RootNodes returns the root nodes, sorted by file, line, pos
-		RootNodes() eval.IndexedValue
+		RootNodes() eval.List
 
 		// Edges returns all edges extending from the given node, sorted by file, line, pos of the
 		// node appointed by the edge
-		Edges(from Node) eval.IndexedValue
+		Edges(from Node) eval.List
 
 		// FromNode returns all nodes that the given node has edges to, sorted by file, line, pos
-		FromNode(Node) eval.IndexedValue
+		FromNode(Node) eval.List
 
 		// ToNode returns all nodes that has edges to the given node, sorted by file, line, pos
-		ToNode(Node) eval.IndexedValue
+		ToNode(Node) eval.List
 	}
 
 	concurrentGraph struct {
@@ -47,17 +47,17 @@ func (cg *concurrentGraph) Has(id int64) bool {
 	return result
 }
 
-func (cg *concurrentGraph) AllNodes() eval.IndexedValue {
+func (cg *concurrentGraph) AllNodes() eval.List {
 	return nodeList(cg.Nodes())
 }
 
-func (cg *concurrentGraph) Edges(from Node) eval.IndexedValue {
-	return cg.FromNode(from).Map(func(to eval.PValue) eval.PValue {
+func (cg *concurrentGraph) Edges(from Node) eval.List {
+	return cg.FromNode(from).Map(func(to eval.Value) eval.Value {
 		return cg.Edge(from.ID(), to.(Node).ID()).(Edge)
 	})
 }
 
-func (cg *concurrentGraph) RootNodes() eval.IndexedValue {
+func (cg *concurrentGraph) RootNodes() eval.List {
 	roots := make([]graph.Node, 0)
 	cg.lock.RLock()
 	for _, n := range cg.g.Nodes() {
@@ -69,7 +69,7 @@ func (cg *concurrentGraph) RootNodes() eval.IndexedValue {
 	return nodeList(roots)
 }
 
-func (cg *concurrentGraph) FromNode(n Node) eval.IndexedValue {
+func (cg *concurrentGraph) FromNode(n Node) eval.List {
 	return nodeList(cg.From(n.ID()))
 }
 
@@ -121,7 +121,7 @@ func (cg *concurrentGraph) To(id int64) []graph.Node {
 	return result
 }
 
-func (cg *concurrentGraph) ToNode(n Node) eval.IndexedValue {
+func (cg *concurrentGraph) ToNode(n Node) eval.List {
 	return nodeList(cg.To(n.ID()))
 }
 
@@ -160,16 +160,16 @@ func (cg *concurrentGraph) SetEdge(e graph.Edge) {
 	cg.g.SetEdge(e)
 }
 
-func nodeList(nodes []graph.Node) eval.IndexedValue {
-	rs := make([]eval.PValue, len(nodes))
+func nodeList(nodes []graph.Node) eval.List {
+	rs := make([]eval.Value, len(nodes))
 	for i, n := range nodes {
-		rs[i] = n.(eval.PValue)
+		rs[i] = n.(eval.Value)
 	}
 	return sortByLocation(rs)
 }
 
-func sortByLocation(nodes []eval.PValue) eval.IndexedValue {
-	return types.WrapArray(nodes).Sort(func(a, b eval.PValue) bool {
+func sortByLocation(nodes []eval.Value) eval.List {
+	return types.WrapArray(nodes).Sort(func(a, b eval.Value) bool {
 		l1 := a.(issue.Located).Location()
 		l2 := b.(issue.Located).Location()
 		if l1.File() == l2.File() {

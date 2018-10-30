@@ -12,7 +12,7 @@ import (
 //   string comparisons are case insensitive
 //
 func init() {
-	eval.PuppetEquals = func(a eval.PValue, b eval.PValue) bool {
+	eval.PuppetEquals = func(a eval.Value, b eval.Value) bool {
 		switch a.(type) {
 		case *types.StringValue:
 			bs, ok := b.(*types.StringValue)
@@ -37,7 +37,7 @@ func init() {
 				lhs := a.(*types.ArrayValue)
 				if lhs.Len() == rhs.Len() {
 					idx := 0
-					return lhs.All(func(el eval.PValue) bool {
+					return lhs.All(func(el eval.Value) bool {
 						eq := eval.PuppetEquals(el, rhs.At(idx))
 						idx++
 						return eq
@@ -49,7 +49,7 @@ func init() {
 			if rhs, ok := b.(*types.HashValue); ok {
 				lhs := a.(*types.HashValue)
 				if lhs.Len() == rhs.Len() {
-					return lhs.AllPairs(func(key, value eval.PValue) bool {
+					return lhs.AllPairs(func(key, value eval.Value) bool {
 						rhsValue, ok := rhs.Get(key)
 						return ok && eval.PuppetEquals(value, rhsValue)
 					})

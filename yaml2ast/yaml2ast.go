@@ -34,7 +34,7 @@ func YamlToAST(c eval.Context, filename string, content []byte) parser.Expressio
 // EvaluateYaml calls YamlToAST to parse and transform the given YAML content into
 // a Puppet AST which is then evaluated by the eval.Evaluator obtained from the given
 // eval.Context. The result of the evaluation is returned.
-func EvaluateYaml(c eval.Context, filename string, content []byte) eval.PValue {
+func EvaluateYaml(c eval.Context, filename string, content []byte) eval.Value {
 	c.SetLanguage(eval.LangYAML)
 	return eval.Evaluate(c, YamlToAST(c, filename, content))
 }

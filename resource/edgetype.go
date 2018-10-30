@@ -22,9 +22,9 @@ func init() {
 type (
 	Edge interface {
 		graph.Edge
-		eval.PValue
+		eval.Value
 		Subscribe() bool
-		Value() eval.PValue
+		Value() eval.Value
 	}
 
 	// edge denotes a relationship between two ResourceNodes
@@ -50,22 +50,22 @@ func (re *edge) From() graph.Node {
 	return re.from
 }
 
-func (re *edge) Get(key string) (value eval.PValue, ok bool) {
+func (re *edge) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `from`:
-		return re.from.(eval.PValue), true
+		return re.from.(eval.Value), true
 	case `to`:
-		return re.to.(eval.PValue), true
+		return re.to.(eval.Value), true
 	case `subscribe`:
 		return types.WrapBoolean(re.subscribe), true
 	}
 	return eval.UNDEF, false
 }
 
-func (re *edge) InitHash() eval.KeyedValue {
-	return types.WrapHash3(map[string]eval.PValue{
-		`from`:      re.from.(eval.PValue),
-		`to`:        re.to.(eval.PValue),
+func (re *edge) InitHash() eval.OrderedMap {
+	return types.WrapHash3(map[string]eval.Value{
+		`from`:      re.from.(eval.Value),
+		`to`:        re.to.(eval.Value),
 		`subscribe`: types.WrapBoolean(re.subscribe),
 	})
 }
@@ -86,10 +86,10 @@ func (re *edge) To() graph.Node {
 	return re.to
 }
 
-func (re *edge) Type() eval.PType {
+func (re *edge) Type() eval.Type {
 	return Edge_Type
 }
 
-func (re *edge) Value() eval.PValue {
+func (re *edge) Value() eval.Value {
 	return re.to.(Node).Value()
 }

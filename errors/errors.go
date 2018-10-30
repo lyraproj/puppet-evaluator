@@ -18,12 +18,12 @@ type (
 
 	NextIteration struct {
 		Breaker
-		value eval.PValue
+		value eval.Value
 	}
 
 	Return struct {
 		Breaker
-		value eval.PValue
+		value eval.Value
 	}
 
 	InstantiationError interface {
@@ -147,18 +147,18 @@ func NewStopIteration(location issue.Location) *StopIteration {
 	return &StopIteration{Breaker{location}}
 }
 
-func NewNextIteration(location issue.Location, value eval.PValue) *NextIteration {
+func NewNextIteration(location issue.Location, value eval.Value) *NextIteration {
 	return &NextIteration{Breaker{location}, value}
 }
 
-func (e *NextIteration) Value() eval.PValue {
+func (e *NextIteration) Value() eval.Value {
 	return e.value
 }
 
-func NewReturn(location issue.Location, value eval.PValue) *Return {
+func NewReturn(location issue.Location, value eval.Value) *Return {
 	return &Return{Breaker{location}, value}
 }
 
-func (e *Return) Value() eval.PValue {
+func (e *Return) Value() eval.Value {
 	return e.value
 }

@@ -60,7 +60,7 @@ var builtinResourceTypes = [...]string{
 	`Zpool`,
 }
 
-var resultType, resultSetType eval.PType
+var resultType, resultSetType eval.Type
 
 func InitBuiltinResources(c eval.Context) {
 	initResourceType(c)
@@ -73,9 +73,9 @@ func InitBuiltinResources(c eval.Context) {
       'error' => { type => Boolean, kind => derived },
       'ok' => { type => Boolean, kind => derived }
     }
-  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+  }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewResult2(args...)
-	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewResultFromHash(args[0].(*types.HashValue))
 	})
 
@@ -93,9 +93,9 @@ func InitBuiltinResources(c eval.Context) {
       ok_set => Callable[[], ResultSet],
       '[]' => Callable[[Variant[ScalarData, Type[Resource]]], Optional[Result]],
     }
-  }`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+  }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewResultSet(args...)
-	}, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewResultSetFromHash(args[0].(*types.HashValue))
 	})
 
@@ -105,13 +105,13 @@ func InitBuiltinResources(c eval.Context) {
 			eval.NewGoConstructor(name,
 				func(d eval.Dispatch) {
 					d.Param(`Hash[String,Any]`)
-					d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+					d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 						typ, _ := eval.Load(c, eval.NewTypedName(eval.TYPE, name))
 						hash := args[0].(*types.HashValue)
 						return types.NewObjectValue2(c, typ.(eval.ObjectType), types.WrapHash3(
-							map[string]eval.PValue{
+							map[string]eval.Value{
 								`title`: hash.Get5(`title`, eval.EMPTY_STRING),
-								`values`: hash.RejectPairs(func(k, v eval.PValue) bool {
+								`values`: hash.RejectPairs(func(k, v eval.Value) bool {
 									return k.String() == `title`
 								})}))
 					})

@@ -9,7 +9,7 @@ import (
 )
 
 // CommonType returns a type that both a and b are assignable to
-func commonType(a eval.PType, b eval.PType) eval.PType {
+func commonType(a eval.Type, b eval.Type) eval.Type {
 	if isAssignable(a, b) {
 		return a
 	}
@@ -137,23 +137,23 @@ func commonType(a eval.PType, b eval.PType) eval.PType {
 	return anyType_DEFAULT
 }
 
-func isCommonNumeric(a eval.PType, b eval.PType) bool {
+func isCommonNumeric(a eval.Type, b eval.Type) bool {
 	return isAssignable(numericType_DEFAULT, a) && isAssignable(numericType_DEFAULT, b)
 }
 
-func isCommonScalarData(a eval.PType, b eval.PType) bool {
+func isCommonScalarData(a eval.Type, b eval.Type) bool {
 	return isAssignable(scalarDataType_DEFAULT, a) && isAssignable(scalarDataType_DEFAULT, b)
 }
 
-func isCommonScalar(a eval.PType, b eval.PType) bool {
+func isCommonScalar(a eval.Type, b eval.Type) bool {
 	return isAssignable(scalarType_DEFAULT, a) && isAssignable(scalarType_DEFAULT, b)
 }
 
-func isCommonData(a eval.PType, b eval.PType) bool {
+func isCommonData(a eval.Type, b eval.Type) bool {
 	return isAssignable(dataType_DEFAULT, a) && isAssignable(dataType_DEFAULT, b)
 }
 
-func isCommonRichData(a eval.PType, b eval.PType) bool {
+func isCommonRichData(a eval.Type, b eval.Type) bool {
 	return isAssignable(richDataType_DEFAULT, a) && isAssignable(richDataType_DEFAULT, b)
 }
 

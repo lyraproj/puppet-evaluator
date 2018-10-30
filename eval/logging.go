@@ -13,7 +13,7 @@ type (
 	LogLevel string
 
 	Logger interface {
-		Log(level LogLevel, args ...PValue)
+		Log(level LogLevel, args ...Value)
 
 		Logf(level LogLevel, format string, args ...interface{})
 
@@ -71,7 +71,7 @@ func NewStdLogger() Logger {
 	return &stdlog{}
 }
 
-func (l *stdlog) Log(level LogLevel, args ...PValue) {
+func (l *stdlog) Log(level LogLevel, args ...Value) {
 	w := l.writerFor(level)
 	fmt.Fprintf(w, `%s: `, level)
 	for _, arg := range args {
@@ -114,7 +114,7 @@ func (l *ArrayLogger) Entries(level LogLevel) []LogEntry {
 	return result
 }
 
-func (l *ArrayLogger) Log(level LogLevel, args ...PValue) {
+func (l *ArrayLogger) Log(level LogLevel, args ...Value) {
 	w := bytes.NewBufferString(``)
 	for _, arg := range args {
 		ToString3(arg, w)

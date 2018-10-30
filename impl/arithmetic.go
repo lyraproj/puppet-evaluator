@@ -10,11 +10,11 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.Context) eval.PValue {
+func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.Context) eval.Value {
 	return e.calculate(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c), c)
 }
 
-func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue, c eval.Context) eval.PValue {
+func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value, c eval.Context) eval.Value {
 	op := expr.Operator()
 	switch a.(type) {
 	case *types.HashValue, *types.ArrayValue, *types.UriValue:
@@ -49,7 +49,7 @@ func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.PValue, 
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
 }
 
-func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.PValue) eval.PValue {
+func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch b.(type) {
 	case *types.IntegerValue:
@@ -70,7 +70,7 @@ func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64
 	}
 }
 
-func (e *evaluator) lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.PValue) eval.PValue {
+func (e *evaluator) lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch b.(type) {
 	case *types.FloatValue:
@@ -127,7 +127,7 @@ func (e *evaluator) intArithmetic(expr *parser.ArithmeticExpression, a int64, b 
 	}
 }
 
-func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue) eval.PValue {
+func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
 	switch a.(type) {
 	case *types.ArrayValue:
 		av := a.(*types.ArrayValue)
@@ -169,7 +169,7 @@ func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.PValue
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.Type(), `right`: b.Type()}))
 }
 
-func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.PValue, b eval.PValue) eval.PValue {
+func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
 	switch a.(type) {
 	case *types.ArrayValue:
 		av := a.(*types.ArrayValue)

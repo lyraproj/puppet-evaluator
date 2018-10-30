@@ -6,7 +6,7 @@ import (
 	"github.com/puppetlabs/data-protobuf/datapb"
 )
 
-func ToPBData(v eval.PValue) (value *datapb.Data) {
+func ToPBData(v eval.Value) (value *datapb.Data) {
 	switch v.(type) {
 	case *types.BooleanValue:
 		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{v.(*types.BooleanValue).Bool()}}
@@ -21,14 +21,14 @@ func ToPBData(v eval.PValue) (value *datapb.Data) {
 	case *types.ArrayValue:
 		av := v.(*types.ArrayValue)
 		vals := make([]*datapb.Data, av.Len())
-		av.EachWithIndex(func(elem eval.PValue, i int) {
+		av.EachWithIndex(func(elem eval.Value, i int) {
 			vals[i] = ToPBData(elem)
 		})
 		value = &datapb.Data{Kind: &datapb.Data_ArrayValue{&datapb.DataArray{vals}}}
 	case *types.HashValue:
 		av := v.(*types.HashValue)
 		vals := make([]*datapb.DataEntry, av.Len())
-		av.EachWithIndex(func(elem eval.PValue, i int) {
+		av.EachWithIndex(func(elem eval.Value, i int) {
 			entry := elem.(*types.HashEntry)
 			vals[i] = &datapb.DataEntry{entry.Key().String(), ToPBData(entry.Value())}
 		})
@@ -39,7 +39,7 @@ func ToPBData(v eval.PValue) (value *datapb.Data) {
 	return
 }
 
-func FromPBData(v *datapb.Data) (value eval.PValue) {
+func FromPBData(v *datapb.Data) (value eval.Value) {
 	switch v.Kind.(type) {
 	case *datapb.Data_BooleanValue:
 		value = types.WrapBoolean(v.GetBooleanValue())
@@ -53,7 +53,7 @@ func FromPBData(v *datapb.Data) (value eval.PValue) {
 		value = eval.UNDEF
 	case *datapb.Data_ArrayValue:
 		av := v.GetArrayValue().GetValues()
-		vals := make([]eval.PValue, len(av))
+		vals := make([]eval.Value, len(av))
 		for i, elem := range av {
 			vals[i] = FromPBData(elem)
 		}

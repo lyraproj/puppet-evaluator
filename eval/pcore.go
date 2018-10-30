@@ -39,10 +39,10 @@ type (
 
 		// Get returns a setting or calls the given defaultProducer
 		// function if the setting does not exist
-		Get(key string, defaultProducer Producer) PValue
+		Get(key string, defaultProducer Producer) Value
 
 		// Set changes a setting
-		Set(key string, value PValue)
+		Set(key string, value Value)
 
 		// Do executes a given function with an initialized Context instance. The
 		// Context will be parented by the Go context returned by context.Background()
@@ -72,7 +72,7 @@ type (
 
 		// DefineSetting defines a new setting with a given valueType and default
 		// value.
-		DefineSetting(key string, valueType PType, dflt PValue)
+		DefineSetting(key string, valueType Type, dflt Value)
 	}
 )
 
@@ -89,9 +89,9 @@ var PARSABLE_PCORE_VERSIONS, _ = semver.ParseVersionRange(`1.x`)
 
 var Puppet Pcore = nil
 
-func GetSetting(name string, dflt PValue) PValue {
+func GetSetting(name string, dflt Value) Value {
 	if Puppet == nil {
 		return dflt
 	}
-	return Puppet.Get(name, func() PValue { return dflt })
+	return Puppet.Get(name, func() Value { return dflt })
 }

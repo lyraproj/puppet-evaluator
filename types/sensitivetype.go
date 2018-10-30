@@ -11,25 +11,25 @@ var sensitiveType_DEFAULT = &SensitiveType{typ: anyType_DEFAULT}
 
 type (
 	SensitiveType struct {
-		typ eval.PType
+		typ eval.Type
 	}
 
 	SensitiveValue struct {
-		value eval.PValue
+		value eval.Value
 	}
 )
 
 var Sensitive_Type eval.ObjectType
 
 func init() {
-	Sensitive_Type = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Sensitive_Type = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultSensitiveType()
 	})
 
 	newGoConstructor(`Sensitive`,
 		func(d eval.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return WrapSensitive(args[0])
 			})
 		})
@@ -39,19 +39,19 @@ func DefaultSensitiveType() *SensitiveType {
 	return sensitiveType_DEFAULT
 }
 
-func NewSensitiveType(containedType eval.PType) *SensitiveType {
+func NewSensitiveType(containedType eval.Type) *SensitiveType {
 	if containedType == nil || containedType == anyType_DEFAULT {
 		return DefaultSensitiveType()
 	}
 	return &SensitiveType{containedType}
 }
 
-func NewSensitiveType2(args ...eval.PValue) *SensitiveType {
+func NewSensitiveType2(args ...eval.Value) *SensitiveType {
 	switch len(args) {
 	case 0:
 		return DefaultSensitiveType()
 	case 1:
-		if containedType, ok := args[0].(eval.PType); ok {
+		if containedType, ok := args[0].(eval.Type); ok {
 			return NewSensitiveType(containedType)
 		}
 		panic(NewIllegalArgumentType2(`Sensitive[]`, 0, `Type`, args[0]))
@@ -60,7 +60,7 @@ func NewSensitiveType2(args ...eval.PValue) *SensitiveType {
 	}
 }
 
-func (t *SensitiveType) ContainedType() eval.PType {
+func (t *SensitiveType) ContainedType() eval.Type {
 	return t.typ
 }
 
@@ -69,7 +69,7 @@ func (t *SensitiveType) Accept(v eval.Visitor, g eval.Guard) {
 	t.typ.Accept(v, g)
 }
 
-func (t *SensitiveType) Default() eval.PType {
+func (t *SensitiveType) Default() eval.Type {
 	return DefaultSensitiveType()
 }
 
@@ -80,18 +80,18 @@ func (t *SensitiveType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *SensitiveType) Generic() eval.PType {
+func (t *SensitiveType) Generic() eval.Type {
 	return NewSensitiveType(eval.GenericType(t.typ))
 }
 
-func (t *SensitiveType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *SensitiveType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if ot, ok := o.(*SensitiveType); ok {
 		return GuardedIsAssignable(t.typ, ot.typ, g)
 	}
 	return false
 }
 
-func (t *SensitiveType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *SensitiveType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if sv, ok := o.(*SensitiveValue); ok {
 		return GuardedIsInstance(t.typ, sv.Unwrap(), g)
 	}
@@ -106,14 +106,14 @@ func (t *SensitiveType) Name() string {
 	return `Sensitive`
 }
 
-func (t *SensitiveType) Parameters() []eval.PValue {
+func (t *SensitiveType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{t.typ}
+	return []eval.Value{t.typ}
 }
 
-func (t *SensitiveType) Resolve(c eval.Context) eval.PType {
+func (t *SensitiveType) Resolve(c eval.Context) eval.Type {
 	t.typ = resolve(c, t.typ)
 	return t
 }
@@ -122,7 +122,7 @@ func (t *SensitiveType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *SensitiveType) Type() eval.PType {
+func (t *SensitiveType) Type() eval.Type {
 	return &TypeType{t}
 }
 
@@ -130,7 +130,7 @@ func (t *SensitiveType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	TypeToString(t, b, s, g)
 }
 
-func WrapSensitive(val eval.PValue) *SensitiveValue {
+func WrapSensitive(val eval.Value) *SensitiveValue {
 	return &SensitiveValue{val}
 }
 
@@ -146,10 +146,10 @@ func (s *SensitiveValue) ToString(b io.Writer, f eval.FormatContext, g eval.RDet
 	io.WriteString(b, `Sensitive [value redacted]`)
 }
 
-func (s *SensitiveValue) Type() eval.PType {
+func (s *SensitiveValue) Type() eval.Type {
 	return NewSensitiveType(s.Unwrap().Type())
 }
 
-func (s *SensitiveValue) Unwrap() eval.PValue {
+func (s *SensitiveValue) Unwrap() eval.Value {
 	return s.value
 }

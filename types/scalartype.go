@@ -11,7 +11,7 @@ type ScalarType struct{}
 var Scalar_Type eval.ObjectType
 
 func init() {
-	Scalar_Type = newObjectType(`Pcore::ScalarType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Scalar_Type = newObjectType(`Pcore::ScalarType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultScalarType()
 	})
 }
@@ -29,7 +29,7 @@ func (t *ScalarType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *ScalarType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	switch o.(type) {
 	case *ScalarType, *ScalarDataType:
 		return true
@@ -41,7 +41,7 @@ func (t *ScalarType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *ScalarType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
 	// TODO: Add TimeSpanValue, TimestampValue, and VersionValue here
 	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue, *RegexpValue:
@@ -66,7 +66,7 @@ func (t *ScalarType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *ScalarType) Type() eval.PType {
+func (t *ScalarType) Type() eval.Type {
 	return &TypeType{t}
 }
 

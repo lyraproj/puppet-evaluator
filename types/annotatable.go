@@ -14,7 +14,7 @@ var annotationType_DEFAULT = &objectType{
 	functions:   hash.EMPTY_STRINGHASH,
 	equality:    nil}
 
-func DefaultAnnotationType() eval.PType {
+func DefaultAnnotationType() eval.Type {
 	return annotationType_DEFAULT
 }
 

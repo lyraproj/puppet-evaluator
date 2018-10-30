@@ -42,11 +42,11 @@ func nodeWorker(id int, nodeJobs <-chan *nodeJob, done chan<- bool) {
 }
 
 // Schedule the given nodes for evaluation
-func scheduleNodes(c eval.Context, nodes eval.IndexedValue) {
+func scheduleNodes(c eval.Context, nodes eval.List) {
 	if nodes.Len() > 0 {
 		jc := getJobCounter(c)
 		nodeJobs := getNodeJobs(c)
-		nodes.Each(func(ch eval.PValue) {
+		nodes.Each(func(ch eval.Value) {
 			jc.increment()
 			nd := ch.(*node)
 			nodeJobs <- &nodeJob{n: nd}

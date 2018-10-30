@@ -14,27 +14,27 @@ import (
 )
 
 func init() {
-	eval.PuppetMatch = func(c eval.Context, a, b eval.PValue) bool {
+	eval.PuppetMatch = func(c eval.Context, a, b eval.Value) bool {
 		return match(c, nil, nil, `=~`, false, a, b)
 	}
 }
 
-func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.Context) eval.PValue {
+func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.Context) eval.Value {
 	return types.WrapBoolean(e.doCompare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c), c))
 }
 
-func (e *evaluator) doCompare(expr parser.Expression, op string, a, b eval.PValue, c eval.Context) bool {
+func (e *evaluator) doCompare(expr parser.Expression, op string, a, b eval.Value, c eval.Context) bool {
 	if c.Language() == eval.LangJavaScript {
 		return e.jsCompare(expr, op, a, b)
 	}
 	return e.compare(expr, op, a, b)
 }
 
-func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.Context) eval.PValue {
+func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.Context) eval.Value {
 	return types.WrapBoolean(match(c, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
 }
 
-func (e *evaluator) jsCompare(expr parser.Expression, op string, a, b eval.PValue) bool {
+func (e *evaluator) jsCompare(expr parser.Expression, op string, a, b eval.Value) bool {
 	var result bool
 	switch op {
 	case `==`:
@@ -52,7 +52,7 @@ func (e *evaluator) jsCompare(expr parser.Expression, op string, a, b eval.PValu
 }
 
 // JsEquals performs JavaScript style equals of x and y and returns the result.
-func JsEquals(x, y eval.PValue, strict bool) bool {
+func JsEquals(x, y eval.Value, strict bool) bool {
 	if x == y {
 		return true
 	}
@@ -128,7 +128,7 @@ func JsEquals(x, y eval.PValue, strict bool) bool {
 	return false
 }
 
-func (e *evaluator) compare(expr parser.Expression, op string, a eval.PValue, b eval.PValue) bool {
+func (e *evaluator) compare(expr parser.Expression, op string, a eval.Value, b eval.Value) bool {
 	var result bool
 	switch op {
 	case `==`:
@@ -141,13 +141,13 @@ func (e *evaluator) compare(expr parser.Expression, op string, a eval.PValue, b 
 	return result
 }
 
-func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.PValue, b eval.PValue, caseSensitive bool) bool {
+func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Value, caseSensitive bool) bool {
 	switch a.(type) {
-	case eval.PType:
-		left := a.(eval.PType)
+	case eval.Type:
+		left := a.(eval.Type)
 		switch b.(type) {
-		case eval.PType:
-			right := b.(eval.PType)
+		case eval.Type:
+			right := b.(eval.Type)
 			switch op {
 			case `<`:
 				return eval.IsAssignable(right, left) && !eval.Equals(left, right)
@@ -226,11 +226,11 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.P
 	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
 }
 
-func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.PValue, b eval.PValue) bool {
+func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.Value, b eval.Value) bool {
 	result := false
 	switch b.(type) {
-	case eval.PType:
-		result = eval.IsInstance(b.(eval.PType), a)
+	case eval.Type:
+		result = eval.IsInstance(b.(eval.Type), a)
 
 	case *types.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp

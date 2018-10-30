@@ -9,7 +9,7 @@ import (
 )
 
 type OptionalType struct {
-	typ eval.PType
+	typ eval.Type
 }
 
 var Optional_Type eval.ObjectType
@@ -23,7 +23,7 @@ func init() {
 			value => Any
 		},
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewOptionalType2(args...)
 		})
 }
@@ -32,19 +32,19 @@ func DefaultOptionalType() *OptionalType {
 	return optionalType_DEFAULT
 }
 
-func NewOptionalType(containedType eval.PType) *OptionalType {
+func NewOptionalType(containedType eval.Type) *OptionalType {
 	if containedType == nil || containedType == anyType_DEFAULT {
 		return DefaultOptionalType()
 	}
 	return &OptionalType{containedType}
 }
 
-func NewOptionalType2(args ...eval.PValue) *OptionalType {
+func NewOptionalType2(args ...eval.Value) *OptionalType {
 	switch len(args) {
 	case 0:
 		return DefaultOptionalType()
 	case 1:
-		if containedType, ok := args[0].(eval.PType); ok {
+		if containedType, ok := args[0].(eval.Type); ok {
 			return NewOptionalType(containedType)
 		}
 		if containedType, ok := args[0].(*StringValue); ok {
@@ -65,11 +65,11 @@ func (t *OptionalType) Accept(v eval.Visitor, g eval.Guard) {
 	t.typ.Accept(v, g)
 }
 
-func (t *OptionalType) ContainedType() eval.PType {
+func (t *OptionalType) ContainedType() eval.Type {
 	return t.typ
 }
 
-func (t *OptionalType) Default() eval.PType {
+func (t *OptionalType) Default() eval.Type {
 	return optionalType_DEFAULT
 }
 
@@ -80,11 +80,11 @@ func (t *OptionalType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *OptionalType) Generic() eval.PType {
+func (t *OptionalType) Generic() eval.Type {
 	return NewOptionalType(eval.GenericType(t.typ))
 }
 
-func (t *OptionalType) Get(key string) (value eval.PValue, ok bool) {
+func (t *OptionalType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `type`:
 		return t.typ, true
@@ -92,11 +92,11 @@ func (t *OptionalType) Get(key string) (value eval.PValue, ok bool) {
 	return nil, false
 }
 
-func (t *OptionalType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *OptionalType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return GuardedIsAssignable(o, undefType_DEFAULT, g) || GuardedIsAssignable(t.typ, o, g)
 }
 
-func (t *OptionalType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *OptionalType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return o == _UNDEF || GuardedIsInstance(t.typ, o, g)
 }
 
@@ -108,21 +108,21 @@ func (t *OptionalType) Name() string {
 	return `Optional`
 }
 
-func (t *OptionalType) Parameters() []eval.PValue {
+func (t *OptionalType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
 	if str, ok := t.typ.(*StringType); ok && str.value != `` {
-		return []eval.PValue{WrapString(str.value)}
+		return []eval.Value{WrapString(str.value)}
 	}
-	return []eval.PValue{t.typ}
+	return []eval.Value{t.typ}
 }
 
 func (t *OptionalType) ReflectType() (reflect.Type, bool) {
 	return ReflectType(t.typ)
 }
 
-func (t *OptionalType) Resolve(c eval.Context) eval.PType {
+func (t *OptionalType) Resolve(c eval.Context) eval.Type {
 	t.typ = resolve(c, t.typ)
 	return t
 }
@@ -135,7 +135,7 @@ func (t *OptionalType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *OptionalType) Type() eval.PType {
+func (t *OptionalType) Type() eval.Type {
 	return &TypeType{t}
 }
 

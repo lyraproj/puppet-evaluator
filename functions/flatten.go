@@ -8,11 +8,11 @@ func init() {
 	eval.NewGoFunction(`flatten`,
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				switch arg.(type) {
-				case eval.IndexedValue:
-					return arg.(eval.IndexedValue).Flatten()
+				case eval.List:
+					return arg.(eval.List).Flatten()
 				default:
 					return arg.(eval.IterableValue).Iterator().AsArray().Flatten()
 				}

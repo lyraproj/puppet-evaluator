@@ -9,27 +9,31 @@ import (
 type (
 	RDetect map[interface{}]bool
 
-	PValue interface {
+	Value interface {
 		fmt.Stringer
 		Equality
 		ToString(bld io.Writer, format FormatContext, g RDetect)
-		Type() PType
+		Type() Type
 	}
 
 	// Comparator returns true when a is less than b.
-	Comparator func(a, b PValue) bool
+	Comparator func(a, b Value) bool
 
-	ObjectValue interface {
-		PValue
-		Initialize(c Context, arguments []PValue)
-		InitFromHash(c Context, hash KeyedValue)
+	Object interface {
+		Value
+		Initialize(c Context, arguments []Value)
+		InitFromHash(c Context, hash OrderedMap)
+	}
+
+	ReadableObject interface {
+		Get(key string) (value Value, ok bool)
 	}
 
 	PuppetObject interface {
-		PValue
+		Value
 		ReadableObject
 
-		InitHash() KeyedValue
+		InitHash() OrderedMap
 	}
 
 	ErrorObject interface {
@@ -46,70 +50,70 @@ type (
 
 		// PartialResult returns the optional partial result. It returns
 		// eval.UNDEF if no partial result exists
-		PartialResult() PValue
+		PartialResult() Value
 
 		// Details returns the optional details. It returns
 		// an empty map when o details exist
-		Details() KeyedValue
+		Details() OrderedMap
 	}
 
 	DetailedTypeValue interface {
-		PValue
-		DetailedType() PType
+		Value
+		DetailedType() Type
 	}
 
 	SizedValue interface {
-		PValue
+		Value
 		Len() int
 		IsEmpty() bool
 	}
 
 	InterfaceValue interface {
-		PValue
+		Value
 		Interface() interface{}
 	}
 
 	IterableValue interface {
 		Iterator() Iterator
-		ElementType() PType
+		ElementType() Type
 		IsHashStyle() bool
 	}
 
 	IteratorValue interface {
-		PValue
-		AsArray() IndexedValue
+		Value
+		AsArray() List
 	}
 
-	// IndexedValue represents an Array. The iterative methods will not catch break exceptions. If
+	// List represents an Array. The iterative methods will not catch break exceptions. If
 	//	// that is desired, then use an Iterator instead.
-	IndexedValue interface {
+	List interface {
 		SizedValue
 		IterableValue
-		Add(PValue) IndexedValue
-		AddAll(IndexedValue) IndexedValue
+		Add(Value) List
+		AddAll(List) List
 		All(predicate Predicate) bool
 		Any(predicate Predicate) bool
-		AppendTo(slice []PValue) []PValue
-		At(index int) PValue
-		Delete(PValue) IndexedValue
-		DeleteAll(IndexedValue) IndexedValue
+		AppendTo(slice []Value) []Value
+		At(index int) Value
+		Delete(Value) List
+		DeleteAll(List) List
 		Each(Consumer)
 		EachSlice(int, SliceConsumer)
 		EachWithIndex(consumer IndexedConsumer)
-		Find(predicate Predicate) (PValue, bool)
-		Flatten() IndexedValue
-		Map(mapper Mapper) IndexedValue
-		Select(predicate Predicate) IndexedValue
-		Slice(i int, j int) IndexedValue
-		Reduce(redactor BiMapper) PValue
-		Reduce2(initialValue PValue, redactor BiMapper) PValue
-		Reject(predicate Predicate) IndexedValue
-		Unique() IndexedValue
+		Find(predicate Predicate) (Value, bool)
+		Flatten() List
+		Map(mapper Mapper) List
+		Select(predicate Predicate) List
+		Slice(i int, j int) List
+		Reduce(redactor BiMapper) Value
+		Reduce2(initialValue Value, redactor BiMapper) Value
+		Reject(predicate Predicate) List
+		Unique() List
 	}
 
-	SortableValue interface {
-		IndexedValue
-		Sort(comparator Comparator) IndexedValue
+	SortableList interface {
+		List
+		Sort(comparator Comparator) List
 	}
 
 	HashKey string
@@ -122,99 +126,99 @@ type (
 		ToKey(b *bytes.Buffer)
 	}
 
-	EntryValue interface {
-		PValue
-		Key() PValue
-		Value() PValue
+	MapEntry interface {
+		Value
+		Key() Value
+		Value() Value
 	}
 
-	// KeyedValue represents a Hash. The iterative methods will not catch break exceptions. If
+	// OrderedMap represents a Hash. The iterative methods will not catch break exceptions. If
 	// that is desired, then use an Iterator instead.
-	KeyedValue interface {
-		IndexedValue
+	OrderedMap interface {
+		List
 		AllPairs(BiPredicate) bool
 		AnyPair(BiPredicate) bool
-		Entries() IndexedValue
+		Entries() List
 		EachKey(Consumer)
 		EachPair(BiConsumer)
 		EachValue(Consumer)
 
-		Get(key PValue) (PValue, bool)
-		Get2(key PValue, dflt PValue) PValue
-		Get3(key PValue, dflt Producer) PValue
-		Get4(key string) (PValue, bool)
-		Get5(key string, dflt PValue) PValue
-		Get6(key string, dflt Producer) PValue
+		Get(key Value) (Value, bool)
+		Get2(key Value, dflt Value) Value
+		Get3(key Value, dflt Producer) Value
+		Get4(key string) (Value, bool)
+		Get5(key string, dflt Value) Value
+		Get6(key string, dflt Producer) Value
 
 		// GetEntry returns the entry that represents the mapping between
 		// the given key and its value
-		GetEntry(key string) (EntryValue, bool)
+		GetEntry(key string) (MapEntry, bool)
 
-		IncludesKey(o PValue) bool
+		IncludesKey(o Value) bool
 
 		IncludesKey2(o string) bool
 
-		Keys() IndexedValue
+		Keys() List
 
-		// MapEntries returns a new KeyedValue with both keys and values
+		// MapEntries returns a new OrderedMap with both keys and values
 		// converted using the given mapper function
-		MapEntries(mapper EntryMapper) KeyedValue
+		MapEntries(mapper EntryMapper) OrderedMap
 
-		// MapValues returns a new KeyedValue with the exact same keys as
+		// MapValues returns a new OrderedMap with the exact same keys as
 		// before but where each value has been converted using the given
 		// mapper function
-		MapValues(mapper Mapper) KeyedValue
+		MapValues(mapper Mapper) OrderedMap
 
-		Merge(KeyedValue) KeyedValue
+		Merge(OrderedMap) OrderedMap
 
-		Values() IndexedValue
-		SelectPairs(BiPredicate) KeyedValue
-		RejectPairs(BiPredicate) KeyedValue
+		Values() List
+		SelectPairs(BiPredicate) OrderedMap
+		RejectPairs(BiPredicate) OrderedMap
 	}
 
 	NumericValue interface {
-		PValue
+		Value
 		Int() int64
 		Float() float64
 		Abs() NumericValue
 	}
 )
 
-var EMPTY_ARRAY IndexedValue
-var EMPTY_MAP KeyedValue
-var EMPTY_STRING PValue
-var EMPTY_VALUES []PValue
-var UNDEF PValue
+var EMPTY_ARRAY List
+var EMPTY_MAP OrderedMap
+var EMPTY_STRING Value
+var EMPTY_VALUES []Value
+var UNDEF Value
 
-var DetailedValueType func(value PValue) PType
-var GenericValueType func(value PValue) PType
-var ToKey func(value PValue) HashKey
-var IsTruthy func(tv PValue) bool
+var DetailedValueType func(value Value) Type
+var GenericValueType func(value Value) Type
+var ToKey func(value Value) HashKey
+var IsTruthy func(tv Value) bool
 
-var ToInt func(v PValue) (int64, bool)
-var ToFloat func(v PValue) (float64, bool)
-var Wrap func(c Context, v interface{}) PValue
+var ToInt func(v Value) (int64, bool)
+var ToFloat func(v Value) (float64, bool)
+var Wrap func(c Context, v interface{}) Value
 
-func ToString(t PValue) string {
+func ToString(t Value) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)
 }
 
-func ToString2(t PValue, format FormatContext) string {
+func ToString2(t Value, format FormatContext) string {
 	bld := bytes.NewBufferString(``)
 	t.ToString(bld, format, nil)
 	return bld.String()
 }
 
-func ToString3(t PValue, writer io.Writer) {
+func ToString3(t Value, writer io.Writer) {
 	ToString4(t, DEFAULT_FORMAT_CONTEXT, writer)
 }
 
-func ToString4(t PValue, format FormatContext, writer io.Writer) {
+func ToString4(t Value, format FormatContext, writer io.Writer) {
 	t.ToString(writer, format, nil)
 }
 
-func CopyValues(src []PValue) []PValue {
-	dst := make([]PValue, len(src))
+func CopyValues(src []Value) []Value {
+	dst := make([]Value, len(src))
 	for i, v := range src {
 		dst[i] = v
 	}

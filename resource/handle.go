@@ -22,11 +22,11 @@ type (
 	}
 )
 
-func (h *handle) Get(key string) (value eval.PValue, ok bool) {
+func (h *handle) Get(key string) (value eval.Value, ok bool) {
 	return h.value.Get(key)
 }
 
-func (h *handle) InitHash() eval.KeyedValue {
+func (h *handle) InitHash() eval.OrderedMap {
 	return h.value.InitHash()
 }
 
@@ -53,7 +53,7 @@ func (h *handle) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	h.value.ToString(bld, format, g)
 }
 
-func (h *handle) Type() eval.PType {
+func (h *handle) Type() eval.Type {
 	return h.value.Type()
 }
 

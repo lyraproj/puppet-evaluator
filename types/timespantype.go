@@ -76,7 +76,7 @@ func init() {
 		from => { type => Optional[Timespan], value => undef },
 		to => { type => Optional[Timespan], value => undef }
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewTimespanType2(args...)
 		})
 
@@ -87,7 +87,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Integer,Float]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				if i, ok := arg.(*IntegerValue); ok {
 					return WrapTimespan(time.Duration(i.Int() * NSECS_PER_SEC))
@@ -99,7 +99,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Formats`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				formats := DEFAULT_TIMESPAN_FORMATS
 				if len(args) > 1 {
 					formats = toTimespanFormats(args[1])
@@ -117,7 +117,7 @@ func init() {
 			d.OptionalParam(`Integer`)
 			d.OptionalParam(`Integer`)
 			d.OptionalParam(`Integer`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				days := args[0].(*IntegerValue).Int()
 				hours := args[1].(*IntegerValue).Int()
 				minutes := args[2].(*IntegerValue).Int()
@@ -139,7 +139,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`Struct[string => String[1], Optional[format] => Formats]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
 				str := hash.Get5(`string`, _EMPTY_STRING)
 				formats := toTimespanFormats(hash.Get5(`format`, _UNDEF))
@@ -156,7 +156,7 @@ func init() {
         Optional[milliseconds] => Integer,
         Optional[microseconds] => Integer,
         Optional[nanoseconds] => Integer]`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return WrapTimespan(fromFieldsHash(args[0].(*HashValue)))
 			})
 		})
@@ -170,7 +170,7 @@ func NewTimespanType(min time.Duration, max time.Duration) *TimespanType {
 	return &TimespanType{min, max}
 }
 
-func NewTimespanType2(args ...eval.PValue) *TimespanType {
+func NewTimespanType2(args ...eval.Value) *TimespanType {
 	argc := len(args)
 	if argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`Timespan[]`, `0 or 2`, argc))
@@ -178,7 +178,7 @@ func NewTimespanType2(args ...eval.PValue) *TimespanType {
 	if argc == 0 {
 		return timespanType_DEFAULT
 	}
-	convertArg := func(args []eval.PValue, argNo int) time.Duration {
+	convertArg := func(args []eval.Value, argNo int) time.Duration {
 		arg := args[argNo]
 		var (
 			t  time.Duration
@@ -222,7 +222,7 @@ func (t *TimespanType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *TimespanType) Default() eval.PType {
+func (t *TimespanType) Default() eval.Type {
 	return timespanType_DEFAULT
 }
 
@@ -233,7 +233,7 @@ func (t *TimespanType) Equals(other interface{}, guard eval.Guard) bool {
 	return false
 }
 
-func (t *TimespanType) Get(key string) (eval.PValue, bool) {
+func (t *TimespanType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
@@ -256,17 +256,17 @@ func (t *TimespanType) MetaType() eval.ObjectType {
 	return Timespan_Type
 }
 
-func (t *TimespanType) Parameters() []eval.PValue {
+func (t *TimespanType) Parameters() []eval.Value {
 	if t.max == math.MaxInt64 {
 		if t.min == math.MinInt64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.PValue{WrapString(t.min.String())}
+		return []eval.Value{WrapString(t.min.String())}
 	}
 	if t.min == math.MinInt64 {
-		return []eval.PValue{WrapDefault(), WrapString(t.max.String())}
+		return []eval.Value{WrapDefault(), WrapString(t.max.String())}
 	}
-	return []eval.PValue{WrapString(t.min.String()), WrapString(t.max.String())}
+	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
 func (t *TimespanType) ReflectType() (reflect.Type, bool) {
@@ -281,15 +281,15 @@ func (t *TimespanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *TimespanType) Type() eval.PType {
+func (t *TimespanType) Type() eval.Type {
 	return &TypeType{t}
 }
 
-func (t *TimespanType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *TimespanType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return t.IsAssignable(o.Type(), g)
 }
 
-func (t *TimespanType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *TimespanType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if ot, ok := o.(*TimespanType); ok {
 		return t.min <= ot.min && t.max >= ot.max
 	}
@@ -366,7 +366,7 @@ func fromStringHash(hash *HashValue) (time.Duration, bool) {
 		} else {
 			if fsa, ok := fmtStrings.(*ArrayValue); ok {
 				formats = make([]*TimespanFormat, fsa.Len())
-				fsa.EachWithIndex(func(fs eval.PValue, i int) {
+				fsa.EachWithIndex(func(fs eval.Value, i int) {
 					formats[i] = DefaultTimespanFormatParser.ParseFormat(fs.String())
 				})
 			}
@@ -514,7 +514,7 @@ func (tv *TimespanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 	DEFAULT_TIMESPAN_FORMATS[0].format2(b, tv)
 }
 
-func (tv *TimespanValue) Type() eval.PType {
+func (tv *TimespanValue) Type() eval.Type {
 	return (*TimespanType)(tv)
 }
 
@@ -1088,13 +1088,13 @@ func (s *nanosecondSegment) ordinal() int {
 	return NSEC_MAX
 }
 
-func toTimespanFormats(fmt eval.PValue) []*TimespanFormat {
+func toTimespanFormats(fmt eval.Value) []*TimespanFormat {
 	formats := DEFAULT_TIMESPAN_FORMATS
 	switch fmt.(type) {
 	case *ArrayValue:
 		fa := fmt.(*ArrayValue)
 		formats = make([]*TimespanFormat, fa.Len())
-		fa.EachWithIndex(func(f eval.PValue, i int) {
+		fa.EachWithIndex(func(f eval.Value, i int) {
 			formats[i] = DefaultTimespanFormatParser.ParseFormat(f.String())
 		})
 	case *StringValue:

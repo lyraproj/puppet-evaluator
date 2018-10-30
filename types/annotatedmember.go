@@ -10,7 +10,7 @@ type annotatedMember struct {
 	annotatable
 	name      string
 	container *objectType
-	typ       eval.PType
+	typ       eval.Type
 	override  bool
 	final     bool
 }
@@ -24,7 +24,7 @@ func (a *annotatedMember) initialize(c eval.Context, memberType, name string, co
 		a.typ = container.parseAttributeType(c, memberType, name, tn)
 	} else {
 		// Unchecked because type is guaranteed by earlier type assersion on the hash
-		a.typ = typ.(eval.PType)
+		a.typ = typ.(eval.Type)
 	}
 	a.override = boolArg(initHash, KEY_OVERRIDE, false)
 	a.final = boolArg(initHash, KEY_FINAL, false)
@@ -39,7 +39,7 @@ func (a *annotatedMember) Annotations() *HashValue {
 	return a.annotations
 }
 
-func (a *annotatedMember) Call(c eval.Context, receiver eval.PValue, block eval.Lambda, args []eval.PValue) eval.PValue {
+func (a *annotatedMember) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
 	// TODO:
 	panic("implement me")
 }
@@ -52,7 +52,7 @@ func (a *annotatedMember) Container() eval.ObjectType {
 	return a.container
 }
 
-func (a *annotatedMember) Type() eval.PType {
+func (a *annotatedMember) Type() eval.Type {
 	return a.typ
 }
 
@@ -110,8 +110,8 @@ func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.A
 // Visit the keys of an annotations map. All keys are known to be types
 func visitAnnotations(a *HashValue, v eval.Visitor, g eval.Guard) {
 	if a != nil {
-		a.EachKey(func(key eval.PValue) {
-			key.(eval.PType).Accept(v, g)
+		a.EachKey(func(key eval.Value) {
+			key.(eval.Type).Accept(v, g)
 		})
 	}
 }

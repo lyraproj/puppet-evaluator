@@ -11,20 +11,20 @@ func init() {
 	eval.NewGoFunction(`parse_yaml`,
 		func(d eval.Dispatch) {
 			d.Param(`String`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return UnmarshalYaml(c, []byte(args[0].(*types.StringValue).String()))
 			})
 		},
 
 		func(d eval.Dispatch) {
 			d.Param(`Binary`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return UnmarshalYaml(c, args[0].(*types.BinaryValue).Bytes())
 			})
 		})
 }
 
-func UnmarshalYaml(c eval.Context, data []byte) eval.PValue {
+func UnmarshalYaml(c eval.Context, data []byte) eval.Value {
 	ms := make(yaml.MapSlice, 0)
 	err := yaml.Unmarshal([]byte(data), &ms)
 	if err != nil {

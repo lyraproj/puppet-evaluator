@@ -29,7 +29,7 @@ type (
 )
 
 func init() {
-	eval.Call = func(c eval.Context, name string, args []eval.PValue, block eval.Lambda) eval.PValue {
+	eval.Call = func(c eval.Context, name string, args []eval.Value, block eval.Lambda) eval.Value {
 		tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
 		if f, ok := eval.Load(c, tn); ok {
 		return f.(eval.Function).Call(c, block, args...)
@@ -73,7 +73,7 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 	}
 }
 
-func (c *evalCtx) AddTypes(types ...eval.PType) {
+func (c *evalCtx) AddTypes(types ...eval.Type) {
 	l := c.DefiningLoader()
 	for _, t := range types {
 		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
@@ -223,14 +223,14 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 	return expr
 }
 
-func (c *evalCtx) ParseType(typeString eval.PValue) eval.PType {
+func (c *evalCtx) ParseType(typeString eval.Value) eval.Type {
 	if sv, ok := typeString.(*types.StringValue); ok {
 		return c.ParseType2(sv.String())
 	}
 	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
 }
 
-func (c *evalCtx) ParseType2(str string) eval.PType {
+func (c *evalCtx) ParseType2(str string) eval.Type {
 	return c.ResolveType(c.ParseAndValidate(``, str, true))
 }
 
@@ -251,7 +251,7 @@ func (c *evalCtx) ResolveDefinitions() {
 			case eval.Resolvable:
 				d.(eval.Resolvable).Resolve(c)
 			case eval.ResolvableType:
-				c.resolveTypes(d.(eval.PType))
+				c.resolveTypes(d.(eval.Type))
 			}
 		}
 	}
@@ -261,12 +261,12 @@ func (c *evalCtx) ResolveResolvables() {
 	c.Loader().(eval.DefiningLoader).ResolveResolvables(c)
 }
 
-func (c *evalCtx) ResolveType(expr parser.Expression) eval.PType {
-	var resolved eval.PValue
+func (c *evalCtx) ResolveType(expr parser.Expression) eval.Type {
+	var resolved eval.Value
 	c.DoStatic(func() {
 		resolved = eval.Evaluate(c, expr)
 	})
-	if pt, ok := resolved.(eval.PType); ok {
+	if pt, ok := resolved.(eval.Type); ok {
 		return pt
 	}
 	panic(fmt.Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
@@ -350,7 +350,7 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 
 		if c.Language() == eval.LangJavaScript {
 			// Java script functions must be available as variables
-			c.Scope().Set(fe.Name(), ta.(eval.PValue))
+			c.Scope().Set(fe.Name(), ta.(eval.Value))
 		}
 	default:
 		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
@@ -363,7 +363,7 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	}
 }
 
-func (c *evalCtx) resolveTypes(types ...eval.PType) {
+func (c *evalCtx) resolveTypes(types ...eval.Type) {
 	l := c.DefiningLoader()
 	typeSets := make([]eval.TypeSet, 0)
 	for _, t := range types {
@@ -385,8 +385,8 @@ func (c *evalCtx) resolveTypes(types ...eval.PType) {
 }
 
 func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
-	ts.Types().EachValue(func(tv eval.PValue) {
-		t := tv.(eval.PType)
+	ts.Types().EachValue(func(tv eval.Value) {
+		t := tv.(eval.Type)
 		if tsc, ok := t.(eval.TypeSet); ok {
 			c.resolveTypeSet(l, tsc)
 		}

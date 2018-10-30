@@ -11,8 +11,8 @@ import (
 )
 
 type LikeType struct {
-	baseType eval.PType
-	resolved eval.PType
+	baseType eval.Type
+	resolved eval.Type
 	navigation string
 }
 
@@ -25,7 +25,7 @@ func init() {
     base_type => Type,
 		navigation => String[1]
 	}
-}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewLikeType2(args...)
 		})
 }
@@ -34,16 +34,16 @@ func DefaultLikeType() *LikeType {
 	return typeOfType_DEFAULT
 }
 
-func NewLikeType(baseType eval.PType, navigation string) *LikeType {
+func NewLikeType(baseType eval.Type, navigation string) *LikeType {
 	return &LikeType{baseType: baseType, navigation: navigation}
 }
 
-func NewLikeType2(args ...eval.PValue) *LikeType {
+func NewLikeType2(args ...eval.Value) *LikeType {
 	switch len(args) {
 	case 0:
 		return DefaultLikeType()
 	case 2:
-		if tp, ok := args[0].(eval.PType); ok {
+		if tp, ok := args[0].(eval.Type); ok {
 			if an, ok := args[1].(*StringValue); ok {
 				return &LikeType{baseType: tp, navigation: an.String()}
 			} else {
@@ -62,7 +62,7 @@ func (t *LikeType) Accept(v eval.Visitor, g eval.Guard) {
 	t.baseType.Accept(v, g)
 }
 
-func (t *LikeType) Default() eval.PType {
+func (t *LikeType) Default() eval.Type {
 	return typeOfType_DEFAULT
 }
 
@@ -73,7 +73,7 @@ func (t *LikeType) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (t *LikeType) Get(key string) (eval.PValue, bool) {
+func (t *LikeType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `base_type`:
 		return t.baseType, true
@@ -84,11 +84,11 @@ func (t *LikeType) Get(key string) (eval.PValue, bool) {
 	}
 }
 
-func (t *LikeType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *LikeType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	return t.Resolve(nil).IsAssignable(o, g)
 }
 
-func (t *LikeType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *LikeType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return t.Resolve(nil).IsInstance(o, g)
 }
 
@@ -104,26 +104,26 @@ func (t *LikeType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *LikeType) Parameters() []eval.PValue {
+func (t *LikeType) Parameters() []eval.Value {
 	if *t == *typeOfType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.PValue{t.baseType, WrapString(t.navigation)}
+	return []eval.Value{t.baseType, WrapString(t.navigation)}
 }
 
-func (t *LikeType) Resolve(c eval.Context) eval.PType {
+func (t *LikeType) Resolve(c eval.Context) eval.Type {
 	if t.resolved != nil {
 		return t.resolved
 	}
 	bt := t.baseType
-	bv := bt.(eval.PValue)
+	bv := bt.(eval.Value)
 	ok := true
 	for _, part := range strings.Split(t.navigation, `.`) {
 		if c, bv, ok = navigate(c, bv, part); !ok {
 			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE_OF, issue.H{`type`: t.baseType, `navigation`: t.navigation}))
 		}
 	}
-	if bt, ok = bv.(eval.PType); ok {
+	if bt, ok = bv.(eval.Type); ok {
 		t.resolved = bt
 		return bt
 	}
@@ -134,12 +134,12 @@ func (t *LikeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *LikeType) Type() eval.PType {
+func (t *LikeType) Type() eval.Type {
 	return &TypeType{t}
 }
 
-func navigate(c eval.Context, value eval.PValue, member string) (eval.Context, eval.PValue, bool) {
-	if typ, ok := value.(eval.PType); ok {
+func navigate(c eval.Context, value eval.Value, member string) (eval.Context, eval.Value, bool) {
+	if typ, ok := value.(eval.Type); ok {
 		if po, ok := typ.(eval.TypeWithCallableMembers); ok {
 			if m, ok := po.Member(member); ok {
 				if a, ok := m.(eval.Attribute); ok {
@@ -155,7 +155,7 @@ func navigate(c eval.Context, value eval.PValue, member string) (eval.Context, e
 			}
 		} else if tt, ok := typ.(*TupleType); ok {
 			if n, err := strconv.ParseInt(member, 0, 64); err == nil {
-				if et, ok := tt.At(int(n)).(eval.PType); ok {
+				if et, ok := tt.At(int(n)).(eval.Type); ok {
 					return c, et, true
 				}
 			}
@@ -166,7 +166,7 @@ func navigate(c eval.Context, value eval.PValue, member string) (eval.Context, e
 				if c == nil {
 					c = eval.CurrentContext()
 				}
-				return c, m.Call(c, typ, nil, []eval.PValue{}), true
+				return c, m.Call(c, typ, nil, []eval.Value{}), true
 			}
 		}
 	} else {
@@ -175,7 +175,7 @@ func navigate(c eval.Context, value eval.PValue, member string) (eval.Context, e
 				if c == nil {
 					c = eval.CurrentContext()
 				}
-				return c, m.Call(c, value, nil, []eval.PValue{}), true
+				return c, m.Call(c, value, nil, []eval.Value{}), true
 			}
 		}
 	}

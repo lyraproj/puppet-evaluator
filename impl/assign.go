@@ -7,11 +7,11 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AssignmentExpression(expr *parser.AssignmentExpression, c eval.Context) eval.PValue {
+func (e *evaluator) eval_AssignmentExpression(expr *parser.AssignmentExpression, c eval.Context) eval.Value {
 	return e.assign(expr, c.Scope(), e.lvalue(expr.Lhs()), e.eval(expr.Rhs(), c))
 }
 
-func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.PValue, rv eval.PValue) eval.PValue {
+func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.Value, rv eval.Value) eval.Value {
 	if sv, ok := lv.(*types.StringValue); ok {
 		if !scope.Set(sv.String(), rv) {
 			panic(e.evalError(eval.EVAL_ILLEGAL_REASSIGNMENT, expr, issue.H{`var`: sv.String()}))
@@ -23,8 +23,8 @@ func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, 
 	switch rv.(type) {
 	case *types.HashValue:
 		h := rv.(*types.HashValue)
-		r := make([]eval.PValue, names.Len())
-		names.EachWithIndex(func(name eval.PValue, idx int) {
+		r := make([]eval.Value, names.Len())
+		names.EachWithIndex(func(name eval.Value, idx int) {
 			v, ok := h.Get(name)
 			if !ok {
 				panic(e.evalError(eval.EVAL_MISSING_MULTI_ASSIGNMENT_KEY, expr, issue.H{`name`: name.String()}))
@@ -37,7 +37,7 @@ func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, 
 		if names.Len() != values.Len() {
 			panic(e.evalError(eval.EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, expr, issue.H{`expected`: names.Len(), `actual`: values.Len()}))
 		}
-		names.EachWithIndex(func(name eval.PValue, idx int) {
+		names.EachWithIndex(func(name eval.Value, idx int) {
 			e.assign(expr, scope, name, values.At(idx))
 		})
 		return rv
@@ -46,7 +46,7 @@ func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, 
 	}
 }
 
-func (e *evaluator) lvalue(expr parser.Expression) eval.PValue {
+func (e *evaluator) lvalue(expr parser.Expression) eval.Value {
 	switch expr.(type) {
 	case *parser.VariableExpression:
 		ve := expr.(*parser.VariableExpression)
@@ -55,7 +55,7 @@ func (e *evaluator) lvalue(expr parser.Expression) eval.PValue {
 		}
 	case *parser.LiteralList:
 		le := expr.(*parser.LiteralList).Elements()
-		ev := make([]eval.PValue, len(le))
+		ev := make([]eval.Value, len(le))
 		for idx, ex := range le {
 			ev[idx] = e.lvalue(ex)
 		}

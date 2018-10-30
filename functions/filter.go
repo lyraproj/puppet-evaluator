@@ -5,21 +5,21 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 )
 
-func selectIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.IndexedValue {
-	return arg.Iterator().Select(func(v eval.PValue) bool { return eval.IsTruthy(block.Call(c, nil, v)) }).AsArray()
+func selectIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.List {
+	return arg.Iterator().Select(func(v eval.Value) bool { return eval.IsTruthy(block.Call(c, nil, v)) }).AsArray()
 }
 
-func selectIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
+func selectIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.List {
 	index := int64(-1)
-	return iter.Iterator().Select(func(v eval.PValue) bool {
+	return iter.Iterator().Select(func(v eval.Value) bool {
 		index++
 		return eval.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
 	}).AsArray()
 }
 
-func selectHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.IndexedValue {
-	return iter.Iterator().Select(func(v eval.PValue) bool {
-		vi := v.(eval.IndexedValue)
+func selectHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.List {
+	return iter.Iterator().Select(func(v eval.Value) bool {
+		vi := v.(eval.List)
 		return eval.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
 	}).AsArray()
 }
@@ -29,7 +29,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return selectIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
@@ -37,7 +37,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return selectHashIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
@@ -45,7 +45,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				return selectIterator(c, args[0].(eval.IterableValue), block)
 			})
 		},
@@ -53,7 +53,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.PValue, block eval.Lambda) eval.PValue {
+			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
 				iter := args[0].(eval.IterableValue)
 				if iter.IsHashStyle() {
 					return selectHashIterator(c, iter, block)

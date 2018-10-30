@@ -51,8 +51,8 @@ func (fe *forExpression) ToPN() pn.PN {
 	return pn.Map(entries).AsCall(`for`)
 }
 
-func (fe *forExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func() eval.PValue {
+func (fe *forExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.Value {
+	return c.Scope().WithLocalScope(func() eval.Value {
 		if !fe.init.IsNop() {
 			e.Eval(fe.init, c)
 		}
@@ -184,8 +184,8 @@ func (se *switchExpression) ToPN() pn.PN {
 	return pn.Map(entries).AsCall(`js::switch`)
 }
 
-func (fe *switchExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.PValue {
-	return c.Scope().WithLocalScope(func() eval.PValue {
+func (fe *switchExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.Value {
+	return c.Scope().WithLocalScope(func() eval.Value {
 		discr := e.Eval(fe.discriminant, c)
 		entry := -1
 		dfltCase := -1
@@ -301,7 +301,7 @@ func (ie *unaryNumericExpression)  Op() string {
 	return `--`
 }
 
-func (ie *unaryNumericExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.PValue {
+func (ie *unaryNumericExpression) Evaluate(e eval.Evaluator, c eval.Context) eval.Value {
 	num := e.Eval(ie.variable, c)
 	if ov, ok := num.(*types.IntegerValue); ok {
 		iv := ov.Int()

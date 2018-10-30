@@ -8,14 +8,14 @@ import (
 type (
 	PathType string
 
-	Entry interface {
+	LoaderEntry interface {
 		Value() interface{}
 
 		Origin() issue.Location
 	}
 
 	Loader interface {
-		LoadEntry(c Context, name TypedName) Entry
+		LoadEntry(c Context, name TypedName) LoaderEntry
 
 		NameAuthority() URI
 	}
@@ -25,7 +25,7 @@ type (
 
 		ResolveResolvables(c Context)
 
-		SetEntry(name TypedName, entry Entry) Entry
+		SetEntry(name TypedName, entry LoaderEntry) LoaderEntry
 	}
 
 	ParentedLoader interface {
@@ -49,7 +49,7 @@ type (
 	TypeSetLoader interface {
 		Loader
 
-		TypeSet() PType
+		TypeSet() Type
 	}
 )
 
@@ -67,7 +67,7 @@ func IsValidModuleName(moduleName string) bool {
 }
 
 var Load func(c Context, name TypedName) (interface{}, bool)
-var NewLoaderEntry func(value interface{}, origin issue.Location) Entry
+var NewLoaderEntry func(value interface{}, origin issue.Location) LoaderEntry
 var StaticLoader func() Loader
 var StaticResourceLoader func() Loader
 var NewParentedLoader func(parent Loader) DefiningLoader
@@ -75,4 +75,4 @@ var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ..
 var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
 var RegisterGoFunction func(function ResolvableFunction)
 var RegisterResolvableType func(rt ResolvableType)
-var NewTypeSetLoader func(parent Loader, typeSet PType) TypeSetLoader
+var NewTypeSetLoader func(parent Loader, typeSet Type) TypeSetLoader

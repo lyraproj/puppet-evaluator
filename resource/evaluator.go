@@ -38,7 +38,7 @@ func defaultApplyFunc(c eval.Context, resources []eval.PuppetObject) ([]eval.Pup
 	return resources, nil
 }
 
-func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.PValue, err issue.Reported) {
+func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (value eval.Value, err issue.Reported) {
 	defer func() {
 		if r := recover(); r != nil {
 			var ok bool
@@ -91,7 +91,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 	}
 }
 
-func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.PValue, issue.Reported) {
+func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.Value, issue.Reported) {
 	setCurrentNode(c, rn)
 	g := GetGraph(c)
 	extEdges := g.From(rn.ID())
@@ -135,7 +135,7 @@ func (re *resourceEval) Logger() eval.Logger {
 	return re.evaluator.Logger()
 }
 
-func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue {
+func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.Value {
 	if c.Static() {
 		return re.evaluator.Eval(expr, c)
 	}
@@ -154,7 +154,7 @@ func (re *resourceEval) Eval(expr parser.Expression, c eval.Context) eval.PValue
 const parallel = `parallel`
 const sequential = `sequential`
 
-func (re *resourceEval) CallFunction(name string, args []eval.PValue, call parser.CallExpression, c eval.Context) eval.PValue {
+func (re *resourceEval) CallFunction(name string, args []eval.Value, call parser.CallExpression, c eval.Context) eval.Value {
 	switch name {
 	case parallel, sequential:
 		// This is not a real function call but rather a node scheduling instruction
@@ -164,7 +164,7 @@ func (re *resourceEval) CallFunction(name string, args []eval.PValue, call parse
 	}
 }
 
-func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, args []eval.PValue, call parser.CallExpression) eval.PValue {
+func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, args []eval.Value, call parser.CallExpression) eval.Value {
 	allInvocable := true
 	for _, arg := range args {
 		if _, ok := arg.(eval.InvocableValue); !ok {
@@ -205,11 +205,11 @@ func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, arg
 	eval.AssertInstance(name, types.DefaultIterableType(), arg)
 	if hash, ok := arg.(*types.HashValue); ok {
 		if np == 2 {
-			hash.EachPair(func(k, v eval.PValue) {
+			hash.EachPair(func(k, v eval.Value) {
 				nodes = append(nodes, newNode(c, nodeExpr, k, v))
 			})
 		} else {
-			hash.Each(func(v eval.PValue) {
+			hash.Each(func(v eval.Value) {
 				nodes = append(nodes, newNode(c, nodeExpr, v))
 			})
 		}
@@ -217,17 +217,17 @@ func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, arg
 		iter := arg.(eval.IterableValue)
 		if np == 2 {
 			if iter.IsHashStyle() {
-				iter.Iterator().Each(func(v eval.PValue) {
-					vi := v.(eval.IndexedValue)
+				iter.Iterator().Each(func(v eval.Value) {
+					vi := v.(eval.List)
 					nodes = append(nodes, newNode(c, nodeExpr, vi.At(0), vi.At(1)))
 				})
 			} else {
-				iter.Iterator().EachWithIndex(func(idx eval.PValue, v eval.PValue) {
+				iter.Iterator().EachWithIndex(func(idx eval.Value, v eval.Value) {
 					nodes = append(nodes, newNode(c, nodeExpr, idx, v))
 				})
 			}
 		} else {
-			iter.Iterator().Each(func(v eval.PValue) {
+			iter.Iterator().Each(func(v eval.Value) {
 				nodes = append(nodes, newNode(c, nodeExpr, v))
 			})
 		}
@@ -236,13 +236,13 @@ func (re *resourceEval) createEdgesWithArgument(c eval.Context, name string, arg
 	return createEdgesForNodes(c, nodes, name)
 }
 
-func createEdgesForNodes(c eval.Context, nodes []Node, name string) eval.PValue {
+func createEdgesForNodes(c eval.Context, nodes []Node, name string) eval.Value {
 	cn := getCurrentNode(c)
 	g := GetGraph(c).(graph.DirectedBuilder)
 	extEdges := getExternalEdgesFrom(c)
 
 	if name == parallel {
-		edges := make([]eval.PValue, len(nodes))
+		edges := make([]eval.Value, len(nodes))
 		for i, n := range nodes {
 			// Create edge from current to node
 			edge := newEdge(cn, n, false)
@@ -281,7 +281,7 @@ func createEdgesForNodes(c eval.Context, nodes []Node, name string) eval.PValue 
 	}
 }
 
-func (re *resourceEval) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) eval.PValue {
+func (re *resourceEval) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) eval.Value {
 	if qn, ok := expr.Operand().(*parser.QualifiedName); ok && (qn.Name() == parallel || qn.Name() == sequential) {
 		// Deal with parallel[expr, ...] and sequential[expr, ...]
 		nes := expr.Keys()
@@ -294,7 +294,7 @@ func (re *resourceEval) eval_AccessExpression(expr *parser.AccessExpression, c e
 	return re.evaluator.Eval(expr, c)
 }
 
-func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.PValue {
+func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExpression, c eval.Context) eval.Value {
 	switch expr.Operator() {
 	case `->`:
 		return re.createEdges(c, expr.Lhs(), expr.Rhs(), false)
@@ -307,7 +307,7 @@ func (re *resourceEval) eval_RelationshipExpression(expr *parser.RelationshipExp
 	}
 }
 
-func (re *resourceEval) createEdges(c eval.Context, first, second parser.Expression, subscribe bool) eval.PValue {
+func (re *resourceEval) createEdges(c eval.Context, first, second parser.Expression, subscribe bool) eval.Value {
 	// Evaluate first as part of this evaluation. We don't care about the actual evaluation result but we do
 	// care about side effects.
 	if r, ok := first.(*parser.RelationshipExpression); ok {
@@ -326,9 +326,9 @@ func (re *resourceEval) createEdges(c eval.Context, first, second parser.Express
 	}
 
 
-	var er eval.PValue = nil
+	var er eval.Value = nil
 
-	edges := make([]eval.PValue, 0)
+	edges := make([]eval.Value, 0)
 	if ae, ok := first.(*parser.AccessExpression); ok {
 		if qn, ok := ae.Operand().(*parser.QualifiedName); ok && (qn.Name() == parallel || qn.Name() == sequential) {
 			// Deal with parallel[expr, ...] and sequential[expr, ...]
@@ -396,13 +396,13 @@ func createNodes(c eval.Context, expr parser.Expression, nodes []Node) []Node {
 	return append(nodes, newNode(c, expr))
 }
 
-func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.Context) eval.PValue {
+func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression, c eval.Context) eval.Value {
 	switch expr.Form() {
 	case parser.REGULAR:
 	default:
 		panic(eval.Error2(expr, validator.VALIDATE_UNSUPPORTED_EXPRESSION, issue.H{`expression`: expr}))
 	}
-	result := make([]eval.PValue, len(expr.Bodies()))
+	result := make([]eval.Value, len(expr.Bodies()))
 	typeName := re.Eval(expr.TypeName(), c)
 
 	// Load the actual resource type
@@ -417,11 +417,11 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 	panic(eval.Error2(expr, EVAL_UNKNOWN_RESOURCE_TYPE, issue.H{`res_type`: typeName.String()}))
 }
 
-func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.Context) eval.PValue {
+func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBody, c eval.Context) eval.Value {
 	// Turn the resource expression into an instantiation of an object
 	bt := body.Title()
 	if bta, ok := bt.(*parser.LiteralList); ok {
-		rs := make([]eval.PValue, len(bta.Elements()))
+		rs := make([]eval.Value, len(bta.Elements()))
 		for i, e := range bta.Elements() {
 			rs[i] = re.newResources2(ctor, e, body, c)
 		}
@@ -430,17 +430,17 @@ func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBo
 	return re.newResources2(ctor, bt, body, c)
 }
 
-func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expression, body *parser.ResourceBody, c eval.Context) eval.PValue {
+func (re *resourceEval) newResources2(ctor eval.Function, title parser.Expression, body *parser.ResourceBody, c eval.Context) eval.Value {
 	tes := re.Eval(title, c)
 	if ta, ok := tes.(*types.ArrayValue); ok {
-		return ta.Map(func(te eval.PValue) eval.PValue {
+		return ta.Map(func(te eval.Value) eval.Value {
 			return re.newResource(ctor, title, te, body, c)
 		})
 	}
 	return re.newResource(ctor, title, tes, body, c)
 }
 
-func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Expression, title eval.PValue, body *parser.ResourceBody, c eval.Context) eval.PValue {
+func (re *resourceEval) newResource(ctor eval.Function, titleExpr parser.Expression, title eval.Value, body *parser.ResourceBody, c eval.Context) eval.Value {
 	entries := make([]*types.HashEntry, 0)
 	entries = append(entries, types.WrapHashEntry2(`title`, title))
 	for _, op := range body.Operations() {

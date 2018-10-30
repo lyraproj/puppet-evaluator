@@ -2,19 +2,19 @@ package eval
 
 type (
 	InvocableValue interface {
-		PValue
+		Value
 
-		Call(c Context, block Lambda, args ...PValue) PValue
+		Call(c Context, block Lambda, args ...Value) Value
 	}
 
 	Parameter interface {
-		PValue
+		Value
 
 		Name() string
 
-		ValueType() PType
+		ValueType() Type
 
-		Value() PValue
+		Value() Value
 
 		CapturesRest() bool
 	}
@@ -34,13 +34,13 @@ type (
 	// A default is often an instance of types.Deferred and it is the
 	// callers responsibility to resolve.
 	ParameterDefaults interface {
-		Defaults() []PValue
+		Defaults() []Value
 	}
 
 	// CallNamed is implemented by functions that can be called with
 	// named arguments.
 	CallNamed interface {
-		CallNamed(c Context, block Lambda, args KeyedValue) PValue
+		CallNamed(c Context, block Lambda, args OrderedMap) Value
 	}
 
 	Function interface {
@@ -56,13 +56,13 @@ type (
 		Resolve(c Context) Function
 	}
 
-	DispatchFunction func(c Context, args []PValue) PValue
+	DispatchFunction func(c Context, args []Value) Value
 
-	DispatchFunctionWithBlock func(c Context, args []PValue, block Lambda) PValue
+	DispatchFunctionWithBlock func(c Context, args []Value, block Lambda) Value
 
 	LocalTypes interface {
 		Type(name string, decl string)
-		Type2(name string, tp PType)
+		Type2(name string, tp Type)
 	}
 
 	// Dispatch is a builder to build function dispatchers (Lambdas)
@@ -71,42 +71,42 @@ type (
 		Name() string
 
 		Param(typeString string)
-		Param2(puppetType PType)
+		Param2(puppetType Type)
 
 		OptionalParam(typeString string)
-		OptionalParam2(puppetType PType)
+		OptionalParam2(puppetType Type)
 
 		RepeatedParam(typeString string)
-		RepeatedParam2(puppetType PType)
+		RepeatedParam2(puppetType Type)
 
 		RequiredRepeatedParam(typeString string)
-		RequiredRepeatedParam2(puppetType PType)
+		RequiredRepeatedParam2(puppetType Type)
 
 		Block(typeString string)
-		Block2(puppetType PType)
+		Block2(puppetType Type)
 
 		OptionalBlock(typeString string)
-		OptionalBlock2(puppetType PType)
+		OptionalBlock2(puppetType Type)
 
 		Returns(typeString string)
-		Returns2(puppetType PType)
+		Returns2(puppetType Type)
 
 		Function(f DispatchFunction)
 		Function2(f DispatchFunctionWithBlock)
 	}
 
 	Signature interface {
-		PType
+		Type
 
-		CallableWith(args []PValue, block Lambda) bool
+		CallableWith(args []Value, block Lambda) bool
 
-		ParametersType() PType
+		ParametersType() Type
 
-		ReturnType() PType
+		ReturnType() Type
 
 		// BlockType returns a Callable, Optional[Callable], or nil to denote if a
 		// block is required, optional, or invalid
-		BlockType() PType
+		BlockType() Type
 
 		// BlockName will typically return the string "block"
 		BlockName() string

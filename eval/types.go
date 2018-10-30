@@ -7,14 +7,14 @@ import (
 )
 
 type (
-	Visitor func(t PType)
+	Visitor func(t Type)
 
-	PType interface {
-		PValue
+	Type interface {
+		Value
 
-		IsInstance(o PValue, g Guard) bool
+		IsInstance(o Value, g Guard) bool
 
-		IsAssignable(t PType, g Guard) bool
+		IsAssignable(t Type, g Guard) bool
 
 		MetaType() ObjectType
 
@@ -24,9 +24,9 @@ type (
 	}
 
 	SizedType interface {
-		PType
+		Type
 
-		Size() PType
+		Size() Type
 	}
 
 	Resolvable interface {
@@ -34,9 +34,9 @@ type (
 	}
 
 	ResolvableType interface {
-		PType
+		Type
 
-		Resolve(c Context) PType
+		Resolve(c Context) Type
 	}
 
 	ObjectTypeAndCtor interface {
@@ -46,13 +46,13 @@ type (
 	}
 
 	ParameterizedType interface {
-		PType
+		Type
 
-		Default() PType
+		Default() Type
 
 		// Parameters returns the parameters that is needed in order to recreate
 		// an instance of the parameterized type.
-		Parameters() []PValue
+		Parameters() []Value
 	}
 
 	SerializeAsString interface {
@@ -60,11 +60,11 @@ type (
 	}
 
 	Annotatable interface {
-		Annotations() KeyedValue
+		Annotations() OrderedMap
 	}
 
 	CallableMember interface {
-		Call(c Context, receiver PValue, block Lambda, args []PValue) PValue
+		Call(c Context, receiver Value, block Lambda, args []Value) Value
 	}
 
 	TypeWithCallableMembers interface {
@@ -84,17 +84,17 @@ type (
 
 		Container() ObjectType
 
-		Type() PType
+		Type() Type
 
 		Override() bool
 
 		Final() bool
 
-		InitHash() KeyedValue
+		InitHash() OrderedMap
 
 		Accept(v Visitor, g Guard)
 
-		CallableType() PType
+		CallableType() Type
 	}
 
 	AttributeKind string
@@ -104,28 +104,24 @@ type (
 		Kind() AttributeKind
 
 		// Get returs this attributes value in the given instance
-		Get(instance PValue) PValue
+		Get(instance Value) Value
 
 		// HasValue returns true if a value has been defined for this attribute.
 		HasValue() bool
 
 		// Default returns true if the given value equals the default value for this attribute
-		Default(value PValue) bool
+		Default(value Value) bool
 
 		// Value returns the value of this attribute, or raises an error if no value has been defined.
-		Value() PValue
+		Value() Value
 	}
 
 	ObjFunc interface {
 		AnnotatedMember
 	}
 
-	ReadableObject interface {
-		Get(key string) (value PValue, ok bool)
-	}
-
 	CallableObject interface {
-		Call(c Context, method string, args []PValue, block Lambda) (result PValue, ok bool)
+		Call(c Context, method string, args []Value, block Lambda) (result Value, ok bool)
 	}
 
 	AttributesInfo interface {
@@ -139,7 +135,7 @@ type (
 
 		RequiredCount() int
 
-		PositionalFromHash(hash KeyedValue) []PValue
+		PositionalFromHash(hash OrderedMap) []Value
 	}
 
 	ObjectType interface {
@@ -163,7 +159,7 @@ type (
 
 		// Parent returns the type that this type inherits from or nil if
 		// the type doesn't have a parent
-		Parent() PType
+		Parent() Type
 
 		// ToReflectedValue copies values from src to dest. The src argument
 		// must be an instance of the receiver. The dest argument must be
@@ -182,10 +178,10 @@ type (
 
 		// GetType returns the given type from the receiver together with
 		// a flag indicating success or failure
-		GetType(typedName TypedName) (PType, bool)
+		GetType(typedName TypedName) (Type, bool)
 
 		// GetType2 is like GetType but uses a string to identify the type
-		GetType2(name string) (PType, bool)
+		GetType2(name string) (Type, bool)
 
 		// NameAuthority returns the name authority of the receiver
 		NameAuthority() URI
@@ -195,43 +191,43 @@ type (
 
 		// Types returns a hash of all types contained in this set. The keyes
 		// in this hash are relative to the receiver name
-		Types() KeyedValue
+		Types() OrderedMap
 
 		// Version returns the version of the receiver
 		Version() semver.Version
 	}
 
 	TypeWithContainedType interface {
-		PType
+		Type
 
-		ContainedType() PType
+		ContainedType() Type
 	}
 
 	// Generalizable implemented by all parameterized types that have type parameters
 	Generalizable interface {
 		ParameterizedType
-		Generic() PType
+		Generic() Type
 	}
 )
 
-var CommonType func(a PType, b PType) PType
+var CommonType func(a Type, b Type) Type
 
-var GenericType func(t PType) PType
+var GenericType func(t Type) Type
 
-var IsInstance func(puppetType PType, value PValue) bool
+var IsInstance func(puppetType Type, value Value) bool
 
 // IsAssignable answers if t is assignable to this type
-var IsAssignable func(puppetType PType, other PType) bool
+var IsAssignable func(puppetType Type, other Type) bool
 
-var Generalize func(t PType) PType
+var Generalize func(t Type) Type
 
-var Normalize func(t PType) PType
+var Normalize func(t Type) Type
 
-var DefaultFor func(t PType) PType
+var DefaultFor func(t Type) Type
 
-var ToArray func(elements []PValue) IndexedValue
+var ToArray func(elements []Value) List
 
-func All(elements []PValue, predicate Predicate) bool {
+func All(elements []Value, predicate Predicate) bool {
 	for _, elem := range elements {
 		if !predicate(elem) {
 			return false
@@ -240,7 +236,7 @@ func All(elements []PValue, predicate Predicate) bool {
 	return true
 }
 
-func All2(array IndexedValue, predicate Predicate) bool {
+func All2(array List, predicate Predicate) bool {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		if !predicate(array.At(idx)) {
@@ -250,7 +246,7 @@ func All2(array IndexedValue, predicate Predicate) bool {
 	return true
 }
 
-func Any(elements []PValue, predicate Predicate) bool {
+func Any(elements []Value, predicate Predicate) bool {
 	for _, elem := range elements {
 		if predicate(elem) {
 			return true
@@ -259,7 +255,7 @@ func Any(elements []PValue, predicate Predicate) bool {
 	return false
 }
 
-func Any2(array IndexedValue, predicate Predicate) bool {
+func Any2(array List, predicate Predicate) bool {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		if predicate(array.At(idx)) {
@@ -269,34 +265,34 @@ func Any2(array IndexedValue, predicate Predicate) bool {
 	return false
 }
 
-func AssertType(pfx interface{}, expected, actual PType) PType {
+func AssertType(pfx interface{}, expected, actual Type) Type {
 	if !IsAssignable(expected, actual) {
 		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
 	}
 	return actual
 }
 
-func AssertInstance(pfx interface{}, expected PType, value PValue) PValue {
+func AssertInstance(pfx interface{}, expected Type, value Value) Value {
 	if !IsInstance(expected, value) {
 		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
 	}
 	return value
 }
 
-func Each(elements []PValue, consumer Consumer) {
+func Each(elements []Value, consumer Consumer) {
 	for _, elem := range elements {
 		consumer(elem)
 	}
 }
 
-func Each2(array IndexedValue, consumer Consumer) {
+func Each2(array List, consumer Consumer) {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		consumer(array.At(idx))
 	}
 }
 
-func Find(elements []PValue, dflt PValue, predicate Predicate) PValue {
+func Find(elements []Value, dflt Value, predicate Predicate) Value {
 	for _, elem := range elements {
 		if predicate(elem) {
 			return elem
@@ -305,7 +301,7 @@ func Find(elements []PValue, dflt PValue, predicate Predicate) PValue {
 	return dflt
 }
 
-func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
+func Find2(array List, dflt Value, predicate Predicate) Value {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		v := array.At(idx)
@@ -316,25 +312,25 @@ func Find2(array IndexedValue, dflt PValue, predicate Predicate) PValue {
 	return dflt
 }
 
-func Map1(elements []PValue, mapper Mapper) []PValue {
-	result := make([]PValue, len(elements))
+func Map1(elements []Value, mapper Mapper) []Value {
+	result := make([]Value, len(elements))
 	for idx, elem := range elements {
 		result[idx] = mapper(elem)
 	}
 	return result
 }
 
-func Map2(array IndexedValue, mapper Mapper) IndexedValue {
+func Map2(array List, mapper Mapper) List {
 	top := array.Len()
-	result := make([]PValue, top)
+	result := make([]Value, top)
 	for idx := 0; idx < top; idx++ {
 		result[idx] = mapper(array.At(idx))
 	}
 	return ToArray(result)
 }
 
-func MapTypes(types []PType, mapper TypeMapper) []PValue {
-	result := make([]PValue, len(types))
+func MapTypes(types []Type, mapper TypeMapper) []Value {
+	result := make([]Value, len(types))
 	for idx, elem := range types {
 		result[idx] = mapper(elem)
 	}
@@ -342,21 +338,21 @@ func MapTypes(types []PType, mapper TypeMapper) []PValue {
 }
 
 // New creates a new instance of type t
-func New(c Context, t PType, args ...PValue) PValue {
+func New(c Context, t Type, args ...Value) Value {
 	if ctor, ok := Load(c, NewTypedName(CONSTRUCTOR, t.Name())); ok {
 		return ctor.(Function).Call(c, nil, args...)
 	}
 	panic(Error(EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
 }
 
-func Reduce(elements []PValue, memo PValue, reductor BiMapper) PValue {
+func Reduce(elements []Value, memo Value, reductor BiMapper) Value {
 	for _, elem := range elements {
 		memo = reductor(memo, elem)
 	}
 	return memo
 }
 
-func Reduce2(array IndexedValue, memo PValue, reductor BiMapper) PValue {
+func Reduce2(array List, memo Value, reductor BiMapper) Value {
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		memo = reductor(memo, array.At(idx))
@@ -364,8 +360,8 @@ func Reduce2(array IndexedValue, memo PValue, reductor BiMapper) PValue {
 	return memo
 }
 
-func Select1(elements []PValue, predicate Predicate) []PValue {
-	result := make([]PValue, 0, 8)
+func Select1(elements []Value, predicate Predicate) []Value {
+	result := make([]Value, 0, 8)
 	for _, elem := range elements {
 		if predicate(elem) {
 			result = append(result, elem)
@@ -374,8 +370,8 @@ func Select1(elements []PValue, predicate Predicate) []PValue {
 	return result
 }
 
-func Select2(array IndexedValue, predicate Predicate) IndexedValue {
-	result := make([]PValue, 0, 8)
+func Select2(array List, predicate Predicate) List {
+	result := make([]Value, 0, 8)
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		v := array.At(idx)
@@ -386,8 +382,8 @@ func Select2(array IndexedValue, predicate Predicate) IndexedValue {
 	return ToArray(result)
 }
 
-func Reject(elements []PValue, predicate Predicate) []PValue {
-	result := make([]PValue, 0, 8)
+func Reject(elements []Value, predicate Predicate) []Value {
+	result := make([]Value, 0, 8)
 	for _, elem := range elements {
 		if !predicate(elem) {
 			result = append(result, elem)
@@ -396,8 +392,8 @@ func Reject(elements []PValue, predicate Predicate) []PValue {
 	return result
 }
 
-func Reject2(array IndexedValue, predicate Predicate) IndexedValue {
-	result := make([]PValue, 0, 8)
+func Reject2(array List, predicate Predicate) List {
+	result := make([]Value, 0, 8)
 	top := array.Len()
 	for idx := 0; idx < top; idx++ {
 		v := array.At(idx)
@@ -408,21 +404,21 @@ func Reject2(array IndexedValue, predicate Predicate) IndexedValue {
 	return ToArray(result)
 }
 
-var DescribeSignatures func(signatures []Signature, argsTuple PType, block Lambda) string
+var DescribeSignatures func(signatures []Signature, argsTuple Type, block Lambda) string
 
-var DescribeMismatch func(pfx string, expected PType, actual PType) string
+var DescribeMismatch func(pfx string, expected Type, actual Type) string
 
-var NewTypeAlias func(name, typeDecl string) PType
+var NewTypeAlias func(name, typeDecl string) Type
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
 var NewTypeSet func(name, typeDecl string) TypeSet
 
-var NewError func(c Context, message, kind, issueCode string, partialResult PValue, details KeyedValue) ErrorObject
+var NewError func(c Context, message, kind, issueCode string, partialResult Value, details OrderedMap) ErrorObject
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
 
-var WrapType func(c Context, rt reflect.Type) PType
+var WrapType func(c Context, rt reflect.Type) Type
 
 func getPrefix(pfx interface{}) string {
 	name := ``

@@ -17,7 +17,7 @@ var numericType_DEFAULT = &NumericType{}
 var Numeric_Type eval.ObjectType
 
 func init() {
-	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.Context, args []eval.PValue) eval.PValue {
+	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultNumericType()
 	})
 
@@ -29,7 +29,7 @@ func init() {
 
 		func(d eval.Dispatch) {
 			d.Param(`NamedArgs`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return numberFromNamedArgs(args, true)
 			})
 		},
@@ -37,14 +37,14 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Convertible`)
 			d.OptionalParam(`Boolean`)
-			d.Function(func(c eval.Context, args []eval.PValue) eval.PValue {
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				return numberFromPositionalArgs(args, true)
 			})
 		},
 	)
 }
 
-func numberFromPositionalArgs(args []eval.PValue, tryInt bool) eval.NumericValue {
+func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	n := fromConvertible(args[0], tryInt)
 	if len(args) > 1 && args[1].(*BooleanValue).Bool() {
 		n = n.Abs()
@@ -52,7 +52,7 @@ func numberFromPositionalArgs(args []eval.PValue, tryInt bool) eval.NumericValue
 	return n
 }
 
-func numberFromNamedArgs(args []eval.PValue, tryInt bool) eval.NumericValue {
+func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	h := args[0].(*HashValue)
 	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
 	a := h.Get5(`abs`, nil)
@@ -75,7 +75,7 @@ func (t *NumericType) Equals(o interface{}, g eval.Guard) bool {
 	return ok
 }
 
-func (t *NumericType) IsAssignable(o eval.PType, g eval.Guard) bool {
+func (t *NumericType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	switch o.(type) {
 	case *IntegerType, *FloatType:
 		return true
@@ -84,7 +84,7 @@ func (t *NumericType) IsAssignable(o eval.PType, g eval.Guard) bool {
 	}
 }
 
-func (t *NumericType) IsInstance(o eval.PValue, g eval.Guard) bool {
+func (t *NumericType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.Type().(type) {
 	case *FloatType, *IntegerType:
 		return true
@@ -113,11 +113,11 @@ func (t *NumericType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *NumericType) Type() eval.PType {
+func (t *NumericType) Type() eval.Type {
 	return &TypeType{t}
 }
 
-func fromConvertible(c eval.PValue, allowInt bool) eval.NumericValue {
+func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 	switch c.(type) {
 	case *IntegerValue:
 		iv := c.(*IntegerValue)
