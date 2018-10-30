@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-semver/semver"
 
@@ -43,6 +44,15 @@ func ExampleToDataConverter_Convert() {
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}
 }
 
+func ExampleToDataConverter_Convert2() {
+	eval.Puppet.Do(func(ctx eval.Context) error {
+		param := impl.NewParameter(`p`, types.DefaultStringType(), types.WrapString(`v`), false)
+		fmt.Println(NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(param))
+		return nil
+	})
+	// Output: {'__ptype' => 'Parameter', 'name' => 'p', 'type' => {'__ptype' => 'Pcore::StringType', 'size_type_or_value' => {'__ptype' => 'Pcore::IntegerType', 'from' => 0}}, 'value' => 'v'}
+}
+
 func ExampleDataToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		buf := bytes.NewBufferString(``)
@@ -74,4 +84,17 @@ func ExampleFromDataConverter_Convert() {
 	// Output:
 	// *types.SemVerValue
 	// 1.0.0
+}
+
+func ExampleFromDataConverter_Convert2() {
+	eval.Puppet.Do(func(ctx eval.Context) error {
+		data := types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `Parameter`, `name`: `p`, `type`: map[string]interface{}{`__ptype`: `Pcore::StringType`, `size_type_or_value`: map[string]interface{}{`__ptype`: `Pcore::IntegerType`, `from`: 0}}, `value`: `v`})
+		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
+		fmt.Printf("%T\n", ver)
+		fmt.Println(ver)
+		return nil
+	})
+	// Output:
+	// *impl.parameter
+	// Parameter('name' => 'p', 'type' => String, 'value' => 'v')
 }
