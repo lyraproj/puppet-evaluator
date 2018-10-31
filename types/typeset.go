@@ -322,11 +322,11 @@ func (t *typeSet) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *typeSet) GetType(typedName eval.TypedName) (eval.Type, bool) {
-	if !(typedName.Namespace() == eval.TYPE && typedName.NameAuthority() == t.nameAuthority) {
+	if !(typedName.Namespace() == eval.TYPE && typedName.Authority() == t.nameAuthority) {
 		return nil, false
 	}
 
-	segments := typedName.NameParts()
+	segments := typedName.Parts()
 	first := segments[0]
 	if len(segments) == 1 {
 		if found, ok := t.GetType2(first); ok {

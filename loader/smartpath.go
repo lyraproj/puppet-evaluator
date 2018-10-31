@@ -51,7 +51,7 @@ func (p *smartPath) Loader() eval.Loader {
 }
 
 func (p *smartPath) EffectivePath(name eval.TypedName) string {
-	nameParts := name.NameParts()
+	nameParts := name.Parts()
 	if p.moduleNameRelative {
 		if len(nameParts) < 2 || nameParts[0] != p.loader.moduleName {
 			return ``

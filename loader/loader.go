@@ -102,7 +102,7 @@ func (l *basicLoader) ResolveResolvables(c eval.Context) {
 
 func load(c eval.Context, name eval.TypedName) (interface{}, bool) {
 	l := c.Loader()
-	if name.NameAuthority() != l.NameAuthority() {
+	if name.Authority() != l.NameAuthority() {
 		return nil, false
 	}
 	entry := l.LoadEntry(c, name)

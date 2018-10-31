@@ -41,7 +41,7 @@ func (l *dependencyLoader) LoaderFor(moduleName string) eval.ModuleLoader {
 
 func (l *dependencyLoader) find(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	if name.IsQualified() {
-		if ml, ok := l.index[name.NameParts()[0]]; ok {
+		if ml, ok := l.index[name.Parts()[0]]; ok {
 			return ml.LoadEntry(c, name)
 		}
 		return nil

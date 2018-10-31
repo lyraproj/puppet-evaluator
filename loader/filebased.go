@@ -146,13 +146,13 @@ func (l *fileBasedLoader) isGlobal() bool {
 func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	if name.IsQualified() {
 		// The name is in a name space.
-		if l.moduleName != name.NameParts()[0] {
+		if l.moduleName != name.Parts()[0] {
 			// Then entity cannot possible be in this module unless the name starts with the module name.
 			// Note: If "module" represents a "global component", the module_name is empty and cannot match which is
 			// ok since such a "module" cannot have namespaced content).
 			return nil
 		}
-		if name.Namespace() == eval.TASK && len(name.NameParts()) > 2 {
+		if name.Namespace() == eval.TASK && len(name.Parts()) > 2 {
 			// Subdirectories beneath the tasks directory are currently not recognized
 			return nil
 		}
@@ -164,7 +164,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 		case eval.PLAN:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
-				if l.moduleName != name.NameParts()[0] {
+				if l.moduleName != name.Parts()[0] {
 					// Global name must be the name of the module
 					return nil
 				}
@@ -179,7 +179,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 		case eval.TASK:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
-				if l.moduleName != name.NameParts()[0] {
+				if l.moduleName != name.Parts()[0] {
 					// Global name must be the name of the module
 					return nil
 				}
@@ -194,7 +194,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 		case eval.TYPE:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
-				if l.moduleName != name.NameParts()[0] {
+				if l.moduleName != name.Parts()[0] {
 					// Global name must be the name of the module
 					return nil
 				}

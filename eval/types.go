@@ -120,10 +120,6 @@ type (
 		AnnotatedMember
 	}
 
-	CallableObject interface {
-		Call(c Context, method string, args []Value, block Lambda) (result Value, ok bool)
-	}
-
 	AttributesInfo interface {
 		NameToPos() map[string]int
 
@@ -183,7 +179,7 @@ type (
 		// GetType2 is like GetType but uses a string to identify the type
 		GetType2(name string) (Type, bool)
 
-		// NameAuthority returns the name authority of the receiver
+		// Authority returns the name authority of the receiver
 		NameAuthority() URI
 
 		// TypedName returns the name of this type set as a TypedName
