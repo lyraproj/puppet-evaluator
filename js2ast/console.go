@@ -60,7 +60,7 @@ func (cs *console) ToString(bld io.Writer, format eval.FormatContext, g eval.RDe
 	types.ObjectToString(cs, format, bld, g)
 }
 
-func (cs *console) Type() eval.Type {
+func (cs *console) PType() eval.Type {
 	return consoleType
 }
 

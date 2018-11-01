@@ -9,7 +9,7 @@ import (
 type typedName struct {
 	namespace eval.Namespace
 	authority eval.URI
-	compound  string
+	name      string
 	canonical string
 	parts     []string
 }
@@ -126,8 +126,8 @@ func newTypedName2(namespace eval.Namespace, name string, nameAuthority eval.URI
 	tn.parts = parts
 	tn.namespace = namespace
 	tn.authority = nameAuthority
-	tn.compound = string(nameAuthority) + `/` + string(namespace) + `/` + name
-	tn.canonical = strings.ToLower(tn.compound)
+	tn.name = name
+	tn.canonical = strings.ToLower(string(nameAuthority) + `/` + string(namespace) + `/` + name)
 	return &tn
 }
 
@@ -143,34 +143,40 @@ func (t *typedName) child(stripCount int) eval.TypedName {
 		return nil
 	}
 
-	compound := t.compound
+	name := t.name
 	sx := 0
 	for i := 0; i < stripCount; i++ {
-		sx = strings.Index(compound, `::`)
+		sx = strings.Index(name, `::`)
 		if sx < 0 {
 			return nil
 		}
-		compound = compound[sx + 2:]
+		name = name[sx + 2:]
 	}
+
+	pfxLen := len(t.authority)+len(t.namespace)+2
+	diff := len(t.name) - len(name)
+	canonical := t.canonical[:pfxLen] + t.canonical[pfxLen + diff:]
+
 	return &typedName{
 		parts:     t.parts[stripCount:],
 		namespace: t.namespace,
 		authority: t.authority,
-		compound:  compound,
-		canonical: t.canonical[len(t.canonical) - len(compound):]}
+		name:      name,
+		canonical: canonical}
 }
 
 func (t *typedName) Parent() eval.TypedName {
 	if !t.IsQualified() {
 		return nil
 	}
-	lx := strings.LastIndex(t.compound, `::`)
+	pfxLen := len(t.authority)+len(t.namespace)+2
+	lx := strings.LastIndex(t.name, `::`)
 	return &typedName{
 		parts:     t.parts[:len(t.parts)-1],
 		namespace: t.namespace,
 		authority: t.authority,
-		compound:  t.compound[:lx],
-		canonical: t.canonical[:lx]}
+		name:      t.name[:lx],
+		canonical: t.canonical[:pfxLen + lx]}
 }
 
 func (t *typedName) Equals(other interface{}, g eval.Guard) bool {
@@ -181,8 +187,7 @@ func (t *typedName) Equals(other interface{}, g eval.Guard) bool {
 }
 
 func (t *typedName) Name() string {
-	cn := t.compound
-	return cn[strings.LastIndex(cn, `/`)+1:]
+	return t.name
 }
 
 func (t *typedName) IsParent(o eval.TypedName) bool {
