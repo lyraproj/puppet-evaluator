@@ -85,7 +85,7 @@ func (t *NumericType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *NumericType) IsInstance(o eval.Value, g eval.Guard) bool {
-	switch o.Type().(type) {
+	switch o.PType().(type) {
 	case *FloatType, *IntegerType:
 		return true
 	default:
@@ -113,7 +113,7 @@ func (t *NumericType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *NumericType) Type() eval.Type {
+func (t *NumericType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -154,5 +154,5 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 			}
 		}
 	}
-	panic(errors.NewArgumentsError(`Numeric`, fmt.Sprintf(`Value of type %s cannot be converted to an Number`, c.Type().String())))
+	panic(errors.NewArgumentsError(`Numeric`, fmt.Sprintf(`Value of type %s cannot be converted to an Number`, c.PType().String())))
 }

@@ -53,7 +53,7 @@ func (t *typedName) ToString(bld io.Writer, format eval.FormatContext, g eval.RD
 	ObjectToString(t, format, bld, g)
 }
 
-func (t *typedName) Type() eval.Type {
+func (t *typedName) PType() eval.Type {
 	return TypedName_Type
 }
 

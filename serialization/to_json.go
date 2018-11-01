@@ -32,7 +32,7 @@ func DataToNative(c eval.Context, value eval.Value) interface{} {
 		hv.EachPair(func(k, v eval.Value) { result[assertString(c, k)] = DataToNative(c, v) })
 		return result
 	default:
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultDataType(), value.Type())}))
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultDataType(), value.PType())}))
 	}
 }
 
@@ -65,5 +65,5 @@ func assertString(c eval.Context, value eval.Value) string {
 	if s, ok := value.(*types.StringValue); ok {
 		return s.String()
 	}
-	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultStringType(), value.Type())}))
+	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(``, types.DefaultStringType(), value.PType())}))
 }

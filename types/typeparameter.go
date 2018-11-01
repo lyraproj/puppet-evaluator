@@ -16,7 +16,7 @@ var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
 
 func (t *typeParameter) initHash() *hash.StringHash {
 	hash := t.attribute.initHash()
-	hash.Put(KEY_TYPE, hash.Get(KEY_TYPE, nil).(*TypeType).Type())
+	hash.Put(KEY_TYPE, hash.Get(KEY_TYPE, nil).(*TypeType).PType())
 	if v, ok := hash.Get3(KEY_VALUE); ok && eval.Equals(v, _UNDEF) {
 		hash.Delete(KEY_VALUE)
 	}

@@ -148,7 +148,7 @@ func (t *VariantType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *VariantType) Type() eval.Type {
+func (t *VariantType) PType() eval.Type {
 	return &TypeType{t}
 }
 

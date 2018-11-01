@@ -46,7 +46,7 @@ func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.Value, b
 		}
 		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Lhs(), issue.H{`value`: sv.String()}))
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 }
 
 func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
@@ -66,7 +66,7 @@ func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64
 		}
 		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Integer`, `right`: b.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Integer`, `right`: b.PType()}))
 	}
 }
 
@@ -87,7 +87,7 @@ func (e *evaluator) lhsFloatArithmetic(expr *parser.ArithmeticExpression, af flo
 		}
 		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Float`, `right`: b.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Float`, `right`: b.PType()}))
 	}
 }
 
@@ -166,7 +166,7 @@ func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.Value,
 			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(b.(*types.UriValue).URL()))
 		}
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.Type(), `right`: b.Type()}))
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType(), `right`: b.PType()}))
 }
 
 func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
@@ -192,6 +192,6 @@ func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.V
 			return hv.Delete(b)
 		}
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: a.Type}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType}))
 	}
 }

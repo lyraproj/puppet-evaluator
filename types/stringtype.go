@@ -226,7 +226,7 @@ func (t *StringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *StringType) Type() eval.Type {
+func (t *StringType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -241,7 +241,7 @@ func (sv *StringValue) Add(v eval.Value) eval.List {
 	if ov, ok := v.(*StringValue); ok {
 		return WrapString(sv.String() + ov.String())
 	}
-	panic(fmt.Sprintf(`No auto conversion from %s to String`, v.Type().String()))
+	panic(fmt.Sprintf(`No auto conversion from %s to String`, v.PType().String()))
 }
 
 var ONE_CHAR_STRING_TYPE = NewStringType(NewIntegerType(1, 1), ``)
@@ -251,7 +251,7 @@ func (sv *StringValue) AddAll(tv eval.List) eval.List {
 	tv.Each(func(e eval.Value) {
 		ev, ok := e.(*StringValue)
 		if !ok {
-			panic(fmt.Sprintf(`No auto conversion from %s to String`, e.Type().String()))
+			panic(fmt.Sprintf(`No auto conversion from %s to String`, e.PType().String()))
 		}
 		io.WriteString(s, ev.String())
 	})
@@ -445,7 +445,7 @@ func (sv *StringValue) String() string {
 }
 
 func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), sv.Type())
+	f := eval.GetFormat(s.FormatMap(), sv.PType())
 	val := sv.value
 	switch f.FormatChar() {
 	case 's':
@@ -468,7 +468,7 @@ func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 		val = strings.TrimSpace(val)
 		f.ReplaceFormatChar('s').ApplyStringFlags(b, val, f.IsAlt())
 	default:
-		panic(s.UnsupportedFormat(sv.Type(), `cCudspt`, f))
+		panic(s.UnsupportedFormat(sv.PType(), `cCudspt`, f))
 	}
 }
 
@@ -476,7 +476,7 @@ func (sv *StringValue) ToKey() eval.HashKey {
 	return eval.HashKey(sv.String())
 }
 
-func (sv *StringValue) Type() eval.Type {
+func (sv *StringValue) PType() eval.Type {
 	return (*StringType)(sv)
 }
 

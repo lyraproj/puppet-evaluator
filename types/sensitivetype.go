@@ -122,7 +122,7 @@ func (t *SensitiveType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *SensitiveType) Type() eval.Type {
+func (t *SensitiveType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -146,8 +146,8 @@ func (s *SensitiveValue) ToString(b io.Writer, f eval.FormatContext, g eval.RDet
 	io.WriteString(b, `Sensitive [value redacted]`)
 }
 
-func (s *SensitiveValue) Type() eval.Type {
-	return NewSensitiveType(s.Unwrap().Type())
+func (s *SensitiveValue) PType() eval.Type {
+	return NewSensitiveType(s.Unwrap().PType())
 }
 
 func (s *SensitiveValue) Unwrap() eval.Value {

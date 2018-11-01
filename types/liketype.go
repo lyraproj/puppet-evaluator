@@ -134,7 +134,7 @@ func (t *LikeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *LikeType) Type() eval.Type {
+func (t *LikeType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -143,10 +143,10 @@ func navigate(c eval.Context, value eval.Value, member string) (eval.Context, ev
 		if po, ok := typ.(eval.TypeWithCallableMembers); ok {
 			if m, ok := po.Member(member); ok {
 				if a, ok := m.(eval.Attribute); ok {
-					return c, a.Type(), true
+					return c, a.PType(), true
 				}
 				if f, ok := m.(eval.Function); ok {
-					return c, f.Type().(*CallableType).ReturnType(), true
+					return c, f.PType().(*CallableType).ReturnType(), true
 				}
 			}
 		} else if st, ok := typ.(*StructType); ok {
@@ -170,7 +170,7 @@ func navigate(c eval.Context, value eval.Value, member string) (eval.Context, ev
 			}
 		}
 	} else {
-		if po, ok := value.Type().(eval.TypeWithCallableMembers); ok {
+		if po, ok := value.PType().(eval.TypeWithCallableMembers); ok {
 			if m, ok := po.Member(member); ok {
 				if c == nil {
 					c = eval.CurrentContext()

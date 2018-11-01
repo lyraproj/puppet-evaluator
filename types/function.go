@@ -41,7 +41,7 @@ func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, 
 	}
 	types := make([]eval.Value, len(args))
 	for i, a := range args {
-		types[i] = a.Type()
+		types[i] = a.PType()
 	}
 	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
 		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))

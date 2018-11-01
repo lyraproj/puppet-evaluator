@@ -17,7 +17,7 @@ func ExampleEvaluateJavaScript_binOp() {
 	err := eval.Puppet.Do(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`var a = 23.5; var b = 8; a + b`))
 		if err == nil {
-			fmt.Printf(`%s %s`, v.Type(), v.String())
+			fmt.Printf(`%s %s`, v.PType(), v.String())
 		}
 		return err
 	})
@@ -31,7 +31,7 @@ func ExampleEvaluateJavaScript_func() {
 	err := eval.Puppet.Do(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`function sum(a, b) { return a + b } sum(2, 3)`))
 		if err == nil {
-			fmt.Printf(`%s %s`, v.Type(), v.String())
+			fmt.Printf(`%s %s`, v.PType(), v.String())
 		}
 		return err
 	})

@@ -113,10 +113,10 @@ func (t *CallableType) CallableWith(args []eval.Value, block eval.Lambda) bool {
 		case *OptionalType:
 			cb = cb.(*OptionalType).ContainedType()
 		}
-		if block.Type() == nil {
+		if block.PType() == nil {
 			return false
 		}
-		if !isAssignable(block.Type(), cb) {
+		if !isAssignable(block.PType(), cb) {
 			return false
 		}
 	} else if t.blockType != nil && !isAssignable(t.blockType, anyType_DEFAULT) {
@@ -217,7 +217,7 @@ func (t *CallableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 
 func (t *CallableType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if l, ok := o.(eval.Lambda); ok {
-		return isAssignable(t, l.Type())
+		return isAssignable(t, l.PType())
 	}
 	// TODO: Maybe check Go func using reflection
 	return false
@@ -288,7 +288,7 @@ func (t *CallableType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *CallableType) Type() eval.Type {
+func (t *CallableType) PType() eval.Type {
 	return &TypeType{t}
 }
 

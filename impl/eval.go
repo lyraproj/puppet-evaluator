@@ -264,7 +264,7 @@ func (e *evaluator) eval_CallMethodExpression(call *parser.CallMethodExpression,
 	}
 	receiver := e.unfold([]parser.Expression{fc.Lhs()}, c)
 	obj := receiver[0]
-	if tem, ok := obj.Type().(eval.TypeWithCallableMembers); ok {
+	if tem, ok := obj.PType().(eval.TypeWithCallableMembers); ok {
 		if mbr, ok := tem.Member(qn.Name()); ok {
 			var block eval.Lambda
 			if call.Lambda() != nil {

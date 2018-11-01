@@ -161,7 +161,7 @@ func (r *result) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	types.ObjectToString(r, s, b, g)
 }
 
-func (r *result) Type() eval.Type {
+func (r *result) PType() eval.Type {
 	return resultType
 }
 
@@ -261,6 +261,6 @@ func (rs *resultSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	types.ObjectToString(rs, s, b, g)
 }
 
-func (rs *resultSet) Type() eval.Type {
+func (rs *resultSet) PType() eval.Type {
 	return resultSetType
 }

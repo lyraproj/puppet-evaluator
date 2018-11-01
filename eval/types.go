@@ -84,7 +84,7 @@ type (
 
 		Container() ObjectType
 
-		Type() Type
+		PType() Type
 
 		Override() bool
 

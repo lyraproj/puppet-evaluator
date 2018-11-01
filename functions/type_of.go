@@ -9,7 +9,7 @@ func typeOf(c eval.Context, v eval.Value, i string) eval.Type {
 	case `generalized`:
 		return eval.GenericValueType(v)
 	case `reduced`:
-		return v.Type()
+		return v.PType()
 	default:
 		return eval.DetailedValueType(v)
 	}

@@ -23,11 +23,11 @@ func ExampleWrap() {
 	bl := eval.Wrap(nil, true)
 	und := eval.UNDEF
 
-	fmt.Printf("'%s' is a %s\n", str, str.Type())
-	fmt.Printf("'%s' is a %s\n", idx, idx.Type())
-	fmt.Printf("'%s' is a %s\n", flt, flt.Type())
-	fmt.Printf("'%s' is a %s\n", bl, bl.Type())
-	fmt.Printf("'%s' is a %s\n", und, und.Type())
+	fmt.Printf("'%s' is a %s\n", str, str.PType())
+	fmt.Printf("'%s' is a %s\n", idx, idx.PType())
+	fmt.Printf("'%s' is a %s\n", flt, flt.PType())
+	fmt.Printf("'%s' is a %s\n", bl, bl.PType())
+	fmt.Printf("'%s' is a %s\n", und, und.PType())
 
 	// Output:
 	// 'hello' is a String
@@ -40,7 +40,7 @@ func ExampleWrap() {
 func ExampleWrap_slice() {
 	// Wrap native Go slice
 	arr := eval.Wrap(nil, []interface{}{1, 2.2, true, nil, "hello"})
-	fmt.Printf("%s is an %s\n", arr, arr.Type())
+	fmt.Printf("%s is an %s\n", arr, arr.PType())
 
 	// Output:
 	// [1, 2.20000, true, undef, 'hello'] is an Array[5, 5]
@@ -55,8 +55,8 @@ func ExampleWrap_hash() {
 		"nested": []string{"hello", "world"},
 	})
 	nst, _ := hsh.(eval.OrderedMap).Get4("nested")
-	fmt.Printf("'%s' is a %s\n", hsh, hsh.Type())
-	fmt.Printf("hsh['nested'] == %s, an instance of %s\n", nst, nst.Type())
+	fmt.Printf("'%s' is a %s\n", hsh, hsh.PType())
+	fmt.Printf("hsh['nested'] == %s, an instance of %s\n", nst, nst.PType())
 
 	// Output:
 	// '{'first' => 1, 'nested' => ['hello', 'world'], 'second' => 2.20000, 'third' => 'three'}' is a Hash[Enum['first', 'nested', 'second', 'third'], Data, 4, 4]
@@ -66,7 +66,7 @@ func ExampleWrap_hash() {
 func ExamplePcore_parseType() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
-		fmt.Printf("%s is an instance of %s\n", pcoreType, pcoreType.Type())
+		fmt.Printf("%s is an instance of %s\n", pcoreType, pcoreType.PType())
 		return nil
 	})
 	// Output:

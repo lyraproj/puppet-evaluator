@@ -307,7 +307,7 @@ func (t *IntegerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *IntegerType) Type() eval.Type {
+func (t *IntegerType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -376,7 +376,7 @@ func (iv *IntegerValue) ToKey(b *bytes.Buffer) {
 }
 
 func (iv *IntegerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), iv.Type())
+	f := eval.GetFormat(s.FormatMap(), iv.PType())
 	switch f.FormatChar() {
 	case 'x', 'X', 'o', 'd':
 		fmt.Fprintf(b, f.OrigFormat(), iv.Int())
@@ -428,7 +428,7 @@ func (iv *IntegerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 's':
 		f.ApplyStringFlags(b, strconv.Itoa(int(iv.Int())), f.IsAlt())
 	default:
-		panic(s.UnsupportedFormat(iv.Type(), `dxXobBeEfgGaAspc`, f))
+		panic(s.UnsupportedFormat(iv.PType(), `dxXobBeEfgGaAspc`, f))
 	}
 }
 
@@ -469,6 +469,6 @@ func integerPrefixRadix(c byte) string {
 	}
 }
 
-func (iv *IntegerValue) Type() eval.Type {
+func (iv *IntegerValue) PType() eval.Type {
 	return (*IntegerType)(iv)
 }

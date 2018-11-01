@@ -72,9 +72,9 @@ func reference(value eval.Value) (string, issue.Reported) {
 	case eval.PuppetObject:
 		resource := value.(eval.PuppetObject)
 		if title, ok := resource.Get(`title`); ok {
-			return fmt.Sprintf(`%s[%s]`, strings.ToLower(resource.Type().Name()), title.String()), nil
+			return fmt.Sprintf(`%s[%s]`, strings.ToLower(resource.PType().Name()), title.String()), nil
 		}
-		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.Type().String()})
+		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE, issue.H{`value_type`: resource.PType().String()})
 	case eval.ParameterizedType:
 		pt := value.(eval.ParameterizedType)
 		params := pt.Parameters()
@@ -89,5 +89,5 @@ func reference(value eval.Value) (string, issue.Reported) {
 		}
 		return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_REFERENCE, issue.H{`str`: value.String()})
 	}
-	return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.Type().String()})
+	return ``, eval.Error(EVAL_ILLEGAL_RESOURCE_OR_REFERENCE, issue.H{`value_type`: value.PType().String()})
 }

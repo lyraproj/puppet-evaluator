@@ -43,8 +43,8 @@ func (h *handle) Equals(other interface{}, guard eval.Guard) bool {
 }
 
 func (h *handle) Replace(value eval.PuppetObject) {
-	if !eval.Equals(h.value.Type(), value.Type()) {
-		panic(eval.Error(EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{`expected_type`: h.value.Type().String(), `actual_type`: value.Type().String()}))
+	if !eval.Equals(h.value.PType(), value.PType()) {
+		panic(eval.Error(EVAL_ILLEGAL_HANDLE_REPLACE, issue.H{`expected_type`: h.value.PType().String(), `actual_type`: value.PType().String()}))
 	}
 	h.value = value
 }
@@ -53,8 +53,8 @@ func (h *handle) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	h.value.ToString(bld, format, g)
 }
 
-func (h *handle) Type() eval.Type {
-	return h.value.Type()
+func (h *handle) PType() eval.Type {
+	return h.value.PType()
 }
 
 func (h *handle) setLocation(location issue.Location) {

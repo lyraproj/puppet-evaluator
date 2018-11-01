@@ -13,7 +13,7 @@ type (
 		fmt.Stringer
 		Equality
 		ToString(bld io.Writer, format FormatContext, g RDetect)
-		Type() Type
+		PType() Type
 	}
 
 	// Comparator returns true when a is less than b.

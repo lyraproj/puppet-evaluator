@@ -214,7 +214,7 @@ func (t *ArrayType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *ArrayType) Type() eval.Type {
+func (t *ArrayType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -392,7 +392,7 @@ func (av *ArrayValue) EachSlice(n int, consumer eval.SliceConsumer) {
 }
 
 func (av *ArrayValue) ElementType() eval.Type {
-	return av.Type().(*ArrayType).ElementType()
+	return av.PType().(*ArrayType).ElementType()
 }
 
 func (av *ArrayValue) Equals(o interface{}, g eval.Guard) bool {
@@ -484,7 +484,7 @@ func (av *ArrayValue) Reduce2(initialValue eval.Value, redactor eval.BiMapper) e
 }
 
 func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
-	at, ok := ReflectType(av.Type())
+	at, ok := ReflectType(av.PType())
 	if !ok {
 		at = reflect.TypeOf([]interface{}{})
 	}
@@ -575,14 +575,14 @@ func (av *ArrayValue) String() string {
 }
 
 func (av *ArrayValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	av.ToString2(b, s, eval.GetFormat(s.FormatMap(), av.Type()), '[', g)
+	av.ToString2(b, s, eval.GetFormat(s.FormatMap(), av.PType()), '[', g)
 }
 
 func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format, delim byte, g eval.RDetect) {
 	switch f.FormatChar() {
 	case 'a', 's', 'p':
 	default:
-		panic(s.UnsupportedFormat(av.Type(), `asp`, f))
+		panic(s.UnsupportedFormat(av.PType(), `asp`, f))
 	}
 	indent := s.Indentation()
 	indent = indent.Indenting(f.IsAlt() || indent.IsIndenting())
@@ -712,7 +712,7 @@ func isArrayOrHash(child eval.Value) bool {
 	}
 }
 
-func (av *ArrayValue) Type() eval.Type {
+func (av *ArrayValue) PType() eval.Type {
 	av.lock.Lock()
 	t := av.prtvReducedType()
 	av.lock.Unlock()
@@ -740,9 +740,9 @@ func (av *ArrayValue) prtvReducedType() eval.Type {
 		if top == 0 {
 			av.reducedType = EmptyArrayType()
 		} else {
-			elemType := av.elements[0].Type()
+			elemType := av.elements[0].PType()
 			for idx := 1; idx < top; idx++ {
-				elemType = commonType(elemType, av.elements[idx].Type())
+				elemType = commonType(elemType, av.elements[idx].PType())
 			}
 			av.reducedType = NewArrayType(elemType, NewIntegerType(int64(top), int64(top)))
 		}

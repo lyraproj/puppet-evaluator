@@ -138,7 +138,7 @@ func (te *objectTypeExtension) ToString(bld io.Writer, format eval.FormatContext
 	TypeToString(te, bld, format, g)
 }
 
-func (te *objectTypeExtension) Type() eval.Type {
+func (te *objectTypeExtension) PType() eval.Type {
 	return &TypeType{te}
 }
 
@@ -155,11 +155,11 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	}
 
 	if namedArgs {
-		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).PType(), initParameters[0])
 	}
 
 	checkParam := func(tp *typeParameter, v eval.Value) eval.Value {
-		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
+		return eval.AssertInstance(func() string { return tp.Label() }, tp.PType(), v)
 	}
 
 	byName := hash.NewStringHash(pts.Len())

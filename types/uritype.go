@@ -346,7 +346,7 @@ func (t *UriType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *UriType) Type() eval.Type {
+func (t *UriType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -434,7 +434,7 @@ func (u *UriValue) String() string {
 }
 
 func (u *UriValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), u.Type())
+	f := eval.GetFormat(s.FormatMap(), u.PType())
 	val := u.URL().String()
 	switch f.FormatChar() {
 	case 's':
@@ -444,7 +444,7 @@ func (u *UriValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 		utils.PuppetQuote(b, val)
 		utils.WriteByte(b, ')')
 	default:
-		panic(s.UnsupportedFormat(u.Type(), `sp`, f))
+		panic(s.UnsupportedFormat(u.PType(), `sp`, f))
 	}
 }
 
@@ -454,7 +454,7 @@ func (u *UriValue) ToKey(b *bytes.Buffer) {
 	b.Write([]byte(u.URL().String()))
 }
 
-func (u *UriValue) Type() eval.Type {
+func (u *UriValue) PType() eval.Type {
 	return &u.UriType
 }
 

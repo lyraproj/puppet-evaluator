@@ -56,7 +56,7 @@ func (t *AnyType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *AnyType) Type() eval.Type {
+func (t *AnyType) PType() eval.Type {
 	return &TypeType{t}
 }
 

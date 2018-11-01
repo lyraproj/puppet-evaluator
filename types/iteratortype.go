@@ -153,7 +153,7 @@ func (t *IteratorType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *IteratorType) Type() eval.Type {
+func (t *IteratorType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -172,7 +172,7 @@ func (it *iteratorValue) Equals(o interface{}, g eval.Guard) bool {
 	return false
 }
 
-func (it *iteratorValue) Type() eval.Type {
+func (it *iteratorValue) PType() eval.Type {
 	return NewIteratorType(it.iterator.ElementType())
 }
 

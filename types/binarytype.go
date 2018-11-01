@@ -121,7 +121,7 @@ func (t *BinaryType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *BinaryType) Type() eval.Type {
+func (t *BinaryType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -244,7 +244,7 @@ func (bv *BinaryValue) ToKey(b *bytes.Buffer) {
 }
 
 func (bv *BinaryValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), bv.Type())
+	f := eval.GetFormat(s.FormatMap(), bv.PType())
 	var str string
 	switch f.FormatChar() {
 	case 's':
@@ -265,12 +265,12 @@ func (bv *BinaryValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	case 'T':
 		str = `BINARY`
 	default:
-		panic(s.UnsupportedFormat(bv.Type(), `bButTsp`, f))
+		panic(s.UnsupportedFormat(bv.PType(), `bButTsp`, f))
 	}
 	f.ApplyStringFlags(b, str, f.IsAlt())
 }
 
-func (bv *BinaryValue) Type() eval.Type {
+func (bv *BinaryValue) PType() eval.Type {
 	return DefaultBinaryType()
 }
 

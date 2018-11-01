@@ -52,7 +52,7 @@ func (a *annotatedMember) Container() eval.ObjectType {
 	return a.container
 }
 
-func (a *annotatedMember) Type() eval.Type {
+func (a *annotatedMember) PType() eval.Type {
 	return a.typ
 }
 
@@ -102,7 +102,7 @@ func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.A
 	if !member.Override() {
 		panic(eval.Error(eval.EVAL_OVERRIDE_IS_MISSING, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
-	if !eval.IsAssignable(a.Type(), member.Type()) {
+	if !eval.IsAssignable(a.PType(), member.PType()) {
 		panic(eval.Error(eval.EVAL_OVERRIDE_TYPE_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 }

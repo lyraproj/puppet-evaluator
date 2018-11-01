@@ -158,7 +158,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return eval.IsAssignable(left, right)
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -182,7 +182,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -199,7 +199,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -216,14 +216,14 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.Type()}))
+		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.Type(), `right`: b.Type()}))
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
 }
 
 func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.Value, b eval.Value) bool {
@@ -246,7 +246,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 
 		sv, ok := a.(*types.StringValue)
 		if !ok {
-			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.Type()}))
+			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.PType()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			if updateScope {
@@ -268,7 +268,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 			}
 		} else {
 			panic(eval.Error2(lhs, eval.EVAL_NOT_SEMVER,
-				issue.H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.Type().String())}))
+				issue.H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.PType().String())}))
 		}
 		if lv, ok := b.(*types.SemVerValue); ok {
 			result = lv.Version().Equals(version)

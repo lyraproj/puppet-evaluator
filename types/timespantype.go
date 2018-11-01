@@ -281,12 +281,12 @@ func (t *TimespanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *TimespanType) Type() eval.Type {
+func (t *TimespanType) PType() eval.Type {
 	return &TypeType{t}
 }
 
 func (t *TimespanType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return t.IsAssignable(o.Type(), g)
+	return t.IsAssignable(o.PType(), g)
 }
 
 func (t *TimespanType) IsAssignable(o eval.Type, g eval.Guard) bool {
@@ -514,7 +514,7 @@ func (tv *TimespanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 	DEFAULT_TIMESPAN_FORMATS[0].format2(b, tv)
 }
 
-func (tv *TimespanValue) Type() eval.Type {
+func (tv *TimespanValue) PType() eval.Type {
 	return (*TimespanType)(tv)
 }
 

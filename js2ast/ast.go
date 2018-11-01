@@ -322,5 +322,5 @@ func (ie *unaryNumericExpression) Evaluate(e eval.Evaluator, c eval.Context) eva
 		}
 		return nv
 	}
-	panic(eval.Error2(ie, validator.VALIDATE_UNSUPPORTED_OPERATOR_IN_CONTEXT, issue.H{`operator`: ie.Op(), `value`: num.Type()}))
+	panic(eval.Error2(ie, validator.VALIDATE_UNSUPPORTED_OPERATOR_IN_CONTEXT, issue.H{`operator`: ie.Op(), `value`: num.PType()}))
 }

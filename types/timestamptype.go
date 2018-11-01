@@ -224,7 +224,7 @@ func (t *TimestampType) Get(key string) (eval.Value, bool) {
 }
 
 func (t *TimestampType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return t.IsAssignable(o.Type(), g)
+	return t.IsAssignable(o.PType(), g)
 }
 
 func (t *TimestampType) IsAssignable(o eval.Type, g eval.Guard) bool {
@@ -263,7 +263,7 @@ func (t *TimestampType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	TypeToString(t, b, s, g)
 }
 
-func (t *TimestampType) Type() eval.Type {
+func (t *TimestampType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -407,7 +407,7 @@ func (tv *TimestampValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDe
 	io.WriteString(b, tv.min.Format(DEFAULT_TIMESTAMP_FORMATS[0].layout))
 }
 
-func (tv *TimestampValue) Type() eval.Type {
+func (tv *TimestampValue) PType() eval.Type {
 	return (*TimestampType)(tv)
 }
 

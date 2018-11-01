@@ -25,7 +25,7 @@ func (p *parameter) Value() eval.Value {
 	return p.value
 }
 
-func (p *parameter) ValueType() eval.Type {
+func (p *parameter) Type() eval.Type {
 	return p.typ
 }
 
@@ -69,7 +69,7 @@ func (p *parameter) ToString(bld io.Writer, format eval.FormatContext, g eval.RD
 	types.ObjectToString(p, format, bld, g)
 }
 
-func (p *parameter) Type() eval.Type {
+func (p *parameter) PType() eval.Type {
 	return Parameter_Type
 }
 

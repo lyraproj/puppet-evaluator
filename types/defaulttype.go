@@ -62,7 +62,7 @@ func (t *DefaultType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *DefaultType) Type() eval.Type {
+func (t *DefaultType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -88,17 +88,17 @@ func (dv *DefaultValue) String() string {
 }
 
 func (dv *DefaultValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), dv.Type())
+	f := eval.GetFormat(s.FormatMap(), dv.PType())
 	switch f.FormatChar() {
 	case 'd', 's', 'p':
 		f.ApplyStringFlags(b, `default`, f.IsAlt())
 	case 'D':
 		f.ApplyStringFlags(b, `Default`, f.IsAlt())
 	default:
-		panic(s.UnsupportedFormat(dv.Type(), `dDsp`, f))
+		panic(s.UnsupportedFormat(dv.PType(), `dDsp`, f))
 	}
 }
 
-func (dv *DefaultValue) Type() eval.Type {
+func (dv *DefaultValue) PType() eval.Type {
 	return DefaultDefaultType()
 }

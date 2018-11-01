@@ -138,7 +138,7 @@ func (t *TypeType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *TypeType) Type() eval.Type {
+func (t *TypeType) PType() eval.Type {
 	return &TypeType{t}
 }
 

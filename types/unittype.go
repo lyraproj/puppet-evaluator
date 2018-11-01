@@ -62,7 +62,7 @@ func (t *UnitType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *UnitType) Type() eval.Type {
+func (t *UnitType) PType() eval.Type {
 	return &TypeType{t}
 }
 

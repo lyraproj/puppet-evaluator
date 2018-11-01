@@ -139,7 +139,7 @@ func (t *SemVerRangeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDe
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerRangeType) Type() eval.Type {
+func (t *SemVerRangeType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -179,7 +179,7 @@ func (bv *SemVerRangeValue) String() string {
 }
 
 func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), bv.Type())
+	f := eval.GetFormat(s.FormatMap(), bv.PType())
 	vr := bv.rng
 	switch f.FormatChar() {
 	case 'p':
@@ -197,7 +197,7 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 			vr.ToString(b)
 		}
 	default:
-		panic(s.UnsupportedFormat(bv.Type(), `ps`, f))
+		panic(s.UnsupportedFormat(bv.PType(), `ps`, f))
 	}
 }
 
@@ -207,6 +207,6 @@ func (bv *SemVerRangeValue) ToKey(b *bytes.Buffer) {
 	bv.rng.ToString(b)
 }
 
-func (bv *SemVerRangeValue) Type() eval.Type {
+func (bv *SemVerRangeValue) PType() eval.Type {
 	return DefaultSemVerRangeType()
 }

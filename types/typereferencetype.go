@@ -114,7 +114,7 @@ func (t *TypeReferenceType) ToString(b io.Writer, s eval.FormatContext, g eval.R
 	TypeToString(t, b, s, g)
 }
 
-func (t *TypeReferenceType) Type() eval.Type {
+func (t *TypeReferenceType) PType() eval.Type {
 	return &TypeType{t}
 }
 

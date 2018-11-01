@@ -161,7 +161,7 @@ func (t *TypeAliasType) String() string {
 }
 
 func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), t.Type())
+	f := eval.GetFormat(s.FormatMap(), t.PType())
 	if t.name == `UnresolvedAlias` {
 		io.WriteString(b, `TypeAlias`)
 	} else {
@@ -182,7 +182,7 @@ func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	}
 }
 
-func (t *TypeAliasType) Type() eval.Type {
+func (t *TypeAliasType) PType() eval.Type {
 	return &TypeType{t}
 }
 

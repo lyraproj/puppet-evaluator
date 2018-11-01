@@ -109,8 +109,8 @@ type (
 )
 
 func ObjectToString(o eval.PuppetObject, s eval.FormatContext, writer io.Writer, g eval.RDetect) {
-	io.WriteString(writer, o.Type().Name())
-	o.InitHash().(*HashValue).ToString2(writer, s, eval.GetFormat(s.FormatMap(), o.Type()), '(', g)
+	io.WriteString(writer, o.PType().Name())
+	o.InitHash().(*HashValue).ToString2(writer, s, eval.GetFormat(s.FormatMap(), o.PType()), '(', g)
 }
 
 var objectType_DEFAULT = &objectType{
@@ -180,7 +180,7 @@ func NewObjectType2(c eval.Context, args ...eval.Value) *objectType {
 			obj.loader = c.Loader()
 			return obj
 		}
-		panic(NewIllegalArgumentType2(`Object[]`, 0, `Hash[String,Any]`, arg.Type()))
+		panic(NewIllegalArgumentType2(`Object[]`, 0, `Hash[String,Any]`, arg.PType()))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Object[]`, `1`, argc))
 	}
@@ -410,7 +410,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			}
 			value := v.(eval.Value)
 			attrSpec := issue.H{
-				KEY_TYPE:  eval.Generalize(value.Type()),
+				KEY_TYPE:  eval.Generalize(value.PType()),
 				KEY_VALUE: value,
 				KEY_KIND:  CONSTANT}
 			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
@@ -576,7 +576,7 @@ func (t *objectType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *objectType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return isAssignable(t, o.Type())
+	return isAssignable(t, o.PType())
 }
 
 func (t *objectType) IsParameterized() bool {
@@ -695,7 +695,7 @@ func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, des
 }
 
 func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), t.Type())
+	f := eval.GetFormat(s.FormatMap(), t.PType())
 	switch f.FormatChar() {
 	case 's', 'p':
 		quoted := f.IsAlt() && f.FormatChar() == 's'
@@ -705,7 +705,7 @@ func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 			f.ApplyStringFlags(b, bld.String(), quoted)
 		} else {t.basicTypeToString( b, f,s, g)}
 	default:
-		panic(s.UnsupportedFormat(t.Type(), `sp`, f))
+		panic(s.UnsupportedFormat(t.PType(), `sp`, f))
 	}
 }
 
@@ -826,7 +826,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 	}
 }
 
-func (t *objectType) Type() eval.Type {
+func (t *objectType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -930,7 +930,7 @@ func (t *objectType) createInitType() *StructType {
 			} else {
 				key = NewStringType(nil, attr.Name())
 			}
-			elements = append(elements, NewStructElement(key, attr.Type()))
+			elements = append(elements, NewStructElement(key, attr.PType()))
 		}
 	})
 	return NewStructType(elements)
@@ -970,9 +970,9 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			case CONSTANT, DERIVED:
 			default:
 				if i >= pi.RequiredCount() {
-					d.OptionalParam2(attr.Type())
+					d.OptionalParam2(attr.PType())
 				} else {
-					d.Param2(attr.Type())
+					d.Param2(attr.PType())
 				}
 			}
 		}
@@ -1018,7 +1018,7 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		others := hash.NewStringHash(5)
 		t.attributes.EachPair(func(key string, value interface{}) {
 			a := value.(eval.Attribute)
-			if a.Kind() == CONSTANT && eval.Equals(a.Type(), eval.Generalize(a.Value().Type())) {
+			if a.Kind() == CONSTANT && eval.Equals(a.PType(), eval.Generalize(a.Value().PType())) {
 				constants = append(constants, WrapHashEntry2(key, a.Value()))
 			} else {
 				others.Put(key, a)
@@ -1065,7 +1065,7 @@ func (t *objectType) positionalInitSignature() eval.Signature {
 	ai := t.AttributesInfo()
 	argTypes := make([]eval.Type, len(ai.Attributes()))
 	for i, attr := range ai.Attributes() {
-		argTypes[i] = attr.Type()
+		argTypes[i] = attr.PType()
 	}
 	return NewCallableType(NewTupleType(argTypes, NewIntegerType(int64(ai.RequiredCount()), int64(len(argTypes)))), t, nil)
 }
@@ -1081,7 +1081,7 @@ func (t *objectType) resolvedParent() *objectType {
 		case *TypeAliasType:
 			tp = tp.(*TypeAliasType).resolvedType
 		default:
-			panic(eval.Error(eval.EVAL_ILLEGAL_OBJECT_INHERITANCE, issue.H{`label`: t.Label(), `type`: tp.Type().String()}))
+			panic(eval.Error(eval.EVAL_ILLEGAL_OBJECT_INHERITANCE, issue.H{`label`: t.Label(), `type`: tp.PType().String()}))
 		}
 	}
 }

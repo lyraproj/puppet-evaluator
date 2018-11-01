@@ -232,7 +232,7 @@ func (t *RuntimeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *RuntimeType) Type() eval.Type {
+func (t *RuntimeType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -259,7 +259,7 @@ func (rv *RuntimeValue) Equals(o interface{}, g eval.Guard) bool {
 func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.PType().String()}))
 	}
 	return reflect.ValueOf(rv.value)
 }
@@ -267,7 +267,7 @@ func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 func (rv *RuntimeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.Type().String()}))
+		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.PType().String()}))
 	}
 	if !gt.AssignableTo(dest.Type()) {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
@@ -283,7 +283,7 @@ func (rv *RuntimeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	utils.PuppetQuote(b, fmt.Sprintf(`%v`, rv.value))
 }
 
-func (rv *RuntimeValue) Type() eval.Type {
+func (rv *RuntimeValue) PType() eval.Type {
 	return rv.puppetType
 }
 

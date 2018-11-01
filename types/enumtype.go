@@ -191,7 +191,7 @@ func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, f, g)
 }
 
-func (t *EnumType) Type() eval.Type {
+func (t *EnumType) PType() eval.Type {
 	return &TypeType{t}
 }
 

@@ -46,7 +46,7 @@ func (r *reflector) Reflect(src eval.Value) reflect.Value {
 	if sn, ok := src.(eval.PReflected); ok {
 		return sn.Reflect(r.c)
 	}
-	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: src.Type()}))
+	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: src.PType()}))
 }
 
 func (r *reflector) Reflect2(src eval.Value, rt reflect.Type) reflect.Value {
@@ -77,9 +77,9 @@ func (r *reflector) ReflectTo(src eval.Value, dest reflect.Value) {
 			src.(eval.PReflected).ReflectTo(r.c, dest)
 		case eval.PuppetObject:
 			po := src.(eval.PuppetObject)
-			po.Type().(eval.ObjectType).ToReflectedValue(r.c, po, dest)
+			po.PType().(eval.ObjectType).ToReflectedValue(r.c, po, dest)
 		default:
-			panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_SET, issue.H{`type`: src.Type()}))
+			panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_SET, issue.H{`type`: src.PType()}))
 		}
 	}
 }

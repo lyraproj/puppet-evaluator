@@ -90,7 +90,7 @@ func (o *objectValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	ObjectToString(o, s, b, g)
 }
 
-func (o *objectValue) Type() eval.Type {
+func (o *objectValue) PType() eval.Type {
 	return o.typ
 }
 

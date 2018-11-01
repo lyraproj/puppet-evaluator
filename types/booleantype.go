@@ -136,7 +136,7 @@ func (t *BooleanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	TypeToString(t, b, s, g)
 }
 
-func (t *BooleanType) Type() eval.Type {
+func (t *BooleanType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -187,7 +187,7 @@ func (bv *BooleanValue) String() string {
 }
 
 func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), bv.Type())
+	f := eval.GetFormat(s.FormatMap(), bv.PType())
 	switch f.FormatChar() {
 	case 't':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `true`, `false`), false)
@@ -204,7 +204,7 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 's', 'p':
 		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), f.IsAlt())
 	default:
-		panic(s.UnsupportedFormat(bv.Type(), `tTyYdxXobBeEfgGaAsp`, f))
+		panic(s.UnsupportedFormat(bv.PType(), `tTyYdxXobBeEfgGaAsp`, f))
 	}
 }
 
@@ -226,6 +226,6 @@ func (bv *BooleanValue) ToKey() eval.HashKey {
 	return eval.HashKey([]byte{1, HK_BOOLEAN, 0})
 }
 
-func (bv *BooleanValue) Type() eval.Type {
+func (bv *BooleanValue) PType() eval.Type {
 	return DefaultBooleanType()
 }

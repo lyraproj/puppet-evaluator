@@ -93,7 +93,7 @@ func (e *deferred) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	ObjectToString(e, s, b, g)
 }
 
-func (e *deferred) Type() eval.Type {
+func (e *deferred) PType() eval.Type {
 	return deferredType
 }
 
@@ -177,7 +177,7 @@ func (d *deferredExpr) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	io.WriteString(b, `)`)
 }
 
-func (d *deferredExpr) Type() eval.Type {
+func (d *deferredExpr) PType() eval.Type {
 	return deferredExprType
 }
 

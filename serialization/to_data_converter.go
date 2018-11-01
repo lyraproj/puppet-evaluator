@@ -120,7 +120,7 @@ func (t *ToDataConverter) withRecursiveGuard(value eval.Value, producer eval.Pro
 		t.recursiveLock = map[eval.Value]bool{value: true}
 	} else {
 		if _, ok := t.recursiveLock[value]; ok {
-			panic(eval.Error(eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.Type().Name()}))
+			panic(eval.Error(eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.PType().Name()}))
 		}
 		t.recursiveLock[value] = true
 	}
@@ -147,11 +147,11 @@ func (t *ToDataConverter) unkownToStringWithWarning(value eval.Value) eval.Value
 			klass = `Symbol`
 		} else {
 			s = fmt.Sprintf(`%v`, rt.Interface())
-			klass = rt.Type().(*types.RuntimeType).Name()
+			klass = rt.PType().(*types.RuntimeType).Name()
 		}
 	} else {
 		s = value.String()
-		klass = value.Type().Name()
+		klass = value.PType().Name()
 	}
 	if warn {
 		eval.Warning(eval.EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, issue.H{`path`: t.pathToString(), `klass`: klass, `value`: s})
@@ -222,7 +222,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 		// describing the type X)
 		vt = tp.MetaType()
 	} else {
-		vt = value.Type()
+		vt = value.PType()
 	}
 
 	pcoreTv := t.pcoreTypeToData(vt)

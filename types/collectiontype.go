@@ -129,7 +129,7 @@ func (t *CollectionType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *CollectionType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return t.IsAssignable(o.Type(), g)
+	return t.IsAssignable(o.PType(), g)
 }
 
 func (t *CollectionType) MetaType() eval.ObjectType {
@@ -159,7 +159,7 @@ func (t *CollectionType) ToString(b io.Writer, s eval.FormatContext, g eval.RDet
 	TypeToString(t, b, s, g)
 }
 
-func (t *CollectionType) Type() eval.Type {
+func (t *CollectionType) PType() eval.Type {
 	return &TypeType{t}
 }
 

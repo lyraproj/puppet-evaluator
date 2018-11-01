@@ -361,7 +361,7 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.Type, value eval.Value
 	if str, ok := value.(*types.StringValue); ok {
 		return f.buildValue(eval.New(f.context, typ, str))
 	}
-	panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.Type().Name()}))
+	panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.PType().Name()}))
 }
 
 func (f *FromDataConverter) allocate(typ eval.Type) (eval.Object, bool) {

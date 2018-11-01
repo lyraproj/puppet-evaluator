@@ -12,7 +12,7 @@ type (
 
 		Name() string
 
-		ValueType() Type
+		Type() Type
 
 		Value() Value
 

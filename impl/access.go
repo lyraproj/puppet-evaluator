@@ -52,7 +52,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 	case eval.List:
 		return e.accessIndexedValue(expr, lhs.(eval.List), args, c)
 	default:
-		if tem, ok := lhs.Type().(eval.TypeWithCallableMembers); ok {
+		if tem, ok := lhs.PType().(eval.TypeWithCallableMembers); ok {
 			if mbr, ok := tem.Member(`[]`); ok {
 				return mbr.Call(c, lhs, nil, args)
 			}
@@ -63,12 +63,12 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 					if mbr, ok := tem.Member(s.String()); ok {
 						return mbr.Call(c, lhs, nil, []eval.Value{})
 					}
-					panic(e.evalError(eval.EVAL_ATTRIBUTE_NOT_FOUND, op, issue.H{`type`: lhs.Type(), `name`: s.String()}))
+					panic(e.evalError(eval.EVAL_ATTRIBUTE_NOT_FOUND, op, issue.H{`type`: lhs.PType(), `name`: s.String()}))
 				}
 			}
 		}
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.Type()}))
+	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
 }
 
 func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value, c eval.Context) (result eval.Value) {
@@ -80,7 +80,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 			return int(arg)
 		}
 		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, expr.Keys()[index],
-			issue.H{`expression`: lhs.Type(), `number`: 0, `expected`: `Integer`, `actual`: key}))
+			issue.H{`expression`: lhs.PType(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
 	indexArg := func(argIndex int) int {
@@ -121,7 +121,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 			return eval.UNDEF
 		}
 		if nArgs == 0 {
-			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.Type(), `expected`: `at least one`, `actual`: nArgs}))
+			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
@@ -139,7 +139,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 	}
 
 	if nArgs == 0 || nArgs > 2 {
-		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.Type(), `expected`: `1 or 2`, `actual`: nArgs}))
+		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `1 or 2`, `actual`: nArgs}))
 	}
 	if nArgs == 2 {
 		start := indexArg(0)

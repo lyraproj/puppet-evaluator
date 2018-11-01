@@ -155,7 +155,7 @@ func (rn *node) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	types.ObjectToString(rn, s, b, g)
 }
 
-func (rn *node) Type() eval.Type {
+func (rn *node) PType() eval.Type {
 	return Node_Type
 }
 

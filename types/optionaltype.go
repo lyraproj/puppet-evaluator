@@ -135,7 +135,7 @@ func (t *OptionalType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *OptionalType) Type() eval.Type {
+func (t *OptionalType) PType() eval.Type {
 	return &TypeType{t}
 }
 

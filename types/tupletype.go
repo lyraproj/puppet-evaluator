@@ -352,7 +352,7 @@ func (t *TupleType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-func (t *TupleType) Type() eval.Type {
+func (t *TupleType) PType() eval.Type {
 	return &TypeType{t}
 }
 

@@ -117,7 +117,7 @@ func (l *lambda) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	io.WriteString(bld, `lambda`)
 }
 
-func (l *lambda) Type() eval.Type {
+func (l *lambda) PType() eval.Type {
 	return l.signature
 }
 
@@ -380,11 +380,11 @@ func (f *goFunction) ToString(bld io.Writer, format eval.FormatContext, g eval.R
 	fmt.Fprintf(bld, `function %s`, f.name)
 }
 
-func (f *goFunction) Type() eval.Type {
+func (f *goFunction) PType() eval.Type {
 	top := len(f.dispatchers)
 	variants := make([]eval.Type, top)
 	for idx := 0; idx < top; idx++ {
-		variants[idx] = f.dispatchers[idx].Type()
+		variants[idx] = f.dispatchers[idx].PType()
 	}
 	return types.NewVariantType(variants...)
 }
@@ -435,7 +435,7 @@ func (l *puppetLambda) ToString(bld io.Writer, format eval.FormatContext, g eval
 	io.WriteString(bld, `lambda`)
 }
 
-func (l *puppetLambda) Type() eval.Type {
+func (l *puppetLambda) PType() eval.Type {
 	return l.signature
 }
 
@@ -486,8 +486,8 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 					if df, ok := d.(types.Deferred); ok {
 						d = df.Resolve(c)
 					}
-					if !eval.IsInstance(p.ValueType(), d) {
-						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.ValueType(), d.Type())))
+					if !eval.IsInstance(p.Type(), d) {
+						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.Type(), d.PType())))
 					}
 					ap[idx] = d
 				}
@@ -497,7 +497,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 		}
 
 		for idx, arg := range args {
-			AssertArgument(name, idx, parameters[idx].ValueType(), arg)
+			AssertArgument(name, idx, parameters[idx].Type(), arg)
 		}
 
 		scope := c.Scope()
@@ -569,7 +569,7 @@ func (f *puppetFunction) ToString(bld io.Writer, format eval.FormatContext, g ev
 	io.WriteString(bld, f.Name())
 }
 
-func (f *puppetFunction) Type() eval.Type {
+func (f *puppetFunction) PType() eval.Type {
 	return f.signature
 }
 
@@ -591,7 +591,7 @@ func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	max := len(params)
 	tps := make([]eval.Type, max)
 	for idx, p := range params {
-		tps[idx] = p.ValueType()
+		tps[idx] = p.Type()
 		if p.Value() == nil {
 			min++
 		}

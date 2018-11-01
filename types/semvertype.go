@@ -226,7 +226,7 @@ func (t *SemVerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *SemVerType) Type() eval.Type {
+func (t *SemVerType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -272,7 +272,7 @@ func (v *SemVerValue) ToKey(b *bytes.Buffer) {
 }
 
 func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), v.Type())
+	f := eval.GetFormat(s.FormatMap(), v.PType())
 	val := v.Version().String()
 	switch f.FormatChar() {
 	case 's':
@@ -282,10 +282,10 @@ func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 		utils.PuppetQuote(b, val)
 		utils.WriteByte(b, ')')
 	default:
-		panic(s.UnsupportedFormat(v.Type(), `sp`, f))
+		panic(s.UnsupportedFormat(v.PType(), `sp`, f))
 	}
 }
 
-func (v *SemVerValue) Type() eval.Type {
+func (v *SemVerValue) PType() eval.Type {
 	return (*SemVerType)(v)
 }

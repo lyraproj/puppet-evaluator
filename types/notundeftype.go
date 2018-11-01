@@ -135,7 +135,7 @@ func (t *NotUndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *NotUndefType) Type() eval.Type {
+func (t *NotUndefType) PType() eval.Type {
 	return &TypeType{t}
 }
 

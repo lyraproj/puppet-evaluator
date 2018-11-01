@@ -67,7 +67,7 @@ func (t *UndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-func (t *UndefType) Type() eval.Type {
+func (t *UndefType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -103,6 +103,6 @@ func (uv *UndefValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	io.WriteString(b, `undef`)
 }
 
-func (uv *UndefValue) Type() eval.Type {
+func (uv *UndefValue) PType() eval.Type {
 	return DefaultUndefType()
 }

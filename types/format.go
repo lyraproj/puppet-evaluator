@@ -71,8 +71,8 @@ func (f *format) ToString(bld io.Writer, format eval.FormatContext, g eval.RDete
 	io.WriteString(bld, f.origFmt)
 }
 
-func (f *format) Type() eval.Type {
-	return WrapRuntime(f).Type()
+func (f *format) PType() eval.Type {
+	return WrapRuntime(f).PType()
 }
 
 var DEFAULT_PROGRAM_FORMAT = simpleFormat('p')
@@ -174,7 +174,7 @@ func newFormatContext3(value eval.Value, format eval.Value) (context eval.Format
 
 	switch format.(type) {
 	case *StringValue:
-		context = eval.NewFormatContext(value.Type(), newFormat(format.String()), DEFAULT_INDENTATION)
+		context = eval.NewFormatContext(value.PType(), newFormat(format.String()), DEFAULT_INDENTATION)
 	case *DefaultValue:
 		context = eval.DEFAULT_FORMAT_CONTEXT
 	default:

@@ -139,7 +139,7 @@ func (t *IterableType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-func (t *IterableType) Type() eval.Type {
+func (t *IterableType) PType() eval.Type {
 	return &TypeType{t}
 }
 

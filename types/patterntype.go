@@ -55,7 +55,7 @@ func NewPatternType3(regexps eval.List) *PatternType {
 		case *RegexpType:
 			rs[idx] = arg.(*RegexpType)
 		case *RegexpValue:
-			rs[idx] = arg.(*RegexpValue).Type().(*RegexpType)
+			rs[idx] = arg.(*RegexpValue).PType().(*RegexpType)
 		case *StringValue:
 			rs[idx] = NewRegexpType2(arg)
 		default:
@@ -159,7 +159,7 @@ func (t *PatternType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *PatternType) Type() eval.Type {
+func (t *PatternType) PType() eval.Type {
 	return &TypeType{t}
 }
 

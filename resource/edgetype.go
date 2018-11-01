@@ -86,7 +86,7 @@ func (re *edge) To() graph.Node {
 	return re.to
 }
 
-func (re *edge) Type() eval.Type {
+func (re *edge) PType() eval.Type {
 	return Edge_Type
 }
 

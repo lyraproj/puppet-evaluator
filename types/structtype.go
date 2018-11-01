@@ -57,7 +57,7 @@ func NewStructElement(key eval.Value, value eval.Type) *StructElement {
 	switch key.(type) {
 	case *StringValue:
 		v := key.(*StringValue)
-		keyType = v.Type()
+		keyType = v.PType()
 		if isAssignable(value, DefaultUndefType()) {
 			keyType = NewOptionalType(keyType)
 		}
@@ -143,7 +143,7 @@ func (s *StructElement) String() string {
 	return eval.ToString(s)
 }
 
-func (s *StructElement) Type() eval.Type {
+func (s *StructElement) PType() eval.Type {
 	return Struct_Element
 }
 
@@ -375,7 +375,7 @@ func (t *StructType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *StructType) Type() eval.Type {
+func (t *StructType) PType() eval.Type {
 	return &TypeType{t}
 }
 

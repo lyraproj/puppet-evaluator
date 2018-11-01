@@ -30,7 +30,7 @@ func init() {
 						}
 						return eval.UNDEF
 					default:
-						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapArray(walkedPath), `klass`: d.Type().String()}))
+						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapArray(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

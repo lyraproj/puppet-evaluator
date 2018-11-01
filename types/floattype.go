@@ -203,7 +203,7 @@ func (t *FloatType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-func (t *FloatType) Type() eval.Type {
+func (t *FloatType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -270,7 +270,7 @@ var DEFAULT_P_FORMAT = newFormat(`%g`)
 var DEFAULT_S_FORMAT = newFormat(`%#g`)
 
 func (fv *FloatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), fv.Type())
+	f := eval.GetFormat(s.FormatMap(), fv.PType())
 	switch f.FormatChar() {
 	case 'd', 'x', 'X', 'o', 'b', 'B':
 		WrapInteger(fv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
@@ -284,9 +284,9 @@ func (fv *FloatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 		f.ApplyStringFlags(b, floatGFormat(DEFAULT_S_FORMAT, fv.Float()), f.IsAlt())
 	case 'a', 'A':
 		// TODO: Implement this or list as limitation?
-		panic(s.UnsupportedFormat(fv.Type(), `dxXobBeEfgGaAsp`, f))
+		panic(s.UnsupportedFormat(fv.PType(), `dxXobBeEfgGaAsp`, f))
 	default:
-		panic(s.UnsupportedFormat(fv.Type(), `dxXobBeEfgGaAsp`, f))
+		panic(s.UnsupportedFormat(fv.PType(), `dxXobBeEfgGaAsp`, f))
 	}
 }
 
@@ -360,6 +360,6 @@ func floatGFormat(f eval.Format, value float64) string {
 	return b.String()
 }
 
-func (fv *FloatValue) Type() eval.Type {
+func (fv *FloatValue) PType() eval.Type {
 	return (*FloatType)(fv)
 }

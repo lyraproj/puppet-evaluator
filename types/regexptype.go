@@ -71,7 +71,7 @@ func NewRegexpType2(args ...eval.Value) *RegexpType {
 			return NewRegexpType(str.String())
 		}
 		if rt, ok := rx.(*RegexpValue); ok {
-			return rt.Type().(*RegexpType)
+			return rt.PType().(*RegexpType)
 		}
 		panic(NewIllegalArgumentType2(`Regexp[]`, 0, `Variant[Regexp,String]`, args[0]))
 	default:
@@ -158,7 +158,7 @@ func (t *RegexpType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *RegexpType) Type() eval.Type {
+func (t *RegexpType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -242,6 +242,6 @@ func (sv *RegexpValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	utils.RegexpQuote(b, sv.patternString)
 }
 
-func (sv *RegexpValue) Type() eval.Type {
+func (sv *RegexpValue) PType() eval.Type {
 	return (*RegexpType)(sv)
 }

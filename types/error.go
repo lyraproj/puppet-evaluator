@@ -133,7 +133,7 @@ func (e *errorObj) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	ObjectToString(e, s, b, g)
 }
 
-func (e *errorObj) Type() eval.Type {
+func (e *errorObj) PType() eval.Type {
 	return e.typ
 }
 

@@ -66,7 +66,7 @@ func (t *ScalarType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	TypeToString(t, b, s, g)
 }
 
-func (t *ScalarType) Type() eval.Type {
+func (t *ScalarType) PType() eval.Type {
 	return &TypeType{t}
 }
 

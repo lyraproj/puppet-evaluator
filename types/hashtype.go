@@ -355,7 +355,7 @@ func (t *HashType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *HashType) Type() eval.Type {
+func (t *HashType) PType() eval.Type {
 	return &TypeType{t}
 }
 
@@ -430,7 +430,7 @@ func (he *HashEntry) EachWithIndex(consumer eval.IndexedConsumer) {
 }
 
 func (he *HashEntry) ElementType() eval.Type {
-	return commonType(he.key.Type(), he.value.Type())
+	return commonType(he.key.PType(), he.value.PType())
 }
 
 func (he *HashEntry) Equals(o interface{}, g eval.Guard) bool {
@@ -528,8 +528,8 @@ func (he *HashEntry) Reject(predicate eval.Predicate) eval.List {
 	return he
 }
 
-func (he *HashEntry) Type() eval.Type {
-	return NewArrayType(commonType(he.key.Type(), he.value.Type()), NewIntegerType(2, 2))
+func (he *HashEntry) PType() eval.Type {
+	return NewArrayType(commonType(he.key.PType(), he.value.PType()), NewIntegerType(2, 2))
 }
 
 func (he *HashEntry) Unique() eval.List {
@@ -609,7 +609,7 @@ func WrapStringPValue(hash *hash.StringHash) *HashValue {
 
 func WrapHashFromArray(a *ArrayValue) *HashValue {
 	top := a.Len()
-	switch a.Type().(*ArrayType).ElementType().(type) {
+	switch a.PType().(*ArrayType).ElementType().(type) {
 	case *ArrayType:
 		// Array of arrays. Assume that each nested array is [key, value]
 		entries := make([]*HashEntry, top)
@@ -758,7 +758,7 @@ func (hv *HashValue) DetailedType() eval.Type {
 }
 
 func (hv *HashValue) ElementType() eval.Type {
-	return hv.Type().(*HashType).EntryType()
+	return hv.PType().(*HashType).EntryType()
 }
 
 func (hv *HashValue) Entries() eval.List {
@@ -850,7 +850,7 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.OrderedMap {
 }
 
 func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
-	ht, ok := ReflectType(hv.Type())
+	ht, ok := ReflectType(hv.PType())
 	if !ok {
 		ht = reflect.TypeOf(map[interface{}]interface{}{})
 	}
@@ -870,7 +870,7 @@ func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 	ht := value.Type()
 	if ht.Kind() == reflect.Interface {
 		ok := false
-		if ht, ok = ReflectType(hv.Type()); !ok {
+		if ht, ok = ReflectType(hv.PType()); !ok {
 			ht = reflect.TypeOf(map[interface{}]interface{}{})
 		}
 	}
@@ -1020,7 +1020,7 @@ func (hv *HashValue) IsHashStyle() bool {
 }
 
 func (hv *HashValue) Iterator() eval.Iterator {
-	t := hv.Type().(*HashType)
+	t := hv.PType().(*HashType)
 	et := NewTupleType([]eval.Type{t.KeyType(), t.ValueType()}, NewIntegerType(2, 2))
 	return &indexedIterator{et, -1, hv}
 }
@@ -1096,7 +1096,7 @@ func (hv *HashValue) String() string {
 }
 
 func (hv *HashValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	hv.ToString2(b, s, eval.GetFormat(s.FormatMap(), hv.Type()), '{', g)
+	hv.ToString2(b, s, eval.GetFormat(s.FormatMap(), hv.PType()), '{', g)
 }
 
 func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format, delim byte, g eval.RDetect) {
@@ -1180,11 +1180,11 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 			b.Write(delims[1:])
 		}
 	default:
-		panic(s.UnsupportedFormat(hv.Type(), `hasp`, f))
+		panic(s.UnsupportedFormat(hv.PType(), `hasp`, f))
 	}
 }
 
-func (hv *HashValue) Type() eval.Type {
+func (hv *HashValue) PType() eval.Type {
 	hv.lock.Lock()
 	t := hv.prtvReducedType()
 	hv.lock.Unlock()
@@ -1244,12 +1244,12 @@ func (hv *HashValue) prtvReducedType() eval.Type {
 			hv.reducedType = EmptyHashType()
 		} else {
 			firstEntry := hv.entries[0]
-			commonKeyType := firstEntry.key.Type()
-			commonValueType := firstEntry.value.Type()
+			commonKeyType := firstEntry.key.PType()
+			commonValueType := firstEntry.value.PType()
 			for idx := 1; idx < top; idx++ {
 				entry := hv.entries[idx]
-				commonKeyType = commonType(commonKeyType, entry.key.Type())
-				commonValueType = commonType(commonValueType, entry.value.Type())
+				commonKeyType = commonType(commonKeyType, entry.key.PType())
+				commonValueType = commonType(commonValueType, entry.value.PType())
 			}
 			sz := int64(len(hv.entries))
 			hv.reducedType = NewHashType(commonKeyType, commonValueType, NewIntegerType(sz, sz))

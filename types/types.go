@@ -56,7 +56,7 @@ type objectTypeAndCtor struct {
 	ctor eval.DispatchFunction
 }
 
-func (rt *objectTypeAndCtor) Type() eval.ObjectType {
+func (rt *objectTypeAndCtor) PType() eval.ObjectType {
 	return rt.typ
 }
 
@@ -189,7 +189,7 @@ func NewIllegalArgumentType2(name string, index int, expected string, actual eva
 }
 
 func TypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), t.Type())
+	f := eval.GetFormat(s.FormatMap(), t.PType())
 	switch f.FormatChar() {
 	case 's', 'p':
 		quoted := f.IsAlt() && f.FormatChar() == 's'
@@ -201,7 +201,7 @@ func TypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RDetect
 			basicTypeToString(t, b, s, g)
 		}
 	default:
-		panic(s.UnsupportedFormat(t.Type(), `sp`, f))
+		panic(s.UnsupportedFormat(t.PType(), `sp`, f))
 	}
 }
 
@@ -336,7 +336,7 @@ func init() {
 		if dt, ok := value.(eval.DetailedTypeValue); ok {
 			return dt.DetailedType()
 		}
-		return value.Type()
+		return value.PType()
 	}
 
 	eval.GenericType = func(t eval.Type) eval.Type {
@@ -347,7 +347,7 @@ func init() {
 	}
 
 	eval.GenericValueType = func(value eval.Value) eval.Type {
-		return eval.GenericType(value.Type())
+		return eval.GenericType(value.PType())
 	}
 
 	eval.ToArray = func(elements []eval.Value) eval.List {
@@ -705,7 +705,7 @@ func createMetaType(na eval.URI, name string, typeName string, parentName string
 }
 
 func argError(e eval.Type, a eval.Value) errors.InstantiationError {
-	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.Type()))
+	return errors.NewArgumentsError(``, eval.DescribeMismatch(`assert`, e, a.PType()))
 }
 
 func typeArg(hash eval.OrderedMap, key string, d eval.Type) eval.Type {

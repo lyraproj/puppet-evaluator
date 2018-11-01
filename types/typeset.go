@@ -145,7 +145,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 	if vt, ok := v.(eval.Type); ok {
 		typeName = vt.Name()
 	} else if vv, ok := v.(eval.Value); ok {
-		typeName = vv.Type().Name()
+		typeName = vv.PType().Name()
 	} else {
 		typeName = fmt.Sprintf("%T", v)
 	}
@@ -372,7 +372,7 @@ func (t *typeSet) InitHash() eval.OrderedMap {
 }
 
 func (t *typeSet) IsInstance(o eval.Value, g eval.Guard) bool {
-	return t.IsAssignable(o.Type(), g)
+	return t.IsAssignable(o.PType(), g)
 }
 
 func (t *typeSet) IsAssignable(other eval.Type, g eval.Guard) bool {
@@ -451,7 +451,7 @@ func (t *typeSet) String() string {
 }
 
 func (t *typeSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	f := eval.GetFormat(s.FormatMap(), t.Type())
+	f := eval.GetFormat(s.FormatMap(), t.PType())
 	switch f.FormatChar() {
 	case 's', 'p':
 		quoted := f.IsAlt() && f.FormatChar() == 's'
@@ -463,11 +463,11 @@ func (t *typeSet) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 			t.basicTypeToString(b, f, s, g)
 		}
 	default:
-		panic(s.UnsupportedFormat(t.Type(), `sp`, f))
+		panic(s.UnsupportedFormat(t.PType(), `sp`, f))
 	}
 }
 
-func (t *typeSet) Type() eval.Type {
+func (t *typeSet) PType() eval.Type {
 	return &TypeType{t}
 }
 
