@@ -128,7 +128,7 @@ func (t *BooleanType) Parameters() []eval.Value {
 	return []eval.Value{&BooleanValue{t.value}}
 }
 
-func (t *BooleanType) ReflectType() (reflect.Type, bool) {
+func (t *BooleanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(true), true
 }
 
@@ -171,7 +171,6 @@ func (bv *BooleanValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(value, reflect.Bool)
 	if value.Kind() == reflect.Interface {
 		value.Set(bv.Reflect(c))
 	} else {

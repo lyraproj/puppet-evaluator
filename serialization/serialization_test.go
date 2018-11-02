@@ -9,6 +9,7 @@ import (
 	"github.com/puppetlabs/go-semver/semver"
 
 	_ "github.com/puppetlabs/go-evaluator/pcore"
+	"reflect"
 )
 
 func ExampleDataRoundtrip() {
@@ -35,6 +36,34 @@ func ExampleDataRoundtrip() {
 	// *types.SemVerValue '1.0.0'
 }
 
+func ExampleGoValueRoundtrip() {
+	type MyInt int
+
+	eval.Puppet.Do(func(ctx eval.Context) error {
+		mi := MyInt(32)
+		ctx.AddTypes(ctx.Reflector().ObjectTypeFromReflect(`Test::MyInt`, nil, reflect.TypeOf(mi)))
+
+		v := eval.Wrap(ctx, mi)
+		fmt.Println(v)
+
+		dc := NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		data := dc.Convert(v)
+
+		buf := bytes.NewBufferString(``)
+		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
+
+		fc := NewFromDataConverter(ctx, eval.EMPTY_MAP)
+		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
+		v2 := fc.Convert(data2)
+
+		fmt.Println(v2)
+		return nil
+	})
+	// Output:
+	// Test::MyInt('value' => 32)
+	// Test::MyInt('value' => 32)
+}
+
 func ExampleToDataConverter_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		ver, _ := semver.NewVersion(1, 0, 0)
@@ -56,7 +85,7 @@ func ExampleToDataConverter_Convert2() {
 func ExampleDataToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		buf := bytes.NewBufferString(``)
-		DataToJson(ctx, types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), buf, eval.EMPTY_MAP)
+		DataToJson(ctx, types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), buf, eval.EMPTY_MAP)
 		fmt.Println(buf)
 		return nil
 	})
@@ -75,7 +104,7 @@ func ExampleJsonToData() {
 
 func ExampleFromDataConverter_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		data := types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`})
+		data := types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)
@@ -88,7 +117,7 @@ func ExampleFromDataConverter_Convert() {
 
 func ExampleFromDataConverter_Convert2() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		data := types.WrapHash4(ctx, map[string]interface{}{`__ptype`: `Parameter`, `name`: `p`, `type`: map[string]interface{}{`__ptype`: `Pcore::StringType`, `size_type_or_value`: map[string]interface{}{`__ptype`: `Pcore::IntegerType`, `from`: 0}}, `value`: `v`})
+		data := types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `Parameter`, `name`: `p`, `type`: map[string]interface{}{`__ptype`: `Pcore::StringType`, `size_type_or_value`: map[string]interface{}{`__ptype`: `Pcore::IntegerType`, `from`: 0}}, `value`: `v`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)

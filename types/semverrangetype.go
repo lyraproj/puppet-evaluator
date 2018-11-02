@@ -131,7 +131,7 @@ func (t *SemVerRangeType) IsInstance(o eval.Value, g eval.Guard) bool {
 	return ok
 }
 
-func (t *SemVerRangeType) ReflectType() (reflect.Type, bool) {
+func (t *SemVerRangeType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(semver.MatchAll), true
 }
 

@@ -109,7 +109,7 @@ func (t *BinaryType) Name() string {
 	return `Binary`
 }
 
-func (t *BinaryType) ReflectType() (reflect.Type, bool) {
+func (t *BinaryType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf([]byte{}), true
 }
 
@@ -218,7 +218,6 @@ func (bv *BinaryValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(value, reflect.Slice)
 	switch value.Type().Elem().Kind() {
 	case reflect.Int8, reflect.Uint8:
 		value.SetBytes(bv.bytes)

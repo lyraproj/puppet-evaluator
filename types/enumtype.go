@@ -171,7 +171,7 @@ func (t *EnumType) Name() string {
 	return `Enum`
 }
 
-func (t *EnumType) ReflectType() (reflect.Type, bool) {
+func (t *EnumType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 

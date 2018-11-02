@@ -143,7 +143,7 @@ func navigate(c eval.Context, value eval.Value, member string) (eval.Context, ev
 		if po, ok := typ.(eval.TypeWithCallableMembers); ok {
 			if m, ok := po.Member(member); ok {
 				if a, ok := m.(eval.Attribute); ok {
-					return c, a.PType(), true
+					return c, a.Type(), true
 				}
 				if f, ok := m.(eval.Function); ok {
 					return c, f.PType().(*CallableType).ReturnType(), true

@@ -52,7 +52,7 @@ func (a *annotatedMember) Container() eval.ObjectType {
 	return a.container
 }
 
-func (a *annotatedMember) PType() eval.Type {
+func (a *annotatedMember) Type() eval.Type {
 	return a.typ
 }
 
@@ -78,18 +78,18 @@ func (a *annotatedMember) Final() bool {
 
 // Checks if the this _member_ overrides an inherited member, and if so, that this member is declared with
 // override = true and that the inherited member accepts to be overridden by this member.
-func assertOverride(c eval.Context, a eval.AnnotatedMember, parentMembers *hash.StringHash) {
+func assertOverride(a eval.AnnotatedMember, parentMembers *hash.StringHash) {
 	parentMember, _ := parentMembers.Get(a.Name(), nil).(eval.AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
 			panic(eval.Error(eval.EVAL_OVERRIDDEN_NOT_FOUND, issue.H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
 		}
 	} else {
-		assertCanBeOverridden(c, parentMember, a)
+		assertCanBeOverridden(parentMember, a)
 	}
 }
 
-func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.AnnotatedMember) {
+func assertCanBeOverridden(a eval.AnnotatedMember, member eval.AnnotatedMember) {
 	if a.FeatureType() != member.FeatureType() {
 		panic(eval.Error(eval.EVAL_OVERRIDE_MEMBER_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
@@ -102,7 +102,7 @@ func assertCanBeOverridden(c eval.Context, a eval.AnnotatedMember, member eval.A
 	if !member.Override() {
 		panic(eval.Error(eval.EVAL_OVERRIDE_IS_MISSING, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
-	if !eval.IsAssignable(a.PType(), member.PType()) {
+	if !eval.IsAssignable(a.Type(), member.Type()) {
 		panic(eval.Error(eval.EVAL_OVERRIDE_TYPE_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 }

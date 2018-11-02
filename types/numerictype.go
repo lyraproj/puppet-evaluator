@@ -101,7 +101,7 @@ func (t *NumericType) Name() string {
 	return `Numeric`
 }
 
-func (t *NumericType) ReflectType() (reflect.Type, bool) {
+func (t *NumericType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 

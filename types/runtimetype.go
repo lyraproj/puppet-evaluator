@@ -100,14 +100,13 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 	return NewRuntimeType(runtimeName.String(), name.String(), pattern)
 }
 
-// NewGoRuntimeType creates a Go runtime by extracting the element type of the given slice or array.
-// The reason the argument must be a slice or array as opposed to an element is that there is
-// no way to create elements of an interface. An empty array with an interface element type
-// is however possible.
+// NewGoRuntimeType creates a Go runtime by extracting the element type of the given value. The
+// value must be of kind Ptr to the desired type since there is no way to create elements of an
+// interface. An pointer to an interface nil is however possible.
 //
-// To create an Runtime for the interface Foo, pass []Foo{} to this method.
-func NewGoRuntimeType(array interface{}) *RuntimeType {
-	goType := reflect.TypeOf(array).Elem()
+// To create an Runtime for the interface Foo, pass (*Foo)(nil) to this method.
+func NewGoRuntimeType(value interface{}) *RuntimeType {
+	goType := reflect.TypeOf(value).Elem()
 	return &RuntimeType{runtime: `go`, name: goType.String(), goType: goType}
 }
 
@@ -220,7 +219,7 @@ func (t *RuntimeType) Parameters() []eval.Value {
 	return ps
 }
 
-func (t *RuntimeType) ReflectType() (reflect.Type, bool) {
+func (t *RuntimeType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return t.goType, t.goType != nil
 }
 

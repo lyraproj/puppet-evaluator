@@ -60,7 +60,7 @@ func init() {
 		return NewTypeSetType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
 	TypeSet_Type = newObjectType2(`Pcore::typeSet`, Any_Type,
-		WrapHash3(map[string]eval.Value{
+		WrapHashSorted(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_TYPESET_INIT)}),
 		// Hash constructor is equal to the positional arguments constructor
 		oneArgCtor, oneArgCtor)
@@ -690,7 +690,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 			}
 			typesMap[typeName] = createTypeDefinition(nameAuth, fullName, value)
 		}
-		typesHash = WrapHash3(typesMap)
+		typesHash = WrapHashSorted(typesMap)
 	}
 	if typesHash != nil {
 		result = WrapHash(append(entries, WrapHashEntry2(KEY_TYPES, typesHash)))

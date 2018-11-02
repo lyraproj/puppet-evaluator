@@ -251,7 +251,7 @@ func (t *TimestampType) Parameters() []eval.Value {
 	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
-func (t *TimestampType) ReflectType() (reflect.Type, bool) {
+func (t *TimestampType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Time{}), true
 }
 

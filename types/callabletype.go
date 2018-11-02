@@ -247,7 +247,7 @@ func (t *CallableType) Parameters() (params []eval.Value) {
 	}
 	tupleParams := t.paramsType.Parameters()
 	if len(tupleParams) == 0 {
-		params = []eval.Value{ZERO, ZERO}
+		params = make([]eval.Value, 0)
 	} else {
 		params = eval.Select1(tupleParams, func(p eval.Value) bool { _, ok := p.(*UnitType); return !ok })
 	}

@@ -128,7 +128,7 @@ func (t *RegexpType) Parameters() []eval.Value {
 	return []eval.Value{WrapRegexp(t.patternString)}
 }
 
-func (t *RegexpType) ReflectType() (reflect.Type, bool) {
+func (t *RegexpType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(regexpType_DEFAULT.pattern), true
 }
 
@@ -197,51 +197,51 @@ func WrapRegexp2(pattern *regexp.Regexp) *RegexpValue {
 	return (*RegexpValue)(NewRegexpTypeR(pattern))
 }
 
-func (sv *RegexpValue) Equals(o interface{}, g eval.Guard) bool {
+func (r *RegexpValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*RegexpValue); ok {
-		return sv.String() == ov.String()
+		return r.String() == ov.String()
 	}
 	return false
 }
 
-func (sv *RegexpValue) Match(s string) []string {
-	return (*RegexpType)(sv).Regexp().FindStringSubmatch(s)
+func (r *RegexpValue) Match(s string) []string {
+	return (*RegexpType)(r).Regexp().FindStringSubmatch(s)
 }
 
-func (sv *RegexpValue) Regexp() *regexp.Regexp {
-	return (*RegexpType)(sv).Regexp()
+func (r *RegexpValue) Regexp() *regexp.Regexp {
+	return (*RegexpType)(r).Regexp()
 }
 
-func (sv *RegexpValue) PatternString() string {
-	return sv.patternString
+func (r *RegexpValue) PatternString() string {
+	return r.patternString
 }
 
-func (sv *RegexpValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(sv.pattern)
+func (r *RegexpValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(r.pattern)
 }
 
-func (sv *RegexpValue) ReflectTo(c eval.Context, dest reflect.Value) {
-	rv := sv.Reflect(c)
+func (r *RegexpValue) ReflectTo(c eval.Context, dest reflect.Value) {
+	rv := r.Reflect(c).Elem()
 	if !rv.Type().AssignableTo(dest.Type()) {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }
 
-func (sv *RegexpValue) String() string {
-	return eval.ToString2(sv, NONE)
+func (r *RegexpValue) String() string {
+	return eval.ToString2(r, NONE)
 }
 
-func (sv *RegexpValue) ToKey(b *bytes.Buffer) {
+func (r *RegexpValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
 	b.WriteByte(HK_REGEXP)
-	b.Write([]byte(sv.patternString))
+	b.Write([]byte(r.patternString))
 }
 
-func (sv *RegexpValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	utils.RegexpQuote(b, sv.patternString)
+func (r *RegexpValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	utils.RegexpQuote(b, r.patternString)
 }
 
-func (sv *RegexpValue) PType() eval.Type {
-	return (*RegexpType)(sv)
+func (r *RegexpValue) PType() eval.Type {
+	return (*RegexpType)(r)
 }

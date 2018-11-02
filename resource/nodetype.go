@@ -117,7 +117,7 @@ func (rn *node) InitHash() eval.OrderedMap {
 	}
 	hash[`value`] = rn.value
 	rn.lock.RUnlock()
-	return types.WrapHash3(hash)
+	return types.WrapHashSorted(hash)
 }
 
 func (rn *node) Error() issue.Reported {

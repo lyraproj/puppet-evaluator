@@ -7,6 +7,8 @@ import (
 	"github.com/puppetlabs/go-evaluator/hash"
 )
 
+const KEY_GONAME = `go_name`
+
 var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
 
 var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
@@ -16,6 +18,7 @@ var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_KIND), TYPE_ATTRIBUTE_KIND),
 	NewStructElement(NewOptionalType3(KEY_VALUE), DefaultAnyType()),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
+	NewStructElement(NewOptionalType3(KEY_GONAME), DefaultStringType()),
 })
 
 var TYPE_ATTRIBUTE_CALLABLE = NewCallableType2(NewIntegerType(0, 0))
@@ -24,6 +27,7 @@ type attribute struct {
 	annotatedMember
 	kind  eval.AttributeKind
 	value eval.Value
+	goName string
 }
 
 func newAttribute(c eval.Context, name string, container *objectType, initHash *HashValue) eval.Attribute {
@@ -58,6 +62,9 @@ func (a *attribute) initialize(c eval.Context, name string, container *objectTyp
 		}
 		a.value = nil // Not to be confused with undef
 	}
+	if gn, ok := initHash.Get4(KEY_GONAME); ok {
+		a.goName = gn.String()
+	}
 }
 
 func (a *attribute) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
@@ -74,6 +81,10 @@ func (a *attribute) Call(c eval.Context, receiver eval.Value, block eval.Lambda,
 
 func (a *attribute) Default(value eval.Value) bool {
 	return eval.Equals(a.value, value)
+}
+
+func (a *attribute) GoName() string {
+	return a.goName
 }
 
 func (a *attribute) Kind() eval.AttributeKind {

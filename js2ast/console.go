@@ -64,8 +64,8 @@ func (cs *console) PType() eval.Type {
 	return consoleType
 }
 
-func (cs *console) Call(c eval.Context, method string, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
-	switch method {
+func (cs *console) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
+	switch method.Name() {
 	case `assert`:
 		cs.Assert(c, args[0].(*types.BooleanValue).Bool(), args[1])
 	case `clear`:

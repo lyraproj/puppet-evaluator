@@ -31,7 +31,7 @@ type (
 
 	// CallableObject is implemented by PuppetObjects that have functions
 	CallableObject interface {
-		Call(c Context, method string, args []Value, block Lambda) (result Value, ok bool)
+		Call(c Context, method ObjFunc, args []Value, block Lambda) (result Value, ok bool)
 	}
 
 	PuppetObject interface {

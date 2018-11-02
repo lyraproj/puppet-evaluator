@@ -123,8 +123,8 @@ func (t *NotUndefType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
-func (t *NotUndefType) ReflectType() (reflect.Type, bool) {
-	return ReflectType(t.typ)
+func (t *NotUndefType) ReflectType(c eval.Context) (reflect.Type, bool) {
+	return ReflectType(c, t.typ)
 }
 
 func (t *NotUndefType) String() string {

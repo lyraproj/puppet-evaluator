@@ -134,7 +134,7 @@ func (r *result) InitHash() eval.OrderedMap {
 			v[`value`] = r.value
 		}
 	}
-	return types.WrapHash3(v)
+	return types.WrapHashSorted(v)
 }
 
 func (r *result) Error() (eval.ErrorObject, bool) {
@@ -180,8 +180,8 @@ func NewResultSetFromHash(hash *types.HashValue) ResultSet {
 	return &resultSet{hash.Get5(`results`, eval.EMPTY_ARRAY).(*types.ArrayValue)}
 }
 
-func (rs *resultSet) Call(c eval.Context, method string, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
-	switch method {
+func (rs *resultSet) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
+	switch method.Name() {
 	case `ok`:
 		return types.WrapBoolean(rs.Ok()), true
 	case `count`:

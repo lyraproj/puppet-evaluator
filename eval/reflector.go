@@ -5,18 +5,18 @@ import (
 	"github.com/puppetlabs/go-semver/semver"
 )
 
-// A PReflectedType is implemented by PTypes that can have a potential to
+// A ReflectedType is implemented by PTypes that can have a potential to
 // present themselves as a reflect.Type
-type PReflectedType interface {
+type ReflectedType interface {
 	Type
 
 	// ReflectType returns the reflect.Type that corresponds to the receiver
 	// if possible
-	ReflectType() (reflect.Type, bool)
+	ReflectType(c Context) (reflect.Type, bool)
 }
 
-// A PReflected is a value that can reflect itself into a given reflect.Value
-type PReflected interface {
+// A Reflected is a value that can reflect itself into a given reflect.Value
+type Reflected interface {
 	Reflect(c Context) reflect.Value
 
 	ReflectTo(c Context, value reflect.Value)
@@ -27,11 +27,14 @@ type ImplementationRegistry interface {
 	// RegisterType registers the mapping between the given Type name and reflect.Type
 	RegisterType(c Context, t string, r reflect.Type)
 
-	// PTypeToReflected returns the reflect.Type for the given Type name
-	PTypeToReflected(t string) (reflect.Type, bool)
+	// TypeToReflected returns the reflect.Type for the given Type name
+	TypeToReflected(t string) (reflect.Type, bool)
 
-	// ReflectedToPtype returns the Type name for the given reflect.Type
-	ReflectedToPtype(t reflect.Type) (string, bool)
+	// ReflectedToType returns the Type name for the given reflect.Type
+	ReflectedToType(t reflect.Type) (string, bool)
+
+	// ReflectedNameToType returns the PCore Type name for the given Go Type name
+	ReflectedNameToType(name string) (string, bool)
 }
 
 // A Reflector deals with conversions between Value and reflect.Value and
@@ -63,13 +66,23 @@ type Reflector interface {
 	ReflectType(src Type) (reflect.Type, bool)
 
 	// ObjectTypeFromReflect creates an Object type based on the given reflected type
-	// which has to be a struct or a pointer to a struct
-	ObjectTypeFromReflect(typeName string, parent Type, structType reflect.Type) ObjectType
+	ObjectTypeFromReflect(typeName string, parent Type, rType reflect.Type) ObjectType
 
-	// TypeSetFromReflect creates a TypeSet based on the given reflected types which have
-	// to be structs or pointer to structs
-	TypeSetFromReflect(typeSetName string, version semver.Version, structTypes ...reflect.Type) TypeSet
+	// TypeSetFromReflect creates a TypeSet based on the given reflected types
+	TypeSetFromReflect(typeSetName string, version semver.Version, rTypes ...reflect.Type) TypeSet
 
 	// TagHash returns the parsed and evaluated hash from the 'puppet' tag
 	TagHash(f *reflect.StructField) (OrderedMap, bool)
+
+	// TypeName returns the name of the type. The name is either obtained from the ImplementationRegistry
+	// or created by concatenating prefix with the name of the given reflected type. If noPrefixOverride
+	// is true, then it is an error when a name found in the ImplementationRegistry isn't prefixed with
+	// the given prefix.
+	TypeName(prefix string, t reflect.Type, noPrefixOverride bool) string
+
+	// Fields returns all fields of the given reflected type.
+	Fields(t reflect.Type) []reflect.StructField
+
+	// Methods returns all methods of the given reflected type.
+	Methods(ptr reflect.Type) []reflect.Method
 }

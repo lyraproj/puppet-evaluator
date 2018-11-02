@@ -324,9 +324,9 @@ func (t *HashType) Parameters() []eval.Value {
 	return params
 }
 
-func (t *HashType) ReflectType() (reflect.Type, bool) {
-	if kt, ok := ReflectType(t.keyType); ok {
-		if vt, ok := ReflectType(t.valueType); ok {
+func (t *HashType) ReflectType(c eval.Context) (reflect.Type, bool) {
+	if kt, ok := ReflectType(c, t.keyType); ok {
+		if vt, ok := ReflectType(c, t.valueType); ok {
 			return reflect.MapOf(kt, vt), true
 		}
 	}
@@ -563,8 +563,8 @@ func WrapHash2(entries eval.List) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// WrapHash3 does not preserve order since order is undefined in a Go map
-func WrapHash3(hash map[string]eval.Value) *HashValue {
+// WrapHashSorted builds an ordered map from adds all entries in the given map to
+func WrapHashSorted(hash map[string]eval.Value) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
@@ -580,8 +580,8 @@ func WrapHash3(hash map[string]eval.Value) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// WrapHash4 does not preserve order since order is undefined in a Go map
-func WrapHash4(c eval.Context, hash map[string]interface{}) *HashValue {
+// WrapHashSorted2 does not preserve order since order is undefined in a Go map
+func WrapHashSorted2(c eval.Context, hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
@@ -850,7 +850,7 @@ func (hv *HashValue) SelectPairs(predicate eval.BiPredicate) eval.OrderedMap {
 }
 
 func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
-	ht, ok := ReflectType(hv.PType())
+	ht, ok := ReflectType(c, hv.PType())
 	if !ok {
 		ht = reflect.TypeOf(map[interface{}]interface{}{})
 	}
@@ -866,11 +866,10 @@ func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(value, reflect.Map)
 	ht := value.Type()
 	if ht.Kind() == reflect.Interface {
 		ok := false
-		if ht, ok = ReflectType(hv.PType()); !ok {
+		if ht, ok = ReflectType(c, hv.PType()); !ok {
 			ht = reflect.TypeOf(map[interface{}]interface{}{})
 		}
 	}

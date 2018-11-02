@@ -42,6 +42,7 @@ const (
 	EVAL_IMPL_IS_NOT_STRUCT                        = `EVAL_IMPL_IS_NOT_STRUCT`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
 	EVAL_INSTANCE_DOES_NOT_RESPOND                 = `EVAL_INSTANCE_DOES_NOT_RESPOND`
+	EVAL_INVALID_CHARACTERS_IN_NAME                = `EVAL_INVALID_CHARACTERS_IN_NAME`
 	EVAL_INVALID_REGEXP                            = `EVAL_INVALID_REGEXP`
 	EVAL_INVALID_SOURCE_FOR_GET                    = `EVAL_INVALID_SOURCE_FOR_GET`
 	EVAL_INVALID_SOURCE_FOR_SET                    = `EVAL_INVALID_SOURCE_FOR_SET`
@@ -49,10 +50,12 @@ const (
 	EVAL_INVALID_STRING_FORMAT_DELIMITER           = `EVAL_INVALID_STRING_FORMAT_DELIMITER`
 	EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG       = `EVAL_INVALID_STRING_FORMAT_REPEATED_FLAG`
 	EVAL_INVALID_TIMEZONE                          = `EVAL_INVALID_TIMEZONE`
+	EVAL_INVALID_TYPEDNAME_MAPKEY                  = `EVAL_INVALID_TYPEDNAME_MAPKEY`
 	EVAL_INVALID_URI                               = `EVAL_INVALID_URI`
 	EVAL_INVALID_VERSION                           = `EVAL_INVALID_VERSION`
 	EVAL_INVALID_VERSION_RANGE                     = `EVAL_INVALID_VERSION_RANGE`
 	EVAL_IS_DIRECTORY                              = `EVAL_IS_DIRECTORY`
+	EVAL_KIND_MISMATCH                             = `EVAL_KIND_MISMATCH`
 	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP                          = `EVAL_MATCH_NOT_REGEXP`
 	EVAL_MATCH_NOT_SEMVER_RANGE                    = `EVAL_MATCH_NOT_SEMVER_RANGE`
@@ -120,6 +123,7 @@ const (
 	EVAL_UNKNOWN_PLAN                              = `EVAL_UNKNOWN_PLAN`
 	EVAL_UNKNOWN_TASK                              = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                          = `EVAL_UNKNOWN_VARIABLE`
+	EVAL_UNREFLECTABLE_RETURN                      = `EVAL_UNREFLECTABLE_RETURN`
 	EVAL_UNREFLECTABLE_VALUE                       = `EVAL_UNREFLECTABLE_VALUE`
 	EVAL_UNRESOLVED_TYPE                           = `EVAL_UNRESOLVED_TYPE`
 	EVAL_UNRESOLVED_TYPE_OF                        = `EVAL_UNRESOLVED_TYPE_OF`
@@ -211,6 +215,8 @@ func init() {
 
 	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
 
+	issue.Hard(EVAL_INVALID_CHARACTERS_IN_NAME, `Name '%{name} contains invalid characters. Must start with letter and only contain letters, digits, and underscore'`)
+
 	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '${pattern}': %{detail}`)
 
 	issue.Hard2(EVAL_INVALID_SOURCE_FOR_GET, `Cannot create a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
@@ -225,11 +231,15 @@ func init() {
 
 	issue.Hard(EVAL_INVALID_TIMEZONE, `Unable to load timezone '%{zone}': %{detail}`)
 
+	issue.Hard(EVAL_INVALID_TYPEDNAME_MAPKEY, `The key '%{mapkey}' does not represent a valid TypedName`)
+
 	issue.Hard(EVAL_INVALID_VERSION, `Cannot parse a semantic version from string '%{str}': '%{detail}'`)
 
 	issue.Hard(EVAL_INVALID_VERSION_RANGE, `Cannot parse a semantic version range from string '%{str}': '%{detail}'`)
 
 	issue.Hard(EVAL_INVALID_URI, `Cannot parse an URI from string '%{str}': '%{detail}'`)
+
+	issue.Hard(EVAL_KIND_MISMATCH, `expected a value of kind %{expected}, got %{actual}`)
 
 	issue.Hard(EVAL_LHS_MUST_BE_QREF, `Expression to the left of [] expression must be a Type name`)
 
@@ -367,6 +377,8 @@ func init() {
 	issue.Hard(EVAL_UNKNOWN_TASK, `Task not found: '%{name}'`)
 
 	issue.Hard(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
+
+	issue.Hard(EVAL_UNREFLECTABLE_RETURN, `Unable to reflect return type of method %{type}.%{method}`)
 
 	issue.Hard(EVAL_UNREFLECTABLE_VALUE, `Unable to create a reflect.Value from value of type '%{type}'`)
 

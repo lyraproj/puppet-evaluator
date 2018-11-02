@@ -109,7 +109,7 @@ func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 
 	if sv, ok := value.(*types.SensitiveValue); ok {
 		return t.process(sv, func() eval.Value {
-			return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SENSITIVE), PCORE_VALUE_KEY: t.toData(sv.Unwrap())})
+			return types.WrapHashSorted(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SENSITIVE), PCORE_VALUE_KEY: t.toData(sv.Unwrap())})
 		})
 	}
 	return t.unknownToData(value)
@@ -172,7 +172,7 @@ func (t *ToDataConverter) process(value eval.Value, producer eval.Producer) eval
 				// referencing structures
 				return t.withRecursiveGuard(value, producer)
 			}
-			v := types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: types.WrapString(jsonRef)})
+			v := types.WrapHashSorted(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_LOCAL_REF_SYMBOL), PCORE_VALUE_KEY: types.WrapString(jsonRef)})
 			t.values[value] = v
 			return v
 		}
@@ -210,7 +210,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 	if rt, ok := value.(*types.RuntimeValue); ok {
 		if !t.symbolAsString {
 			if sym, ok := rt.Interface().(Symbol); ok {
-				return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SYMBOL), PCORE_VALUE_KEY: types.WrapString(string(sym))})
+				return types.WrapHashSorted(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_SYMBOL), PCORE_VALUE_KEY: types.WrapString(string(sym))})
 			}
 		}
 		return t.unkownToStringWithWarning(value)
@@ -227,7 +227,7 @@ func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 
 	pcoreTv := t.pcoreTypeToData(vt)
 	if ss, ok := value.(eval.SerializeAsString); ok {
-		return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: pcoreTv, PCORE_VALUE_KEY: types.WrapString(ss.SerializationString())})
+		return types.WrapHashSorted(map[string]eval.Value{PCORE_TYPE_KEY: pcoreTv, PCORE_VALUE_KEY: types.WrapString(ss.SerializationString())})
 	}
 
 	if po, ok := value.(eval.PuppetObject); ok {
@@ -282,5 +282,5 @@ func (t *ToDataConverter) toKeyExtendedHash(hash eval.OrderedMap) eval.Value {
 		key = t.toData(key)
 		pairs = append(pairs, key, t.with(key, func() eval.Value { return t.toData(value) }))
 	})
-	return types.WrapHash3(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: types.WrapArray(pairs)})
+	return types.WrapHashSorted(map[string]eval.Value{PCORE_TYPE_KEY: types.WrapString(PCORE_TYPE_HASH), PCORE_VALUE_KEY: types.WrapArray(pairs)})
 }

@@ -67,6 +67,11 @@ type (
 		Call(c Context, receiver Value, block Lambda, args []Value) Value
 	}
 
+	CallableGoMember interface {
+		// Call a member on a struct pointer with the given arguments
+		CallGo(c Context, receiver interface{}, args ...interface{}) interface{}
+	}
+
 	TypeWithCallableMembers interface {
 		// Member returns an attribute reader or other function and true, or nil and false if no such member exists
 		Member(name string) (CallableMember, bool)
@@ -84,7 +89,7 @@ type (
 
 		Container() ObjectType
 
-		PType() Type
+		Type() Type
 
 		Override() bool
 
@@ -114,10 +119,18 @@ type (
 
 		// Value returns the value of this attribute, or raises an error if no value has been defined.
 		Value() Value
+
+		// GoName Returns the name of the struct field that this attribute maps to when applicable or
+		// an empty string.
+		GoName() string
 	}
 
 	ObjFunc interface {
 		AnnotatedMember
+
+		// GoName Returns the name of the struct field that this attribute maps to when applicable or
+		// an empty string.
+		GoName() string
 	}
 
 	AttributesInfo interface {
@@ -140,9 +153,21 @@ type (
 
 		HasHashConstructor() bool
 
+		Functions(includeParent bool) []ObjFunc
+
+		// Returns the Go reflect.Type that this type was reflected from, if any.
+		//
+		GoType() reflect.Type
+
+		// IsInterface returns true for non parameterized types that contains only methods
+		IsInterface() bool
+
 		IsMetaType() bool
 
 		IsParameterized() bool
+
+		// Implements returns true the receiver implements all methods of ObjectType
+		Implements(ObjectType, Guard) bool
 
 		AttributesInfo() AttributesInfo
 

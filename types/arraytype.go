@@ -262,8 +262,8 @@ func (t *ArrayType) Parameters() []eval.Value {
 	return params
 }
 
-func (t *ArrayType) ReflectType() (reflect.Type, bool) {
-	if et, ok := ReflectType(t.ElementType()); ok {
+func (t *ArrayType) ReflectType(c eval.Context) (reflect.Type, bool) {
+	if et, ok := ReflectType(c, t.ElementType()); ok {
 		return reflect.SliceOf(et), true
 	}
 	return nil, false
@@ -288,6 +288,14 @@ func WrapArray2(c eval.Context, elements []interface{}) *ArrayValue {
 	els := make([]eval.Value, len(elements))
 	for i, e := range elements {
 		els[i] = wrap(c, e)
+	}
+	return &ArrayValue{elements: els}
+}
+
+func WrapStrings(strings []string) *ArrayValue {
+	els := make([]eval.Value, len(strings))
+	for i, e := range strings {
+		els[i] = WrapString(e)
 	}
 	return &ArrayValue{elements: els}
 }
@@ -484,7 +492,7 @@ func (av *ArrayValue) Reduce2(initialValue eval.Value, redactor eval.BiMapper) e
 }
 
 func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
-	at, ok := ReflectType(av.PType())
+	at, ok := ReflectType(c, av.PType())
 	if !ok {
 		at = reflect.TypeOf([]interface{}{})
 	}
@@ -497,7 +505,6 @@ func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (av *ArrayValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(value, reflect.Slice)
 	s := reflect.MakeSlice(value.Type(), av.Len(), av.Len())
 	rf := c.Reflector()
 	for i, e := range av.elements {

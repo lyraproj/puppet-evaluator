@@ -63,9 +63,6 @@ func InitializePuppet() {
 	resource.InitBuiltinResources(c)
 	c.DoWithLoader(eval.StaticResourceLoader(), c.ResolveResolvables)
 	topImplRegistry = c.ImplementationRegistry()
-
-	threadlocal.Init()
-	threadlocal.Set(eval.PuppetContextKey, c)
 }
 
 func (p *pcoreImpl) Reset() {
@@ -175,7 +172,10 @@ func (p *pcoreImpl) Logger() eval.Logger {
 
 func (p *pcoreImpl) RootContext() eval.Context {
 	InitializePuppet()
-	return impl.WithParent(context.Background(), p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
+	c := impl.WithParent(context.Background(), p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
+	threadlocal.Init()
+	threadlocal.Set(eval.PuppetContextKey, c)
+	return c
 }
 
 func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
@@ -199,6 +199,8 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	} else {
 		ctx = impl.WithParent(parentCtx, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
 	}
+	threadlocal.Init()
+	threadlocal.Set(eval.PuppetContextKey, ctx)
 	err = actor(ctx)
 	return
 }

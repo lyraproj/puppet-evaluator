@@ -50,6 +50,10 @@ func (te *objectTypeExtension) Equals(other interface{}, g eval.Guard) bool {
 	return ok && te.baseType.Equals(op.baseType, g) && te.parameters.Equals(op.parameters, g)
 }
 
+func (te *objectTypeExtension) Functions(includeParent bool) []eval.ObjFunc {
+	return te.baseType.Functions(includeParent)
+}
+
 func (te *objectTypeExtension) Generalize() eval.Type {
 	return te.baseType
 }
@@ -58,8 +62,20 @@ func (te *objectTypeExtension) Get(key string) (eval.Value, bool) {
 	return te.baseType.Get(key)
 }
 
+func (te *objectTypeExtension) GoType() reflect.Type {
+	return te.GoType()
+}
+
 func (te *objectTypeExtension) HasHashConstructor() bool {
 	return te.baseType.HasHashConstructor()
+}
+
+func (te *objectTypeExtension) Implements(ifd eval.ObjectType, g eval.Guard) bool {
+	return te.baseType.Implements(ifd, g)
+}
+
+func (te *objectTypeExtension) IsInterface() bool {
+	return false
 }
 
 func (te *objectTypeExtension) IsAssignable(t eval.Type, g eval.Guard) bool {
@@ -155,11 +171,11 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	}
 
 	if namedArgs {
-		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).PType(), initParameters[0])
+		namedArgs = pts.Len() >= 1 && !eval.IsInstance(pvs[0].(*typeParameter).Type(), initParameters[0])
 	}
 
 	checkParam := func(tp *typeParameter, v eval.Value) eval.Value {
-		return eval.AssertInstance(func() string { return tp.Label() }, tp.PType(), v)
+		return eval.AssertInstance(func() string { return tp.Label() }, tp.Type(), v)
 	}
 
 	byName := hash.NewStringHash(pts.Len())

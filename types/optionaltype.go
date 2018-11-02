@@ -118,8 +118,8 @@ func (t *OptionalType) Parameters() []eval.Value {
 	return []eval.Value{t.typ}
 }
 
-func (t *OptionalType) ReflectType() (reflect.Type, bool) {
-	return ReflectType(t.typ)
+func (t *OptionalType) ReflectType(c eval.Context) (reflect.Type, bool) {
+	return ReflectType(c, t.typ)
 }
 
 func (t *OptionalType) Resolve(c eval.Context) eval.Type {

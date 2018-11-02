@@ -486,12 +486,16 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 		pv = WrapTimespan(v.(time.Duration))
 	case time.Time:
 		pv = WrapTimestamp(v.(time.Time))
+	case []string:
+		pv = WrapStrings(v.([]string))
 	case []eval.Value:
 		pv = WrapArray(v.([]eval.Value))
+	case []interface{}:
+		return WrapArray2(c, v.([]interface{}))
 	case map[string]interface{}:
-		pv = WrapHash4(c, v.(map[string]interface{}))
+		pv = WrapHashSorted2(c, v.(map[string]interface{}))
 	case map[string]eval.Value:
-		pv = WrapHash3(v.(map[string]eval.Value))
+		pv = WrapHashSorted(v.(map[string]eval.Value))
 	case yaml.MapSlice:
 		ms := v.(yaml.MapSlice)
 		es := make([]*HashEntry, len(ms))
@@ -518,17 +522,27 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 }
 
 func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
+	if c == nil {
+		c = eval.CurrentContext()
+	}
+
+	vi := vr
+	if vi.Kind() == reflect.Interface {
+		// Need implementation here.
+		vi = vi.Elem()
+	}
+	if t, ok := loadFromImplementarionRegistry(c, vi.Type()); ok {
+		if pt, ok := t.(eval.ObjectType); ok {
+			pv = pt.FromReflectedValue(c, vi)
+			return
+		}
+	}
+
+	if pv, ok := WrapPrimitive(vr); ok {
+		return pv
+	}
+
 	switch vr.Kind() {
-	case reflect.String:
-		pv = WrapString(vr.String())
-	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-		pv = WrapInteger(vr.Int())
-	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
-	case reflect.Bool:
-		pv = WrapBoolean(vr.Bool())
-	case reflect.Float64, reflect.Float32:
-		pv = WrapFloat(vr.Float())
 	case reflect.Slice, reflect.Array:
 		top := vr.Len()
 		els := make([]eval.Value, top)
@@ -545,11 +559,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		pv = WrapHash(els)
 	default:
 		if vr.IsValid() && vr.CanInterface() {
-			if pt, ok := wrapType(c, vr.Type()).(eval.ObjectType); ok {
-				pv = pt.FromReflectedValue(c, vr)
-			} else {
-				pv = WrapRuntime(vr.Interface())
-			}
+			pv = WrapRuntime(vr.Interface())
 		} else {
 			pv = _UNDEF
 		}
@@ -557,48 +567,103 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
 	return pv
 }
 
-func wrapType(c eval.Context, vt reflect.Type) (pt eval.Type) {
-	pt = DefaultAnyType()
-	switch vt.Kind() {
+func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
+	ok = true
+	switch vr.Kind() {
 	case reflect.String:
-		pt = DefaultStringType()
-	case reflect.Int, reflect.Int64:
-		pt = DefaultIntegerType()
-	case reflect.Int32:
-		pt = integerType_32
-	case reflect.Int16:
-		pt = integerType_16
-	case reflect.Int8:
-		pt = integerType_8
-	case reflect.Uint, reflect.Uint64:
-		pt = integerType_u64
-	case reflect.Uint32:
-		pt = integerType_u32
-	case reflect.Uint16:
-		pt = integerType_u16
-	case reflect.Uint8:
-		pt = integerType_u8
+		pv = WrapString(vr.String())
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+		pv = WrapInteger(vr.Int())
+	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+		pv = WrapInteger(int64(vr.Uint())) // Possible loss for very large numbers
 	case reflect.Bool:
-		pt = DefaultBooleanType()
-	case reflect.Float64:
-		pt = DefaultFloatType()
-	case reflect.Float32:
-		pt = floatType_32
-	case reflect.Slice, reflect.Array:
-		pt = NewArrayType(wrapType(c, vt.Elem()), nil)
-	case reflect.Map:
-		pt = NewHashType(wrapType(c, vt.Key()), wrapType(c, vt.Elem()), nil)
-	case reflect.Ptr:
-		pt = wrapType(c, vt.Elem())
-	case reflect.Struct:
-		if it, ok := c.ImplementationRegistry().ReflectedToPtype(vt); ok {
-			if lt, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, it)); ok {
-				pt = lt.(eval.Type)
-			} else {
-				pt = NewTypeReferenceType(it)
+		pv = WrapBoolean(vr.Bool())
+	case reflect.Float64, reflect.Float32:
+		pv = WrapFloat(vr.Float())
+	default:
+		ok = false
+	}
+	return
+}
+
+func loadFromImplementarionRegistry(c eval.Context, vt reflect.Type) (eval.Type, bool) {
+	if tn, ok := c.ImplementationRegistry().ReflectedToType(vt); ok {
+		var lt interface{}
+		if lt, ok = eval.Load(c, eval.NewTypedName(eval.TYPE, tn)); ok {
+			return lt.(eval.Type), true
+		}
+		return NewTypeReferenceType(tn), true
+	}
+	return nil, false
+}
+
+func wrapType(c eval.Context, vt reflect.Type) (pt eval.Type) {
+	if c == nil {
+		c = eval.CurrentContext()
+	}
+
+	var ok bool
+	pt, ok = loadFromImplementarionRegistry(c, vt)
+	if !ok {
+		pt, ok = primitivePTypes[vt.Kind()]
+		if !ok {
+			ok = true
+			switch vt.Kind() {
+			case reflect.Slice, reflect.Array:
+				pt = NewArrayType(wrapType(c, vt.Elem()), nil)
+			case reflect.Map:
+				pt = NewHashType(wrapType(c, vt.Key()), wrapType(c, vt.Elem()), nil)
+			case reflect.Ptr:
+				pt = wrapType(c, vt.Elem())
+			default:
+				pt = DefaultAnyType()
 			}
 		}
 	}
+	return
+}
+
+var primitivePTypes = map[reflect.Kind]eval.Type{
+	reflect.String: DefaultStringType(),
+	reflect.Int: DefaultIntegerType(),
+	reflect.Int8: integerType_8,
+	reflect.Int16: integerType_16,
+	reflect.Int32: integerType_32,
+	reflect.Int64: DefaultIntegerType(),
+	reflect.Uint: integerType_u64,
+	reflect.Uint8: integerType_u8,
+	reflect.Uint16: integerType_u16,
+	reflect.Uint32: integerType_u32,
+	reflect.Uint64: integerType_u64,
+	reflect.Float32: floatType_32,
+	reflect.Float64: DefaultFloatType(),
+	reflect.Bool: DefaultBooleanType(),
+}
+
+func PrimitivePType(vt reflect.Type) (pt eval.Type, ok bool) {
+	pt, ok = primitivePTypes[vt.Kind()]
+	return
+}
+
+var primitiveRTypes = map[reflect.Kind]reflect.Type{
+	reflect.String: reflect.TypeOf(``),
+	reflect.Int: reflect.TypeOf(int(0)),
+	reflect.Int8: reflect.TypeOf(int8(0)),
+	reflect.Int16: reflect.TypeOf(int16(0)),
+	reflect.Int32: reflect.TypeOf(int32(0)),
+	reflect.Int64: reflect.TypeOf(int64(0)),
+	reflect.Uint: reflect.TypeOf(uint(0)),
+	reflect.Uint8: reflect.TypeOf(uint8(0)),
+	reflect.Uint16: reflect.TypeOf(uint16(0)),
+	reflect.Uint32: reflect.TypeOf(uint32(0)),
+	reflect.Uint64: reflect.TypeOf(uint64(0)),
+	reflect.Float32: reflect.TypeOf(float32(0)),
+	reflect.Float64: reflect.TypeOf(float64(0)),
+	reflect.Bool: reflect.TypeOf(bool(false)),
+}
+
+func PrimitiveRType(vt reflect.Type) (pt reflect.Type, ok bool) {
+	pt, ok = primitiveRTypes[vt.Kind()]
 	return
 }
 

@@ -147,7 +147,7 @@ func (t *PatternType) Patterns() *ArrayValue {
 	return WrapArray(rxs)
 }
 
-func (t *PatternType) ReflectType() (reflect.Type, bool) {
+func (t *PatternType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 

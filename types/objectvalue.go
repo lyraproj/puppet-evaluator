@@ -4,26 +4,19 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 	"io"
+	"reflect"
 )
 
-func AllocObjectValue(typ eval.ObjectType) eval.Object {
-	if typ.IsMetaType() {
-		return AllocObjectType()
-	}
-	return &objectValue{typ, eval.EMPTY_VALUES}
+type typedObject struct {
+	typ eval.ObjectType
 }
 
-func (ov *objectValue) Initialize(c eval.Context, values []eval.Value) {
-	if len(values) > 0 && ov.typ.IsParameterized() {
-		ov.InitFromHash(c, makeValueHash(ov.typ.AttributesInfo(), values))
-		return
-	}
-	fillValueSlice(values, ov.typ.AttributesInfo().Attributes())
-	ov.values = values
+func (o *typedObject) PType() eval.Type {
+	return o.typ
 }
 
-func (ov *objectValue) InitFromHash(c eval.Context, hash eval.OrderedMap) {
-	typ := ov.typ.(*objectType)
+func (o *typedObject) valuesFromHash(c eval.Context, hash eval.OrderedMap) []eval.Value {
+	typ := o.typ.(*objectType)
 	va := typ.AttributesInfo().PositionalFromHash(hash)
 	if len(va) > 0 && typ.IsParameterized() {
 		params := make([]*HashEntry, 0)
@@ -33,22 +26,71 @@ func (ov *objectValue) InitFromHash(c eval.Context, hash eval.OrderedMap) {
 			}
 		})
 		if len(params) > 0 {
-			ov.typ = NewObjectTypeExtension(c, typ, []eval.Value{WrapHash(params)})
+			o.typ = NewObjectTypeExtension(c, typ, []eval.Value{WrapHash(params)})
 		}
 	}
-	ov.values = va
+	return va
 }
 
-func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.Value) eval.Object {
-	ov := AllocObjectValue(typ)
+type attributeSlice struct {
+	typedObject
+	values []eval.Value
+}
+
+func AllocObjectValue(c eval.Context, typ eval.ObjectType) eval.Object {
+	if typ.IsMetaType() {
+		return AllocObjectType()
+	}
+	if rf := typ.GoType(); rf != nil {
+		if rf.Kind() == reflect.Ptr && rf.Elem().Kind() == reflect.Struct {
+			rf = rf.Elem()
+		}
+		return &reflectedObject{typedObject{typ}, reflect.New(rf).Elem()}
+	}
+	return &attributeSlice{typedObject{typ}, eval.EMPTY_VALUES}
+}
+
+func NewReflectedValue(typ eval.ObjectType, value reflect.Value) eval.Object {
+	return &reflectedObject{typedObject{typ}, value}
+}
+
+func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.Value) (ov eval.Object) {
+	ov = AllocObjectValue(c, typ)
 	ov.Initialize(c, values)
 	return ov
 }
 
-func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) eval.Object {
-	ov := AllocObjectValue(typ)
+func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) (ov eval.Object) {
+	ov = AllocObjectValue(c, typ)
 	ov.InitFromHash(c, hash)
 	return ov
+}
+
+func (o *attributeSlice) Reflect(c eval.Context) reflect.Value {
+	ot := o.PType().(eval.ReflectedType)
+	if v, ok := ot.ReflectType(c); ok {
+		rv := reflect.New(v.Elem())
+		o.ReflectTo(c, rv.Elem())
+		return rv
+	}
+	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: o.PType()}))
+}
+
+func (o *attributeSlice) ReflectTo(c eval.Context, value reflect.Value) {
+	o.typ.ToReflectedValue(c, o, value)
+}
+
+func (o *attributeSlice) Initialize(c eval.Context, values []eval.Value) {
+	if len(values) > 0 && o.typ.IsParameterized() {
+		o.InitFromHash(c, makeValueHash(o.typ.AttributesInfo(), values))
+		return
+	}
+	fillValueSlice(values, o.typ.AttributesInfo().Attributes())
+	o.values = values
+}
+
+func (o *attributeSlice) InitFromHash(c eval.Context, hash eval.OrderedMap) {
+	o.values = o.valuesFromHash(c, hash)
 }
 
 // Ensure that all entries in the value slice that are nil receive default values from the given attributes
@@ -64,7 +106,7 @@ func fillValueSlice(values []eval.Value, attrs []eval.Attribute) {
 	}
 }
 
-func (o *objectValue) Get(key string) (eval.Value, bool) {
+func (o *attributeSlice) Get(key string) (eval.Value, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		if idx < len(o.values) {
@@ -75,26 +117,22 @@ func (o *objectValue) Get(key string) (eval.Value, bool) {
 	return nil, false
 }
 
-func (o *objectValue) Equals(other interface{}, g eval.Guard) bool {
-	if ov, ok := other.(*objectValue); ok {
-		return o.typ.Equals(ov.typ, g) && eval.GuardedEquals(o.values, ov.values, g)
+func (o *attributeSlice) Equals(other interface{}, g eval.Guard) bool {
+	if ov, ok := other.(*attributeSlice); ok {
+		return ov.typ.Equals(ov.typ, g) && eval.GuardedEquals(ov.values, ov.values, g)
 	}
 	return false
 }
 
-func (o *objectValue) String() string {
+func (o *attributeSlice) String() string {
 	return eval.ToString(o)
 }
 
-func (o *objectValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (o *attributeSlice) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	ObjectToString(o, s, b, g)
 }
 
-func (o *objectValue) PType() eval.Type {
-	return o.typ
-}
-
-func (o *objectValue) InitHash() eval.OrderedMap {
+func (o *attributeSlice) InitHash() eval.OrderedMap {
 	return makeValueHash(o.typ.AttributesInfo(), o.values)
 }
 
@@ -107,6 +145,141 @@ func makeValueHash(pi eval.AttributesInfo, values []eval.Value) *HashValue {
 		attr := pi.Attributes()[i]
 		if !(attr.HasValue() && eval.Equals(v, attr.Value())) {
 			entries = append(entries, WrapHashEntry2(attr.Name(), v))
+		}
+	}
+	return WrapHash(entries)
+}
+
+type reflectedObject struct {
+	typedObject
+	value reflect.Value
+}
+
+func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+	m, ok := o.value.Type().MethodByName(method.GoName())
+	if !ok {
+		return nil, false
+	}
+
+	mt := m.Type
+	pc := mt.NumIn()
+	if mt.NumOut() > 1 || pc != 1 + len(args) {
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+			[]eval.Signature{method.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc), int64(pc))), nil)}))
+	}
+
+	rf := c.Reflector()
+	rfArgs := make([]reflect.Value, pc)
+	rfArgs[0] = o.value
+	for i, arg := range args {
+		pn := i + 1
+		av := reflect.New(mt.In(pn)).Elem()
+		rf.ReflectTo(arg, av)
+		rfArgs[pn] = av
+	}
+	result := m.Func.Call(rfArgs)
+	if mt.NumOut() == 1 {
+		return wrap(c, result[0]), true
+	}
+	return _UNDEF, true
+}
+
+func (o *reflectedObject) Reflect(c eval.Context) reflect.Value {
+	return o.value
+}
+
+func (o *reflectedObject) ReflectTo(c eval.Context, value reflect.Value) {
+	value.Set(o.value)
+}
+
+func (o *reflectedObject) Initialize(c eval.Context, values []eval.Value) {
+	if len(values) > 0 && o.typ.IsParameterized() {
+		o.InitFromHash(c, makeValueHash(o.typ.AttributesInfo(), values))
+		return
+	}
+	pi := o.typ.AttributesInfo()
+	if len(pi.PosToName()) > 0 {
+		attrs := pi.Attributes()
+		fillValueSlice(values, attrs)
+		o.setValues(c, values)
+	} else if len(values) == 1 {
+		values[0].(eval.Reflected).ReflectTo(c, o.value)
+	}
+}
+
+func (o *reflectedObject) InitFromHash(c eval.Context, hash eval.OrderedMap) {
+	o.setValues(c, o.valuesFromHash(c, hash))
+}
+
+func (o *reflectedObject) setValues(c eval.Context, values []eval.Value) {
+	attrs := o.typ.AttributesInfo().Attributes()
+	rf := c.Reflector()
+	if len(attrs) == 1 && attrs[0].GoName() == KEY_VALUE {
+		rf.ReflectTo(values[0], o.value)
+	} else {
+		oe := o.value.Elem()
+		for i, a := range attrs {
+			v := values[i]
+			rf.ReflectTo(v, oe.FieldByName(a.GoName()))
+		}
+	}
+}
+
+func (o *reflectedObject) Get(key string) (eval.Value, bool) {
+	pi := o.typ.AttributesInfo()
+	if idx, ok := pi.NameToPos()[key]; ok {
+		attr := pi.Attributes()[idx]
+		if attr.GoName() == KEY_VALUE {
+			return WrapPrimitive(o.value)
+		}
+		rf := o.value.Elem().FieldByName(attr.GoName())
+		if rf.IsValid() {
+			return wrap(nil, rf), true
+		}
+		return pi.Attributes()[idx].Value(), ok
+	}
+	return nil, false
+}
+
+func (o *reflectedObject) Equals(other interface{}, g eval.Guard) bool {
+	if ov, ok := other.(*reflectedObject); ok {
+		return o.typ.Equals(ov.typ, g) && reflect.DeepEqual(o.value.Interface(), ov.value.Interface())
+	}
+	return false
+}
+
+func (o *reflectedObject) String() string {
+	return eval.ToString(o)
+}
+
+func (o *reflectedObject) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	ObjectToString(o, s, b, g)
+}
+
+func (o *reflectedObject) InitHash() eval.OrderedMap {
+	pi := o.typ.AttributesInfo()
+	nc := len(pi.PosToName())
+	if nc == 0 {
+		return eval.EMPTY_MAP
+	}
+
+	if nc == 1 {
+		attr := pi.Attributes()[0]
+		if attr.GoName() == KEY_VALUE {
+			pv, _ := WrapPrimitive(o.value)
+			return SingletonHash2(`value`, pv)
+		}
+	}
+
+	entries := make([]*HashEntry, 0, nc)
+	oe := o.value.Elem()
+	for _, attr := range pi.Attributes() {
+		gn := attr.GoName()
+		if gn != `` {
+			v := wrap(nil, oe.FieldByName(gn))
+			if !(attr.HasValue() && eval.Equals(v, attr.Value())) {
+				entries = append(entries, WrapHashEntry2(attr.Name(), v))
+			}
 		}
 	}
 	return WrapHash(entries)

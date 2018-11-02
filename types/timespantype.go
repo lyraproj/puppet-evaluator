@@ -269,7 +269,7 @@ func (t *TimespanType) Parameters() []eval.Value {
 	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
 }
 
-func (t *TimespanType) ReflectType() (reflect.Type, bool) {
+func (t *TimespanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Duration(0)), true
 }
 

@@ -37,6 +37,21 @@ func ExampleTypedName_IsParent_3() {
 	// Output: false
 }
 
+func ExampleTypedName_MapKey() {
+	tn := newTypedName(eval.TYPE, `Foo::Fee::Fum`)
+	fmt.Println(tn.MapKey())
+
+	// Output: http://puppet.com/2016.1/runtime/type/foo::fee::fum
+}
+
+func ExampleTypedNameFromMapKey() {
+	tn := newTypedName(eval.TYPE, `Foo::Fee::Fum`)
+	tn = typedNameFromMapKey(tn.MapKey())
+	fmt.Println(tn)
+
+	// Output: TypedName('namespace' => 'type', 'name' => 'foo::fee::fum')
+}
+
 func TestParent(t *testing.T) {
 	tn := newTypedName(eval.TYPE, `Foo::Fee::Fum`)
 	tp := newTypedName(eval.TYPE, `Foo::Fee`)

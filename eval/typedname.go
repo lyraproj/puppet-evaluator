@@ -48,3 +48,7 @@ type TypedName interface {
 
 var NewTypedName func(namespace Namespace, name string) TypedName
 var NewTypedName2 func(namespace Namespace, name string, name_authority URI) TypedName
+
+// TypedNameFromMapKey recreates a TypedName from a given MapKey that was produced by a TypedName
+var TypedNameFromMapKey func(mapKey string) TypedName
+

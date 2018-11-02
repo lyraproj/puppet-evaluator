@@ -187,7 +187,7 @@ func (t *FloatType) Parameters() []eval.Value {
 	return []eval.Value{WrapFloat(t.min), WrapFloat(t.max)}
 }
 
-func (t *FloatType) ReflectType() (reflect.Type, bool) {
+func (t *FloatType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 

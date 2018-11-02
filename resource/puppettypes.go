@@ -108,7 +108,7 @@ func InitBuiltinResources(c eval.Context) {
 					d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 						typ, _ := eval.Load(c, eval.NewTypedName(eval.TYPE, name))
 						hash := args[0].(*types.HashValue)
-						return types.NewObjectValue2(c, typ.(eval.ObjectType), types.WrapHash3(
+						return types.NewObjectValue2(c, typ.(eval.ObjectType), types.WrapHashSorted(
 							map[string]eval.Value{
 								`title`: hash.Get5(`title`, eval.EMPTY_STRING),
 								`values`: hash.RejectPairs(func(k, v eval.Value) bool {

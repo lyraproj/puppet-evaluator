@@ -4,6 +4,8 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"io"
 	"strings"
+	"regexp"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 type typedName struct {
@@ -57,8 +59,8 @@ func (t *typedName) PType() eval.Type {
 	return TypedName_Type
 }
 
-func (t *typedName) Call(c eval.Context, method string, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
-	switch method {
+func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
+	switch method.Name() {
 	case `is_parent`:
 		return WrapBoolean(t.IsParent(args[0].(eval.TypedName))), true
 	case `relative_to`:
@@ -115,6 +117,8 @@ func newTypedName(namespace eval.Namespace, name string) eval.TypedName {
 	return newTypedName2(namespace, name, eval.RUNTIME_NAME_AUTHORITY)
 }
 
+var allowedCharacters = regexp.MustCompile(`\A[A-Za-z][0-9A-Z_a-z]*\z`)
+
 func newTypedName2(namespace eval.Namespace, name string, nameAuthority eval.URI) eval.TypedName {
 	tn := typedName{}
 
@@ -123,12 +127,28 @@ func newTypedName2(namespace eval.Namespace, name string, nameAuthority eval.URI
 		parts = parts[1:]
 		name = name[2:]
 	}
+	for _, part := range parts {
+		if !allowedCharacters.MatchString(part) {
+			panic(eval.Error(eval.EVAL_INVALID_CHARACTERS_IN_NAME, issue.H{`name`: name}))
+		}
+	}
 	tn.parts = parts
 	tn.namespace = namespace
 	tn.authority = nameAuthority
 	tn.name = name
 	tn.canonical = strings.ToLower(string(nameAuthority) + `/` + string(namespace) + `/` + name)
 	return &tn
+}
+
+func typedNameFromMapKey(mapKey string) eval.TypedName {
+	if i := strings.LastIndexByte(mapKey, '/'); i > 0 {
+		pfx := mapKey[:i]
+		name := mapKey[i+1:]
+		if i = strings.LastIndexByte(pfx, '/'); i > 0 {
+			return newTypedName2(eval.Namespace(pfx[i+1:]), name, eval.URI(pfx[:i]))
+		}
+	}
+	panic(eval.Error(eval.EVAL_INVALID_TYPEDNAME_MAPKEY, issue.H{`mapKey`: mapKey}))
 }
 
 func (t *typedName) Child() eval.TypedName {

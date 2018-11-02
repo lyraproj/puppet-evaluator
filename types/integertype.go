@@ -284,7 +284,7 @@ func (t *IntegerType) Parameters() []eval.Value {
 	return []eval.Value{WrapInteger(t.min), WrapInteger(t.max)}
 }
 
-func (t *IntegerType) ReflectType() (reflect.Type, bool) {
+func (t *IntegerType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(int64(0)), true
 }
 

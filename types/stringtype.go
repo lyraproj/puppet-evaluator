@@ -210,7 +210,7 @@ func (t *StringType) Parameters() []eval.Value {
 	return t.size.Parameters()
 }
 
-func (t *StringType) ReflectType() (reflect.Type, bool) {
+func (t *StringType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
@@ -399,7 +399,6 @@ func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
-	assertKind(value, reflect.String)
 	if value.Kind() == reflect.Interface {
 		value.Set(sv.Reflect(c))
 	} else {

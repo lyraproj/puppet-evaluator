@@ -193,7 +193,7 @@ func (t *SemVerType) Name() string {
 	return `SemVer`
 }
 
-func (t *SemVerType) ReflectType() (reflect.Type, bool) {
+func (t *SemVerType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(semver.Max), true
 }
 
