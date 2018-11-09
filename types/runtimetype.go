@@ -100,13 +100,15 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 	return NewRuntimeType(runtimeName.String(), name.String(), pattern)
 }
 
-// NewGoRuntimeType creates a Go runtime by extracting the element type of the given value. The
-// value must be of kind Ptr to the desired type since there is no way to create elements of an
-// interface. An pointer to an interface nil is however possible.
+// NewGoRuntimeType creates a Go runtime by extracting the element type of the given value.
 //
-// To create an Runtime for the interface Foo, pass (*Foo)(nil) to this method.
+// A Go interface must be registered by passing a Pointer to a nil of the interface so to
+// create an Runtime for the interface Foo, use NewGoRuntimeType((*Foo)(nil))
 func NewGoRuntimeType(value interface{}) *RuntimeType {
-	goType := reflect.TypeOf(value).Elem()
+	goType := reflect.TypeOf(value)
+	if goType.Kind() == reflect.Ptr && goType.Elem().Kind() == reflect.Interface {
+		goType = goType.Elem()
+	}
 	return &RuntimeType{runtime: `go`, name: goType.String(), goType: goType}
 }
 

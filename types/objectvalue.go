@@ -217,7 +217,7 @@ func (o *reflectedObject) setValues(c eval.Context, values []eval.Value) {
 	if len(attrs) == 1 && attrs[0].GoName() == KEY_VALUE {
 		rf.ReflectTo(values[0], o.value)
 	} else {
-		oe := o.value.Elem()
+		oe := o.structVal()
 		for i, a := range attrs {
 			v := values[i]
 			rf.ReflectTo(v, oe.FieldByName(a.GoName()))
@@ -232,7 +232,7 @@ func (o *reflectedObject) Get(key string) (eval.Value, bool) {
 		if attr.GoName() == KEY_VALUE {
 			return WrapPrimitive(o.value)
 		}
-		rf := o.value.Elem().FieldByName(attr.GoName())
+		rf := o.structVal().FieldByName(attr.GoName())
 		if rf.IsValid() {
 			return wrap(nil, rf), true
 		}
@@ -272,7 +272,7 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 	}
 
 	entries := make([]*HashEntry, 0, nc)
-	oe := o.value.Elem()
+	oe := o.structVal()
 	for _, attr := range pi.Attributes() {
 		gn := attr.GoName()
 		if gn != `` {
@@ -283,4 +283,12 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 		}
 	}
 	return WrapHash(entries)
+}
+
+func (o *reflectedObject) structVal() reflect.Value {
+	oe := o.value
+	if oe.Kind() == reflect.Ptr {
+		oe = oe.Elem()
+	}
+	return oe
 }

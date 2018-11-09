@@ -486,6 +486,8 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 		pv = WrapTimespan(v.(time.Duration))
 	case time.Time:
 		pv = WrapTimestamp(v.(time.Time))
+	case []int:
+		pv = WrapInts(v.([]int))
 	case []string:
 		pv = WrapStrings(v.([]string))
 	case []eval.Value:

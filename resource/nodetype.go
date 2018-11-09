@@ -355,8 +355,9 @@ func (rn *node) findResource(c eval.Context, ref string) (*node, bool) {
 	if _, ok := rn.Resource(ref); ok {
 		return rn, true
 	}
-	for _, n := range GetGraph(c).To(rn.ID()) {
-		if found, ok := n.(*node).findResource(c, ref); ok {
+	ti := GetGraph(c).To(rn.ID())
+	for ti.Next() {
+		if found, ok := ti.Node().(*node).findResource(c, ref); ok {
 			return found, true
 		}
 	}
@@ -366,8 +367,9 @@ func (rn *node) findResource(c eval.Context, ref string) (*node, bool) {
 // Search node children for the given resource. The receiver is not included in
 // this search.
 func (rn *node) findChildWithResource(c eval.Context, ref string) (*node, bool) {
-	for _, n := range GetGraph(c).From(rn.ID()) {
-		cn := n.(*node)
+	fi := GetGraph(c).From(rn.ID())
+	for fi.Next() {
+		cn := fi.Node().(*node)
 		if _, ok := cn.Resource(ref); ok {
 			return rn, true
 		}
@@ -382,40 +384,27 @@ func (rn *node) findChildWithResource(c eval.Context, ref string) (*node, bool) 
 // fully resolved.
 func (rn *node) waitForEdgesTo(c eval.Context) ResultSet {
 	g := GetGraph(c)
-	parents := g.To(rn.ID())
+	parents := nodeList(g.To(rn.ID()))
 	for {
-		for _, before := range parents {
-			<-before.(*node).resolved
-		}
+		parents.Each(func(n eval.Value) { <-n.(*node).resolved })
 
 		// A new chech must be made if the list of nodes have changed
-		parentsNow := g.To(rn.ID())
+		parentsNow := nodeList(g.To(rn.ID()))
 		if sameNodes(parents, parentsNow) {
 			results := make([]eval.Value, 0)
-			for _, before := range parents {
-				results = append(results, before.(*node).results...)
-			}
+			parents.Each(func(n eval.Value) { results = append(results, n.(*node).results...) })
 			return NewResultSet(types.WrapArray(results))
 		}
 		parents = parentsNow
 	}
 }
 
-func sameNodes(a, b []graph.Node) bool {
-	if len(a) != len(b) {
+func sameNodes(a, b eval.List) bool {
+	if a.Len() != b.Len() {
 		return false
 	}
-	for _, ap := range a {
-		found := false
-		for _, bp := range b {
-			if ap.ID() == bp.ID() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
+	return a.All(func(e eval.Value) bool {
+		ap := e.(graph.Node)
+		return b.Any(func(e eval.Value) bool { return ap.ID() == e.(graph.Node).ID() })
+	})
 }

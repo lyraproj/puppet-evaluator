@@ -96,8 +96,15 @@ func getJobCounter(c eval.Context) *jobCounter {
 	panic(eval.Error(eval.EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, issue.H{`key`: JOB_COUNTER}))
 }
 
-func setExternalEdgesFrom(c eval.Context, edges []graph.Node) {
-	c.Set(EXTERNAL_EDGES_TO, edges)
+func setExternalEdgesFrom(c eval.Context, edges graph.Nodes) []graph.Node {
+	es := make([]graph.Node, edges.Len())
+	i := 0
+	for edges.Next() {
+		es[i] = edges.Node()
+		i++
+	}
+	c.Set(EXTERNAL_EDGES_TO, es)
+	return es
 }
 
 func getResources(c eval.Context) map[string]*handle {

@@ -76,7 +76,9 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 
 	<-done
 	errors := []issue.Reported{}
-	for _, n := range GetGraph(c).Nodes() {
+	ni := GetGraph(c).Nodes()
+	for ni.Next() {
+		n := ni.Node()
 		if err := n.(Node).Error(); err != nil {
 			errors = append(errors, err)
 		}
@@ -94,8 +96,7 @@ func (re *resourceEval) Evaluate(c eval.Context, expression parser.Expression) (
 func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.Value, issue.Reported) {
 	setCurrentNode(c, rn)
 	g := GetGraph(c)
-	extEdges := g.From(rn.ID())
-	setExternalEdgesFrom(c, extEdges)
+	extEdges := setExternalEdgesFrom(c, g.From(rn.ID()))
 	setResources(c, map[string]*handle{})
 
 	var lambda eval.InvocableValue
@@ -120,7 +121,7 @@ func (re *resourceEval) evaluateNodeExpression(c eval.Context, rn *node) (eval.V
 		value = lambda.Call(c, nil, rn.parameters...)
 	}
 
-	if len(extEdges) < len(g.From(rn.ID())) {
+	if len(extEdges) < g.From(rn.ID()).Len() {
 		// Original externa edges are no longer needed since they now describe paths
 		// that are reached using children
 		r := g.(graph.EdgeRemover)
@@ -374,11 +375,11 @@ func (re *resourceEval) createEdges(c eval.Context, first, second parser.Express
 
 func findLeafs(g graph.Directed, n graph.Node, leafs []Node) []Node {
 	depNodes := g.From(n.ID())
-	if len(depNodes) == 0 {
+	if depNodes.Len() == 0 {
 		leafs = append(leafs, n.(Node))
 	} else {
-		for _, l := range depNodes {
-			leafs = findLeafs(g, l, leafs)
+		for depNodes.Next() {
+			leafs = findLeafs(g, depNodes.Node(), leafs)
 		}
 	}
 	return leafs

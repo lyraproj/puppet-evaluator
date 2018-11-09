@@ -33,11 +33,10 @@ func ExampleNewTupleType() {
 }
 
 func ExampleWrapHash() {
-	type M map[string]interface{}
-	a := eval.Wrap(nil, M{
+	a := eval.Wrap(nil, map[string]interface{}{
 		`foo`: 23,
 		`fee`: `hello`,
-		`fum`: M{
+		`fum`: map[string]interface{}{
 			`x`: `1`,
 			`y`: []int{1, 2, 3},
 			`z`: regexp.MustCompile(`^[a-z]+$`)}})

@@ -292,6 +292,14 @@ func WrapArray2(c eval.Context, elements []interface{}) *ArrayValue {
 	return &ArrayValue{elements: els}
 }
 
+func WrapInts(ints []int) *ArrayValue {
+	els := make([]eval.Value, len(ints))
+	for i, e := range ints {
+		els[i] = WrapInteger(int64(e))
+	}
+	return &ArrayValue{elements: els}
+}
+
 func WrapStrings(strings []string) *ArrayValue {
 	els := make([]eval.Value, len(strings))
 	for i, e := range strings {

@@ -7,6 +7,7 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"sync"
+	"gonum.org/v1/gonum/graph/iterator"
 )
 
 type (
@@ -40,11 +41,11 @@ func NewConcurrentGraph() graph.DirectedBuilder {
 	return &concurrentGraph{g: simple.NewDirectedGraph()}
 }
 
-func (cg *concurrentGraph) Has(id int64) bool {
+func (cg *concurrentGraph) Node(id int64) graph.Node {
 	cg.lock.RLock()
-	result := cg.g.Has(id)
+	node := cg.g.Node(id)
 	cg.lock.RUnlock()
-	return result
+	return node
 }
 
 func (cg *concurrentGraph) AllNodes() eval.List {
@@ -58,37 +59,45 @@ func (cg *concurrentGraph) Edges(from Node) eval.List {
 }
 
 func (cg *concurrentGraph) RootNodes() eval.List {
-	roots := make([]graph.Node, 0)
+	roots := make([]eval.Value, 0)
 	cg.lock.RLock()
-	for _, n := range cg.g.Nodes() {
-		if len(cg.g.To(n.ID())) == 0 {
-			roots = append(roots, n)
+	ni := cg.g.Nodes()
+	for ni.Next() {
+		n := ni.Node()
+		if cg.g.To(n.ID()).Len() == 0 {
+			roots = append(roots, n.(eval.Value))
 		}
 	}
 	cg.lock.RUnlock()
-	return nodeList(roots)
+	return types.WrapArray(roots)
 }
 
 func (cg *concurrentGraph) FromNode(n Node) eval.List {
 	return nodeList(cg.From(n.ID()))
 }
 
-func (cg *concurrentGraph) Nodes() []graph.Node {
+func (cg *concurrentGraph) Nodes() graph.Nodes {
 	cg.lock.RLock()
-	nodes := cg.g.Nodes()
-	result := make([]graph.Node, len(nodes))
-	copy(result, nodes)
+	nodes := copyIterator(cg.g.Nodes())
 	cg.lock.RUnlock()
-	return result
+	return nodes
 }
 
-func (cg *concurrentGraph) From(id int64) []graph.Node {
+func copyIterator(nodes graph.Nodes) graph.Nodes {
+	result := make([]graph.Node, nodes.Len())
+	i := 0
+	for nodes.Next() {
+		result[i] = nodes.Node()
+		i++
+	}
+	return iterator.NewOrderedNodes(result)
+}
+
+func (cg *concurrentGraph) From(id int64) graph.Nodes {
 	cg.lock.RLock()
-	nodes := cg.g.From(id)
-	result := make([]graph.Node, len(nodes))
-	copy(result, nodes)
+	nodes := copyIterator(cg.g.From(id))
 	cg.lock.RUnlock()
-	return result
+	return nodes
 }
 
 func (cg *concurrentGraph) HasEdgeBetween(xid, yid int64) bool {
@@ -112,13 +121,11 @@ func (cg *concurrentGraph) HasEdgeFromTo(uid, vid int64) bool {
 	return result
 }
 
-func (cg *concurrentGraph) To(id int64) []graph.Node {
+func (cg *concurrentGraph) To(id int64) graph.Nodes {
 	cg.lock.RLock()
-	nodes := cg.g.To(id)
-	result := make([]graph.Node, len(nodes))
-	copy(result, nodes)
+	nodes := copyIterator(cg.g.To(id))
 	cg.lock.RUnlock()
-	return result
+	return nodes
 }
 
 func (cg *concurrentGraph) ToNode(n Node) eval.List {
@@ -160,10 +167,12 @@ func (cg *concurrentGraph) SetEdge(e graph.Edge) {
 	cg.g.SetEdge(e)
 }
 
-func nodeList(nodes []graph.Node) eval.List {
-	rs := make([]eval.Value, len(nodes))
-	for i, n := range nodes {
-		rs[i] = n.(eval.Value)
+func nodeList(nodes graph.Nodes) eval.List {
+	rs := make([]eval.Value, nodes.Len())
+	i := 0
+	for nodes.Next() {
+		rs[i] = nodes.Node().(eval.Value)
+		i++
 	}
 	return sortByLocation(rs)
 }
