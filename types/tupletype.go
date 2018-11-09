@@ -62,7 +62,7 @@ func NewTupleType(types []eval.Type, size *IntegerType) *TupleType {
 }
 
 func NewTupleType2(args ...eval.Value) *TupleType {
-	return tupleFromArgs(false, WrapArray(args))
+	return tupleFromArgs(false, WrapValues(args))
 }
 
 func NewTupleType3(args eval.List) *TupleType {
@@ -199,7 +199,7 @@ func (t *TupleType) Get(key string) (value eval.Value, ok bool) {
 		for i, t := range t.types {
 			tps[i] = t
 		}
-		return WrapArray(tps), true
+		return WrapValues(tps), true
 	case `size_type`:
 		if t.size == nil {
 			return _UNDEF, true

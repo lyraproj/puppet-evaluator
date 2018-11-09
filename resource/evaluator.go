@@ -256,7 +256,7 @@ func createEdgesForNodes(c eval.Context, nodes []Node, name string) eval.Value {
 				g.SetEdge(newEdge(n, cnTo.(Node), exEdge.Subscribe()))
 			}
 		}
-		return types.WrapArray(edges)
+		return types.WrapValues(edges)
 	} else {
 		// Create edge from current to first node in the list
 		prev := nodes[0]
@@ -367,7 +367,7 @@ func (re *resourceEval) createEdges(c eval.Context, first, second parser.Express
 		if len(edges) == 1 {
 			er = edges[0]
 		} else {
-			er = types.WrapArray(edges)
+			er = types.WrapValues(edges)
 		}
 	}
 	return er
@@ -411,7 +411,7 @@ func (re *resourceEval) eval_ResourceExpression(expr *parser.ResourceExpression,
 		for i, body := range expr.Bodies() {
 			result[i] = re.newResources(ctor.(eval.Function), body.(*parser.ResourceBody), c)
 		}
-		return types.WrapArray(result).Flatten()
+		return types.WrapValues(result).Flatten()
 	}
 
 	// The resource type is unknown when no constructor for it is found
@@ -426,7 +426,7 @@ func (re *resourceEval) newResources(ctor eval.Function, body *parser.ResourceBo
 		for i, e := range bta.Elements() {
 			rs[i] = re.newResources2(ctor, e, body, c)
 		}
-		return types.WrapArray(rs)
+		return types.WrapValues(rs)
 	}
 	return re.newResources2(ctor, bt, body, c)
 }

@@ -34,7 +34,7 @@ func NewPatternType(regexps []*RegexpType) *PatternType {
 }
 
 func NewPatternType2(regexps ...eval.Value) *PatternType {
-	return NewPatternType3(WrapArray(regexps))
+	return NewPatternType3(WrapValues(regexps))
 }
 
 func NewPatternType3(regexps eval.List) *PatternType {
@@ -86,7 +86,7 @@ func (t *PatternType) Equals(o interface{}, g eval.Guard) bool {
 func (t *PatternType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `patterns`:
-		return WrapArray(t.Parameters()), true
+		return WrapValues(t.Parameters()), true
 	}
 	return nil, false
 }
@@ -144,7 +144,7 @@ func (t *PatternType) Patterns() *ArrayValue {
 	for idx, rx := range t.regexps {
 		rxs[idx] = rx
 	}
-	return WrapArray(rxs)
+	return WrapValues(rxs)
 }
 
 func (t *PatternType) ReflectType(c eval.Context) (reflect.Type, bool) {

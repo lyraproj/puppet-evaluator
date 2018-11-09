@@ -221,7 +221,7 @@ func basicTypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RD
 	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
-			WrapArray(params).ToString(b, s, g)
+			WrapValues(params).ToString(b, s, g)
 		}
 	}
 }
@@ -351,7 +351,7 @@ func init() {
 	}
 
 	eval.ToArray = func(elements []eval.Value) eval.List {
-		return WrapArray(elements)
+		return WrapValues(elements)
 	}
 
 	eval.ToKey = func(value eval.Value) eval.HashKey {
@@ -491,13 +491,15 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	case []string:
 		pv = WrapStrings(v.([]string))
 	case []eval.Value:
-		pv = WrapArray(v.([]eval.Value))
+		pv = WrapValues(v.([]eval.Value))
 	case []interface{}:
-		return WrapArray2(c, v.([]interface{}))
+		return WrapInterfaces(c, v.([]interface{}))
 	case map[string]interface{}:
-		pv = WrapHashSorted2(c, v.(map[string]interface{}))
+		pv = WrapStringToInterfaceMap(c, v.(map[string]interface{}))
+	case map[string]string:
+		pv = WrapStringToStringMap(v.(map[string]string))
 	case map[string]eval.Value:
-		pv = WrapHashSorted(v.(map[string]eval.Value))
+		pv = WrapStringToValueMap(v.(map[string]eval.Value))
 	case yaml.MapSlice:
 		ms := v.(yaml.MapSlice)
 		es := make([]*HashEntry, len(ms))
@@ -551,7 +553,7 @@ func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		for i := 0; i < top; i++ {
 			els[i] = wrap(c, interfaceOrNil(vr.Index(i)))
 		}
-		pv = WrapArray(els)
+		pv = WrapValues(els)
 	case reflect.Map:
 		keys := vr.MapKeys()
 		els := make([]*HashEntry, len(keys))

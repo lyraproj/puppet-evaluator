@@ -122,7 +122,7 @@ func NewSemVerType(vr semver.VersionRange) *SemVerType {
 }
 
 func NewSemVerType2(limits ...eval.Value) *SemVerType {
-	return NewSemVerType3(WrapArray(limits))
+	return NewSemVerType3(WrapValues(limits))
 }
 
 func NewSemVerType3(limits eval.List) *SemVerType {
@@ -179,7 +179,7 @@ func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
 func (t *SemVerType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `ranges`:
-		return WrapArray(t.Parameters()), true
+		return WrapValues(t.Parameters()), true
 	default:
 		return nil, false
 	}

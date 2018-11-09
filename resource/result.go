@@ -134,7 +134,7 @@ func (r *result) InitHash() eval.OrderedMap {
 			v[`value`] = r.value
 		}
 	}
-	return types.WrapHashSorted(v)
+	return types.WrapStringToValueMap(v)
 }
 
 func (r *result) Error() (eval.ErrorObject, bool) {

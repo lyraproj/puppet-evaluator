@@ -51,7 +51,7 @@ func NewEnumType(enums []string, caseInsensitive bool) *EnumType {
 }
 
 func NewEnumType2(args ...eval.Value) *EnumType {
-	return NewEnumType3(WrapArray(args))
+	return NewEnumType3(WrapValues(args))
 }
 
 func NewEnumType3(args eval.List) *EnumType {
@@ -110,7 +110,7 @@ func (t *EnumType) Generic() eval.Type {
 func (t *EnumType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `values`:
-		return WrapArray(t.pvalues()), true
+		return WrapValues(t.pvalues()), true
 	case `case_insensitive`:
 		return WrapBoolean(t.caseInsensitive), true
 	default:

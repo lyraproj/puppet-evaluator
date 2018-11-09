@@ -135,7 +135,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 				el = append(el, v)
 			}
 		}
-		return types.WrapArray(el)
+		return types.WrapValues(el)
 	}
 
 	if nArgs == 0 || nArgs > 2 {

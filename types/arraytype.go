@@ -280,11 +280,11 @@ func SingletonArray(element eval.Value) *ArrayValue {
 	return &ArrayValue{elements: []eval.Value{element}}
 }
 
-func WrapArray(elements []eval.Value) *ArrayValue {
+func WrapValues(elements []eval.Value) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
 
-func WrapArray2(c eval.Context, elements []interface{}) *ArrayValue {
+func WrapInterfaces(c eval.Context, elements []interface{}) *ArrayValue {
 	els := make([]eval.Value, len(elements))
 	for i, e := range elements {
 		els[i] = wrap(c, e)
@@ -312,16 +312,16 @@ func WrapArray3(iv eval.List) *ArrayValue {
 	if ar, ok := iv.(*ArrayValue); ok {
 		return ar
 	}
-	return WrapArray(iv.AppendTo(make([]eval.Value, 0, iv.Len())))
+	return WrapValues(iv.AppendTo(make([]eval.Value, 0, iv.Len())))
 }
 
 func (av *ArrayValue) Add(ov eval.Value) eval.List {
-	return WrapArray(append(av.elements, ov))
+	return WrapValues(append(av.elements, ov))
 }
 
 func (av *ArrayValue) AddAll(ov eval.List) eval.List {
 	if ar, ok := ov.(*ArrayValue); ok {
-		return WrapArray(append(av.elements, ar.elements...))
+		return WrapValues(append(av.elements, ar.elements...))
 	}
 
 	aLen := len(av.elements)
@@ -331,7 +331,7 @@ func (av *ArrayValue) AddAll(ov eval.List) eval.List {
 	for idx := aLen; idx < sLen; idx++ {
 		el[idx] = ov.At(idx - aLen)
 	}
-	return WrapArray(el)
+	return WrapValues(el)
 }
 
 func (av *ArrayValue) All(predicate eval.Predicate) bool {
@@ -403,7 +403,7 @@ func (av *ArrayValue) EachSlice(n int, consumer eval.SliceConsumer) {
 		if e > top {
 			e = top
 		}
-		consumer(WrapArray(av.elements[i:e]))
+		consumer(WrapValues(av.elements[i:e]))
 	}
 }
 
@@ -443,7 +443,7 @@ func (av *ArrayValue) Flatten() eval.List {
 	for _, e := range av.elements {
 		switch e.(type) {
 		case *ArrayValue, *HashEntry:
-			return WrapArray(flattenElements(av.elements, make([]eval.Value, 0, len(av.elements)*2)))
+			return WrapValues(flattenElements(av.elements, make([]eval.Value, 0, len(av.elements)*2)))
 		}
 	}
 	return av
@@ -485,7 +485,7 @@ func (av *ArrayValue) Map(mapper eval.Mapper) eval.List {
 	for i, e := range av.elements {
 		mapped[i] = mapper(e)
 	}
-	return WrapArray(mapped)
+	return WrapValues(mapped)
 }
 
 func (av *ArrayValue) Reduce(redactor eval.BiMapper) eval.Value {
@@ -534,7 +534,7 @@ func (av *ArrayValue) Reject(predicate eval.Predicate) eval.List {
 	if all {
 		return av
 	}
-	return WrapArray(selected)
+	return WrapValues(selected)
 }
 
 func (av *ArrayValue) Select(predicate eval.Predicate) eval.List {
@@ -550,11 +550,11 @@ func (av *ArrayValue) Select(predicate eval.Predicate) eval.List {
 	if all {
 		return av
 	}
-	return WrapArray(selected)
+	return WrapValues(selected)
 }
 
 func (av *ArrayValue) Slice(i int, j int) eval.List {
-	return WrapArray(av.elements[i:j])
+	return WrapValues(av.elements[i:j])
 }
 
 type arraySorter struct {
@@ -582,7 +582,7 @@ func (av *ArrayValue) Sort(comparator eval.Comparator) eval.List {
 	s := &arraySorter{make([]eval.Value, len(av.elements)), comparator}
 	copy(s.values, av.elements)
 	sort.Sort(s)
-	return WrapArray(s.values)
+	return WrapValues(s.values)
 }
 
 func (av *ArrayValue) String() string {
@@ -694,7 +694,7 @@ func (av *ArrayValue) Unique() eval.List {
 	if len(result) == len(av.elements) {
 		return av
 	}
-	return WrapArray(result)
+	return WrapValues(result)
 }
 
 func childToString(child eval.Value, indent eval.Indentation, parentCtx eval.FormatContext, cf eval.FormatMap, g eval.RDetect) string {

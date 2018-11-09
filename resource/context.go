@@ -138,7 +138,7 @@ func sortByEntriesLocation(entries []*types.HashEntry) {
 	for i, e := range entries {
 		v[i] = e
 	}
-	types.WrapArray(v).Sort(func(a, b eval.Value) bool {
+	types.WrapValues(v).Sort(func(a, b eval.Value) bool {
 		l1 := a.(*types.HashEntry).Value().(issue.Located).Location()
 		if l1 == nil {
 			return true

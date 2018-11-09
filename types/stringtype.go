@@ -379,7 +379,7 @@ func (sv *StringValue) Map(mapper eval.Mapper) eval.List {
 	for i, c := range s {
 		mapped[i] = mapper(WrapString(string(c)))
 	}
-	return WrapArray(mapped)
+	return WrapValues(mapped)
 }
 
 func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.Value {
@@ -436,7 +436,7 @@ func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
 	for i, s := range strings {
 		result[i] = WrapString(s)
 	}
-	return WrapArray(result)
+	return WrapValues(result)
 }
 
 func (sv *StringValue) String() string {

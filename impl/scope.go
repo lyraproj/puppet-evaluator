@@ -108,7 +108,7 @@ func (e *BasicScope) RxSet(variables []string) {
 	for idx, v := range variables {
 		varStrings[idx] = types.WrapString(v)
 	}
-	e.scopes[len(e.scopes)-1][groupKey] = types.WrapArray(varStrings)
+	e.scopes[len(e.scopes)-1][groupKey] = types.WrapValues(varStrings)
 }
 
 func (e *BasicScope) Set(name string, value eval.Value) bool {

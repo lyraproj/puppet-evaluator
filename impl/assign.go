@@ -31,7 +31,7 @@ func (e *evaluator) assign(expr *parser.AssignmentExpression, scope eval.Scope, 
 			}
 			r[idx] = e.assign(expr, scope, name, v)
 		})
-		return types.WrapArray(r)
+		return types.WrapValues(r)
 	case *types.ArrayValue:
 		values := rv.(*types.ArrayValue)
 		if names.Len() != values.Len() {
@@ -59,7 +59,7 @@ func (e *evaluator) lvalue(expr parser.Expression) eval.Value {
 		for idx, ex := range le {
 			ev[idx] = e.lvalue(ex)
 		}
-		return types.WrapArray(ev)
+		return types.WrapValues(ev)
 	}
 	panic(e.evalError(eval.EVAL_ILLEGAL_ASSIGNMENT, expr, issue.H{`value`: expr}))
 }

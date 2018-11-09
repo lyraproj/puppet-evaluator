@@ -46,7 +46,7 @@ func NewCallableType(paramsType *TupleType, returnType eval.Type, blockType eval
 }
 
 func NewCallableType2(args ...eval.Value) *CallableType {
-	return NewCallableType3(WrapArray(args))
+	return NewCallableType3(WrapValues(args))
 }
 
 func NewCallableType3(args eval.List) *CallableType {
@@ -255,7 +255,7 @@ func (t *CallableType) Parameters() (params []eval.Value) {
 		params = append(params, t.blockType)
 	}
 	if t.returnType != nil {
-		params = []eval.Value{WrapArray(params), t.returnType}
+		params = []eval.Value{WrapValues(params), t.returnType}
 	}
 	return params
 }

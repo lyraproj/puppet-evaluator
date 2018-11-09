@@ -13,7 +13,7 @@ func init() {
 			d.RepeatedParam(`Any`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				walkedPath := []eval.Value{}
-				return types.WrapArray(args).Reduce(func(d, k eval.Value) eval.Value {
+				return types.WrapValues(args).Reduce(func(d, k eval.Value) eval.Value {
 					if eval.Equals(eval.UNDEF, k) {
 						return eval.UNDEF
 					}
@@ -30,7 +30,7 @@ func init() {
 						}
 						return eval.UNDEF
 					default:
-						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapArray(walkedPath), `klass`: d.PType().String()}))
+						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

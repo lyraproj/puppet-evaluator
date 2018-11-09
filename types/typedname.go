@@ -249,7 +249,7 @@ func (t *typedName) PartsList() eval.List {
 	for i, p := range t.parts {
 		elems[i] = WrapString(p)
 	}
-	return WrapArray(elems)
+	return WrapValues(elems)
 }
 
 func (t *typedName) String() string {

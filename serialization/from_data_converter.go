@@ -112,7 +112,7 @@ func (b *arrayBuilder) resolve(c eval.Context) eval.Value {
 		for i, v := range b.values {
 			es[i] = v.resolve(c)
 		}
-		b.resolved = types.WrapArray(es)
+		b.resolved = types.WrapValues(es)
 	}
 	return b.resolved
 }

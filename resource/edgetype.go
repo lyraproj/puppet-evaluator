@@ -63,7 +63,7 @@ func (re *edge) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (re *edge) InitHash() eval.OrderedMap {
-	return types.WrapHashSorted(map[string]eval.Value{
+	return types.WrapStringToValueMap(map[string]eval.Value{
 		`from`:      re.from.(eval.Value),
 		`to`:        re.to.(eval.Value),
 		`subscribe`: types.WrapBoolean(re.subscribe),

@@ -69,7 +69,7 @@ func (cg *concurrentGraph) RootNodes() eval.List {
 		}
 	}
 	cg.lock.RUnlock()
-	return types.WrapArray(roots)
+	return types.WrapValues(roots)
 }
 
 func (cg *concurrentGraph) FromNode(n Node) eval.List {
@@ -178,7 +178,7 @@ func nodeList(nodes graph.Nodes) eval.List {
 }
 
 func sortByLocation(nodes []eval.Value) eval.List {
-	return types.WrapArray(nodes).Sort(func(a, b eval.Value) bool {
+	return types.WrapValues(nodes).Sort(func(a, b eval.Value) bool {
 		l1 := a.(issue.Located).Location()
 		l2 := b.(issue.Located).Location()
 		if l1.File() == l2.File() {

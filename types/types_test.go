@@ -46,7 +46,7 @@ func ExampleWrapHash() {
 		types.WrapHashEntry2(`fee`, types.WrapString(`hello`)),
 		types.WrapHashEntry2(`fum`, types.WrapHash([]*types.HashEntry{
 			types.WrapHashEntry2(`x`, types.WrapString(`1`)),
-			types.WrapHashEntry2(`y`, types.WrapArray([]eval.Value{
+			types.WrapHashEntry2(`y`, types.WrapValues([]eval.Value{
 				types.WrapInteger(1), types.WrapInteger(2), types.WrapInteger(3)})),
 			types.WrapHashEntry2(`z`, types.WrapRegexp(`^[a-z]+$`))}))})
 

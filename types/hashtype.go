@@ -454,7 +454,7 @@ func (he *HashEntry) Find(predicate eval.Predicate) (eval.Value, bool) {
 }
 
 func (he *HashEntry) Flatten() eval.List {
-	return WrapArray([]eval.Value{he.key, he.value}).Flatten()
+	return WrapValues([]eval.Value{he.key, he.value}).Flatten()
 }
 
 func (he *HashEntry) IsEmpty() bool {
@@ -478,7 +478,7 @@ func (he *HashEntry) Len() int {
 }
 
 func (he *HashEntry) Map(mapper eval.Mapper) eval.List {
-	return WrapArray([]eval.Value{mapper(he.key), mapper(he.value)})
+	return WrapValues([]eval.Value{mapper(he.key), mapper(he.value)})
 }
 
 func (he *HashEntry) Select(predicate eval.Predicate) eval.List {
@@ -548,7 +548,7 @@ func (he *HashEntry) String() string {
 }
 
 func (he *HashEntry) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	WrapArray([]eval.Value{he.key, he.value}).ToString(b, s, g)
+	WrapValues([]eval.Value{he.key, he.value}).ToString(b, s, g)
 }
 
 func WrapHash(entries []*HashEntry) *HashValue {
@@ -563,8 +563,8 @@ func WrapHash2(entries eval.List) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// WrapHashSorted builds an ordered map from adds all entries in the given map to
-func WrapHashSorted(hash map[string]eval.Value) *HashValue {
+// WrapStringToValueMap builds an ordered map from adds all entries in the given map to
+func WrapStringToValueMap(hash map[string]eval.Value) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
@@ -580,12 +580,29 @@ func WrapHashSorted(hash map[string]eval.Value) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// WrapHashSorted2 does not preserve order since order is undefined in a Go map
-func WrapHashSorted2(c eval.Context, hash map[string]interface{}) *HashValue {
+// WrapStringToInterfaceMap does not preserve order since order is undefined in a Go map
+func WrapStringToInterfaceMap(c eval.Context, hash map[string]interface{}) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
 		hvEntries[i] = WrapHashEntry2(k, wrap(c, v))
+		i++
+	}
+
+	// map order is undefined (and changes from one run to another) so entries must
+	// be sorted to get a predictable order
+	sort.Slice(hvEntries, func(i, j int) bool {
+		return hvEntries[i].key.String() < hvEntries[j].key.String()
+	})
+	return &HashValue{entries: hvEntries}
+}
+
+// WrapStringToStringMap does not preserve order since order is undefined in a Go map
+func WrapStringToStringMap(hash map[string]string) *HashValue {
+	hvEntries := make([]*HashEntry, len(hash))
+	i := 0
+	for k, v := range hash {
+		hvEntries[i] = WrapHashEntry2(k, WrapString(v))
 		i++
 	}
 
@@ -778,7 +795,7 @@ func (hv *HashValue) EachSlice(n int, consumer eval.SliceConsumer) {
 		if e > top {
 			e = top
 		}
-		consumer(WrapArray(ValueSlice(hv.entries[i:e])))
+		consumer(WrapValues(ValueSlice(hv.entries[i:e])))
 	}
 }
 
@@ -802,7 +819,7 @@ func (hv *HashValue) Flatten() eval.List {
 	for _, he := range hv.entries {
 		els = append(els, he.key, he.value)
 	}
-	return WrapArray(els).Flatten()
+	return WrapValues(els).Flatten()
 }
 
 func (hv *HashValue) Map(mapper eval.Mapper) eval.List {
@@ -810,7 +827,7 @@ func (hv *HashValue) Map(mapper eval.Mapper) eval.List {
 	for i, e := range hv.entries {
 		mapped[i] = mapper(e)
 	}
-	return WrapArray(mapped)
+	return WrapValues(mapped)
 }
 
 func (hv *HashValue) MapEntries(mapper eval.EntryMapper) eval.OrderedMap {
@@ -1029,7 +1046,7 @@ func (hv *HashValue) Keys() eval.List {
 	for idx, entry := range hv.entries {
 		keys[idx] = entry.key
 	}
-	return WrapArray(keys)
+	return WrapValues(keys)
 }
 
 func (hv *HashValue) Len() int {
@@ -1200,7 +1217,7 @@ func (hv *HashValue) Values() eval.List {
 	for idx, entry := range hv.entries {
 		values[idx] = entry.value
 	}
-	return WrapArray(values)
+	return WrapValues(values)
 }
 
 func (hv *HashValue) prtvDetailedType() eval.Type {

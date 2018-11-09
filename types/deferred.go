@@ -42,7 +42,7 @@ type deferred struct {
 }
 
 func NewDeferred(name string, arguments ...eval.Value) *deferred {
-	return &deferred{name, WrapArray(arguments)}
+	return &deferred{name, WrapValues(arguments)}
 }
 
 func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {

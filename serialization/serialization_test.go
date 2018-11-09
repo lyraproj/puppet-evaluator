@@ -85,7 +85,7 @@ func ExampleToDataConverter_Convert2() {
 func ExampleDataToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
 		buf := bytes.NewBufferString(``)
-		DataToJson(ctx, types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), buf, eval.EMPTY_MAP)
+		DataToJson(ctx, types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), buf, eval.EMPTY_MAP)
 		fmt.Println(buf)
 		return nil
 	})
@@ -104,7 +104,7 @@ func ExampleJsonToData() {
 
 func ExampleFromDataConverter_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		data := types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`})
+		data := types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)
@@ -117,7 +117,7 @@ func ExampleFromDataConverter_Convert() {
 
 func ExampleFromDataConverter_Convert2() {
 	eval.Puppet.Do(func(ctx eval.Context) error {
-		data := types.WrapHashSorted2(ctx, map[string]interface{}{`__ptype`: `Parameter`, `name`: `p`, `type`: map[string]interface{}{`__ptype`: `Pcore::StringType`, `size_type_or_value`: map[string]interface{}{`__ptype`: `Pcore::IntegerType`, `from`: 0}}, `value`: `v`})
+		data := types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `Parameter`, `name`: `p`, `type`: map[string]interface{}{`__ptype`: `Pcore::StringType`, `size_type_or_value`: map[string]interface{}{`__ptype`: `Pcore::IntegerType`, `from`: 0}}, `value`: `v`})
 		ver := NewFromDataConverter(ctx, eval.EMPTY_MAP).Convert(data)
 		fmt.Printf("%T\n", ver)
 		fmt.Println(ver)

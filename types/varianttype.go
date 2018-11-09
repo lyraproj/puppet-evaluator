@@ -37,7 +37,7 @@ func NewVariantType(types ...eval.Type) eval.Type {
 }
 
 func NewVariantType2(args ...eval.Value) eval.Type {
-	return NewVariantType3(WrapArray(args))
+	return NewVariantType3(WrapValues(args))
 }
 
 func NewVariantType3(args eval.List) eval.Type {

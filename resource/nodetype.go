@@ -117,7 +117,7 @@ func (rn *node) InitHash() eval.OrderedMap {
 	}
 	hash[`value`] = rn.value
 	rn.lock.RUnlock()
-	return types.WrapHashSorted(hash)
+	return types.WrapStringToValueMap(hash)
 }
 
 func (rn *node) Error() issue.Reported {
@@ -182,7 +182,7 @@ func (rn *node) Value() eval.Value {
 		if len(toValues) == 1 {
 			value = toValues[0]
 		} else {
-			value = types.WrapArray(toValues)
+			value = types.WrapValues(toValues)
 		}
 	}
 	return value
@@ -393,7 +393,7 @@ func (rn *node) waitForEdgesTo(c eval.Context) ResultSet {
 		if sameNodes(parents, parentsNow) {
 			results := make([]eval.Value, 0)
 			parents.Each(func(n eval.Value) { results = append(results, n.(*node).results...) })
-			return NewResultSet(types.WrapArray(results))
+			return NewResultSet(types.WrapValues(results))
 		}
 		parents = parentsNow
 	}

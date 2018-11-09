@@ -230,7 +230,7 @@ func (t *StructType) Get(key string) (value eval.Value, ok bool) {
 		for i, e := range t.elements {
 			els[i] = e
 		}
-		return WrapArray(els), true
+		return WrapValues(els), true
 	}
 	return nil, false
 }

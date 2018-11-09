@@ -340,7 +340,7 @@ func (f *goFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Value)
 			return d.Call(c, block, args...)
 		}
 	}
-	panic(errors.NewArgumentsError(f.name, eval.DescribeSignatures(signatures(f.dispatchers), types.WrapArray(args).DetailedType(), block)))
+	panic(errors.NewArgumentsError(f.name, eval.DescribeSignatures(signatures(f.dispatchers), types.WrapValues(args).DetailedType(), block)))
 }
 
 func signatures(lambdas []eval.Lambda) []eval.Signature {

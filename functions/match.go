@@ -61,7 +61,7 @@ func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.Value {
 	for i, s := range g {
 		rs[i] = types.WrapString(s)
 	}
-	return types.WrapArray(rs)
+	return types.WrapValues(rs)
 }
 
 func matchArray(c eval.Context, s string, ar *types.ArrayValue) eval.Value {

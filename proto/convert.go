@@ -57,7 +57,7 @@ func FromPBData(v *datapb.Data) (value eval.Value) {
 		for i, elem := range av {
 			vals[i] = FromPBData(elem)
 		}
-		value = types.WrapArray(vals)
+		value = types.WrapValues(vals)
 	case *datapb.Data_HashValue:
 		av := v.GetHashValue().Entries
 		vals := make([]*types.HashEntry, len(av))

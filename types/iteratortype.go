@@ -305,7 +305,7 @@ func asArray(iter eval.Iterator) (result eval.List) {
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok := err.(*errors.StopIteration); ok {
-				result = WrapArray(el)
+				result = WrapValues(el)
 			} else {
 				panic(err)
 			}
@@ -315,7 +315,7 @@ func asArray(iter eval.Iterator) (result eval.List) {
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			result = WrapArray(el)
+			result = WrapValues(el)
 			break
 		}
 		if it, ok := v.(eval.IteratorValue); ok {

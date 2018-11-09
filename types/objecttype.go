@@ -25,7 +25,7 @@ func init() {
 		return NewObjectType2(ctx, args...)
 	}
 	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
-		WrapHashSorted(map[string]eval.Value{
+		WrapStringToValueMap(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
 		oneArgCtor, oneArgCtor)
 }
@@ -418,7 +418,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			if _, ok := paramType.(*OptionalType); !ok {
 				paramType = NewOptionalType(paramType)
 			}
-			param := newTypeParameter(c, key, t, WrapHashSorted2(c, issue.H{
+			param := newTypeParameter(c, key, t, WrapStringToInterfaceMap(c, issue.H{
 				KEY_TYPE:  paramType,
 				KEY_VALUE: paramValue}))
 			assertOverride(param, parentTypeParams)
@@ -447,7 +447,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 				KEY_VALUE: value,
 				KEY_KIND:  CONSTANT}
 			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
-			attrSpecs.Put(key, WrapHashSorted2(c, attrSpec))
+			attrSpecs.Put(key, WrapStringToInterfaceMap(c, attrSpec))
 		})
 	}
 
@@ -470,7 +470,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 				if _, ok = attrType.(*OptionalType); ok {
 					hash[KEY_VALUE] = eval.UNDEF
 				}
-				attrSpec = WrapHashSorted2(c, hash)
+				attrSpec = WrapStringToInterfaceMap(c, hash)
 			}
 			attr := newAttribute(c, key, t, attrSpec)
 			assertOverride(attr, parentMembers)
@@ -522,7 +522,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 						func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
 						TYPE_FUNCTION_TYPE, value).(eval.Type)
 				}
-				funcSpec = WrapHashSorted2(c, issue.H{KEY_TYPE: funcType})
+				funcSpec = WrapStringToInterfaceMap(c, issue.H{KEY_TYPE: funcType})
 			}
 			fnc := newFunction(c, key.String(), t, funcSpec)
 			assertOverride(fnc, parentMembers)
@@ -1143,14 +1143,14 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		for i, e := range t.equality {
 			ev[i] = WrapString(e)
 		}
-		h.Put(KEY_EQUALITY, WrapArray(ev))
+		h.Put(KEY_EQUALITY, WrapValues(ev))
 	}
 	if t.serialization != nil {
 		sv := make([]eval.Value, len(t.serialization))
 		for i, s := range t.serialization {
 			sv[i] = WrapString(s)
 		}
-		h.Put(KEY_SERIALIZATION, WrapArray(sv))
+		h.Put(KEY_SERIALIZATION, WrapValues(sv))
 	}
 	return h
 }
@@ -1238,7 +1238,7 @@ func resolveTypeRefs(c eval.Context, v eval.Value) eval.Value {
 			ae[i] = resolveTypeRefs(c, value)
 			i++
 		})
-		return WrapArray(ae)
+		return WrapValues(ae)
 	case eval.ResolvableType:
 		return v.(eval.ResolvableType).Resolve(c)
 	default:

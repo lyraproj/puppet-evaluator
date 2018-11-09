@@ -370,7 +370,7 @@ func (e *evaluator) eval_LiteralList(expr *parser.LiteralList, c eval.Context) e
 	for idx := 0; idx < top; idx++ {
 		result[idx] = e.eval(elems[idx], c)
 	}
-	return types.WrapArray(result)
+	return types.WrapValues(result)
 }
 
 func (e *evaluator) eval_LiteralBoolean(expr *parser.LiteralBoolean) eval.Value {
