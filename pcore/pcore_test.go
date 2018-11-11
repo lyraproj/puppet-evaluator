@@ -6,7 +6,7 @@ import (
 )
 
 func TestPcore(t *testing.T) {
-	eval.Puppet.Do(func(ctx eval.Context) error {
+	eval.Puppet.Try(func(ctx eval.Context) error {
 		l, _ := eval.Load(ctx, eval.NewTypedName(eval.TYPE, `Pcore::ObjectTypeExtensionType`))
 		x, ok := l.(eval.Type)
 		if !(ok && x.Name() == `Pcore::ObjectTypeExtensionType`) {

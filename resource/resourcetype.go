@@ -21,5 +21,5 @@ func initResourceType(c eval.Context) {
     }}`)
 
 	// Enable Resource as parent in Go structures
-	c.ImplementationRegistry().RegisterType(c, `Resource`, reflect.TypeOf(&Resource{}))
+	c.ImplementationRegistry().RegisterType(c, resourceType, reflect.TypeOf(&Resource{}))
 }

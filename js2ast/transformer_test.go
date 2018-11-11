@@ -14,7 +14,7 @@ import (
 )
 
 func ExampleEvaluateJavaScript_binOp() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`var a = 23.5; var b = 8; a + b`))
 		if err == nil {
 			fmt.Printf(`%s %s`, v.PType(), v.String())
@@ -28,7 +28,7 @@ func ExampleEvaluateJavaScript_binOp() {
 }
 
 func ExampleEvaluateJavaScript_func() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`function sum(a, b) { return a + b } sum(2, 3)`))
 		if err == nil {
 			fmt.Printf(`%s %s`, v.PType(), v.String())
@@ -42,7 +42,7 @@ func ExampleEvaluateJavaScript_func() {
 }
 
 func ExampleEvaluateJavaScript_obj() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`var p = { a:32, b:"hello" }; p;`))
 		if err == nil {
 			fmt.Println(v)
@@ -62,8 +62,8 @@ func ExampleEvaluateJavaScript_new() {
 	}
 
 	bt := &Baz{}
-	err := eval.Puppet.Do(func(c eval.Context) error {
-		ts := c.Reflector().TypeSetFromReflect(`Foo::Bar`, semver.MustParseVersion(`1.0.0`), reflect.TypeOf(bt))
+	err := eval.Puppet.Try(func(c eval.Context) error {
+		ts := c.Reflector().TypeSetFromReflect(`Foo::Bar`, semver.MustParseVersion(`1.0.0`), nil, reflect.TypeOf(bt))
 		c.AddTypes(ts)
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 var tags = ['a', 'b'];
@@ -82,7 +82,7 @@ new Foo.Bar.Baz({ region: region, tags: tags });
 }
 
 func ExampleEvaluateJavaScript_lambda() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		v, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`[1, 2, 3].reduce(function(v, m) { return v + m; });`))
 		if err == nil {
 			fmt.Println(v)
@@ -96,7 +96,7 @@ func ExampleEvaluateJavaScript_lambda() {
 }
 
 func ExampleEvaluateJavaScript_console() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`console.info('hello');`))
 		return err
 	})
@@ -107,7 +107,7 @@ func ExampleEvaluateJavaScript_console() {
 }
 
 func ExampleEvaluateJavaScript_forInArray() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in ['a', 'b', 'c']) {
   console.log(x);
@@ -124,7 +124,7 @@ for(x in ['a', 'b', 'c']) {
 }
 
 func ExampleEvaluateJavaScript_forInObject() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in { a: 'A', b: 'B', c: 'C'}) {
   if(x == 'b')
@@ -142,7 +142,7 @@ for(x in { a: 'A', b: 'B', c: 'C'}) {
 }
 
 func ExampleEvaluateJavaScript_forInString() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in 'abc') {
   console.log(x);
@@ -159,7 +159,7 @@ for(x in 'abc') {
 }
 
 func ExampleEvaluateJavaScript_preInc() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function f() {
   var i = 1;
@@ -179,7 +179,7 @@ f();
 }
 
 func ExampleEvaluateJavaScript_postInc() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function f() {
   var i = 1;
@@ -199,7 +199,7 @@ f();
 }
 
 func ExampleEvaluateJavaScript_addEq() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function f() {
   var i = 1;
@@ -220,7 +220,7 @@ f();
 }
 
 func ExampleEvaluateJavaScript_for() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(var i = 0; i < 4; i++) {
   if(i == 1) {
@@ -241,7 +241,7 @@ for(var i = 0; i < 4; i++) {
 }
 
 func ExampleEvaluateJavaScript_while() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function f(v) {
   while(v > 0) {
@@ -262,7 +262,7 @@ f(3);
 }
 
 func ExampleEvaluateJavaScript_doWhile() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function f(v) {
   do {
@@ -283,7 +283,7 @@ f(3);
 }
 
 func ExampleEvaluateJavaScript_if() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in [1,2,3]) {
   if(x == 1)
@@ -304,7 +304,7 @@ for(x in [1,2,3]) {
 }
 
 func ExampleEvaluateJavaScript_ternary() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in [1,2]) {
   x > 1 ? console.log(x) : console.info(x);
@@ -320,7 +320,7 @@ for(x in [1,2]) {
 }
 
 func ExampleEvaluateJavaScript_switch() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 for(x in [1,2,3]) {
   switch(x) {
@@ -348,7 +348,7 @@ for(x in [1,2,3]) {
 /*
 TODO: Implement constructor to make this example work
 func ExampleEvaluateJavaScript_ctor() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function MyType(num, str, cond) {
   this.num = num;
@@ -376,7 +376,7 @@ console.log(x);
 */
 
 func ExampleEvaluateJavaScript_instance() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 console.info('hello' instanceof String);
 console.info(23 instanceof String);
@@ -394,7 +394,7 @@ console.info({a: 'A'} instanceof Hash);
 }
 
 func ExampleEvaluateJavaScript_eq() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 console.log('a' == 'a')
 console.log('a' == 'A')
@@ -438,7 +438,7 @@ console.log(1.0 !== 1);
 }
 
 func ExampleEvaluateJavaScript_cmp() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 console.log('a' > 'a')
 console.log('a' > 'A')
@@ -454,7 +454,7 @@ console.log('a' > 'A')
 }
 
 func ExampleEvaluateJavaScript_in() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 var car = {make: 'Honda', model: 'Accord', year: 1998};
 console.log('make' in car)
@@ -473,7 +473,7 @@ console.log('Honda' in car.values())
 }
 
 func ExampleEvaluateJavaScript_sequential() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		_, err := EvaluateJavaScript(c, `/test/file.js`, []byte(`
 function tier1(){
   console.log("tier1 calling");
@@ -496,7 +496,7 @@ sequential(tier1,tier2)
 }
 
 func TestJavaScriptFile(t *testing.T) {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	err := eval.Puppet.Try(func(c eval.Context) error {
 		typesFile := `testdata/resource_types.js`
 		content, err := ioutil.ReadFile(typesFile)
 		if err != nil {

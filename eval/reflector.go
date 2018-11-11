@@ -24,17 +24,17 @@ type Reflected interface {
 
 // An ImplementationRegistry contains mappings between ObjectType and reflect.Type
 type ImplementationRegistry interface {
-	// RegisterType registers the mapping between the given Type name and reflect.Type
-	RegisterType(c Context, t string, r reflect.Type)
+	// RegisterType registers the mapping between the given Type and reflect.Type
+	RegisterType(c Context, t Type, r reflect.Type)
 
-	// TypeToReflected returns the reflect.Type for the given Type name
-	TypeToReflected(t string) (reflect.Type, bool)
+	// TypeToReflected returns the reflect.Type for the given Type
+	TypeToReflected(t Type) (reflect.Type, bool)
 
 	// ReflectedToType returns the Type name for the given reflect.Type
-	ReflectedToType(t reflect.Type) (string, bool)
+	ReflectedToType(t reflect.Type) (Type, bool)
 
-	// ReflectedNameToType returns the PCore Type name for the given Go Type name
-	ReflectedNameToType(name string) (string, bool)
+	// ReflectedNameToType returns the Type for the given Go Type name
+	ReflectedNameToType(name string) (Type, bool)
 }
 
 // A Reflector deals with conversions between Value and reflect.Value and
@@ -65,24 +65,23 @@ type Reflector interface {
 	// like Any, Default, Unit, or Variant have no reflected type representation
 	ReflectType(src Type) (reflect.Type, bool)
 
-	// ObjectTypeFromReflect creates an Object type based on the given reflected type
+	// ObjectTypeFromReflect creates an Object type based on the given reflected type.
+	// The new type is automatically added to the ImplementationRegistry registered to
+	// the Context from where the Reflector was obtained.
 	ObjectTypeFromReflect(typeName string, parent Type, rType reflect.Type) ObjectType
 
-	// TypeSetFromReflect creates a TypeSet based on the given reflected types
-	TypeSetFromReflect(typeSetName string, version semver.Version, rTypes ...reflect.Type) TypeSet
+	// TypeSetFromReflect creates a TypeSet based on the given reflected types The new types are automatically
+	// added to the ImplementationRegistry registered to the Context from where the Reflector was obtained.
+	// The aliases map maps the names of the reflected types to the unqualified name of the created types.
+	// The aliases map may be nil and if present, may map only a subset of the reflected type names
+	TypeSetFromReflect(typeSetName string, version semver.Version, aliases map[string]string, rTypes ...reflect.Type) TypeSet
 
 	// TagHash returns the parsed and evaluated hash from the 'puppet' tag
 	TagHash(f *reflect.StructField) (OrderedMap, bool)
 
-	// TypeName returns the name of the type. The name is either obtained from the ImplementationRegistry
-	// or created by concatenating prefix with the name of the given reflected type. If noPrefixOverride
-	// is true, then it is an error when a name found in the ImplementationRegistry isn't prefixed with
-	// the given prefix.
-	TypeName(prefix string, t reflect.Type, noPrefixOverride bool) string
-
-	// Fields returns all fields of the given reflected type.
+	// Fields returns all fields of the given reflected type or an empty slice if no fields exists.
 	Fields(t reflect.Type) []reflect.StructField
 
-	// Methods returns all methods of the given reflected type.
+	// Methods returns all methods of the given reflected type or an empty slice if no methods exists.
 	Methods(ptr reflect.Type) []reflect.Method
 }

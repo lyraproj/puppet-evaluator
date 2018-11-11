@@ -563,7 +563,18 @@ func WrapHash2(entries eval.List) *HashValue {
 	return &HashValue{entries: hvEntries}
 }
 
-// WrapStringToValueMap builds an ordered map from adds all entries in the given map to
+// WrapStringToTypeMap builds an ordered map from adds all entries in the given map
+func WrapStringToTypeMap(hash map[string]eval.Type) *HashValue {
+	hvEntries := make([]*HashEntry, len(hash))
+	i := 0
+	for k, v := range hash {
+		hvEntries[i] = WrapHashEntry(WrapString(k), v)
+		i++
+	}
+	return sortedMap(hvEntries)
+}
+
+// WrapStringToValueMap builds an ordered map from adds all entries in the given map
 func WrapStringToValueMap(hash map[string]eval.Value) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
@@ -571,13 +582,7 @@ func WrapStringToValueMap(hash map[string]eval.Value) *HashValue {
 		hvEntries[i] = WrapHashEntry(WrapString(k), v)
 		i++
 	}
-
-	// map order is undefined (and changes from one run to another) so entries must
-	// be sorted to get a predictable order
-	sort.Slice(hvEntries, func(i, j int) bool {
-		return hvEntries[i].key.String() < hvEntries[j].key.String()
-	})
-	return &HashValue{entries: hvEntries}
+	return sortedMap(hvEntries)
 }
 
 // WrapStringToInterfaceMap does not preserve order since order is undefined in a Go map
@@ -588,13 +593,7 @@ func WrapStringToInterfaceMap(c eval.Context, hash map[string]interface{}) *Hash
 		hvEntries[i] = WrapHashEntry2(k, wrap(c, v))
 		i++
 	}
-
-	// map order is undefined (and changes from one run to another) so entries must
-	// be sorted to get a predictable order
-	sort.Slice(hvEntries, func(i, j int) bool {
-		return hvEntries[i].key.String() < hvEntries[j].key.String()
-	})
-	return &HashValue{entries: hvEntries}
+	return sortedMap(hvEntries)
 }
 
 // WrapStringToStringMap does not preserve order since order is undefined in a Go map
@@ -605,7 +604,10 @@ func WrapStringToStringMap(hash map[string]string) *HashValue {
 		hvEntries[i] = WrapHashEntry2(k, WrapString(v))
 		i++
 	}
+	return sortedMap(hvEntries)
+}
 
+func sortedMap(hvEntries []*HashEntry) *HashValue {
 	// map order is undefined (and changes from one run to another) so entries must
 	// be sorted to get a predictable order
 	sort.Slice(hvEntries, func(i, j int) bool {
@@ -1124,13 +1126,13 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 		indent := s.Indentation()
 		indent = indent.Indenting(f.IsAlt() || indent.IsIndenting())
 
-		if indent.Breaks() {
+		if indent.Breaks() && delim != '(' {
 			io.WriteString(b, "\n")
 			io.WriteString(b, indent.Padding())
 		}
 
 		var delims [2]byte
-		if f.LeftDelimiter() == 0 {
+		if delim == '(' || f.LeftDelimiter() == 0 {
 			delims = delimiterPairs[delim]
 		} else {
 			delims = delimiterPairs[f.LeftDelimiter()]
@@ -1167,14 +1169,14 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 			for idx, entry := range hv.entries {
 				k := entry.Key()
 				io.WriteString(b, padding)
-				if isContainer(k) {
+				if isContainer(k, s) {
 					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
 					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				v := entry.Value()
 				io.WriteString(b, assoc)
-				if isContainer(v) {
+				if isContainer(v, s) {
 					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
 					if v == nil {

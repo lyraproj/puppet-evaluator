@@ -47,7 +47,6 @@ const (
 	KEY_TYPE                  = `type`
 	KEY_TYPE_PARAMETERS       = `type_parameters`
 	KEY_VALUE                 = `value`
-	KEY_GOTYPE                = `go_type`
 
 	DEFAULT_KIND     = eval.AttributeKind(``)
 	CONSTANT         = eval.AttributeKind(`constant`)
@@ -81,7 +80,6 @@ var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
 	NewStructElement(NewOptionalType3(KEY_EQUALITY_INCLUDE_TYPE), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_EQUALITY), TYPE_EQUALITY),
 	NewStructElement(NewOptionalType3(KEY_SERIALIZATION), TYPE_MEMBER_NAMES),
-	NewStructElement(NewOptionalType3(KEY_GOTYPE), NewGoRuntimeType((*reflect.Type)(nil))),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 })
 
@@ -106,37 +104,20 @@ type objectType struct {
 }
 
 func (t *objectType) ReflectType(c eval.Context) (reflect.Type, bool) {
-	if rt, ok := c.ImplementationRegistry().TypeToReflected(t.Name()); ok {
-		return rt, true
+	if t.goType != nil {
+		return t.goType, true
 	}
-
-	count := t.attributes.Len()
-	if t.parent != nil {
-		count++
-	}
-
-	flds := make([]reflect.StructField, 0, count)
-
-	if t.parent != nil {
-		if rt, ok := ReflectType(c, t.parent); ok {
-			flds = append(flds, reflect.StructField{Name: rt.Name(), Type: rt, Anonymous: true})
-		}
-	}
-
-	t.attributes.EachValue(func(value interface{}) {
-		attr := value.(eval.Attribute)
-		if attr.Kind() != CONSTANT && attr.Kind() != DERIVED {
-			if rt, ok := ReflectType(c, attr.Type()); ok {
-				flds = append(flds, reflect.StructField{Name: issue.SnakeToCamelCase(attr.Name()), Type: rt})
-			}
-		}
-	})
-	return reflect.PtrTo(reflect.StructOf(flds)), true
+	return c.ImplementationRegistry().TypeToReflected(t)
 }
 
-func ObjectToString(o eval.PuppetObject, s eval.FormatContext, writer io.Writer, g eval.RDetect) {
-	io.WriteString(writer, o.PType().Name())
-	o.InitHash().(*HashValue).ToString2(writer, s, eval.GetFormat(s.FormatMap(), o.PType()), '(', g)
+func ObjectToString(o eval.PuppetObject, s eval.FormatContext, b io.Writer, g eval.RDetect) {
+	indent := s.Indentation()
+	if indent.Breaks() {
+		io.WriteString(b, "\n")
+		io.WriteString(b, indent.Padding())
+	}
+	io.WriteString(b, o.PType().Name())
+	o.InitHash().(*HashValue).ToString2(b, s, eval.GetFormat(s.FormatMap(), o.PType()), '(', g)
 }
 
 var objectType_DEFAULT = &objectType{
@@ -210,6 +191,14 @@ func NewObjectType2(c eval.Context, args ...eval.Value) *objectType {
 	default:
 		panic(errors.NewIllegalArgumentCount(`Object[]`, `1`, argc))
 	}
+}
+
+func NewObjectType3(name string, parent eval.Type, hashProducer func(eval.ObjectType) *HashValue) eval.ObjectType {
+	obj := AllocObjectType()
+	obj.name = name
+	obj.parent = parent
+	obj.initHashExpression = hashProducer(obj)
+	return obj
 }
 
 func (t *objectType) Accept(v eval.Visitor, g eval.Guard) {
@@ -327,9 +316,6 @@ func (t *objectType) GetValue(key string, o eval.Value) (value eval.Value, ok bo
 	if pu, ok := o.(eval.ReadableObject); ok {
 		return pu.Get(key)
 	}
-
-	// TODO: Perhaps use other ways of extracting attributes with reflection
-	// in case native types must be described by Object
 	return nil, false
 }
 
@@ -481,22 +467,19 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	}
 	isInterface := t.attributes.IsEmpty() && (parentObjectType == nil || parentObjectType.isInterface)
 
-	if goType, ok := initHash.Get4(KEY_GOTYPE); ok {
-		t.goType = goType.(*RuntimeValue).Interface().(reflect.Type)
-		if t.attributes.IsEmpty() {
-			if pt, ok := PrimitivePType(t.goType); ok {
-				t.isInterface = false
+	if t.goType != nil && t.attributes.IsEmpty() {
+		if pt, ok := PrimitivePType(t.goType); ok {
+			t.isInterface = false
 
-				// Create the special attribute that holds the primitive value that is
-				// reflectable to/from the the go type
-				attrs := make([]*HashEntry, 2)
-				attrs[0] = WrapHashEntry2(KEY_TYPE, pt)
-				attrs[1] = WrapHashEntry2(KEY_GONAME, WrapString(KEY_VALUE))
-				ah := hash.NewStringHash(1)
-				ah.Put(KEY_VALUE, newAttribute(c, KEY_VALUE, t, WrapHash(attrs)))
-				ah.Freeze()
-				t.attributes = ah
-			}
+			// Create the special attribute that holds the primitive value that is
+			// reflectable to/from the the go type
+			attrs := make([]*HashEntry, 2)
+			attrs[0] = WrapHashEntry2(KEY_TYPE, pt)
+			attrs[1] = WrapHashEntry2(KEY_GONAME, WrapString(KEY_VALUE))
+			ah := hash.NewStringHash(1)
+			ah.Put(KEY_VALUE, newAttribute(c, KEY_VALUE, t, WrapHash(attrs)))
+			ah.Freeze()
+			t.attributes = ah
 		}
 	}
 
@@ -901,7 +884,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 			io.WriteString(b, "}")
 		default:
 			cx := cti2
-			if isContainer(value) {
+			if isContainer(value, s) {
 				cx = ctx2
 			}
 			value.ToString(b, cx, g)

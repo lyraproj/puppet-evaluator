@@ -8,7 +8,7 @@ import (
 )
 
 type implRegistry struct {
-	reflectToObjectType map[string]string
+	reflectToObjectType map[string]eval.Type
 	objectTypeToReflect map[string]reflect.Type
 }
 
@@ -18,45 +18,45 @@ type parentedImplRegistry struct {
 }
 
 func newImplementationRegistry() eval.ImplementationRegistry {
-	return &implRegistry{make(map[string]string, 7), make(map[string]reflect.Type, 7)}
+	return &implRegistry{make(map[string]eval.Type, 7), make(map[string]reflect.Type, 7)}
 }
 
 func newParentedImplementationRegistry(parent eval.ImplementationRegistry) eval.ImplementationRegistry {
-	return &parentedImplRegistry{parent, implRegistry{make(map[string]string, 7), make(map[string]reflect.Type, 7)}}
+	return &parentedImplRegistry{parent, implRegistry{make(map[string]eval.Type, 7), make(map[string]reflect.Type, 7)}}
 }
 
-func (ir *implRegistry) RegisterType(c eval.Context, t string, r reflect.Type) {
+func (ir *implRegistry) RegisterType(c eval.Context, t eval.Type, r reflect.Type) {
 	r = types.NormalizeType(r)
 	r = assertUnregistered(c, ir, t, r)
 	ir.addTypeMapping(t, r)
 }
 
-func (ir *implRegistry) TypeToReflected(t string) (reflect.Type, bool) {
-	rt, ok := ir.objectTypeToReflect[t]
+func (ir *implRegistry) TypeToReflected(t eval.Type) (reflect.Type, bool) {
+	rt, ok := ir.objectTypeToReflect[t.Name()]
 	return rt, ok
 }
 
-func (ir *implRegistry) ReflectedNameToType(tn string) (string, bool) {
+func (ir *implRegistry) ReflectedNameToType(tn string) (eval.Type, bool) {
 	pt, ok := ir.reflectToObjectType[tn]
 	return pt, ok
 }
 
-func (ir *implRegistry) ReflectedToType(t reflect.Type) (string, bool) {
+func (ir *implRegistry) ReflectedToType(t reflect.Type) (eval.Type, bool) {
 	return ir.ReflectedNameToType(types.NormalizeType(t).String())
 }
 
-func (ir *implRegistry) addTypeMapping(t string, r reflect.Type) {
-	ir.objectTypeToReflect[t] = r
+func (ir *implRegistry) addTypeMapping(t eval.Type, r reflect.Type) {
+	ir.objectTypeToReflect[t.Name()] = r
 	ir.reflectToObjectType[r.String()] = t
 }
 
-func (pr *parentedImplRegistry) RegisterType(c eval.Context, t string, r reflect.Type) {
+func (pr *parentedImplRegistry) RegisterType(c eval.Context, t eval.Type, r reflect.Type) {
 	r = types.NormalizeType(r)
 	r = assertUnregistered(c, pr, t, r)
 	pr.addTypeMapping(t, r)
 }
 
-func (pr *parentedImplRegistry) TypeToReflected(t string) (reflect.Type, bool) {
+func (pr *parentedImplRegistry) TypeToReflected(t eval.Type) (reflect.Type, bool) {
 	rt, ok := pr.ImplementationRegistry.TypeToReflected(t)
 	if !ok {
 		rt, ok = pr.implRegistry.TypeToReflected(t)
@@ -64,7 +64,7 @@ func (pr *parentedImplRegistry) TypeToReflected(t string) (reflect.Type, bool) {
 	return rt, ok
 }
 
-func (pr *parentedImplRegistry) ReflectedNameToType(tn string) (string, bool) {
+func (pr *parentedImplRegistry) ReflectedNameToType(tn string) (eval.Type, bool) {
 	pt, ok := pr.ImplementationRegistry.ReflectedNameToType(tn)
 	if !ok {
 		pt, ok = pr.implRegistry.ReflectedNameToType(tn)
@@ -72,11 +72,11 @@ func (pr *parentedImplRegistry) ReflectedNameToType(tn string) (string, bool) {
 	return pt, ok
 }
 
-func (pr *parentedImplRegistry) ReflectedToType(t reflect.Type) (string, bool) {
+func (pr *parentedImplRegistry) ReflectedToType(t reflect.Type) (eval.Type, bool) {
 	return pr.ReflectedNameToType(types.NormalizeType(t).String())
 }
 
-func assertUnregistered(c eval.Context, ir eval.ImplementationRegistry, t string, r reflect.Type) reflect.Type {
+func assertUnregistered(c eval.Context, ir eval.ImplementationRegistry, t eval.Type, r reflect.Type) reflect.Type {
 	if rt, ok := ir.TypeToReflected(t); ok {
 		if r.String() != rt.String() {
 			panic(eval.Error(eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t}))

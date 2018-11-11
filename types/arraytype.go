@@ -280,6 +280,14 @@ func SingletonArray(element eval.Value) *ArrayValue {
 	return &ArrayValue{elements: []eval.Value{element}}
 }
 
+func WrapTypes(elements []eval.Type) *ArrayValue {
+	els := make([]eval.Value, len(elements))
+	for i, e := range elements {
+		els[i] = e
+	}
+	return &ArrayValue{elements: els}
+}
+
 func WrapValues(elements []eval.Value) *ArrayValue {
 	return &ArrayValue{elements: elements}
 }
@@ -628,7 +636,7 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 			cf = DEFAULT_CONTAINER_FORMATS
 		}
 		for idx, v := range av.elements {
-			arrayOrHash[idx] = isArrayOrHash(v)
+			arrayOrHash[idx] = isContainer(v, s)
 			mapped[idx] = childToString(v, childrenIndent.Subsequent(), s, cf, g)
 		}
 
@@ -699,7 +707,7 @@ func (av *ArrayValue) Unique() eval.List {
 
 func childToString(child eval.Value, indent eval.Indentation, parentCtx eval.FormatContext, cf eval.FormatMap, g eval.RDetect) string {
 	var childrenCtx eval.FormatContext
-	if isContainer(child) {
+	if isContainer(child, parentCtx) {
 		childrenCtx = newFormatContext2(indent, parentCtx.FormatMap(), parentCtx.Properties())
 	} else {
 		childrenCtx = newFormatContext2(indent, cf, parentCtx.Properties())
@@ -709,19 +717,15 @@ func childToString(child eval.Value, indent eval.Indentation, parentCtx eval.For
 	return b.String()
 }
 
-func isContainer(child eval.Value) bool {
-	switch child.(type) {
-	case *ArrayValue, *HashValue, eval.Type, eval.PuppetObject:
-		return true
-	default:
-		return false
-	}
-}
-
-func isArrayOrHash(child eval.Value) bool {
+func isContainer(child eval.Value, s eval.FormatContext) bool {
 	switch child.(type) {
 	case *ArrayValue, *HashValue:
 		return true
+	case eval.PuppetObject:
+		if ex, ok := s.Property(`expanded`); ok && ex == `true` {
+			return true
+		}
+		return false
 	default:
 		return false
 	}

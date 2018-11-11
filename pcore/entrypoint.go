@@ -178,20 +178,11 @@ func (p *pcoreImpl) RootContext() eval.Context {
 	return c
 }
 
-func (p *pcoreImpl) Do(actor func(eval.Context) error) (err error) {
-	return p.DoWithParent(p.RootContext(), actor)
+func (p *pcoreImpl) Do(actor func(eval.Context)) {
+	p.DoWithParent(p.RootContext(), actor)
 }
 
-func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if ri, ok := r.(issue.Reported); ok {
-				err = ri
-			} else {
-				panic(r)
-			}
-		}
-	}()
+func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Context)) {
 	InitializePuppet()
 	var ctx eval.Context
 	if ec, ok := parentCtx.(eval.Context); ok {
@@ -201,7 +192,26 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	}
 	threadlocal.Init()
 	threadlocal.Set(eval.PuppetContextKey, ctx)
-	err = actor(ctx)
+	actor(ctx)
+}
+
+func (p *pcoreImpl) Try(actor func(eval.Context) error) (err error) {
+	return p.TryWithParent(p.RootContext(), actor)
+}
+
+func (p *pcoreImpl) TryWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if ri, ok := r.(issue.Reported); ok {
+				err = ri
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	p.DoWithParent(parentCtx, func(c eval.Context) {
+		err = actor(c)
+	})
 	return
 }
 

@@ -9,16 +9,20 @@ import (
 
 var TYPE_FUNCTION_TYPE = NewTypeType(DefaultCallableType())
 
+const KEY_RETURNS_ERROR = `returns_error`
+
 var TYPE_FUNCTION = NewStructType([]*StructElement{
 	NewStructElement2(KEY_TYPE, TYPE_FUNCTION_TYPE),
 	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
 	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
 	NewStructElement(NewOptionalType3(KEY_GONAME), DefaultStringType()),
+	NewStructElement(NewOptionalType3(KEY_RETURNS_ERROR), NewBooleanType(true)),
 })
 
 type function struct {
 	annotatedMember
+	returnsError bool
 	goName string
 }
 
@@ -33,6 +37,9 @@ func (f *function) initialize(c eval.Context, name string, container *objectType
 	f.annotatedMember.initialize(c, `function`, name, container, initHash)
 	if gn, ok := initHash.Get4(KEY_GONAME); ok {
 		f.goName = gn.String()
+	}
+	if re, ok := initHash.Get4(KEY_RETURNS_ERROR); ok {
+		f.returnsError = re.(*BooleanValue).Bool()
 	}
 }
 
@@ -55,34 +62,61 @@ func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, 
 }
 
 func (f *function) CallGo(c eval.Context, receiver interface{}, args ...interface{}) interface{} {
-	rv := reflect.ValueOf(receiver)
-	rt := rv.Type()
+	rfArgs := make([]reflect.Value, 1 + len(args))
+	rfArgs[0] = reflect.ValueOf(receiver)
+	for i, arg := range args {
+		rfArgs[i+1] = reflect.ValueOf(arg)
+	}
+	ret := f.CallGoReflected(c, rfArgs)
+	if ret.IsValid() {
+		return ret.Interface()
+	}
+	return nil
+}
+
+func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) reflect.Value {
+	rt := args[0].Type()
 	m, ok := rt.MethodByName(f.goName)
 	if !ok {
 		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: rt.String(), `message`: f.goName}))
 	}
 
 	mt := m.Type
+	maxReturn := 1
+	if f.ReturnsError() {
+		maxReturn = 2
+	}
 	pc := mt.NumIn()
-	if mt.NumOut() > 1 || pc != 1 + len(args) {
+	if mt.NumOut() > maxReturn || pc != len(args) {
 		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-			[]eval.Signature{f.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc), int64(pc))), nil)}))
+			[]eval.Signature{f.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}
+	result := m.Func.Call(args)
 
-	rfArgs := make([]reflect.Value, pc)
-	rfArgs[0] = rv
-	for i, arg := range args {
-		rfArgs[i + 1] = reflect.ValueOf(arg)
+	var ret reflect.Value
+	if f.ReturnsError() {
+		var err error
+		if maxReturn == 1 {
+			err = result[0].Interface().(error)
+		} else {
+			ret = result[0]
+			err = result[1].Interface().(error)
+		}
+		if err != nil {
+			panic(err)
+		}
+	} else if mt.NumOut() == 1 {
+		ret = result[0]
 	}
-	result := m.Func.Call(rfArgs)
-	if mt.NumOut() == 1 {
-		return result[0].Interface()
-	}
-	return nil
+	return ret
 }
 
 func (f *function) GoName() string {
 	return f.goName
+}
+
+func (f *function) ReturnsError() bool {
+	return f.returnsError
 }
 
 func (f *function) Equals(other interface{}, g eval.Guard) bool {

@@ -68,8 +68,12 @@ type (
 	}
 
 	CallableGoMember interface {
-		// Call a member on a struct pointer with the given arguments
+		// CallGo calls a member on a struct pointer with the given arguments
 		CallGo(c Context, receiver interface{}, args ...interface{}) interface{}
+
+		// CallGoReflected is like Call but using reflected arguments and return value. The
+		// first argument is the receiver
+		CallGoReflected(c Context, args []reflect.Value) reflect.Value
 	}
 
 	TypeWithCallableMembers interface {
@@ -131,6 +135,10 @@ type (
 		// GoName Returns the name of the struct field that this attribute maps to when applicable or
 		// an empty string.
 		GoName() string
+
+		// ReturnsError returns true if the underlying method returns an error instance in case of
+		// failure. Such errors must be converted to panics by the caller
+		ReturnsError() bool
 	}
 
 	AttributesInfo interface {
@@ -439,7 +447,7 @@ var NewError func(c Context, message, kind, issueCode string, partialResult Valu
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
 
-var WrapType func(c Context, rt reflect.Type) Type
+var WrapReflectedType func(c Context, rt reflect.Type) Type
 
 func getPrefix(pfx interface{}) string {
 	name := ``

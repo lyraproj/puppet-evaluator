@@ -371,9 +371,9 @@ func (p *Person) Visit(v *Address) string {
 }
 
 func ExampleReflector_typeSetFromReflect() {
-	err := eval.Puppet.Do(func(c eval.Context) error {
+	eval.Puppet.Do(func(c eval.Context) {
 		// Create a TypeSet from a list of Go structs
-		typeSet := c.Reflector().TypeSetFromReflect(`My::Own`, semver.MustParseVersion(`1.0.0`),
+		typeSet := c.Reflector().TypeSetFromReflect(`My::Own`, semver.MustParseVersion(`1.0.0`), nil,
 			reflect.TypeOf(&Address{}), reflect.TypeOf(&Person{}), reflect.TypeOf(&ExtendedPerson{}))
 
 		// Make the types known to the current loader
@@ -394,11 +394,7 @@ func ExampleReflector_typeSetFromReflect() {
 		m, _ := v.PType().(eval.TypeWithCallableMembers).Member(`visit`)
 		fmt.Println(m.(eval.CallableGoMember).CallGo(c, ep, ad))
 		fmt.Println(m.Call(c, v, nil, []eval.Value{eval.Wrap(c, ad)}))
-		return nil
 	})
-	if err != nil {
-		fmt.Println(err.Error())
-	}
 
 	// Output:
 	// TypeSet[{
@@ -439,4 +435,39 @@ func ExampleReflector_typeSetFromReflect() {
 	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
 	// visited Example Road 23
 	// visited Example Road 23
+}
+
+type valueStruct struct {
+	X eval.OrderedMap
+	Y *types.ArrayValue
+	P eval.PuppetObject
+	O eval.Object
+}
+
+func (v *valueStruct) Get(key *types.IntegerValue, dflt eval.Value) *types.StringValue {
+	return v.X.Get2(key, eval.UNDEF).(*types.StringValue)
+}
+
+func ExampleReflector_reflectPType() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().ObjectTypeFromReflect(`X::M`, nil, reflect.TypeOf(&valueStruct{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY, nil)
+		fmt.Println()
+	})
+	// Output:
+	// Object[{
+	//   name => 'X::M',
+	//   attributes => {
+	//     'x' => Hash,
+	//     'y' => Array,
+	//     'p' => Object,
+	//     'o' => Object
+	//   },
+	//   functions => {
+	//     'get' => Callable[
+	//       [Integer, Any],
+	//       String]
+	//   }
+	// }]
 }

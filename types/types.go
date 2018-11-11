@@ -381,7 +381,8 @@ func init() {
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
 	eval.Wrap = wrap
-	eval.WrapType = wrapType
+	eval.WrapReflected = wrapReflected
+	eval.WrapReflectedType = wrapReflectedType
 }
 
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
@@ -492,6 +493,8 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 		pv = WrapStrings(v.([]string))
 	case []eval.Value:
 		pv = WrapValues(v.([]eval.Value))
+	case []eval.Type:
+		pv = WrapTypes(v.([]eval.Type))
 	case []interface{}:
 		return WrapInterfaces(c, v.([]interface{}))
 	case map[string]interface{}:
@@ -500,6 +503,8 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 		pv = WrapStringToStringMap(v.(map[string]string))
 	case map[string]eval.Value:
 		pv = WrapStringToValueMap(v.(map[string]eval.Value))
+	case map[string]eval.Type:
+		pv = WrapStringToTypeMap(v.(map[string]eval.Type))
 	case yaml.MapSlice:
 		ms := v.(yaml.MapSlice)
 		es := make([]*HashEntry, len(ms))
@@ -515,22 +520,26 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 			pv = WrapFloat(f)
 		}
 	case reflect.Value:
-		pv = wrapValue(c, v.(reflect.Value))
+		pv = wrapReflected(c, v.(reflect.Value))
 	case reflect.Type:
-		pv = wrapType(c, v.(reflect.Type))
+		pv = wrapReflectedType(c, v.(reflect.Type))
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
-		pv = wrapValue(c, reflect.ValueOf(v))
+		pv = wrapReflected(c, reflect.ValueOf(v))
 	}
 	return pv
 }
 
-func wrapValue(c eval.Context, vr reflect.Value) (pv eval.Value) {
+func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 	if c == nil {
 		c = eval.CurrentContext()
 	}
 
 	vi := vr
+	if _, ok := wellknowns[vr.Type()]; ok {
+		return vr.Interface().(eval.Value)
+	}
+
 	if vi.Kind() == reflect.Interface {
 		// Need implementation here.
 		vi = vi.Elem()
@@ -591,17 +600,36 @@ func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
 }
 
 func loadFromImplementarionRegistry(c eval.Context, vt reflect.Type) (eval.Type, bool) {
-	if tn, ok := c.ImplementationRegistry().ReflectedToType(vt); ok {
-		var lt interface{}
-		if lt, ok = eval.Load(c, eval.NewTypedName(eval.TYPE, tn)); ok {
-			return lt.(eval.Type), true
-		}
-		return NewTypeReferenceType(tn), true
+	if t, ok := c.ImplementationRegistry().ReflectedToType(vt); ok {
+		return t, true
 	}
 	return nil, false
 }
 
-func wrapType(c eval.Context, vt reflect.Type) (pt eval.Type) {
+var wellknowns = map[reflect.Type]eval.Type{
+	reflect.TypeOf(&ArrayValue{}):                  DefaultArrayType(),
+	reflect.TypeOf((*eval.List)(nil)).Elem():       DefaultArrayType(),
+	reflect.TypeOf(&BinaryValue{}):                 DefaultBinaryType(),
+	reflect.TypeOf(&FloatValue{}):                  DefaultFloatType(),
+	reflect.TypeOf(&HashValue{}):                   DefaultHashType(),
+	reflect.TypeOf((*eval.OrderedMap)(nil)).Elem(): DefaultHashType(),
+	reflect.TypeOf(&IntegerValue{}):                DefaultIntegerType(),
+	reflect.TypeOf(&RegexpValue{}):                 DefaultRegexpType(),
+	reflect.TypeOf(&SemVerValue{}):                 DefaultSemVerType(),
+	reflect.TypeOf(&SensitiveValue{}):              DefaultSensitiveType(),
+	reflect.TypeOf(&StringValue{}):                 DefaultStringType(),
+	reflect.TypeOf(&TimespanValue{}):               DefaultTimespanType(),
+	reflect.TypeOf(&TimestampValue{}):              DefaultTimestampType(),
+	reflect.TypeOf(&TypeType{}):                    DefaultTypeType(),
+	reflect.TypeOf((*eval.PuppetObject)(nil)).Elem(): DefaultObjectType(),
+	reflect.TypeOf((*eval.Object)(nil)).Elem():     DefaultObjectType(),
+	reflect.TypeOf((*eval.Type)(nil)).Elem():       DefaultTypeType(),
+	reflect.TypeOf((*eval.TypedName)(nil)).Elem():  TypedName_Type,
+	reflect.TypeOf(&UndefValue{}):                  DefaultUndefType(),
+	reflect.TypeOf(&UriValue{}):                    DefaultUriType(),
+}
+
+func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 	if c == nil {
 		c = eval.CurrentContext()
 	}
@@ -612,13 +640,20 @@ func wrapType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 		pt, ok = primitivePTypes[vt.Kind()]
 		if !ok {
 			ok = true
-			switch vt.Kind() {
+			kind := vt.Kind()
+			switch kind {
 			case reflect.Slice, reflect.Array:
-				pt = NewArrayType(wrapType(c, vt.Elem()), nil)
+				pt = NewArrayType(wrapReflectedType(c, vt.Elem()), nil)
 			case reflect.Map:
-				pt = NewHashType(wrapType(c, vt.Key()), wrapType(c, vt.Elem()), nil)
-			case reflect.Ptr:
-				pt = wrapType(c, vt.Elem())
+				pt = NewHashType(wrapReflectedType(c, vt.Key()), wrapReflectedType(c, vt.Elem()), nil)
+			case reflect.Ptr, reflect.Interface:
+				if pt, ok = wellknowns[vt]; ok {
+					return pt
+				}
+				if kind == reflect.Ptr {
+					pt = wrapReflectedType(c, vt.Elem())
+				}
+				fallthrough
 			default:
 				pt = DefaultAnyType()
 			}

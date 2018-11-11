@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"reflect"
 )
 
 type (
@@ -203,9 +204,14 @@ var IsTruthy func(tv Value) bool
 var ToInt func(v Value) (int64, bool)
 var ToFloat func(v Value) (float64, bool)
 var Wrap func(c Context, v interface{}) Value
+var WrapReflected func(c Context, v reflect.Value) Value
 
 func ToString(t Value) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)
+}
+
+func ToPrettyString(t Value) string {
+	return ToString2(t, PRETTY)
 }
 
 func ToString2(t Value, format FormatContext) string {

@@ -162,14 +162,8 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 	}
 
 	mt := m.Type
-	pc := mt.NumIn()
-	if mt.NumOut() > 1 || pc != 1 + len(args) {
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-			[]eval.Signature{method.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc), int64(pc))), nil)}))
-	}
-
 	rf := c.Reflector()
-	rfArgs := make([]reflect.Value, pc)
+	rfArgs := make([]reflect.Value, 1 + len(args))
 	rfArgs[0] = o.value
 	for i, arg := range args {
 		pn := i + 1
@@ -177,9 +171,10 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 		rf.ReflectTo(arg, av)
 		rfArgs[pn] = av
 	}
-	result := m.Func.Call(rfArgs)
-	if mt.NumOut() == 1 {
-		return wrap(c, result[0]), true
+
+	result := method.(eval.CallableGoMember).CallGoReflected(c, rfArgs)
+	if result.IsValid() {
+		return wrap(c, result), true
 	}
 	return _UNDEF, true
 }

@@ -557,7 +557,7 @@ func (t *typeSet) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatCon
 			io.WriteString(b, "}")
 		default:
 			cx := cti2
-			if isContainer(value) {
+			if isContainer(value, s) {
 				cx = ctx2
 			}
 			value.ToString(b, cx, g)

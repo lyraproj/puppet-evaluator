@@ -44,13 +44,29 @@ type (
 		// Set changes a setting
 		Set(key string, value Value)
 
-		// Do executes a given function with an initialized Context instance. The
-		// Context will be parented by the Go context returned by context.Background()
-		Do(func(Context) error) error
+		// Do executes a given function with an initialized Context instance.
+		//
+		// The Context will be parented by the Go context returned by context.Background()
+		Do(func(Context))
 
-		// DoWithParent executes a given function with an initialized Context instance. The
-		// context will be parented by the given Go context
-		DoWithParent(context.Context, func(Context) error) error
+		// DoWithParent executes a given function with an initialized Context instance.
+		//
+		// The context will be parented by the given Go context
+		DoWithParent(context.Context, func(Context))
+
+		// Try executes a given function with an initialized Context instance. If an error occurs,
+		// it is cought and returned. The error returned from the given function is returned when
+		// no other error is caught.
+		//
+		// The Context will be parented by the Go context returned by context.Background()
+		Try(func(Context) error) error
+
+		// TryWithParent executes a given function with an initialized Context instance.  If an error occurs,
+		// it is cought and returned. The error returned from the given function is returned when no other
+		// error is caught
+		//
+		// The context will be parented by the given Go context
+		TryWithParent(context.Context, func(Context) error) error
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured
