@@ -1,8 +1,0 @@
-Examples('Binary',
-  Examples('string and format',
-    Example('%r',
-      # Using scope since it is parsed using the PSpec parser which handles \xNN
-      Given(Scope(x => "\xf1"), `Binary($x, '%r')`),
-      Evaluates_to(Binary('8Q=='))),
-  ),
-)
