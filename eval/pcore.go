@@ -16,9 +16,7 @@ type (
 		Reset()
 
 		// SystemLoader returs the loader that finds all built-ins. It's parented
-		// by a static loader. The choice of parent is depending on the 'tasks'
-		// setting. When 'tasks' is enabled, all resources, including the Resource
-		// type, are excluded.
+		// by a static loader.
 		SystemLoader() Loader
 
 		// EnvironmentLoader returs the loader that finds things declared

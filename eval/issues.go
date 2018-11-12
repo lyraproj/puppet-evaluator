@@ -25,7 +25,6 @@ const (
 	EVAL_FAILURE                                   = `EVAL_FAILURE`
 	EVAL_FILE_NOT_FOUND                            = `EVAL_FILE_NOT_FOUND`
 	EVAL_FILE_READ_DENIED                          = `EVAL_FILE_READ_DENIED`
-	EVAL_FORMAT_HASH_KEY_NOT_TYPE                  = `EVAL_FORMAT_HASH_KEY_NOT_TYPE`
 	EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE           = `EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE`
 	EVAL_ILLEGAL_ARGUMENT                          = `EVAL_ILLEGAL_ARGUMENT`
 	EVAL_ILLEGAL_ARGUMENT_COUNT                    = `EVAL_ILLEGAL_ARGUMENT_COUNT`
@@ -39,7 +38,6 @@ const (
 	EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE             = `EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE`
 	EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION            = `EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION`
 	EVAL_IMPL_ALREDY_REGISTERED                    = `EVAL_IMPL_ALREDY_REGISTERED`
-	EVAL_IMPL_IS_NOT_STRUCT                        = `EVAL_IMPL_IS_NOT_STRUCT`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
 	EVAL_INSTANCE_DOES_NOT_RESPOND                 = `EVAL_INSTANCE_DOES_NOT_RESPOND`
 	EVAL_INVALID_CHARACTERS_IN_NAME                = `EVAL_INVALID_CHARACTERS_IN_NAME`
@@ -55,25 +53,19 @@ const (
 	EVAL_INVALID_VERSION                           = `EVAL_INVALID_VERSION`
 	EVAL_INVALID_VERSION_RANGE                     = `EVAL_INVALID_VERSION_RANGE`
 	EVAL_IS_DIRECTORY                              = `EVAL_IS_DIRECTORY`
-	EVAL_KIND_MISMATCH                             = `EVAL_KIND_MISMATCH`
-	EVAL_LHS_MUST_BE_QREF                          = `EVAL_LHS_MUST_BE_QREF`
 	EVAL_MATCH_NOT_REGEXP                          = `EVAL_MATCH_NOT_REGEXP`
-	EVAL_MATCH_NOT_SEMVER_RANGE                    = `EVAL_MATCH_NOT_SEMVER_RANGE`
 	EVAL_MATCH_NOT_STRING                          = `EVAL_MATCH_NOT_STRING`
 	EVAL_MEMBER_NAME_CONFLICT                      = `EVAL_MEMBER_NAME_CONFLICT`
 	EVAL_MISSING_MULTI_ASSIGNMENT_KEY              = `EVAL_MISSING_MULTI_ASSIGNMENT_KEY`
 	EVAL_MISSING_REGEXP_IN_TYPE                    = `EVAL_MISSING_REGEXP_IN_TYPE`
 	EVAL_MISSING_REQUIRED_ATTRIBUTE                = `EVAL_MISSING_REQUIRED_ATTRIBUTE`
-	EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE         = `EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE`
 	EVAL_MISSING_TYPE_PARAMETER                    = `EVAL_MISSING_TYPE_PARAMETER`
-	EVAL_MULTI_ERROR                               = `EVAL_MULTI_ERROR`
 	EVAL_NO_ATTRIBUTE_READER                       = `EVAL_NO_ATTRIBUTE_READER`
 	EVAL_NO_CURRENT_CONTEXT                        = `EVAL_NO_CURRENT_CONTEXT`
 	EVAL_NO_DEFINITION                             = `EVAL_NO_DEFINITION`
 	EVAL_NOT_COLLECTION_AT                         = `EVAL_NOT_COLLECTION_AT`
 	EVAL_NOT_EXPECTED_TYPESET                      = `EVAL_NOT_EXPECTED_TYPESET`
 	EVAL_NOT_INTEGER                               = `EVAL_NOT_INTEGER`
-	EVAL_NOT_OBJECT_TYPE                           = `EVAL_NOT_OBJECT_TYPE`
 	EVAL_NOT_ONLY_DEFINITION                       = `EVAL_NOT_ONLY_DEFINITION`
 	EVAL_NOT_NUMERIC                               = `EVAL_NOT_NUMERIC`
 	EVAL_NOT_PARAMETERIZED_TYPE                    = `EVAL_NOT_PARAMETERIZED_TYPE`
@@ -107,7 +99,6 @@ const (
 	EVAL_TIMESTAMP_TZ_AMBIGUITY                    = `EVAL_TIMESTAMP_TZ_AMBIGUITY`
 	EVAL_TYPE_MISMATCH                             = `EVAL_TYPE_MISMATCH`
 	EVAL_TYPESET_ALIAS_COLLIDES                    = `EVAL_TYPESET_ALIAS_COLLIDES`
-	EVAL_TYPESET_ILLEGAL_NAME_PREFIX               = `EVAL_TYPESET_ILLEGAL_NAME_PREFIX`
 	EVAL_TYPESET_MISSING_NAME_AUTHORITY            = `EVAL_TYPESET_MISSING_NAME_AUTHORITY`
 	EVAL_TYPESET_REFERENCE_BAD_TYPE                = `EVAL_TYPESET_REFERENCE_BAD_TYPE`
 	EVAL_TYPESET_REFERENCE_DUPLICATE               = `EVAL_TYPESET_REFERENCE_DUPLICATE`
@@ -173,8 +164,6 @@ func init() {
 
 	issue.Hard(EVAL_FILE_READ_DENIED, `Insufficient permissions to read '%{path}'`)
 
-	issue.Hard(EVAL_FORMAT_HASH_KEY_NOT_TYPE, `Expected key of format hash to be a Type. Got %{type}`)
-
 	issue.Hard(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, `Attempt to create a Runtime['go', '%{name}'] without providing a Go type`)
 
 	issue.Hard2(EVAL_ILLEGAL_ARGUMENT,
@@ -209,8 +198,6 @@ func init() {
 
 	issue.Hard(EVAL_IMPL_ALREDY_REGISTERED, `The type %{type} is already present in the implementation registry`)
 
-	issue.Hard(EVAL_IMPL_IS_NOT_STRUCT, `The type %{type} is not a struct or a pointer to a struct`)
-
 	issue.Hard(EVAL_IS_DIRECTORY, `The path '%{path}' is a directory`)
 
 	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
@@ -239,13 +226,7 @@ func init() {
 
 	issue.Hard(EVAL_INVALID_URI, `Cannot parse an URI from string '%{str}': '%{detail}'`)
 
-	issue.Hard(EVAL_KIND_MISMATCH, `expected a value of kind %{expected}, got %{actual}`)
-
-	issue.Hard(EVAL_LHS_MUST_BE_QREF, `Expression to the left of [] expression must be a Type name`)
-
 	issue.Hard(EVAL_MATCH_NOT_REGEXP, `Can not convert right match operand to a regular expression. Caused by '%{detail}'`)
-
-	issue.Hard(EVAL_MATCH_NOT_SEMVER_RANGE, `Can not convert right match operand to a semantic version range. Caused by '%s'`)
 
 	issue.Hard2(EVAL_MATCH_NOT_STRING, `"Left match operand must result in a String value. Got %{left}`, issue.HF{`left`: issue.A_an})
 
@@ -257,11 +238,7 @@ func init() {
 
 	issue.Hard(EVAL_MISSING_REQUIRED_ATTRIBUTE, `%{label} requires a value but none was provided`)
 
-	issue.Hard(EVAL_MISSING_REQUIRED_CONTEXT_VARIABLE, `Missing required context variable '%{key}'`)
-
 	issue.Hard(EVAL_MISSING_TYPE_PARAMETER, `'%{name}' is not a known type parameter for %{label}-Type`)
-
-	issue.Hard2(EVAL_MULTI_ERROR, `Multiple errors: %{errors}`, issue.HF{`errors`: issue.JoinErrors})
 
 	issue.Hard(EVAL_OBJECT_INHERITS_SELF, `The Object type '%{label}' inherits from itself`)
 
@@ -274,8 +251,6 @@ func init() {
 	issue.Hard(EVAL_NOT_COLLECTION_AT, `The given data does not contain a Collection at %{walked_path}, got '%{klass}'`)
 
 	issue.Hard(EVAL_NOT_INTEGER, `The value '%{value}' cannot be converted to an Integer`)
-
-	issue.Hard(EVAL_NOT_OBJECT_TYPE, `The type %{type} is not an Object type`)
 
 	issue.Hard(EVAL_NOT_EXPECTED_TYPESET, `The code loaded from %{source} does not define the TypeSet %{name}'`)
 
@@ -345,8 +320,6 @@ func init() {
 	issue.Hard(EVAL_TYPE_MISMATCH, `Type mismatch: %{detail}`)
 
 	issue.Hard(EVAL_TYPESET_ALIAS_COLLIDES, `TypeSet '%{name}' references a TypeSet using alias '%{ref_alias}'. The alias collides with the name of a declared type`)
-
-	issue.Hard(EVAL_TYPESET_ILLEGAL_NAME_PREFIX, `'%{name}' does has an incorrect qualifier. The TypeSet expects the prefix '%{expected_prefix}'`)
 
 	issue.Hard(EVAL_TYPESET_MISSING_NAME_AUTHORITY, `No 'name_authority' is declared in TypeSet '%{name}' and it cannot be inferred`)
 

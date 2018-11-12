@@ -15,7 +15,6 @@ import (
 	// not used) at this point
 	"context"
 	_ "github.com/puppetlabs/go-evaluator/functions"
-	"github.com/puppetlabs/go-evaluator/resource"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
@@ -60,8 +59,6 @@ func InitializePuppet() {
 	puppet.logger = eval.NewStdLogger()
 	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
 	c.ResolveResolvables()
-	resource.InitBuiltinResources(c)
-	c.DoWithLoader(eval.StaticResourceLoader(), c.ResolveResolvables)
 	topImplRegistry = c.ImplementationRegistry()
 }
 
@@ -83,10 +80,7 @@ func (p *pcoreImpl) SystemLoader() eval.Loader {
 }
 
 func (p *pcoreImpl) configuredStaticLoader() eval.Loader {
-	if p.settings[`tasks`].get().(*types.BooleanValue).Bool() {
-		return eval.StaticLoader()
-	}
-	return eval.StaticResourceLoader()
+	return eval.StaticLoader()
 }
 
 // not exported, provides unprotected access to shared object
@@ -195,6 +189,12 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	actor(ctx)
 }
 
+func DoWithContext(testCtx eval.Context, actor func(eval.Context)) {
+	threadlocal.Init()
+	threadlocal.Set(eval.PuppetContextKey, testCtx)
+	actor(testCtx)
+}
+
 func (p *pcoreImpl) Try(actor func(eval.Context) error) (err error) {
 	return p.TryWithParent(p.RootContext(), actor)
 }
@@ -220,11 +220,7 @@ func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
 }
 
 func (p *pcoreImpl) NewEvaluatorWithLogger(logger eval.Logger) eval.Evaluator {
-	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
-		// Just script evaluator. No resource expressions
-		return impl.NewEvaluator(logger)
-	}
-	return resource.NewEvaluator(logger)
+	return impl.NewEvaluator(logger)
 }
 
 func (p *pcoreImpl) NewParser() validator.ParserValidator {

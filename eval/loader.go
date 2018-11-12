@@ -69,7 +69,6 @@ func IsValidModuleName(moduleName string) bool {
 var Load func(c Context, name TypedName) (interface{}, bool)
 var NewLoaderEntry func(value interface{}, origin issue.Location) LoaderEntry
 var StaticLoader func() Loader
-var StaticResourceLoader func() Loader
 var NewParentedLoader func(parent Loader) DefiningLoader
 var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ...PathType) ModuleLoader
 var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
