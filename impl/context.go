@@ -347,11 +347,6 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 		fe := d.(*parser.FunctionDefinition)
 		tn = eval.NewTypedName2(eval.FUNCTION, fe.Name(), loader.NameAuthority())
 		ta = NewPuppetFunction(fe)
-
-		if c.Language() == eval.LangJavaScript {
-			// Java script functions must be available as variables
-			c.Scope().Set(fe.Name(), ta.(eval.Value))
-		}
 	default:
 		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
 	}
