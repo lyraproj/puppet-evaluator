@@ -385,10 +385,16 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
 		if tsc, ok := t.(eval.TypeSet); ok {
 			c.resolveTypeSet(l, tsc)
 		}
-		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
-		if ot, ok := t.(eval.ObjectType); ok {
-			if ctor := ot.Constructor(); ctor != nil {
-				l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+		// Types already known to the loader might have been added to a TypeSet. When that
+		// happens, we don't want them added again.
+		tn := eval.NewTypedName(eval.TYPE, t.Name())
+		le := l.LoadEntry(c, tn)
+		if le == nil || le.Value() == nil {
+			l.SetEntry(tn, eval.NewLoaderEntry(t, nil))
+			if ot, ok := t.(eval.ObjectType); ok {
+				if ctor := ot.Constructor(); ctor != nil {
+					l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+				}
 			}
 		}
 	})
