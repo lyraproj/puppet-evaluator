@@ -28,7 +28,7 @@ func NewToDataConverter(options eval.OrderedMap) *ToDataConverter {
 	t.typeByReference = options.Get5(`type_by_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.localReference = options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.symbolAsString = options.Get5(`symbol_as_string`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
-	t.richData = options.Get5(`rich_data`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
+	t.richData = options.Get5(`rich_data`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
 	return t
 }
