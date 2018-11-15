@@ -214,6 +214,10 @@ func (t *StringType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
+func (t *StringType) SerializationString() string {
+	return t.String()
+}
+
 func (t *StringType) String() string {
 	return eval.ToString2(t, NONE)
 }

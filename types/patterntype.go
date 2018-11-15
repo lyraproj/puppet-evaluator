@@ -151,6 +151,10 @@ func (t *PatternType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
+func (t *PatternType) SerializationString() string {
+	return t.String()
+}
+
 func (t *PatternType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }

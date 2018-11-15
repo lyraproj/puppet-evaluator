@@ -35,6 +35,29 @@ func ExampleFromDataConverter_roundtrip() {
 	// *types.SemVerValue '1.0.0'
 }
 
+func ExampleFromDataConverter_ObjectRoundtrip() {
+	eval.Puppet.Do(func(ctx eval.Context) {
+		p := impl.NewParameter(`p1`, ctx.ParseType2(`Type[String]`), nil, false)
+		fmt.Println(p)
+		data := NewToDataConverter(eval.EMPTY_MAP).Convert(p)
+
+		buf := bytes.NewBufferString(``)
+		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
+
+		fc := NewFromDataConverter(ctx, eval.EMPTY_MAP)
+		b := buf.String()
+		fmt.Print(b)
+		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
+		p2 := fc.Convert(data2)
+
+		fmt.Println(p2)
+	})
+	// Output:
+	// Parameter('name' => 'p1', 'type' => Type[String])
+	// {"__ptype":"Parameter","name":"p1","type":{"__ptype":"Type","__pvalue":"Type[String]"}}
+	// Parameter('name' => 'p1', 'type' => Type[String])
+}
+
 func ExampleFromDataConverter_goValueRoundtrip() {
 	type MyInt int
 
@@ -141,7 +164,7 @@ func ExampleToDataConverter_Convert2() {
 		param := impl.NewParameter(`p`, types.DefaultStringType(), types.WrapString(`v`), false)
 		fmt.Println(NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(param))
 	})
-	// Output: {'__ptype' => 'Parameter', 'name' => 'p', 'type' => 'String', 'value' => 'v'}
+	// Output: {'__ptype' => 'Parameter', 'name' => 'p', 'type' => {'__ptype' => 'Type', '__pvalue' => 'String'}, 'value' => 'v'}
 }
 
 func ExampleDataToJson() {

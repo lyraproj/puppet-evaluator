@@ -6,6 +6,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"os"
 )
 
 type (
@@ -269,6 +270,7 @@ func resolveJsonPath(c eval.Context, lhs builder, path string) (eval.Value, bool
 }
 
 func (f *FromDataConverter) Convert(value eval.Value) eval.Value {
+	value.ToString(os.Stdout, eval.PRETTY, nil)
 	if hash, ok := value.(*types.HashValue); ok {
 		if pcoreType, ok := hash.Get4(PCORE_TYPE_KEY); ok {
 			key := pcoreType.String()

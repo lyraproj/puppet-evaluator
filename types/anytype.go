@@ -49,6 +49,10 @@ func (t *AnyType) Name() string {
 	return `Any`
 }
 
+func (t *AnyType) SerializationString() string {
+	return `Any`
+}
+
 func (t *AnyType) String() string {
 	return `Any`
 }

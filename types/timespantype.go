@@ -273,6 +273,10 @@ func (t *TimespanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Duration(0)), true
 }
 
+func (t *TimespanType) SerializationString() string {
+	return t.String()
+}
+
 func (t *TimespanType) String() string {
 	return eval.ToString2(t, NONE)
 }

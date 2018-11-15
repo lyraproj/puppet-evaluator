@@ -150,6 +150,10 @@ func (t *RegexpType) Regexp() *regexp.Regexp {
 	return t.pattern
 }
 
+func (t *RegexpType) SerializationString() string {
+	return t.String()
+}
+
 func (t *RegexpType) String() string {
 	return eval.ToString2(t, NONE)
 }

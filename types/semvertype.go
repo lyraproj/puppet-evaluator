@@ -197,6 +197,10 @@ func (t *SemVerType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(semver.Max), true
 }
 
+func (t *SemVerType) SerializationString() string {
+	return t.String()
+}
+
 func (t *SemVerType) String() string {
 	return eval.ToString2(t, NONE)
 }

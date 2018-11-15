@@ -14,6 +14,9 @@ type parameter struct {
 }
 
 func NewParameter(name string, typ eval.Type, value eval.Value, capturesRest bool) eval.Parameter {
+	if value == nil {
+		value = eval.UNDEF
+	}
 	return &parameter{name, typ, value, capturesRest}
 }
 
@@ -49,7 +52,7 @@ func (p *parameter) InitHash() eval.OrderedMap {
 	es := make([]*types.HashEntry, 0, 3)
 	es = append(es, types.WrapHashEntry2(`name`, types.WrapString(p.name)))
 	es = append(es, types.WrapHashEntry2(`type`, p.typ))
-	if p.value != nil {
+	if p.value != eval.UNDEF {
 		es = append(es, types.WrapHashEntry2(`value`, p.value))
 	}
 	return types.WrapHash(es)

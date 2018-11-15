@@ -117,6 +117,10 @@ func (t *SemVerRangeType) Name() string {
 	return `SemVerRange`
 }
 
+func (t *SemVerRangeType) SerializationString() string {
+	return t.String()
+}
+
 func (t *SemVerRangeType) String() string {
 	return `SemVerRange`
 }

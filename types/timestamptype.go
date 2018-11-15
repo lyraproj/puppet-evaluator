@@ -255,6 +255,10 @@ func (t *TimestampType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Time{}), true
 }
 
+func (t *TimestampType) SerializationString() string {
+	return t.String()
+}
+
 func (t *TimestampType) String() string {
 	return eval.ToString2(t, NONE)
 }

@@ -105,6 +105,10 @@ func (t *NumericType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 
+func (t *NumericType) SerializationString() string {
+	return t.String()
+}
+
 func (t *NumericType) String() string {
 	return eval.ToString2(t, NONE)
 }

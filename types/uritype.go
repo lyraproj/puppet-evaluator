@@ -338,6 +338,10 @@ func (t *UriType) Parameters() []eval.Value {
 	}
 }
 
+func (t *UriType) SerializationString() string {
+	return t.String()
+}
+
 func (t *UriType) String() string {
 	return eval.ToString2(t, NONE)
 }

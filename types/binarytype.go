@@ -113,6 +113,10 @@ func (t *BinaryType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf([]byte{}), true
 }
 
+func (t *BinaryType) SerializationString() string {
+	return t.String()
+}
+
 func (t *BinaryType) String() string {
 	return `Binary`
 }

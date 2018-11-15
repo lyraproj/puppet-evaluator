@@ -116,6 +116,10 @@ func (e *errorObj) PartialResult() eval.Value {
 	return e.partialResult
 }
 
+func (t *errorObj) SerializationString() string {
+	return t.String()
+}
+
 func (e *errorObj) String() string {
 	return eval.ToString(e)
 }

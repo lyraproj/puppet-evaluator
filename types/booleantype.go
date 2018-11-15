@@ -178,6 +178,10 @@ func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
+func (t *BooleanValue) SerializationString() string {
+	return t.String()
+}
+
 func (bv *BooleanValue) String() string {
 	if bv.value == 1 {
 		return `true`
