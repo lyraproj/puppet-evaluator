@@ -141,7 +141,7 @@ func ExampleToDataConverter_Convert2() {
 		param := impl.NewParameter(`p`, types.DefaultStringType(), types.WrapString(`v`), false)
 		fmt.Println(NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(param))
 	})
-	// Output: {'__ptype' => 'Parameter', 'name' => 'p', 'type' => {'__ptype' => 'Pcore::StringType', 'size_type_or_value' => {'__ptype' => 'Pcore::IntegerType', 'from' => 0}}, 'value' => 'v'}
+	// Output: {'__ptype' => 'Parameter', 'name' => 'p', 'type' => 'String', 'value' => 'v'}
 }
 
 func ExampleDataToJson() {

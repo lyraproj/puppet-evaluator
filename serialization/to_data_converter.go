@@ -216,13 +216,12 @@ func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 		return t.unkownToStringWithWarning(value)
 	}
 
-	var vt eval.Type
-	if tp, ok := value.(eval.Type); ok {
+	vt := value.PType()
+	switch value.(type) {
+	case eval.ObjectType, eval.TypeSet:
 		// The Type of Type X is a Type[X]. To create instances of X we need the MetaType (the Object
 		// describing the type X)
-		vt = tp.MetaType()
-	} else {
-		vt = value.PType()
+		vt = value.(eval.Type).MetaType()
 	}
 
 	pcoreTv := t.pcoreTypeToData(vt)
