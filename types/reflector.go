@@ -194,7 +194,8 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf 
 				mt := m.Type
 				returnsError := false
 				var rt eval.Type
-				switch mt.NumOut() {
+				oc := mt.NumOut()
+				switch oc {
 				case 0:
 					rt = DefaultAnyType()
 				case 1:
@@ -209,11 +210,20 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf 
 					ot := mt.Out(1)
 					if ot.AssignableTo(errorType) {
 						returnsError = true
-						break
+					} else {
+						rt = NewTupleType([]eval.Type{rt, wrapReflectedType(r.c, mt.Out(1))}, nil)
 					}
-					fallthrough
 				default:
-					panic(eval.Error(eval.EVAL_UNREFLECTABLE_RETURN, issue.H{`type`: rf.Name(), `method`: m.Name}))
+					ot := mt.Out(oc - 1)
+					if ot.AssignableTo(errorType) {
+						returnsError = true
+						oc = oc - 1
+					}
+					ts := make([]eval.Type, oc)
+					for i := 0; i < oc; i++ {
+						ts[i] = wrapReflectedType(r.c, mt.Out(i))
+					}
+					rt = NewTupleType(ts, nil)
 				}
 
 				var pt *TupleType

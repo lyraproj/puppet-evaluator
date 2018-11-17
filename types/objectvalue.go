@@ -173,10 +173,27 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 	}
 
 	result := method.(eval.CallableGoMember).CallGoReflected(c, rfArgs)
-	if result.IsValid() {
-		return wrap(c, result), true
+	switch len(result) {
+	case 0:
+		return _UNDEF, true
+	case 1:
+		r := result[0]
+		if r.IsValid() {
+			return wrap(c, r), true
+		} else {
+			return _UNDEF, true
+		}
+	default:
+		rs := make([]eval.Value, len(result))
+		for i, r := range result {
+			if r.IsValid() {
+				rs[i] = wrap(c, r)
+			} else {
+				rs[i] = _UNDEF
+			}
+		}
+		return WrapValues(rs), true
 	}
-	return _UNDEF, true
 }
 
 func (o *reflectedObject) Reflect(c eval.Context) reflect.Value {
@@ -184,7 +201,11 @@ func (o *reflectedObject) Reflect(c eval.Context) reflect.Value {
 }
 
 func (o *reflectedObject) ReflectTo(c eval.Context, value reflect.Value) {
-	value.Set(o.value)
+	if o.value.Kind() == reflect.Struct && value.Kind() == reflect.Ptr {
+		value.Set(o.value.Addr())
+	} else {
+		value.Set(o.value)
+	}
 }
 
 func (o *reflectedObject) Initialize(c eval.Context, values []eval.Value) {

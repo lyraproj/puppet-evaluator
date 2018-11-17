@@ -69,11 +69,11 @@ type (
 
 	CallableGoMember interface {
 		// CallGo calls a member on a struct pointer with the given arguments
-		CallGo(c Context, receiver interface{}, args ...interface{}) interface{}
+		CallGo(c Context, receiver interface{}, args ...interface{}) []interface{}
 
 		// CallGoReflected is like Call but using reflected arguments and return value. The
 		// first argument is the receiver
-		CallGoReflected(c Context, args []reflect.Value) reflect.Value
+		CallGoReflected(c Context, args []reflect.Value) []reflect.Value
 	}
 
 	TypeWithCallableMembers interface {

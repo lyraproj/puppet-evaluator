@@ -61,20 +61,23 @@ func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, 
 		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
 }
 
-func (f *function) CallGo(c eval.Context, receiver interface{}, args ...interface{}) interface{} {
+func (f *function) CallGo(c eval.Context, receiver interface{}, args ...interface{}) []interface{} {
 	rfArgs := make([]reflect.Value, 1 + len(args))
 	rfArgs[0] = reflect.ValueOf(receiver)
 	for i, arg := range args {
 		rfArgs[i+1] = reflect.ValueOf(arg)
 	}
-	ret := f.CallGoReflected(c, rfArgs)
-	if ret.IsValid() {
-		return ret.Interface()
+	result := f.CallGoReflected(c, rfArgs)
+	rs := make([]interface{}, len(result))
+	for i, ret := range result {
+		if ret.IsValid() {
+			rs[i] = ret.Interface()
+		}
 	}
-	return nil
+	return rs
 }
 
-func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) reflect.Value {
+func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []reflect.Value {
 	rt := args[0].Type()
 	m, ok := rt.MethodByName(f.goName)
 	if !ok {
@@ -92,23 +95,17 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) reflect
 			[]eval.Signature{f.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}
 	result := m.Func.Call(args)
+	oc := mt.NumOut()
 
-	var ret reflect.Value
 	if f.ReturnsError() {
-		var err error
-		if maxReturn == 1 {
-			err = result[0].Interface().(error)
-		} else {
-			ret = result[0]
-			err = result[1].Interface().(error)
-		}
+		oc--
+		err := result[oc].Interface()
 		if err != nil {
 			panic(err)
 		}
-	} else if mt.NumOut() == 1 {
-		ret = result[0]
+		result = result[:oc]
 	}
-	return ret
+	return result
 }
 
 func (f *function) GoName() string {

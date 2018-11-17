@@ -300,14 +300,14 @@ func ExampleReflector_objectTypeFromReflectInterface() {
 	m, _ := xb.Member(`x`)
 	gm := m.(eval.CallableGoMember)
 
-	fmt.Println(gm.CallGo(c, NewA(32)))
-	fmt.Println(gm.CallGo(c, B(25)))
+	fmt.Println(gm.CallGo(c, NewA(32))[0])
+	fmt.Println(gm.CallGo(c, B(25))[0])
 
 	// Invoke method 'x' on the interface on a receiver
 	m, _ = xb.Member(`y`)
 
 	// Call Go function using CallableGoMember
-	gv := m.(eval.CallableGoMember).CallGo(c, B(25), NewA(15))
+	gv := m.(eval.CallableGoMember).CallGo(c, B(25), NewA(15))[0]
 	fmt.Printf("%T %v\n", gv, gv)
 
 	// Call Go function using CallableMember and eval.Value
@@ -392,7 +392,7 @@ func ExampleReflector_typeSetFromReflect() {
 		fmt.Println(v)
 
 		m, _ := v.PType().(eval.TypeWithCallableMembers).Member(`visit`)
-		fmt.Println(m.(eval.CallableGoMember).CallGo(c, ep, ad))
+		fmt.Println(m.(eval.CallableGoMember).CallGo(c, ep, ad)[0])
 		fmt.Println(m.Call(c, v, nil, []eval.Value{eval.Wrap(c, ad)}))
 	})
 
