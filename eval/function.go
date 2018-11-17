@@ -14,6 +14,8 @@ type (
 
 		Type() Type
 
+		HasValue() bool
+
 		Value() Value
 
 		CapturesRest() bool

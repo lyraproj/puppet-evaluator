@@ -478,7 +478,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
 					p := parameters[idx]
-					if p.Value() == nil {
+					if !p.HasValue() {
 						ap[idx] = eval.UNDEF
 						continue
 					}
@@ -592,7 +592,7 @@ func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	tps := make([]eval.Type, max)
 	for idx, p := range params {
 		tps[idx] = p.Type()
-		if p.Value() == nil {
+		if !p.HasValue() {
 			min++
 		}
 		if p.CapturesRest() {
