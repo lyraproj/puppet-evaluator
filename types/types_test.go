@@ -2,7 +2,6 @@ package types_test
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 
 	"github.com/puppetlabs/go-evaluator/eval"
@@ -55,13 +54,4 @@ func ExampleWrapHash() {
 
 	fmt.Println(eval.Equals(e, a))
 	// Output: true
-}
-
-func ExampleNew() {
-	eval.Puppet.Do(func(c eval.Context) {
-		t := c.ParseType2(`Struct[{'name' => String, 'type' => Type, 'value' => Variant[Deferred, Data], Optional['captures_rest'] => Boolean}]`)
-		t.ToString(os.Stdout, eval.PRETTY, nil)
-		fmt.Println()
-	})
-	// Output: hello
 }
