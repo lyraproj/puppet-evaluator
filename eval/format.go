@@ -55,6 +55,7 @@ var FORMAT_PATTERN = regexp.MustCompile(`\A%([\s\[+#0{<(|-]*)([1-9][0-9]*)?(?:\.
 var DEFAULT_FORMAT Format
 var DEFAULT_FORMAT_CONTEXT FormatContext
 var PRETTY FormatContext
+var PRETTY_EXPANDED FormatContext
 
 var NewFormat func(format string) Format
 var NewIndentation func(indenting bool, level int) Indentation

@@ -721,11 +721,13 @@ func isContainer(child eval.Value, s eval.FormatContext) bool {
 	switch child.(type) {
 	case *ArrayValue, *HashValue:
 		return true
-	case eval.PuppetObject:
+	case eval.ObjectType, eval.TypeSet:
 		if ex, ok := s.Property(`expanded`); ok && ex == `true` {
 			return true
 		}
 		return false
+	case eval.PuppetObject:
+		return true
 	default:
 		return false
 	}

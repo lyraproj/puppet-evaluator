@@ -107,13 +107,15 @@ func init() {
 		WrapHashEntry(DefaultHashType(), PRETTY_HASH_FORMAT),
 		WrapHashEntry(DefaultBinaryType(), simpleFormat('B')),
 		WrapHashEntry(DefaultAnyType(), DEFAULT_ANY_FORMAT),
-	})), map[string]string{`expanded`: `true`})
+	})), map[string]string{})
 
 	eval.NewFormatContext = newFormatContext
 	eval.NewFormatContext2 = newFormatContext2
 	eval.NewFormatContext3 = newFormatContext3
 	eval.NewIndentation = newIndentation
 	eval.NewFormat = newFormat
+
+	eval.PRETTY_EXPANDED = eval.PRETTY.WithProperties(map[string]string{`expanded`: `true`})
 }
 
 var DEFAULT_ARRAY_FORMAT = basicFormat('a', `,`, '[', DEFAULT_CONTAINER_FORMATS)

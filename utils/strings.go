@@ -164,13 +164,14 @@ func PuppetQuote(w io.Writer, str string) {
 			w.Write(b.Bytes())
 		}()
 	}
+	bpos := b.Len()
 
 	WriteByte(b, '\'')
 	escaped := false
 	for c, start := r.Next(); c != 0; c, _ = r.Next() {
 		if c < 0x20 {
 			r.SetPos(start)
-			b.Reset()
+			b.Truncate(bpos)
 			puppetDoubleQuote(r, b)
 			return
 		}

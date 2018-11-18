@@ -289,11 +289,11 @@ func ExampleReflector_objectTypeFromReflectInterface() {
 	c.AddTypes(xa, xb)
 
 	// Print the created Interface Type in human readable form
-	xa.ToString(os.Stdout, eval.PRETTY, nil)
+	xa.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 	fmt.Println()
 
 	// Print the created Implementation Type in human readable form
-	xb.ToString(os.Stdout, eval.PRETTY, nil)
+	xb.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 	fmt.Println()
 
 	// Invoke method 'x' on the interface on a receiver
@@ -380,7 +380,7 @@ func ExampleReflector_typeSetFromReflect() {
 		c.AddTypes(typeSet)
 
 		// Print the TypeSet in human readable form
-		typeSet.ToString(os.Stdout, eval.PRETTY, nil)
+		typeSet.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
 
 		// Create an instance of something included in the TypeSet
@@ -452,7 +452,7 @@ func ExampleReflector_reflectPType() {
 	eval.Puppet.Do(func(c eval.Context) {
 		xm := c.Reflector().ObjectTypeFromReflect(`X::M`, nil, reflect.TypeOf(&valueStruct{}))
 		c.AddTypes(xm)
-		xm.ToString(os.Stdout, eval.PRETTY, nil)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
 	})
 	// Output:
