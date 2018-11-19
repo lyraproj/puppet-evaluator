@@ -58,6 +58,29 @@ func ExampleFromDataConverter_ObjectRoundtrip() {
 	// Parameter('name' => 'p1', 'type' => Type[String])
 }
 
+func ExampleFromDataConverter_StructInArrayRoundtrip() {
+	eval.Puppet.Do(func(ctx eval.Context) {
+		p := types.WrapValues([]eval.Value{ctx.ParseType2(`Struct[a => String, b => Integer]`)})
+		fmt.Println(p)
+		data := NewToDataConverter(eval.EMPTY_MAP).Convert(p)
+
+		buf := bytes.NewBufferString(``)
+		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
+
+		fc := NewFromDataConverter(ctx, eval.EMPTY_MAP)
+		b := buf.String()
+		fmt.Print(b)
+		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
+		p2 := fc.Convert(data2)
+
+		fmt.Println(p2)
+	})
+	// Output:
+	// [Struct[{'a' => String, 'b' => Integer}]]
+	// [{"__ptype":"Type","__pvalue":"Struct[{'a' =\u003e String, 'b' =\u003e Integer}]"}]
+	// [Struct[{'a' => String, 'b' => Integer}]]
+}
+
 func ExampleFromDataConverter_goValueRoundtrip() {
 	type MyInt int
 

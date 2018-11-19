@@ -94,7 +94,7 @@ type Context interface {
 	// and types
 	Reflector() Reflector
 
-	ResolveDefinitions()
+	ResolveDefinitions() []interface{}
 
 	// Resolve types, constructions, or functions that has been recently added
 	ResolveResolvables()

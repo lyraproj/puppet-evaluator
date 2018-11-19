@@ -238,23 +238,22 @@ func (c *evalCtx) Reflector() eval.Reflector {
 	return types.NewReflector(c)
 }
 
-func (c *evalCtx) ResolveDefinitions() {
-	if c.definitions == nil {
-		return
+func (c *evalCtx) ResolveDefinitions() []interface{} {
+	if c.definitions == nil || len(c.definitions) == 0 {
+		return []interface{}{}
 	}
 
-	for len(c.definitions) > 0 {
-		defs := c.definitions
-		c.definitions = nil
-		for _, d := range defs {
-			switch d.(type) {
-			case eval.Resolvable:
-				d.(eval.Resolvable).Resolve(c)
-			case eval.ResolvableType:
-				c.resolveTypes(d.(eval.Type))
-			}
+	defs := c.definitions
+	c.definitions = nil
+	for _, d := range defs {
+		switch d.(type) {
+		case eval.Resolvable:
+			d.(eval.Resolvable).Resolve(c)
+		case eval.ResolvableType:
+			c.resolveTypes(d.(eval.Type))
 		}
 	}
+	return defs
 }
 
 func (c *evalCtx) ResolveResolvables() {

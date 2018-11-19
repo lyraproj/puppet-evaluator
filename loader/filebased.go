@@ -75,6 +75,18 @@ func (l *fileBasedLoader) newSmartPath(pathType eval.PathType, moduleNameRelativ
 	}
 }
 
+func (l *fileBasedLoader) newPuppetActivityPath(moduleNameRelative bool) SmartPath {
+	return &smartPath{
+		relativePath:       `activities`,
+		loader:             l,
+		namespace:          eval.ACTIVITY,
+		extension:          `.pp`,
+		moduleNameRelative: moduleNameRelative,
+		matchMany:          false,
+		instantiator:       InstantiatePuppetFunction,
+	}
+}
+
 func (l *fileBasedLoader) newPuppetFunctionPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `functions`,

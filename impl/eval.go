@@ -225,7 +225,18 @@ func (e *evaluator) eval_Parameter(expr *parser.Parameter, c eval.Context) eval.
 		if lit, ok := literal.ToLiteral(valueExpr); ok {
 			value = eval.Wrap(c, lit)
 		} else {
-			value = types.NewDeferredExpression(valueExpr)
+			if cf, ok := valueExpr.(*parser.CallNamedFunctionExpression); ok {
+				if qn, ok := cf.Functor().(*parser.QualifiedName); ok {
+					va := make([]eval.Value, len(cf.Arguments()))
+					for i, a := range cf.Arguments() {
+						va[i] = e.eval(a, c)
+					}
+					value = types.NewDeferred(qn.Name(), va...)
+				}
+			}
+			if value == nil {
+				value = types.NewDeferredExpression(valueExpr)
+			}
 		}
 	}
 	return NewParameter(expr.Name(), pt, value, expr.CapturesRest())

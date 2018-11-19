@@ -14,6 +14,19 @@ import (
 
 type Instantiator func(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string)
 
+func InstantiatePuppetActivityFromFile(ctx eval.Context, loader ContentProvidingLoader, file string) eval.TypedName {
+	content := string(loader.GetContent(ctx, file))
+	expr := ctx.ParseAndValidate(file, content, false)
+	name := `<any name>`
+	fd, ok := getDefinition(expr, eval.ACTIVITY, name).(parser.NamedDefinition)
+	if !ok {
+		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.ACTIVITY, `name`: name}))
+	}
+	ctx.AddDefinitions(expr)
+	ctx.ResolveDefinitions()
+	return eval.NewTypedName(eval.ACTIVITY, fd.Name())
+}
+
 func InstantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
 	instantiatePuppetFunction(ctx, loader, tn, sources)
 }

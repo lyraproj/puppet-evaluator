@@ -76,7 +76,6 @@ func (f *format) PType() eval.Type {
 }
 
 var DEFAULT_PROGRAM_FORMAT = simpleFormat('p')
-var DEFAULT_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT)}))
 
 var DEFAULT_ANY_FORMAT = simpleFormat('s')
 
@@ -90,6 +89,13 @@ var PRETTY_INDENTATION = newIndentation(true, 0)
 
 
 func init() {
+	DEFAULT_ARRAY_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+	DEFAULT_HASH_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+	DEFAULT_OBJECT_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+	DEFAULT_ARRAY_CONTAINER_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+	DEFAULT_HASH_CONTAINER_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+	DEFAULT_OBJECT_CONTAINER_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
+
 	eval.DEFAULT_FORMAT = DEFAULT_ANY_FORMAT
 	eval.DEFAULT_FORMAT_CONTEXT = NONE
 	eval.PRETTY = newFormatContext2(PRETTY_INDENTATION, eval.FormatMap(WrapHash([]*HashEntry{
@@ -118,9 +124,13 @@ func init() {
 	eval.PRETTY_EXPANDED = eval.PRETTY.WithProperties(map[string]string{`expanded`: `true`})
 }
 
-var DEFAULT_ARRAY_FORMAT = basicFormat('a', `,`, '[', DEFAULT_CONTAINER_FORMATS)
-var DEFAULT_HASH_FORMAT = basicFormat('h', ` => `, '{', DEFAULT_CONTAINER_FORMATS)
-var DEFAULT_OBJECT_FORMAT = basicFormat('p', ` => `, '(', DEFAULT_CONTAINER_FORMATS)
+var DEFAULT_ARRAY_FORMAT = basicFormat('a', `,`, '[', nil)
+var DEFAULT_HASH_FORMAT = basicFormat('h', ` => `, '{', nil)
+var DEFAULT_OBJECT_FORMAT = basicFormat('p', ` => `, '(', nil)
+
+var DEFAULT_ARRAY_CONTAINER_FORMAT = basicFormat('p', `,`, '[', nil)
+var DEFAULT_HASH_CONTAINER_FORMAT = basicFormat('p', ` => `, '{', nil)
+var DEFAULT_OBJECT_CONTAINER_FORMAT = basicFormat('p', ` => `, '(', nil)
 
 var DEFAULT_INDENTATION = newIndentation(false, 0)
 
@@ -133,6 +143,17 @@ var DEFAULT_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{
 	WrapHashEntry(DefaultHashType(), DEFAULT_HASH_FORMAT),
 	WrapHashEntry(DefaultBinaryType(), simpleFormat('B')),
 	WrapHashEntry(DefaultAnyType(), DEFAULT_ANY_FORMAT),
+}))
+
+var DEFAULT_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{
+	WrapHashEntry(DefaultObjectType(), DEFAULT_OBJECT_CONTAINER_FORMAT),
+	WrapHashEntry(DefaultTypeType(), DEFAULT_OBJECT_CONTAINER_FORMAT),
+	WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
+	WrapHashEntry(DefaultNumericType(), simpleFormat('d')),
+	WrapHashEntry(DefaultArrayType(), DEFAULT_ARRAY_CONTAINER_FORMAT),
+	WrapHashEntry(DefaultHashType(), DEFAULT_HASH_CONTAINER_FORMAT),
+	WrapHashEntry(DefaultBinaryType(), simpleFormat('B')),
+	WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT),
 }))
 
 var delimiters = []byte{'[', '{', '(', '<', '|'}

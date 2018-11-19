@@ -77,10 +77,6 @@ func (e *deferred) Arguments() *ArrayValue {
 	return e.arguments
 }
 
-func (t *deferred) SerializationString() string {
-	return t.String()
-}
-
 func (e *deferred) String() string {
 	return eval.ToString(e)
 }
