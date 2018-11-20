@@ -492,7 +492,7 @@ func ExampleReflectortwoValueReturnErrorFail() {
 		fmt.Println(err.Error())
 	}
 	// Output:
-	// bad things happened
+	// Go function ReturnTwoAndErrorFail returned error 'bad things happened'
 }
 
 type valueStruct struct {

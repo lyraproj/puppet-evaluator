@@ -97,7 +97,10 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []refle
 		oc--
 		err := result[oc].Interface()
 		if err != nil {
-			panic(err)
+			if re, ok := err.(issue.Reported); ok {
+				panic(re)
+			}
+			panic(eval.Error(eval.EVAL_GO_FUNCTION_ERROR, issue.H{`name`: f.goName, `error`: err}))
 		}
 		result = result[:oc]
 	}

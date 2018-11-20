@@ -25,6 +25,7 @@ const (
 	EVAL_FAILURE                                   = `EVAL_FAILURE`
 	EVAL_FILE_NOT_FOUND                            = `EVAL_FILE_NOT_FOUND`
 	EVAL_FILE_READ_DENIED                          = `EVAL_FILE_READ_DENIED`
+	EVAL_GO_FUNCTION_ERROR                         = `EVAL_GO_FUNCTION_ERROR`
 	EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE           = `EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE`
 	EVAL_ILLEGAL_ARGUMENT                          = `EVAL_ILLEGAL_ARGUMENT`
 	EVAL_ILLEGAL_ARGUMENT_COUNT                    = `EVAL_ILLEGAL_ARGUMENT_COUNT`
@@ -163,6 +164,8 @@ func init() {
 	issue.Hard(EVAL_FILE_NOT_FOUND, `File '%{path}' does not exist`)
 
 	issue.Hard(EVAL_FILE_READ_DENIED, `Insufficient permissions to read '%{path}'`)
+
+	issue.Hard(EVAL_GO_FUNCTION_ERROR, `Go function %{name} returned error '%{error}'`)
 
 	issue.Hard(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, `Attempt to create a Runtime['go', '%{name}'] without providing a Go type`)
 
