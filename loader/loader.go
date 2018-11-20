@@ -1,12 +1,11 @@
 package loader
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
+	"sync"
 )
 
 type (
@@ -36,6 +35,11 @@ var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 var resolvableFunctionsLock sync.Mutex
 
 func init() {
+	sh := staticLoader.namedEntries
+	impl.EachCoreType(func(t eval.Type) {
+		sh[types.NewTypedName(eval.TYPE, t.Name()).MapKey()] = &loaderEntry{t, nil}
+	})
+
 	eval.StaticLoader = func() eval.Loader {
 		return staticLoader
 	}
@@ -128,7 +132,7 @@ func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval
 	l.lock.Lock()
 	if old, ok := l.namedEntries[name.MapKey()]; ok && old.Value() != nil {
 		l.lock.Unlock()
-		panic(fmt.Sprintf(`Attempt to redefine %s`, name.String()))
+		panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: name}))
 	}
 	l.namedEntries[name.MapKey()] = entry
 	l.lock.Unlock()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/puppetlabs/go-parser/literal"
+	"sort"
 
 	"github.com/puppetlabs/go-evaluator/errors"
 	"github.com/puppetlabs/go-evaluator/eval"
@@ -66,6 +67,19 @@ type (
 
 	systemLocation struct{}
 )
+
+func EachCoreType(fc func(t eval.Type)) {
+	keys := make([]string, len(coreTypes))
+	i := 0
+	for key := range coreTypes {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		fc(coreTypes[key])
+	}
+}
 
 func (systemLocation) File() string {
 	return ``
