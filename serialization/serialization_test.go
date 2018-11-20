@@ -81,6 +81,35 @@ func ExampleFromDataConverter_StructInArrayRoundtrip() {
 	// [Struct[{'a' => String, 'b' => Integer}]]
 }
 
+func ExampleFromDataConverter_TypeSetRoundtrip() {
+	eval.Puppet.Do(func(ctx eval.Context) {
+		p := ctx.ParseType2(`TypeSet[{
+      name => 'Foo',
+      version => '1.0.0',
+      pcore_version => '1.0.0',
+      types => {
+        Bar => Object[]
+      }}]`)
+		ctx.AddTypes(p)
+		fmt.Println(p)
+		data := NewToDataConverter(eval.EMPTY_MAP).Convert(p)
+
+		buf := bytes.NewBufferString(``)
+		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
+
+		fc := NewFromDataConverter(ctx, eval.EMPTY_MAP)
+		b := buf.String()
+		fmt.Print(b)
+		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
+		p2 := fc.Convert(data2)
+		fmt.Println(p2)
+	})
+	// Output:
+	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => Foo::Bar}}]
+	// {"__ptype":"Type","__pvalue":"TypeSet[{pcore_version =\u003e '1.0.0', name_authority =\u003e 'http://puppet.com/2016.1/runtime', name =\u003e 'Foo', version =\u003e '1.0.0', types =\u003e {Bar =\u003e Foo::Bar}}]"}
+	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => Foo::Bar}}]
+}
+
 func ExampleFromDataConverter_goValueRoundtrip() {
 	type MyInt int
 

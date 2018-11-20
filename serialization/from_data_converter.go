@@ -29,6 +29,7 @@ type (
 
 	valueBuilder struct {
 		value eval.Value
+		resolved eval.Value
 	}
 
 	hbEntry struct {
@@ -62,7 +63,14 @@ func (b *valueBuilder) put(key eval.Value, value builder) {
 }
 
 func (b *valueBuilder) resolve(c eval.Context) eval.Value {
-	return b.value
+	if b.resolved == nil {
+		if rt, ok := b.value.(eval.ResolvableType); ok {
+			b.resolved = rt.Resolve(c)
+		} else {
+			b.resolved = b.value
+		}
+	}
+	return b.resolved
 }
 
 func (b *hashBuilder) get(key eval.Value) builder {
@@ -122,6 +130,9 @@ func (b *objectHashBuilder) resolve(c eval.Context) eval.Value {
 		b.hashBuilder.resolve(c)
 		b.object.InitFromHash(c, b.hashBuilder.resolve(c).(*types.HashValue))
 		b.resolved = b.object
+		if rt, ok := b.object.(eval.ResolvableType); ok {
+			b.resolved = rt.Resolve(c)
+		}
 	}
 	return b.resolved
 }
@@ -301,7 +312,7 @@ func (f *FromDataConverter) buildArray(doer eval.Doer) eval.Value {
 }
 
 func (f *FromDataConverter) buildValue(value eval.Value) eval.Value {
-	return f.build(&valueBuilder{value}, nil)
+	return f.build(&valueBuilder{value: value}, nil)
 }
 
 func (f *FromDataConverter) build(vx builder, doer eval.Doer) eval.Value {
