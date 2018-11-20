@@ -85,12 +85,8 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []refle
 	}
 
 	mt := m.Type
-	maxReturn := 1
-	if f.ReturnsError() {
-		maxReturn = 2
-	}
 	pc := mt.NumIn()
-	if mt.NumOut() > maxReturn || pc != len(args) {
+	if pc != len(args) {
 		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
 			[]eval.Signature{f.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}

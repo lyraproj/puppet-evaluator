@@ -15,7 +15,6 @@ import (
 	// not used) at this point
 	"context"
 	_ "github.com/puppetlabs/go-evaluator/functions"
-	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-parser/validator"
 	"github.com/puppetlabs/go-evaluator/threadlocal"
@@ -202,7 +201,7 @@ func (p *pcoreImpl) Try(actor func(eval.Context) error) (err error) {
 func (p *pcoreImpl) TryWithParent(parentCtx context.Context, actor func(eval.Context) error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if ri, ok := r.(issue.Reported); ok {
+			if ri, ok := r.(error); ok {
 				err = ri
 			} else {
 				panic(r)

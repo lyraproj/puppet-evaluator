@@ -437,6 +437,64 @@ func ExampleReflector_typeSetFromReflect() {
 	// visited Example Road 23
 }
 
+type twoValueReturn struct {
+}
+
+func (t *twoValueReturn) ReturnTwo() (string, int) {
+	return "number", 42
+}
+
+func (t *twoValueReturn) ReturnTwoAndErrorOk() (string, int, error) {
+	return "number", 42, nil
+}
+
+func (t *twoValueReturn) ReturnTwoAndErrorFail() (string, int, error) {
+	return ``, 0, fmt.Errorf(`bad things happened`)
+}
+
+func ExampleReflector_twoValueReturn() {
+  eval.Puppet.Do(func(c eval.Context) {
+  	gv := &twoValueReturn{}
+	  api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+	  c.AddTypes(api)
+	  v := eval.Wrap(c, gv)
+	  r, _ := api.Member(`return_two`)
+	  fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
+  })
+  // Output:
+  // ['number', 42]
+}
+
+func ExampleReflectortwoValueReturnErrorOk() {
+	eval.Puppet.Do(func(c eval.Context) {
+		gv := &twoValueReturn{}
+		api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+		c.AddTypes(api)
+		v := eval.Wrap(c, gv)
+		r, _ := api.Member(`return_two_and_error_ok`)
+		fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
+	})
+	// Output:
+	// ['number', 42]
+}
+
+func ExampleReflectortwoValueReturnErrorFail() {
+	err := eval.Puppet.Try(func(c eval.Context) error {
+		gv := &twoValueReturn{}
+		api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+		c.AddTypes(api)
+		v := eval.Wrap(c, gv)
+		r, _ := api.Member(`return_two_and_error_fail`)
+		r.Call(c, v, nil, eval.EMPTY_VALUES)
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	// Output:
+	// bad things happened
+}
+
 type valueStruct struct {
 	X eval.OrderedMap
 	Y *types.ArrayValue
