@@ -50,19 +50,6 @@ const (
 	FLOAT_PATTERN   = `\A` + SIGN_PREFIX + `(?:` + FLOAT_DEC + `|` + INTEGER_HEX + `|` + INTEGER_OCT + `|` + INTEGER_BIN + `)\z`
 )
 
-type objectTypeAndCtor struct {
-	typ  eval.ObjectType
-	ctor eval.DispatchFunction
-}
-
-func (rt *objectTypeAndCtor) PType() eval.ObjectType {
-	return rt.typ
-}
-
-func (rt *objectTypeAndCtor) Creator() eval.DispatchFunction {
-	return rt.ctor
-}
-
 // isInstance answers if value is an instance of the given puppeType
 func isInstance(puppetType eval.Type, value eval.Value) bool {
 	return GuardedIsInstance(puppetType, value, nil)
@@ -107,7 +94,7 @@ func GuardedIsInstance(a eval.Type, v eval.Value, g eval.Guard) bool {
 }
 
 func GuardedIsAssignable(a eval.Type, b eval.Type, g eval.Guard) bool {
-	if a == anyType_DEFAULT {
+	if a == b || a == anyType_DEFAULT {
 		return true
 	}
 	switch b.(type) {
@@ -212,11 +199,17 @@ func basicTypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RD
 			if ts, ok := s.Property(`typeSet`); ok {
 				name = stripTypeSetName(ts, name)
 			}
-			io.WriteString(b, name)
+			_, err := io.WriteString(b, name)
+			if err != nil {
+				panic(err)
+			}
 			return
 		}
 	}
-	io.WriteString(b, name)
+	_, err := io.WriteString(b, name)
+	if err != nil {
+		panic(err)
+	}
 	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
@@ -466,8 +459,16 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 		pv = v.(eval.Value)
 	case string:
 		pv = WrapString(v.(string))
+	case int8:
+		pv = WrapInteger(int64(v.(int8)))
+	case int16:
+		pv = WrapInteger(int64(v.(int16)))
+	case int32:
+		pv = WrapInteger(int64(v.(int32)))
 	case int64:
 		pv = WrapInteger(v.(int64))
+	case byte:
+		pv = WrapInteger(int64(v.(byte)))
 	case int:
 		pv = WrapInteger(int64(v.(int)))
 	case float64:
@@ -690,7 +691,7 @@ var primitiveRTypes = map[reflect.Kind]reflect.Type{
 	reflect.Uint64: reflect.TypeOf(uint64(0)),
 	reflect.Float32: reflect.TypeOf(float32(0)),
 	reflect.Float64: reflect.TypeOf(float64(0)),
-	reflect.Bool: reflect.TypeOf(bool(false)),
+	reflect.Bool: reflect.TypeOf(false),
 }
 
 func PrimitiveRType(vt reflect.Type) (pt reflect.Type, ok bool) {
@@ -848,7 +849,7 @@ func stringArg(hash eval.OrderedMap, key string, d string) string {
 	panic(argError(DefaultStringType(), v))
 }
 
-func uriArg(c eval.Context, hash eval.OrderedMap, key string, d eval.URI) eval.URI {
+func uriArg(hash eval.OrderedMap, key string, d eval.URI) eval.URI {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
@@ -866,15 +867,15 @@ func uriArg(c eval.Context, hash eval.OrderedMap, key string, d eval.URI) eval.U
 	panic(argError(DefaultUriType(), v))
 }
 
-func versionArg(c eval.Context, hash eval.OrderedMap, key string, d semver.Version) semver.Version {
+func versionArg(hash eval.OrderedMap, key string, d semver.Version) semver.Version {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
 	if s, ok := v.(*StringValue); ok {
-		sv, error := semver.ParseVersion(s.String())
-		if error != nil {
-			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		sv, err := semver.ParseVersion(s.String())
+		if err != nil {
+			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: err.Error()}))
 		}
 		return sv
 	}
@@ -884,15 +885,15 @@ func versionArg(c eval.Context, hash eval.OrderedMap, key string, d semver.Versi
 	panic(argError(DefaultSemVerType(), v))
 }
 
-func versionRangeArg(c eval.Context, hash eval.OrderedMap, key string, d semver.VersionRange) semver.VersionRange {
+func versionRangeArg(hash eval.OrderedMap, key string, d semver.VersionRange) semver.VersionRange {
 	v := hash.Get5(key, nil)
 	if v == nil {
 		return d
 	}
 	if s, ok := v.(*StringValue); ok {
-		sr, error := semver.ParseVersionRange(s.String())
-		if error != nil {
-			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: error.Error()}))
+		sr, err := semver.ParseVersionRange(s.String())
+		if err != nil {
+			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: err.Error()}))
 		}
 		return sr
 	}

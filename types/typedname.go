@@ -39,7 +39,7 @@ func init() {
 		if len(args) > 2 {
 			return newTypedName2(ns, n, eval.URI(args[2].(*UriValue).String()))
 		}
-		return newTypedName(ns, n)
+		return NewTypedName(ns, n)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*HashValue)
 		ns := eval.Namespace(h.Get5(`namespace`, eval.EMPTY_STRING).(*StringValue).String())
@@ -47,7 +47,7 @@ func init() {
 		if x, ok := h.Get4(`authority`); ok {
 			return newTypedName2(ns, n, eval.URI(x.(*UriValue).String()))
 		}
-		return newTypedName(ns, n)
+		return NewTypedName(ns, n)
 	})
 }
 
@@ -113,7 +113,7 @@ func (t *typedName) InitHash() eval.OrderedMap {
 	return WrapHash(es)
 }
 
-func newTypedName(namespace eval.Namespace, name string) eval.TypedName {
+func NewTypedName(namespace eval.Namespace, name string) eval.TypedName {
 	return newTypedName2(namespace, name, eval.RUNTIME_NAME_AUTHORITY)
 }
 

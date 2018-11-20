@@ -93,12 +93,12 @@ type (
 	}
 )
 
-func newTypeSetReference(c eval.Context, t *typeSet, ref *HashValue) *typeSetReference {
+func newTypeSetReference(t *typeSet, ref *HashValue) *typeSetReference {
 	r := &typeSetReference{
 		owner:         t,
-		nameAuthority: uriArg(c, ref, KEY_NAME_AUTHORITY, t.nameAuthority),
+		nameAuthority: uriArg(ref, KEY_NAME_AUTHORITY, t.nameAuthority),
 		name:          stringArg(ref, KEY_NAME, ``),
-		versionRange:  versionRangeArg(c, ref, KEY_VERSION_RANGE, nil),
+		versionRange:  versionRangeArg(ref, KEY_VERSION_RANGE, nil),
 	}
 	r.annotatable.initialize(ref)
 	return r
@@ -219,7 +219,7 @@ func (t *typeSet) Default() eval.Type {
 
 func (t *typeSet) Equals(other interface{}, guard eval.Guard) bool {
 	if ot, ok := other.(*typeSet); ok {
-		return t.name == ot.name && t.nameAuthority == ot.nameAuthority && t.pcoreURI == ot.pcoreURI && t.pcoreVersion == ot.pcoreVersion && t.version == ot.version
+		return t.name == ot.name && t.nameAuthority == ot.nameAuthority && t.pcoreURI == ot.pcoreURI && t.pcoreVersion.Equals(ot.pcoreVersion) && t.version.Equals(ot.version)
 	}
 	return false
 }
@@ -231,15 +231,15 @@ func (t *typeSet) Generic() eval.Type {
 func (t *typeSet) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	eval.AssertInstance(`typeset initializer`, TYPE_TYPESET_INIT, initHash)
 	t.name = stringArg(initHash, KEY_NAME, t.name)
-	t.nameAuthority = uriArg(c, initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
+	t.nameAuthority = uriArg(initHash, KEY_NAME_AUTHORITY, t.nameAuthority)
 
-	t.pcoreVersion = versionArg(c, initHash, eval.KEY_PCORE_VERSION, nil)
+	t.pcoreVersion = versionArg(initHash, eval.KEY_PCORE_VERSION, nil)
 	if !eval.PARSABLE_PCORE_VERSIONS.Includes(t.pcoreVersion) {
 		panic(eval.Error(eval.EVAL_UNHANDLED_PCORE_VERSION,
 			issue.H{`name`: t.name, `expected_range`: eval.PARSABLE_PCORE_VERSIONS, `pcore_version`: t.pcoreVersion}))
 	}
-	t.pcoreURI = uriArg(c, initHash, eval.KEY_PCORE_URI, ``)
-	t.version = versionArg(c, initHash, KEY_VERSION, nil)
+	t.pcoreURI = uriArg(initHash, eval.KEY_PCORE_URI, ``)
+	t.version = versionArg(initHash, KEY_VERSION, nil)
 	t.types = hashArg(initHash, KEY_TYPES)
 	t.types.EachKey(func(kv eval.Value) {
 		key := kv.String()
@@ -263,7 +263,7 @@ func (t *typeSet) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 					issue.H{`name`: t.name, `ref_alias`: refAlias}))
 			}
 
-			ref := newTypeSetReference(c, t, v.(*HashValue))
+			ref := newTypeSetReference(t, v.(*HashValue))
 			refName := ref.name
 			refNA := ref.nameAuthority
 			naRoots, found := rootMap[refNA]
@@ -701,7 +701,7 @@ func (t *typeSet) resolveLiteralHash(c eval.Context, lh *parser.LiteralHash) *Ha
 func (t *typeSet) resolveNameAuthority(hash *HashValue, c eval.Context, location issue.Location) eval.URI {
 	nameAuth := t.nameAuthority
 	if nameAuth == `` {
-		nameAuth = uriArg(c, hash, KEY_NAME_AUTHORITY, ``)
+		nameAuth = uriArg(hash, KEY_NAME_AUTHORITY, ``)
 		if nameAuth == `` {
 			if tsLoader, ok := c.Loader().(eval.TypeSetLoader); ok {
 				nameAuth = tsLoader.TypeSet().(*typeSet).NameAuthority()

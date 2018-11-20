@@ -11,7 +11,7 @@ type AnyType struct{}
 var Any_Type eval.ObjectType
 
 func init() {
-	eval.NewTypedName = newTypedName
+	eval.NewTypedName = NewTypedName
 	eval.NewTypedName2 = newTypedName2
 	eval.TypedNameFromMapKey = typedNameFromMapKey
 

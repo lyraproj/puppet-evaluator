@@ -258,18 +258,42 @@ func (t *objectType) Equals(other interface{}, guard eval.Guard) bool {
 	if !ok {
 		return false
 	}
-
-	if t.name == `` || ot.name == `` {
-		return t == ot
+	if t.initHashExpression != nil || ot.initHashExpression != nil {
+		// Not yet resolved.
+		return false
+	}
+	if t.name != ot.name {
+		return false
+	}
+	if t.equalityIncludeType != ot.equalityIncludeType {
+		return false
 	}
 
-	if t.name == ot.name {
-		if t.loader == nil {
-			return ot.loader == nil
+	pa := t.resolvedParent()
+	pb := ot.resolvedParent()
+	if pa == nil {
+		if pb != nil {
+			return false
 		}
-		return ot.loader != nil && t.loader.NameAuthority() == ot.loader.NameAuthority()
+	} else {
+		if pb == nil {
+			return false
+		}
+		if !pa.Equals(pb, guard) {
+			return false
+		}
 	}
-	return false
+	if guard == nil {
+		guard = make(eval.Guard)
+	}
+	if guard.Seen(t, ot) {
+		return true
+	}
+	return t.attributes.Equals(ot.attributes, guard) &&
+		t.functions.Equals(ot.functions, guard) &&
+		t.parameters.Equals(ot.parameters, guard) &&
+		eval.GuardedEquals(t.equality, ot.equality, guard) &&
+		eval.GuardedEquals(t.serialization, ot.serialization, guard)
 }
 
 func (t *objectType) FromReflectedValue(c eval.Context, src reflect.Value) eval.PuppetObject {
@@ -358,9 +382,12 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 
 	if t.parent == nil {
 		if pt, ok := initHash.Get4(KEY_PARENT); ok {
-			if pn, ok := pt.(*StringValue); ok {
-				t.parent = t.parseAttributeType(c, ``, `parent`, pn)
-			} else {
+			switch pt.(type) {
+			case *StringValue:
+				t.parent = t.parseAttributeType(c, ``, `parent`, pt.(*StringValue))
+			case *TypeReferenceType:
+				t.parent = pt.(*TypeReferenceType).Resolve(c)
+			default:
 				t.parent = pt.(eval.Type)
 			}
 		}
@@ -1035,9 +1062,13 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			return
 		}
 	} else {
-		dl.SetEntry(eval.NewTypedName(eval.ALLOCATOR, t.name), eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.Value) eval.Value {
-			return AllocObjectValue(c, t)
-		}), nil))
+		tn := eval.NewTypedName(eval.ALLOCATOR, t.name)
+		le := dl.LoadEntry(c, tn)
+		if le == nil || le.Value() == nil {
+			dl.SetEntry(tn, eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.Value) eval.Value {
+				return AllocObjectValue(c, t)
+			}), nil))
+		}
 
 		functions = []eval.DispatchFunction{
 			// Positional argument creator

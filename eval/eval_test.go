@@ -36,7 +36,7 @@ func ExampleWrap_slice() {
 	fmt.Printf("%s is an %s\n", arr, arr.PType())
 
 	// Output:
-	// [1, '2', true, undef, 'hello'] is an Array[5, 5]
+	// [1, '2', true, undef, 'hello'] is an Array[Data, 5, 5]
 }
 
 func ExampleWrap_hash() {

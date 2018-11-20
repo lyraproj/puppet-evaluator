@@ -6,6 +6,7 @@ import (
 
 const (
 	EVAL_ARGUMENTS_ERROR                           = `EVAL_ARGUMENTS_ERROR`
+	EVAL_ATTEMPT_TO_REDEFINE                       = `EVAL_ATTEMPT_TO_REDEFINE`
 	EVAL_ATTEMPT_TO_SET_UNSETTABLE                 = `EVAL_ATTEMPT_TO_SET_UNSETTABLE`
 	EVAL_ATTEMPT_TO_SET_WRONG_KIND                 = `EVAL_ATTEMPT_TO_SET_WRONG_KIND`
 	EVAL_ATTRIBUTE_HAS_NO_VALUE                    = `EVAL_ATTRIBUTE_HAS_NO_VALUE`
@@ -125,6 +126,8 @@ const (
 
 func init() {
 	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: issue.A_an})
+
+	issue.Hard(EVAL_ATTEMPT_TO_REDEFINE, `attempt to redefine %{name}`)
 
 	issue.Hard(EVAL_ATTEMPT_TO_SET_UNSETTABLE, `attempt to set a value of kind %{kind} in an unsettable reflect.Value`)
 

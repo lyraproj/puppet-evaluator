@@ -19,6 +19,7 @@ type (
 		context         eval.Context
 		richDataFuncs   map[string]richDataFunc
 		defaultFunc     richDataFunc
+		newTypes        []eval.Type
 	}
 
 	builder interface {
@@ -64,11 +65,7 @@ func (b *valueBuilder) put(key eval.Value, value builder) {
 
 func (b *valueBuilder) resolve(c eval.Context) eval.Value {
 	if b.resolved == nil {
-		if rt, ok := b.value.(eval.ResolvableType); ok {
-			b.resolved = rt.Resolve(c)
-		} else {
-			b.resolved = b.value
-		}
+		b.resolved = b.value
 	}
 	return b.resolved
 }
@@ -130,9 +127,6 @@ func (b *objectHashBuilder) resolve(c eval.Context) eval.Value {
 		b.hashBuilder.resolve(c)
 		b.object.InitFromHash(c, b.hashBuilder.resolve(c).(*types.HashValue))
 		b.resolved = b.object
-		if rt, ok := b.object.(eval.ResolvableType); ok {
-			b.resolved = rt.Resolve(c)
-		}
 	}
 	return b.resolved
 }
@@ -280,6 +274,14 @@ func resolveJsonPath(c eval.Context, lhs builder, path string) (eval.Value, bool
 }
 
 func (f *FromDataConverter) Convert(value eval.Value) eval.Value {
+	if f.newTypes == nil {
+		f.newTypes = make([]eval.Type, 0, 4)
+		defer func() {
+			nts := f.newTypes
+			f.newTypes = nil
+			f.context.AddTypes(nts...)
+		}()
+	}
 	if hash, ok := value.(*types.HashValue); ok {
 		if pcoreType, ok := hash.Get4(PCORE_TYPE_KEY); ok {
 			key := pcoreType.String()
@@ -312,7 +314,21 @@ func (f *FromDataConverter) buildArray(doer eval.Doer) eval.Value {
 }
 
 func (f *FromDataConverter) buildValue(value eval.Value) eval.Value {
-	return f.build(&valueBuilder{value: value}, nil)
+	v := f.build(&valueBuilder{value: value}, nil)
+	switch v.(type) {
+	case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
+		rt := v.(eval.ResolvableType)
+		tn := eval.NewTypedName(eval.TYPE, rt.Name())
+		if lt, ok := eval.Load(f.context, tn); ok && lt != rt {
+			t := rt.Resolve(f.context)
+			if t.Equals(lt, nil) {
+				return lt.(eval.Value)
+			}
+			panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
+		}
+		f.newTypes = append(f.newTypes, rt)
+	}
+	return v
 }
 
 func (f *FromDataConverter) build(vx builder, doer eval.Doer) eval.Value {
