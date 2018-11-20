@@ -23,6 +23,13 @@ func (t *typeParameter) initHash() *hash.StringHash {
 	return hash
 }
 
+func (t *typeParameter) Equals(o interface{}, g eval.Guard) bool {
+	if ot, ok := o.(*typeParameter); ok {
+		return t.attribute.Equals(&ot.attribute, g)
+	}
+	return false
+}
+
 func (t *typeParameter) InitHash() eval.OrderedMap {
 	return WrapStringPValue(t.initHash())
 }

@@ -148,11 +148,11 @@ var DEFAULT_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{
 var DEFAULT_CONTAINER_FORMATS = eval.FormatMap(WrapHash([]*HashEntry{
 	WrapHashEntry(DefaultObjectType(), DEFAULT_OBJECT_CONTAINER_FORMAT),
 	WrapHashEntry(DefaultTypeType(), DEFAULT_OBJECT_CONTAINER_FORMAT),
-	WrapHashEntry(DefaultFloatType(), simpleFormat('f')),
-	WrapHashEntry(DefaultNumericType(), simpleFormat('d')),
+	WrapHashEntry(DefaultFloatType(), DEFAULT_PROGRAM_FORMAT),
+	WrapHashEntry(DefaultNumericType(), DEFAULT_PROGRAM_FORMAT),
 	WrapHashEntry(DefaultArrayType(), DEFAULT_ARRAY_CONTAINER_FORMAT),
 	WrapHashEntry(DefaultHashType(), DEFAULT_HASH_CONTAINER_FORMAT),
-	WrapHashEntry(DefaultBinaryType(), simpleFormat('B')),
+	WrapHashEntry(DefaultBinaryType(), DEFAULT_PROGRAM_FORMAT),
 	WrapHashEntry(DefaultAnyType(), DEFAULT_PROGRAM_FORMAT),
 }))
 

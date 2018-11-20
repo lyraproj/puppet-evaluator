@@ -254,6 +254,9 @@ func (t *objectType) EqualityAttributes() *hash.StringHash {
 }
 
 func (t *objectType) Equals(other interface{}, guard eval.Guard) bool {
+	if t == other {
+		return true
+	}
 	ot, ok := other.(*objectType)
 	if !ok {
 		return false

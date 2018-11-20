@@ -141,11 +141,10 @@ func (t *TypeAliasType) Name() string {
 }
 
 func (t *TypeAliasType) Resolve(c eval.Context) eval.Type {
-	if t.resolvedType != nil {
-		panic(fmt.Sprintf(`Attempt to resolve already resolved type %s`, t.name))
+	if t.resolvedType == nil {
+		t.resolvedType = c.ResolveType(t.typeExpression)
+		t.loader = c.Loader()
 	}
-	t.resolvedType = c.ResolveType(t.typeExpression)
-	t.loader = c.Loader()
 	return t
 }
 
