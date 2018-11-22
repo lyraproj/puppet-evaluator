@@ -18,13 +18,13 @@ func callNew(c eval.Context, typ eval.Value, args []eval.Value, block eval.Lambd
 		name = ot.Name()
 	} else {
 		name = typ.String()
-		if t, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, name)); ok {
+		if t, ok := eval.Load(c, eval.NewTypedName(eval.NsType, name)); ok {
 			if ot, ok := t.(eval.ObjectType); ok {
 				ctor = ot.Constructor()
 			}
 		}
 		if ctor == nil {
-			tn := eval.NewTypedName(eval.CONSTRUCTOR, name)
+			tn := eval.NewTypedName(eval.NsConstructor, name)
 			if t, ok := eval.Load(c, tn); ok {
 				ctor = t.(eval.Function)
 			}

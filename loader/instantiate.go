@@ -18,13 +18,13 @@ func InstantiatePuppetActivityFromFile(ctx eval.Context, loader ContentProviding
 	content := string(loader.GetContent(ctx, file))
 	expr := ctx.ParseAndValidate(file, content, false)
 	name := `<any name>`
-	fd, ok := getDefinition(expr, eval.ACTIVITY, name).(parser.NamedDefinition)
+	fd, ok := getDefinition(expr, eval.NsActivity, name).(parser.NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.ACTIVITY, `name`: name}))
+		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsActivity, `name`: name}))
 	}
 	ctx.AddDefinitions(expr)
 	ctx.ResolveDefinitions()
-	return eval.NewTypedName(eval.ACTIVITY, fd.Name())
+	return eval.NewTypedName(eval.NsActivity, fd.Name())
 }
 
 func InstantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
@@ -55,7 +55,7 @@ func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn e
 	content := string(loader.GetContent(ctx, sources[0]))
 	expr := ctx.ParseAndValidate(sources[0], content, false)
 	name := tn.Name()
-	def := getDefinition(expr, eval.TYPE, name)
+	def := getDefinition(expr, eval.NsType, name)
 	var tdn string
 	switch def.(type) {
 	case *parser.TypeAlias:
@@ -65,10 +65,10 @@ func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn e
 	case *parser.TypeMapping:
 		tdn = def.(*parser.TypeMapping).Type().Label()
 	default:
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.TYPE, `name`: name}))
+		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsType, `name`: name}))
 	}
 	if strings.ToLower(tdn) != strings.ToLower(name) {
-		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.TYPE, `expected`: name, `actual`: tdn}))
+		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsType, `expected`: name, `actual`: tdn}))
 	}
 	ctx.AddDefinitions(expr)
 	ctx.ResolveDefinitions()
@@ -139,7 +139,7 @@ func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[stri
 		arguments[key] = value
 	}
 
-	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.CONSTRUCTOR, `Task`)); ok {
+	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.NsConstructor, `Task`)); ok {
 		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapStringToInterfaceMap(ctx, arguments))
 	}
 	panic(eval.Error(eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))

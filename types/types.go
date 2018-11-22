@@ -721,7 +721,7 @@ func newTypeAlias(name, typeDecl string) eval.Type {
 		registerResolvableType(at)
 		return at
 	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}), fileName, fileLine))
 }
 
 func convertReported(err error, fileName string, lineOffset int) error {
@@ -736,7 +736,7 @@ func CreateTypeDefinition(d parser.Definition, na eval.URI) (interface{}, eval.T
 	case *parser.TypeAlias:
 		taExpr := d.(*parser.TypeAlias)
 		name := taExpr.Name()
-		return createTypeDefinition(na, name, taExpr.Type()), eval.NewTypedName2(eval.TYPE, name, na)
+		return createTypeDefinition(na, name, taExpr.Type()), eval.NewTypedName2(eval.NsType, name, na)
 	default:
 		panic(fmt.Sprintf(`Don't know how to define a %T`, d))
 	}

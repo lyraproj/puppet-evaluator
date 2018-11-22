@@ -43,9 +43,9 @@ func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables .
 			basicLoader: basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)},
 			parent:      parent},
 		path:            path,
-		initPlanName:    eval.NewTypedName2(eval.PLAN, `init`, parent.NameAuthority()),
-		initTaskName:    eval.NewTypedName2(eval.TASK, `init`, parent.NameAuthority()),
-		initTypeSetName: eval.NewTypedName2(eval.TYPE, `init_typeset`, parent.NameAuthority()),
+		initPlanName:    eval.NewTypedName2(eval.NsPlan, `init`, parent.NameAuthority()),
+		initTaskName:    eval.NewTypedName2(eval.NsTask, `init`, parent.NameAuthority()),
+		initTypeSetName: eval.NewTypedName2(eval.NsType, `init_typeset`, parent.NameAuthority()),
 		moduleName:      moduleName,
 		paths:           paths}
 
@@ -79,7 +79,7 @@ func (l *fileBasedLoader) newPuppetActivityPath(moduleNameRelative bool) SmartPa
 	return &smartPath{
 		relativePath:       `activities`,
 		loader:             l,
-		namespace:          eval.ACTIVITY,
+		namespace:          eval.NsActivity,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -91,7 +91,7 @@ func (l *fileBasedLoader) newPuppetFunctionPath(moduleNameRelative bool) SmartPa
 	return &smartPath{
 		relativePath:       `functions`,
 		loader:             l,
-		namespace:          eval.FUNCTION,
+		namespace:          eval.NsFunction,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -103,7 +103,7 @@ func (l *fileBasedLoader) newPlanPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `plans`,
 		loader:             l,
-		namespace:          eval.PLAN,
+		namespace:          eval.NsPlan,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -115,7 +115,7 @@ func (l *fileBasedLoader) newPuppetTypePath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `types`,
 		loader:             l,
-		namespace:          eval.TYPE,
+		namespace:          eval.NsType,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,
@@ -127,7 +127,7 @@ func (l *fileBasedLoader) newTaskPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `tasks`,
 		loader:             l,
-		namespace:          eval.TASK,
+		namespace:          eval.NsTask,
 		extension:          ``,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          true,
@@ -164,16 +164,16 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 			// ok since such a "module" cannot have namespaced content).
 			return nil
 		}
-		if name.Namespace() == eval.TASK && len(name.Parts()) > 2 {
+		if name.Namespace() == eval.NsTask && len(name.Parts()) > 2 {
 			// Subdirectories beneath the tasks directory are currently not recognized
 			return nil
 		}
 	} else {
 		// The name is in the global name space.
 		switch name.Namespace() {
-		case eval.FUNCTION:
+		case eval.NsFunction:
 			// Can be defined in module using a global name. No action required
-		case eval.PLAN:
+		case eval.NsPlan:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.Parts()[0] {
@@ -188,7 +188,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 				}
 				return l.instantiate(c, smartPath, name, origins)
 			}
-		case eval.TASK:
+		case eval.NsTask:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.Parts()[0] {
@@ -203,7 +203,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 				}
 				return l.instantiate(c, smartPath, name, origins)
 			}
-		case eval.TYPE:
+		case eval.NsType:
 			if !l.isGlobal() {
 				// Global name must be the name of the module
 				if l.moduleName != name.Parts()[0] {
@@ -235,7 +235,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 		return l.instantiate(c, smartPath, name, origins)
 	}
 
-	if !(name.Namespace() == eval.TYPE && name.IsQualified()) {
+	if !(name.Namespace() == eval.NsType && name.IsQualified()) {
 		return nil
 	}
 

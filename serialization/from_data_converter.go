@@ -318,7 +318,7 @@ func (f *FromDataConverter) buildValue(value eval.Value) eval.Value {
 	switch v.(type) {
 	case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
 		rt := v.(eval.ResolvableType)
-		tn := eval.NewTypedName(eval.TYPE, rt.Name())
+		tn := eval.NewTypedName(eval.NsType, rt.Name())
 		if lt, ok := eval.Load(f.context, tn); ok && lt != rt {
 			t := rt.Resolve(f.context)
 			if t.Equals(lt, nil) {
@@ -392,7 +392,7 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.Type, value eval.Value
 }
 
 func (f *FromDataConverter) allocate(typ eval.Type) (eval.Object, bool) {
-	if allocator, ok := eval.Load(f.context, eval.NewTypedName(eval.ALLOCATOR, typ.Name())); ok {
+	if allocator, ok := eval.Load(f.context, eval.NewTypedName(eval.NsAllocator, typ.Name())); ok {
 		return allocator.(eval.Lambda).Call(nil, nil).(eval.Object), true
 	}
 	return nil, false

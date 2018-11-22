@@ -167,7 +167,7 @@ func (e *evaluator) call(funcType eval.Namespace, name string, args []eval.Value
 	tn := eval.NewTypedName2(funcType, name, c.Loader().NameAuthority())
 	f, ok := eval.Load(c, tn)
 	if !ok {
-		if funcType == eval.FUNCTION && c.Language() == eval.LangJavaScript {
+		if funcType == eval.NsFunction && c.Language() == eval.LangJavaScript {
 			// Might be the name of a variable.
 			f, ok = c.Scope().Get(name)
 		}
@@ -654,7 +654,7 @@ func (e *evaluator) internalEval(expr parser.Expression, c eval.Context) eval.Va
 }
 
 func (e *evaluator) loadType(name string, c eval.Context) eval.Type {
-	tn := eval.NewTypedName2(eval.TYPE, name, c.Loader().NameAuthority())
+	tn := eval.NewTypedName2(eval.NsType, name, c.Loader().NameAuthority())
 	found, ok := eval.Load(c, tn)
 	if ok {
 		return found.(eval.Type)

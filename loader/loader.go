@@ -37,7 +37,7 @@ var resolvableFunctionsLock sync.Mutex
 func init() {
 	sh := staticLoader.namedEntries
 	impl.EachCoreType(func(t eval.Type) {
-		sh[types.NewTypedName(eval.TYPE, t.Name()).MapKey()] = &loaderEntry{t, nil}
+		sh[types.NewTypedName(eval.NsType, t.Name()).MapKey()] = &loaderEntry{t, nil}
 	})
 
 	eval.StaticLoader = func() eval.Loader {
@@ -90,12 +90,12 @@ func (l *basicLoader) ResolveResolvables(c eval.Context) {
 	ctors := types.PopDeclaredConstructors()
 	for _, ct := range ctors {
 		rf := eval.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
-		l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
+		l.SetEntry(eval.NewTypedName(eval.NsConstructor, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
 	}
 
 	funcs := popDeclaredGoFunctions()
 	for _, rf := range funcs {
-		l.SetEntry(eval.NewTypedName(eval.FUNCTION, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
+		l.SetEntry(eval.NewTypedName(eval.NsFunction, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
 	}
 }
 

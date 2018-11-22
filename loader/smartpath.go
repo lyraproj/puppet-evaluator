@@ -97,7 +97,7 @@ func (p *smartPath) PreferredOrigin(origins []string) string {
 	if len(origins) == 1 {
 		return origins[0]
 	}
-	if p.namespace == eval.TASK {
+	if p.namespace == eval.NsTask {
 		// Prefer .json file if present
 		for _, origin := range origins {
 			if strings.HasSuffix(origin, `.json`) {

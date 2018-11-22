@@ -122,7 +122,7 @@ func (r *typeSetReference) Equals(other interface{}, g eval.Guard) bool {
 }
 
 func (r *typeSetReference) resolve(c eval.Context) {
-	tn := eval.NewTypedName2(eval.TYPE, r.name, r.nameAuthority)
+	tn := eval.NewTypedName2(eval.NsType, r.name, r.nameAuthority)
 	loadedEntry := c.Loader().LoadEntry(c, tn)
 	if loadedEntry != nil {
 		if ts, ok := loadedEntry.Value().(*typeSet); ok {
@@ -322,7 +322,7 @@ func (t *typeSet) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *typeSet) GetType(typedName eval.TypedName) (eval.Type, bool) {
-	if !(typedName.Namespace() == eval.TYPE && typedName.Authority() == t.nameAuthority) {
+	if !(typedName.Namespace() == eval.NsType && typedName.Authority() == t.nameAuthority) {
 		return nil, false
 	}
 
@@ -422,7 +422,7 @@ func (t *typeSet) Resolve(c eval.Context) eval.Type {
 	}
 	t.loader = c.Loader()
 	t.InitFromHash(c, initHash)
-	t.typedName = eval.NewTypedName2(eval.TYPE, t.name, t.nameAuthority)
+	t.typedName = eval.NewTypedName2(eval.NsType, t.name, t.nameAuthority)
 
 	for _, ref := range t.references {
 		ref.resolve(c)
@@ -732,5 +732,5 @@ func newTypeSet(name, typeDecl string) eval.TypeSet {
 		registerResolvableType(rt.(eval.ResolvableType))
 		return rt.(eval.TypeSet)
 	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}), fileName, fileLine))
 }

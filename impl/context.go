@@ -76,7 +76,7 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 func (c *evalCtx) AddTypes(types ...eval.Type) {
 	l := c.DefiningLoader()
 	for _, t := range types {
-		l.SetEntry(eval.NewTypedName(eval.TYPE, t.Name()), eval.NewLoaderEntry(t, nil))
+		l.SetEntry(eval.NewTypedName(eval.NsType, t.Name()), eval.NewLoaderEntry(t, nil))
 	}
 	c.resolveTypes(types...)
 }
@@ -336,15 +336,15 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	switch d.(type) {
 	case *parser.ActivityExpression:
 		wf := d.(*parser.ActivityExpression)
-		tn = eval.NewTypedName2(eval.ACTIVITY, wf.Name(), loader.NameAuthority())
+		tn = eval.NewTypedName2(eval.NsActivity, wf.Name(), loader.NameAuthority())
 		ta = NewPuppetActivity(c, wf)
 	case *parser.PlanDefinition:
 		pe := d.(*parser.PlanDefinition)
-		tn = eval.NewTypedName2(eval.PLAN, pe.Name(), loader.NameAuthority())
+		tn = eval.NewTypedName2(eval.NsPlan, pe.Name(), loader.NameAuthority())
 		ta = NewPuppetPlan(pe)
 	case *parser.FunctionDefinition:
 		fe := d.(*parser.FunctionDefinition)
-		tn = eval.NewTypedName2(eval.FUNCTION, fe.Name(), loader.NameAuthority())
+		tn = eval.NewTypedName2(eval.NsFunction, fe.Name(), loader.NameAuthority())
 		ta = NewPuppetFunction(fe)
 	default:
 		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
@@ -367,7 +367,7 @@ func (c *evalCtx) resolveTypes(types ...eval.Type) {
 				typeSets = append(typeSets, ts)
 			} else if ot, ok := rt.(eval.ObjectType); ok {
 				if ctor := ot.Constructor(); ctor != nil {
-					l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+					l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
 				}
 			}
 		}
@@ -386,13 +386,13 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
 		}
 		// Types already known to the loader might have been added to a TypeSet. When that
 		// happens, we don't want them added again.
-		tn := eval.NewTypedName(eval.TYPE, t.Name())
+		tn := eval.NewTypedName(eval.NsType, t.Name())
 		le := l.LoadEntry(c, tn)
 		if le == nil || le.Value() == nil {
 			l.SetEntry(tn, eval.NewLoaderEntry(t, nil))
 			if ot, ok := t.(eval.ObjectType); ok {
 				if ctor := ot.Constructor(); ctor != nil {
-					l.SetEntry(eval.NewTypedName(eval.CONSTRUCTOR, t.Name()), eval.NewLoaderEntry(ctor, nil))
+					l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
 				}
 			}
 		}

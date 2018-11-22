@@ -99,7 +99,7 @@ func ExampleObjectType_fromReflectedValue() {
 
 	c := eval.Puppet.RootContext()
 	ts := &TestStruct{`the message`, `THE_KIND`, `THE_CODE`}
-	et, _ := eval.Load(c, eval.NewTypedName(eval.TYPE, `Error`))
+	et, _ := eval.Load(c, eval.NewTypedName(eval.NsType, `Error`))
 	ev := et.(eval.ObjectType).FromReflectedValue(c, reflect.ValueOf(ts).Elem())
 	fmt.Println(ev)
 	// Output: Error('message' => 'the message', 'kind' => 'THE_KIND', 'issue_code' => 'THE_CODE')

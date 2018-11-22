@@ -1065,7 +1065,7 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			return
 		}
 	} else {
-		tn := eval.NewTypedName(eval.ALLOCATOR, t.name)
+		tn := eval.NewTypedName(eval.NsAllocator, t.name)
 		le := dl.LoadEntry(c, tn)
 		if le == nil || le.Value() == nil {
 			dl.SetEntry(tn, eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.Value) eval.Value {
@@ -1279,7 +1279,7 @@ func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eva
 		registerResolvableType(ot)
 		return ot
 	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.TYPE, `name`: name}), fileName, fileLine))
+	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}), fileName, fileLine))
 }
 
 func newObjectType2(name string, parent eval.Type, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {

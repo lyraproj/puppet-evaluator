@@ -6,15 +6,45 @@ import (
 
 type Namespace string
 
-const (
-	ACTIVITY    = Namespace(`activity`)
-	TYPE        = Namespace(`type`)
-	FUNCTION    = Namespace(`function`)
-	PLAN        = Namespace(`plan`)
-	ALLOCATOR   = Namespace(`allocator`)
-	CONSTRUCTOR = Namespace(`constructor`)
-	TASK        = Namespace(`task`)
-)
+// Identifier TypedName namespaces. Used by a service to identify what the type of entity a loader
+// will look for.
+
+// NsType denotes a type in the Puppet type system
+const  NsType        = Namespace(`type`)
+
+// NsFunction denotes a callable function
+const  NsFunction    = Namespace(`function`)
+
+// NsInterface denotes an entity that must have an "interface" property that appoints
+// an object type which in turn contains a declaration of the methods that the interface
+// implements.
+const NsInterface = Namespace(`interface`)
+
+// NsActivity denotes an entity that can participate in a workflow. The entity must
+// declare input and output parameters. An activity of type "action" may also be an interface
+// in which case it must have an "interface" property
+const NsActivity = Namespace(`activity`)
+
+// ServiceId TypedName namespaces. Used by the Loader to determine the right type
+// of RPC mechanism to use when communicating with the service.
+
+// NsService denotes a remote service
+const NsService = Namespace(`service`)
+
+// Here in case of future Bolt integration with the Evaluator
+const  NsPlan        = Namespace(`plan`)
+const  NsTask        = Namespace(`task`)
+
+// For internal use only
+
+// NsAllocator returns a function capable of allocating an instance of an object
+// without initializing its content
+const NsAllocator   = Namespace(`allocator`)
+
+// NsConstructor denotes a function that both allocates an initializes an object based
+// on parameter values
+const NsConstructor = Namespace(`constructor`)
+
 
 type TypedName interface {
 	PuppetObject

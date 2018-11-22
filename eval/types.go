@@ -368,7 +368,7 @@ func MapTypes(types []Type, mapper TypeMapper) []Value {
 
 // New creates a new instance of type t
 func New(c Context, t Type, args ...Value) Value {
-	if ctor, ok := Load(c, NewTypedName(CONSTRUCTOR, t.Name())); ok {
+	if ctor, ok := Load(c, NewTypedName(NsConstructor, t.Name())); ok {
 		return ctor.(Function).Call(c, nil, args...)
 	}
 	panic(Error(EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
