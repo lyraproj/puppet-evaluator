@@ -14,9 +14,12 @@ type (
 		Origin() issue.Location
 	}
 
+
 	Loader interface {
+		// LoadEntry returns the requested entry or nil if no such entry can be found
 		LoadEntry(c Context, name TypedName) LoaderEntry
 
+		// NameAuthority returns the name authority
 		NameAuthority() URI
 	}
 
@@ -31,6 +34,7 @@ type (
 	ParentedLoader interface {
 		Loader
 
+		// Parent returns the parent loader
 		Parent() Loader
 	}
 
