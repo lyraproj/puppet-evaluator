@@ -28,6 +28,9 @@ const NsActivity = Namespace(`activity`)
 // ServiceId TypedName namespaces. Used by the Loader to determine the right type
 // of RPC mechanism to use when communicating with the service.
 
+// NsHandler denotes a handler for a state in a workflow
+const NsHandler = Namespace(`handler`)
+
 // NsService denotes a remote service
 const NsService = Namespace(`service`)
 
