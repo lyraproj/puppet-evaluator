@@ -20,10 +20,9 @@ const  NsFunction    = Namespace(`function`)
 // implements.
 const NsInterface = Namespace(`interface`)
 
-// NsActivity denotes an entity that can participate in a workflow. The entity must
-// declare input and output parameters. An activity of type "action" may also be an interface
-// in which case it must have an "interface" property
-const NsActivity = Namespace(`activity`)
+// NsDefinition denotes an entity that describes something that is provided by a remote service. Examples
+// of such entities are callable API's and activities that can participate in a workflow.
+const NsDefinition = Namespace(`definition`)
 
 // ServiceId TypedName namespaces. Used by the Loader to determine the right type
 // of RPC mechanism to use when communicating with the service.
