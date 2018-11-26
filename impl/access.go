@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.Context) (result eval.Value) {
+func eval_AccessExpression(e eval.Evaluator, expr *parser.AccessExpression, c eval.Context) (result eval.Value) {
 	keys := expr.Keys()
 	op := expr.Operand()
 	if qr, ok := op.(*parser.QualifiedReference); ok {
@@ -17,7 +17,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 				name := ``
 				ne := hash.Get(`name`)
 				if ne != nil {
-					name = e.eval(ne, c).String()
+					name = e.Eval(ne, c).String()
 				}
 				if qr.Name() == `Object` {
 					return types.NewObjectType(name, nil, hash)
@@ -26,7 +26,7 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 				na := eval.RUNTIME_NAME_AUTHORITY
 				ne = hash.Get(`name_authority`)
 				if ne != nil {
-					na = eval.URI(e.eval(ne, c).String())
+					na = eval.URI(e.Eval(ne, c).String())
 				}
 				return types.NewTypeSetType(na, name, hash)
 			}
@@ -35,43 +35,33 @@ func (e *evaluator) eval_AccessExpression(expr *parser.AccessExpression, c eval.
 		args := make([]eval.Value, len(keys))
 		c.DoStatic(func() {
 			for idx, key := range keys {
-				args[idx] = e.eval(key, c)
+				args[idx] = e.Eval(key, c)
 			}
 		})
-		return e.eval_ParameterizedTypeExpression(qr, args, expr, c)
+		return eval_ParameterizedTypeExpression(e, qr, args, expr, c)
 	}
 
 	args := make([]eval.Value, len(keys))
 	for idx, key := range keys {
-		args[idx] = e.eval(key, c)
+		args[idx] = e.Eval(key, c)
 	}
 
-	lhs := e.eval(op, c)
+	lhs := e.Eval(op, c)
 
 	switch lhs.(type) {
 	case eval.List:
-		return e.accessIndexedValue(expr, lhs.(eval.List), args, c)
+		return accessIndexedValue(expr, lhs.(eval.List), args, c)
 	default:
 		if tem, ok := lhs.PType().(eval.TypeWithCallableMembers); ok {
 			if mbr, ok := tem.Member(`[]`); ok {
 				return mbr.Call(c, lhs, nil, args)
 			}
-
-			if c.Language() == eval.LangJavaScript && len(args) == 1 {
-				// In JavaScript, x['y'] is equal to x.y
-				if s, ok := args[0].(*types.StringValue); ok {
-					if mbr, ok := tem.Member(s.String()); ok {
-						return mbr.Call(c, lhs, nil, []eval.Value{})
-					}
-					panic(e.evalError(eval.EVAL_ATTRIBUTE_NOT_FOUND, op, issue.H{`type`: lhs.PType(), `name`: s.String()}))
-				}
-			}
 		}
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
+	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
 }
 
-func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value, c eval.Context) (result eval.Value) {
+func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value, c eval.Context) (result eval.Value) {
 	nArgs := len(args)
 
 	intArg := func(index int) int {
@@ -79,7 +69,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 		if arg, ok := eval.ToInt(key); ok {
 			return int(arg)
 		}
-		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, expr.Keys()[index],
+		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, expr.Keys()[index],
 			issue.H{`expression`: lhs.PType(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
@@ -121,7 +111,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 			return eval.UNDEF
 		}
 		if nArgs == 0 {
-			panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `at least one`, `actual`: nArgs}))
+			panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
@@ -139,7 +129,7 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 	}
 
 	if nArgs == 0 || nArgs > 2 {
-		panic(e.evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `1 or 2`, `actual`: nArgs}))
+		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `1 or 2`, `actual`: nArgs}))
 	}
 	if nArgs == 2 {
 		start := indexArg(0)
@@ -168,11 +158,11 @@ func (e *evaluator) accessIndexedValue(expr *parser.AccessExpression, lhs eval.L
 	return lhs.At(pos)
 }
 
-func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression, c eval.Context) (tp eval.Type) {
+func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression, c eval.Context) (tp eval.Type) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {
-			e.convertCallError(err, expr, expr.Keys())
+			convertCallError(err, expr, expr.Keys())
 		}
 	}()
 
@@ -244,9 +234,9 @@ func (e *evaluator) eval_ParameterizedTypeExpression(qr *parser.QualifiedReferen
 	case `typealias`:
 	case `undef`:
 	case `unit`:
-		panic(e.evalError(eval.EVAL_NOT_PARAMETERIZED_TYPE, expr, issue.H{`type`: expr}))
+		panic(evalError(eval.EVAL_NOT_PARAMETERIZED_TYPE, expr, issue.H{`type`: expr}))
 	default:
-		oe := e.eval(qr, c)
+		oe := e.Eval(qr, c)
 		if oo, ok := oe.(eval.ObjectType); ok && oo.IsParameterized() {
 			tp = types.NewObjectTypeExtension(c, oo, args)
 		} else {

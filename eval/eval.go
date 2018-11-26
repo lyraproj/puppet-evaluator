@@ -9,11 +9,6 @@ import (
 // An Evaluator is responsible for evaluating an Abstract Syntax Tree, typically produced by
 // the parser. An implementation must be re-entrant.
 type Evaluator interface {
-	// CallFunction evaluates the given function call
-	CallFunction(name string, args []Value, call parser.CallExpression, c Context) Value
-
-	Evaluate(c Context, expression parser.Expression) (Value, issue.Reported)
-
 	// Eval should be considered internal. The only reason it is public is to allow
 	// the evaluator to be extended. This is subject to change. Don't use
 	Eval(expression parser.Expression, c Context) Value

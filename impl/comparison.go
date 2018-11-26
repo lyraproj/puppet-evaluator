@@ -10,7 +10,6 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
 	"github.com/puppetlabs/go-semver/semver"
-	"strconv"
 )
 
 func init() {
@@ -19,116 +18,19 @@ func init() {
 	}
 }
 
-func (e *evaluator) eval_ComparisonExpression(expr *parser.ComparisonExpression, c eval.Context) eval.Value {
-	return types.WrapBoolean(e.doCompare(expr, expr.Operator(), e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c), c))
+func eval_ComparisonExpression(e eval.Evaluator, expr *parser.ComparisonExpression, c eval.Context) eval.Value {
+	return types.WrapBoolean(doCompare(expr, expr.Operator(), e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c), c))
 }
 
-func (e *evaluator) doCompare(expr parser.Expression, op string, a, b eval.Value, c eval.Context) bool {
-	if c.Language() == eval.LangJavaScript {
-		return e.jsCompare(expr, op, a, b)
-	}
-	return e.compare(expr, op, a, b)
+func doCompare(expr parser.Expression, op string, a, b eval.Value, c eval.Context) bool {
+	return compare(expr, op, a, b)
 }
 
-func (e *evaluator) eval_MatchExpression(expr *parser.MatchExpression, c eval.Context) eval.Value {
-	return types.WrapBoolean(match(c, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c)))
+func eval_MatchExpression(e eval.Evaluator, expr *parser.MatchExpression, c eval.Context) eval.Value {
+	return types.WrapBoolean(match(c, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c)))
 }
 
-func (e *evaluator) jsCompare(expr parser.Expression, op string, a, b eval.Value) bool {
-	var result bool
-	switch op {
-	case `==`:
-		result = JsEquals(a, b, false)
-	case `!=`:
-		result = !JsEquals(a, b, false)
-	case `===`:
-		result = JsEquals(a, b, true)
-	case `!==`:
-		result = !JsEquals(a, b, true)
-	default:
-		result = e.compareMagnitude(expr, op, a, b, true)
-	}
-	return result
-}
-
-// JsEquals performs JavaScript style equals of x and y and returns the result.
-func JsEquals(x, y eval.Value, strict bool) bool {
-	if x == y {
-		return true
-	}
-
-	switch x.(type) {
-	case *types.IntegerValue:
-		xi := x.(*types.IntegerValue).Int()
-		switch y.(type) {
-		case *types.IntegerValue:
-			return xi == y.(*types.IntegerValue).Int()
-		case *types.FloatValue:
-			return float64(xi) == y.(*types.FloatValue).Float()
-		case *types.BooleanValue:
-			return !strict && (xi != 0) == y.(*types.BooleanValue).Bool()
-		case *types.StringValue:
-			if strict {
-				return false
-			}
-			bv := y.(*types.StringValue)
-			if yi, err := strconv.ParseInt(bv.String(), 0, 64); err == nil {
-				return xi == yi
-			}
-			if yf, err := strconv.ParseFloat(bv.String(), 64); err == nil {
-				return float64(xi) == yf
-			}
-		}
-	case *types.FloatValue:
-		xf := x.(*types.FloatValue).Float()
-		switch y.(type) {
-		case *types.IntegerValue:
-			return JsEquals(y, x, strict)
-		case *types.FloatValue:
-			return xf == y.(*types.FloatValue).Float()
-		case *types.BooleanValue:
-			return !strict && (xf != 0.0) == y.(*types.BooleanValue).Bool()
-		case *types.StringValue:
-			if strict {
-				return false
-			}
-			bv := y.(*types.StringValue)
-			if yf, err := strconv.ParseFloat(bv.String(), 64); err == nil {
-				return xf == yf
-			}
-		}
-	case *types.BooleanValue:
-		xb := x.(*types.BooleanValue).Bool()
-		switch y.(type) {
-		case *types.BooleanValue:
-			return xb == y.(*types.BooleanValue).Bool()
-		case *types.IntegerValue, *types.FloatValue:
-			return JsEquals(y, x, strict)
-		case *types.StringValue:
-			if strict {
-				return false
-			}
-			bv := y.(*types.StringValue)
-			if yf, err := strconv.ParseFloat(bv.String(), 64); err == nil {
-				return xb == (0.0 != yf)
-			}
-		}
-	case *types.StringValue:
-		xs := x.String()
-		switch y.(type) {
-		case *types.StringValue:
-			return xs == y.(*types.StringValue).String()
-		case *types.IntegerValue, *types.FloatValue, *types.BooleanValue:
-			return JsEquals(y, x, strict)
-		}
-	case *types.UndefValue:
-		_, eq := y.(*types.UndefValue)
-		return eq
-	}
-	return false
-}
-
-func (e *evaluator) compare(expr parser.Expression, op string, a eval.Value, b eval.Value) bool {
+func compare(expr parser.Expression, op string, a eval.Value, b eval.Value) bool {
 	var result bool
 	switch op {
 	case `==`:
@@ -136,12 +38,12 @@ func (e *evaluator) compare(expr parser.Expression, op string, a eval.Value, b e
 	case `!=`:
 		result = !eval.PuppetEquals(a, b)
 	default:
-		result = e.compareMagnitude(expr, op, a, b, false)
+		result = compareMagnitude(expr, op, a, b, false)
 	}
 	return result
 }
 
-func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Value, caseSensitive bool) bool {
+func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Value, caseSensitive bool) bool {
 	switch a.(type) {
 	case eval.Type:
 		left := a.(eval.Type)
@@ -158,7 +60,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return eval.IsAssignable(left, right)
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -182,7 +84,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -199,7 +101,7 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -216,14 +118,14 @@ func (e *evaluator) compareMagnitude(expr parser.Expression, op string, a eval.V
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
+	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
 }
 
 func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.Value, b eval.Value) bool {

@@ -22,7 +22,6 @@ type (
 		scope        eval.Scope
 		implRegistry eval.ImplementationRegistry
 		static       bool
-		language     eval.Language
 		definitions  []interface{}
 		vars         map[string]interface{}
 	}
@@ -59,7 +58,7 @@ func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Lo
 		c.evaluator = evaluator
 		c.loader = loader
 	} else {
-		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), implRegistry: ir, language: eval.LangPuppet}
+		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), implRegistry: ir}
 	}
 	return c
 }
@@ -148,7 +147,7 @@ func (c *evalCtx) Fork() eval.Context {
 	copy(s, c.stack)
 	clone := c.clone()
 	if clone.scope != nil {
-		clone.scope = NewParentedScope(clone.scope.Fork(), c.language == eval.LangJavaScript)
+		clone.scope = NewParentedScope(clone.scope.Fork(), false)
 	}
 	clone.loader = eval.NewParentedLoader(clone.loader)
 	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)
@@ -179,10 +178,6 @@ func (c *evalCtx) Get(key string) (interface{}, bool) {
 
 func (c *evalCtx) ImplementationRegistry() eval.ImplementationRegistry {
 	return c.implRegistry
-}
-
-func (c *evalCtx) Language() eval.Language {
-	return c.language
 }
 
 func (c *evalCtx) Loader() eval.Loader {
@@ -273,7 +268,7 @@ func (c *evalCtx) ResolveType(expr parser.Expression) eval.Type {
 
 func (c *evalCtx) Scope() eval.Scope {
 	if c.scope == nil {
-		c.scope = NewScope(c.language == eval.LangJavaScript)
+		c.scope = NewScope(false)
 	}
 	return c.scope
 }
@@ -284,10 +279,6 @@ func (c *evalCtx) Set(key string, value interface{}) {
 	} else {
 		c.vars[key] = value
 	}
-}
-
-func (c *evalCtx) SetLanguage(lang eval.Language) {
-	c.language = lang
 }
 
 func (c *evalCtx) Stack() []issue.Location {

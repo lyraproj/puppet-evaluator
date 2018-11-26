@@ -10,88 +10,84 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func (e *evaluator) eval_ArithmeticExpression(expr *parser.ArithmeticExpression, c eval.Context) eval.Value {
-	return e.calculate(expr, e.eval(expr.Lhs(), c), e.eval(expr.Rhs(), c), c)
+func eval_ArithmeticExpression(e eval.Evaluator, expr *parser.ArithmeticExpression, c eval.Context) eval.Value {
+	return calculate(expr, e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c), c)
 }
 
-func (e *evaluator) calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value, c eval.Context) eval.Value {
+func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value, c eval.Context) eval.Value {
 	op := expr.Operator()
 	switch a.(type) {
 	case *types.HashValue, *types.ArrayValue, *types.UriValue:
 		switch op {
 		case `+`:
-			return e.concatenate(expr, a, b)
+			return concatenate(expr, a, b)
 		case `-`:
-			return e.collectionDelete(expr, a, b)
+			return collectionDelete(expr, a, b)
 		case `<<`:
 			if av, ok := a.(*types.ArrayValue); ok {
 				return av.Add(b)
 			}
 		}
 	case *types.FloatValue:
-		return e.lhsFloatArithmetic(expr, a.(*types.FloatValue).Float(), b)
+		return lhsFloatArithmetic(expr, a.(*types.FloatValue).Float(), b)
 	case *types.IntegerValue:
-		return e.lhsIntArithmetic(expr, a.(*types.IntegerValue).Int(), b)
+		return lhsIntArithmetic(expr, a.(*types.IntegerValue).Int(), b)
 	case *types.StringValue:
 		sv := a.(*types.StringValue)
-		if c.Language() == eval.LangJavaScript {
-			// JavaScript concatenates the strings
-			return types.WrapString(sv.String() + b.String())
-		}
 		if iv, err := strconv.ParseInt(sv.String(), 0, 64); err == nil {
-			return e.lhsIntArithmetic(expr, iv, b)
+			return lhsIntArithmetic(expr, iv, b)
 		}
 		if fv, err := strconv.ParseFloat(sv.String(), 64); err == nil {
-			return e.lhsFloatArithmetic(expr, fv, b)
+			return lhsFloatArithmetic(expr, fv, b)
 		}
-		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Lhs(), issue.H{`value`: sv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Lhs(), issue.H{`value`: sv.String()}))
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 }
 
-func (e *evaluator) lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
+func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch b.(type) {
 	case *types.IntegerValue:
-		return types.WrapInteger(e.intArithmetic(expr, ai, b.(*types.IntegerValue).Int()))
+		return types.WrapInteger(intArithmetic(expr, ai, b.(*types.IntegerValue).Int()))
 	case *types.FloatValue:
-		return types.WrapFloat(e.floatArithmetic(expr, float64(ai), b.(*types.FloatValue).Float()))
+		return types.WrapFloat(floatArithmetic(expr, float64(ai), b.(*types.FloatValue).Float()))
 	case *types.StringValue:
 		bv := b.(*types.StringValue)
 		if iv, err := strconv.ParseInt(bv.String(), 0, 64); err == nil {
-			return types.WrapInteger(e.intArithmetic(expr, ai, iv))
+			return types.WrapInteger(intArithmetic(expr, ai, iv))
 		}
 		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
-			return types.WrapFloat(e.floatArithmetic(expr, float64(ai), fv))
+			return types.WrapFloat(floatArithmetic(expr, float64(ai), fv))
 		}
-		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Integer`, `right`: b.PType()}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Integer`, `right`: b.PType()}))
 	}
 }
 
-func (e *evaluator) lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Value) eval.Value {
+func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch b.(type) {
 	case *types.FloatValue:
-		return types.WrapFloat(e.floatArithmetic(expr, af, b.(*types.FloatValue).Float()))
+		return types.WrapFloat(floatArithmetic(expr, af, b.(*types.FloatValue).Float()))
 	case *types.IntegerValue:
-		return types.WrapFloat(e.floatArithmetic(expr, af, float64(b.(*types.IntegerValue).Int())))
+		return types.WrapFloat(floatArithmetic(expr, af, float64(b.(*types.IntegerValue).Int())))
 	case *types.StringValue:
 		bv := b.(*types.StringValue)
 		if iv, err := strconv.ParseInt(bv.String(), 0, 64); err == nil {
-			return types.WrapFloat(e.floatArithmetic(expr, af, float64(iv)))
+			return types.WrapFloat(floatArithmetic(expr, af, float64(iv)))
 		}
 		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
-			return types.WrapFloat(e.floatArithmetic(expr, af, fv))
+			return types.WrapFloat(floatArithmetic(expr, af, fv))
 		}
-		panic(e.evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Float`, `right`: b.PType()}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Float`, `right`: b.PType()}))
 	}
 }
 
-func (e *evaluator) floatArithmetic(expr *parser.ArithmeticExpression, a float64, b float64) float64 {
+func floatArithmetic(expr *parser.ArithmeticExpression, a float64, b float64) float64 {
 	switch expr.Operator() {
 	case `+`:
 		return a + b
@@ -102,11 +98,11 @@ func (e *evaluator) floatArithmetic(expr *parser.ArithmeticExpression, a float64
 	case `/`:
 		return a / b
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: `Float`}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: `Float`}))
 	}
 }
 
-func (e *evaluator) intArithmetic(expr *parser.ArithmeticExpression, a int64, b int64) int64 {
+func intArithmetic(expr *parser.ArithmeticExpression, a int64, b int64) int64 {
 	switch expr.Operator() {
 	case `+`:
 		return a + b
@@ -123,11 +119,11 @@ func (e *evaluator) intArithmetic(expr *parser.ArithmeticExpression, a int64, b 
 	case `>>`:
 		return a >> uint(b)
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: `Integer`}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: `Integer`}))
 	}
 }
 
-func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
+func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
 	switch a.(type) {
 	case *types.ArrayValue:
 		av := a.(*types.ArrayValue)
@@ -149,7 +145,7 @@ func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.Value,
 				switch err.(type) {
 				case nil:
 				case *errors.ArgumentsError:
-					panic(e.evalError(eval.EVAL_ARGUMENTS_ERROR, expr, issue.H{`expression`: expr, `message`: err.(*errors.ArgumentsError).Error()}))
+					panic(evalError(eval.EVAL_ARGUMENTS_ERROR, expr, issue.H{`expression`: expr, `message`: err.(*errors.ArgumentsError).Error()}))
 				default:
 					panic(err)
 				}
@@ -166,10 +162,10 @@ func (e *evaluator) concatenate(expr *parser.ArithmeticExpression, a eval.Value,
 			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(b.(*types.UriValue).URL()))
 		}
 	}
-	panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType(), `right`: b.PType()}))
+	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType(), `right`: b.PType()}))
 }
 
-func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
+func collectionDelete(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
 	switch a.(type) {
 	case *types.ArrayValue:
 		av := a.(*types.ArrayValue)
@@ -192,6 +188,6 @@ func (e *evaluator) collectionDelete(expr *parser.ArithmeticExpression, a eval.V
 			return hv.Delete(b)
 		}
 	default:
-		panic(e.evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType}))
+		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType}))
 	}
 }

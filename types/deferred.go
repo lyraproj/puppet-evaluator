@@ -187,4 +187,3 @@ func (d *deferredExpr) PType() eval.Type {
 func (d *deferredExpr) Resolve(c eval.Context) eval.Value {
 	return eval.Evaluate(c, d.expression)
 }
-

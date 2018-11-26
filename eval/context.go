@@ -62,9 +62,6 @@ type Context interface {
 	// ImplementationRegistry returns the registry that holds mappings between Type and reflect.Type
 	ImplementationRegistry() ImplementationRegistry
 
-	// Language returns the language used when parsing the original source
-	Language() Language
-
 	// Loader returns the loader of the receiver.
 	Loader() Loader
 
@@ -107,9 +104,6 @@ type Context interface {
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
 
-	// SetLanguage sets the language flavor to use when evaluating the AST
-	SetLanguage(lang Language)
-
 	// Scope returns the scope
 	Scope() Scope
 
@@ -135,6 +129,11 @@ type Context interface {
 // block.
 var Call func(c Context, name string, args []Value, block Lambda) Value
 
+// TopEvaluate resolves all pending definitions prior to evaluating. The evaluated expression is not
+// allowed ot contain return, next, or break.
+var TopEvaluate func(c Context, expr parser.Expression) (result Value, err issue.Reported)
+
+// Evaluate the given expression. Allow return, break, etc.
 func Evaluate(c Context, expr parser.Expression) Value {
 	return c.Evaluator().Eval(expr, c)
 }
