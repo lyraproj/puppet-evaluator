@@ -18,13 +18,13 @@ func InstantiatePuppetActivityFromFile(ctx eval.Context, loader ContentProviding
 	content := string(loader.GetContent(ctx, file))
 	expr := ctx.ParseAndValidate(file, content, false)
 	name := `<any name>`
-	fd, ok := getDefinition(expr, eval.NsDefinition, name).(parser.NamedDefinition)
+	fd, ok := getDefinition(expr, eval.NsActivity, name).(parser.NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsDefinition, `name`: name}))
+		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsActivity, `name`: name}))
 	}
 	ctx.AddDefinitions(expr)
 	ctx.ResolveDefinitions()
-	return eval.NewTypedName(eval.NsDefinition, fd.Name())
+	return eval.NewTypedName(eval.NsActivity, fd.Name())
 }
 
 func InstantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {

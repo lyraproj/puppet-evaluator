@@ -336,7 +336,7 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	switch d.(type) {
 	case *parser.ActivityExpression:
 		wf := d.(*parser.ActivityExpression)
-		tn = eval.NewTypedName2(eval.NsDefinition, wf.Name(), loader.NameAuthority())
+		tn = eval.NewTypedName2(eval.NsActivity, wf.Name(), loader.NameAuthority())
 		ta = NewPuppetActivity(c, wf)
 	case *parser.PlanDefinition:
 		pe := d.(*parser.PlanDefinition)

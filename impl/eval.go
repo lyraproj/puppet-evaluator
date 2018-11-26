@@ -247,6 +247,10 @@ func (e *evaluator) eval_Parameter(expr *parser.Parameter, c eval.Context) eval.
 					}
 					value = types.NewDeferred(qn.Name(), va...)
 				}
+			} else if ve, ok := valueExpr.(*parser.VariableExpression); ok {
+				if vn, ok := ve.Name(); ok {
+					value = types.NewDeferred(`$` + vn)
+				}
 			}
 			if value == nil {
 				value = types.NewDeferredExpression(valueExpr)

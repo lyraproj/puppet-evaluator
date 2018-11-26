@@ -42,7 +42,11 @@ type deferred struct {
 }
 
 func NewDeferred(name string, arguments ...eval.Value) *deferred {
-	return &deferred{name, WrapValues(arguments)}
+	return newDeferred(name, WrapValues(arguments))
+}
+
+func newDeferred(name string, arguments *ArrayValue) *deferred {
+	return &deferred{name, arguments}
 }
 
 func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
@@ -52,10 +56,10 @@ func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
 	}
 	if name, ok := args[0].(*StringValue); ok {
     if argc == 1 {
-			return &deferred{name.String(), _EMPTY_ARRAY}
+			return newDeferred(name.String(), _EMPTY_ARRAY)
 		}
 		if as, ok := args[1].(*ArrayValue); ok {
-			return &deferred{name.String(), as}
+			return newDeferred(name.String(), as)
 		}
 		panic(NewIllegalArgumentType2(`deferred[]`, 1, `Array`, args[1]))
 	}
@@ -63,10 +67,9 @@ func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
 }
 
 func newDeferredFromHash(c eval.Context, hash *HashValue) *deferred {
-	ev := &deferred{}
-	ev.name = hash.Get5(`name`, eval.EMPTY_STRING).String()
-	ev.arguments = hash.Get5(`arguments`, eval.EMPTY_ARRAY).(*ArrayValue)
-	return ev
+	name := hash.Get5(`name`, eval.EMPTY_STRING).String()
+	arguments := hash.Get5(`arguments`, eval.EMPTY_ARRAY).(*ArrayValue)
+	return newDeferred(name, arguments)
 }
 
 func (e *deferred) Name() string {
@@ -119,7 +122,7 @@ func (e *deferred) Resolve(c eval.Context) eval.Value {
 		vn := fn[1:]
 		vv, ok := c.Scope().Get(vn)
 		if !ok {
-			panic(eval.Error(eval.EVAL_UNKNOWN_VARIABLE, issue.H{`name`: fn}))
+			panic(eval.Error(eval.EVAL_UNKNOWN_VARIABLE, issue.H{`name`: vn}))
 		}
 		if e.arguments.Len() == 0 {
 			// No point digging with zero arguments

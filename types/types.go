@@ -537,10 +537,12 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		// Need implementation here.
 		vi = vi.Elem()
 	}
-	if t, ok := loadFromImplementarionRegistry(c, vi.Type()); ok {
-		if pt, ok := t.(eval.ObjectType); ok {
-			pv = pt.FromReflectedValue(c, vi)
-			return
+	if vi.IsValid() {
+		if t, ok := loadFromImplementarionRegistry(c, vi.Type()); ok {
+			if pt, ok := t.(eval.ObjectType); ok {
+				pv = pt.FromReflectedValue(c, vi)
+				return
+			}
 		}
 	}
 
@@ -565,6 +567,9 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		pv = WrapHash(els)
 	default:
 		if vr.IsValid() && vr.CanInterface() {
+			if vr.IsNil() {
+				return _UNDEF
+			}
 			pv = WrapRuntime(vr.Interface())
 		} else {
 			pv = _UNDEF

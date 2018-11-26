@@ -33,6 +33,9 @@ const NsHandler = Namespace(`handler`)
 // NsService denotes a remote service
 const NsService = Namespace(`service`)
 
+// NsActivity denotes a Puppet DSL specific activity (not to be confused with a Definition of an activity)
+const NsActivity = Namespace(`activity`)
+
 // Here in case of future Bolt integration with the Evaluator
 const  NsPlan        = Namespace(`plan`)
 const  NsTask        = Namespace(`task`)

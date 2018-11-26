@@ -144,6 +144,71 @@ func (r *reflector) TagHash(f *reflect.StructField) (eval.OrderedMap, bool) {
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
+func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withReceiver bool) eval.OrderedMap {
+	returnsError := false
+	var rt eval.Type
+	oc := mt.NumOut()
+	switch oc {
+	case 0:
+		rt = DefaultAnyType()
+	case 1:
+		ot := mt.Out(0)
+		if ot.AssignableTo(errorType) {
+			returnsError = true
+		} else {
+			rt = wrapReflectedType(r.c, mt.Out(0))
+		}
+	case 2:
+		rt = wrapReflectedType(r.c, mt.Out(0))
+		ot := mt.Out(1)
+		if ot.AssignableTo(errorType) {
+			returnsError = true
+		} else {
+			rt = NewTupleType([]eval.Type{rt, wrapReflectedType(r.c, mt.Out(1))}, nil)
+		}
+	default:
+		ot := mt.Out(oc - 1)
+		if ot.AssignableTo(errorType) {
+			returnsError = true
+			oc = oc - 1
+		}
+		ts := make([]eval.Type, oc)
+		for i := 0; i < oc; i++ {
+			ts[i] = wrapReflectedType(r.c, mt.Out(i))
+		}
+		rt = NewTupleType(ts, nil)
+	}
+
+	var pt *TupleType
+	pc := mt.NumIn()
+	ix := 0
+	if withReceiver {
+		// First argumnet is the receiver itself
+		ix = 1
+	}
+
+	if pc == ix {
+		pt = EmptyTupleType()
+	} else {
+		ps := make([]eval.Type, pc - ix)
+		for p := ix; p < pc; p++ {
+			ps[p-ix] = wrapReflectedType(r.c, mt.In(p))
+		}
+		pt = NewTupleType(ps, nil)
+	}
+	ne := 2
+	if returnsError {
+		ne++
+	}
+	ds := make([]*HashEntry, ne)
+	ds[0] = WrapHashEntry2(KEY_TYPE, NewCallableType(pt, rt, nil))
+	ds[1] = WrapHashEntry2(KEY_GONAME, WrapString(name))
+	if returnsError {
+		ds[2] = WrapHashEntry2(KEY_RETURNS_ERROR, Boolean_TRUE)
+	}
+	return WrapHash(ds)
+}
+
 func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.ObjectType {
 	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) *HashValue {
 		obj.(*objectType).goType = rf
@@ -151,111 +216,56 @@ func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf 
 		r.c.ImplementationRegistry().RegisterType(r.c, obj, rf)
 
 		ie := make([]*HashEntry, 0, 2)
-		var pt reflect.Type
-
-		fs := r.Fields(rf)
-		nf := len(fs)
-		if nf > 0 {
-			es := make([]*HashEntry, 0, nf)
-			for i, f := range fs {
-				if i == 0 && f.Anonymous {
-					// Parent
-					pt = reflect.PtrTo(f.Type)
-					continue
-				}
-				if f.PkgPath != `` {
-					// Unexported
-					continue
-				}
-
-				name, decl := r.ReflectFieldTags(&f)
-				es = append(es, WrapHashEntry2(name, decl))
+		if rf.Kind() == reflect.Func {
+			fn := rf.Name()
+			if fn == `` {
+				fn = `do`
 			}
-			ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
-		}
+			ie = append(ie, WrapHashEntry2(`functions`, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
+		} else {
+			fs := r.Fields(rf)
+			nf := len(fs)
+			var pt reflect.Type
 
-		ms := r.Methods(rf)
-		nm := len(ms)
-		if nm > 0 {
-			es := make([]*HashEntry, 0, nm)
-			for _, m := range ms {
-				if m.PkgPath != `` {
-					// Not exported struct method
-					continue
-				}
-
-				if pt != nil {
-					if _, ok := pt.MethodByName(m.Name); ok {
-						// Redeclarations of parent method are not included
+			if nf > 0 {
+				es := make([]*HashEntry, 0, nf)
+				for i, f := range fs {
+					if i == 0 && f.Anonymous {
+						// Parent
+						pt = reflect.PtrTo(f.Type)
 						continue
 					}
-				}
+					if f.PkgPath != `` {
+						// Unexported
+						continue
+					}
 
-				mt := m.Type
-				returnsError := false
-				var rt eval.Type
-				oc := mt.NumOut()
-				switch oc {
-				case 0:
-					rt = DefaultAnyType()
-				case 1:
-					ot := mt.Out(0)
-					if ot.AssignableTo(errorType) {
-						returnsError = true
-					} else {
-						rt = wrapReflectedType(r.c, mt.Out(0))
-					}
-				case 2:
-					rt = wrapReflectedType(r.c, mt.Out(0))
-					ot := mt.Out(1)
-					if ot.AssignableTo(errorType) {
-						returnsError = true
-					} else {
-						rt = NewTupleType([]eval.Type{rt, wrapReflectedType(r.c, mt.Out(1))}, nil)
-					}
-				default:
-					ot := mt.Out(oc - 1)
-					if ot.AssignableTo(errorType) {
-						returnsError = true
-						oc = oc - 1
-					}
-					ts := make([]eval.Type, oc)
-					for i := 0; i < oc; i++ {
-						ts[i] = wrapReflectedType(r.c, mt.Out(i))
-					}
-					rt = NewTupleType(ts, nil)
+					name, decl := r.ReflectFieldTags(&f)
+					es = append(es, WrapHashEntry2(name, decl))
 				}
-
-				var pt *TupleType
-				pc := mt.NumIn()
-				ix := 0
-				if rf.Kind() != reflect.Interface {
-					// First argumnet is the receiver itself
-					ix = 1
-				}
-
-				if pc == ix {
-					pt = EmptyTupleType()
-				} else {
-					ps := make([]eval.Type, pc - ix)
-					for p := ix; p < pc; p++ {
-						ps[p-ix] = wrapReflectedType(r.c, mt.In(p))
-					}
-					pt = NewTupleType(ps, nil)
-				}
-				ne := 2
-				if returnsError {
-					ne++
-				}
-				ds := make([]*HashEntry, ne)
-				ds[0] = WrapHashEntry2(KEY_TYPE, NewCallableType(pt, rt, nil))
-				ds[1] = WrapHashEntry2(KEY_GONAME, WrapString(m.Name))
-				if returnsError {
-					ds[2] = WrapHashEntry2(KEY_RETURNS_ERROR, Boolean_TRUE)
-				}
-				es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), WrapHash(ds)))
+				ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
 			}
-			ie = append(ie, WrapHashEntry2(`functions`, WrapHash(es)))
+
+			ms := r.Methods(rf)
+			nm := len(ms)
+			if nm > 0 {
+				es := make([]*HashEntry, 0, nm)
+				for _, m := range ms {
+					if m.PkgPath != `` {
+						// Not exported struct method
+						continue
+					}
+
+					if pt != nil {
+						if _, ok := pt.MethodByName(m.Name); ok {
+							// Redeclarations of parent method are not included
+							continue
+						}
+					}
+					es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
+				}
+				ie = append(ie, WrapHashEntry2(`functions`, WrapHash(es)))
+			}
 		}
 		return WrapHash(ie)
 	})

@@ -45,6 +45,10 @@ type Reflector interface {
 	// munging the field name through utils.CamelToSnakeCase
 	FieldName(f *reflect.StructField) string
 
+	// FunctionDeclFromReflect creates a function declaration suitable for inclusion in an ObjectType initialization
+	// hash.
+	FunctionDeclFromReflect(name string, mt reflect.Type, fromInterface bool) OrderedMap
+
 	// Reflect returns the reflected value of the native value held
 	// by the given src
 	Reflect(src Value) reflect.Value

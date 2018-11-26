@@ -79,7 +79,7 @@ func (l *fileBasedLoader) newPuppetActivityPath(moduleNameRelative bool) SmartPa
 	return &smartPath{
 		relativePath:       `activities`,
 		loader:             l,
-		namespace:          eval.NsDefinition,
+		namespace:          eval.NsActivity,
 		extension:          `.pp`,
 		moduleNameRelative: moduleNameRelative,
 		matchMany:          false,

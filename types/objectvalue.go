@@ -5,6 +5,7 @@ import (
 	"github.com/puppetlabs/go-issues/issue"
 	"io"
 	"reflect"
+	"strings"
 )
 
 type typedObject struct {
@@ -51,6 +52,9 @@ func AllocObjectValue(c eval.Context, typ eval.ObjectType) eval.Object {
 }
 
 func NewReflectedValue(typ eval.ObjectType, value reflect.Value) eval.Object {
+	if value.Kind() == reflect.Func {
+		return &reflectedFunc{typedObject{typ}, value}
+	}
 	return &reflectedObject{typedObject{typ}, value}
 }
 
@@ -113,6 +117,15 @@ func (o *attributeSlice) Get(key string) (eval.Value, bool) {
 			return o.values[idx], ok
 		}
 		return pi.Attributes()[idx].Value(), ok
+	}
+	return nil, false
+}
+
+func (o *attributeSlice) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+	if v, ok := eval.Load(c, NewTypedName(eval.NsFunction, strings.ToLower(o.typ.Name()) + `::` + method.Name())); ok {
+		if f, ok := v.(eval.Function); ok {
+			return f.Call(c, block, args...), true
+		}
 	}
 	return nil, false
 }
@@ -307,4 +320,99 @@ func (o *reflectedObject) structVal() reflect.Value {
 		oe = oe.Elem()
 	}
 	return oe
+}
+
+type reflectedFunc struct {
+	typedObject
+	function reflect.Value
+}
+
+func (o *reflectedFunc) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+	mt := o.function.Type()
+	rf := c.Reflector()
+	rfArgs := make([]reflect.Value, len(args))
+	for i, arg := range args {
+		av := reflect.New(mt.In(i)).Elem()
+		rf.ReflectTo(arg, av)
+		rfArgs[i] = av
+	}
+
+	pc := mt.NumIn()
+	if pc != len(args) {
+		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+			[]eval.Signature{method.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
+	}
+	result := o.function.Call(rfArgs)
+	oc := mt.NumOut()
+
+	if method.ReturnsError() {
+		oc--
+		err := result[oc].Interface()
+		if err != nil {
+			if re, ok := err.(issue.Reported); ok {
+				panic(re)
+			}
+			panic(eval.Error(eval.EVAL_GO_FUNCTION_ERROR, issue.H{`name`: mt.Name(), `error`: err}))
+		}
+		result = result[:oc]
+	}
+
+	switch len(result) {
+	case 0:
+		return _UNDEF, true
+	case 1:
+		r := result[0]
+		if r.IsValid() {
+			return wrap(c, r), true
+		} else {
+			return _UNDEF, true
+		}
+	default:
+		rs := make([]eval.Value, len(result))
+		for i, r := range result {
+			if r.IsValid() {
+				rs[i] = wrap(c, r)
+			} else {
+				rs[i] = _UNDEF
+			}
+		}
+		return WrapValues(rs), true
+	}
+}
+
+func (o *reflectedFunc) Reflect(c eval.Context) reflect.Value {
+	return o.function
+}
+
+func (o *reflectedFunc) ReflectTo(c eval.Context, value reflect.Value) {
+	value.Set(o.function)
+}
+
+func (o *reflectedFunc) Initialize(c eval.Context, values []eval.Value) {
+}
+
+func (o *reflectedFunc) InitFromHash(c eval.Context, hash eval.OrderedMap) {
+}
+
+func (o *reflectedFunc) Get(key string) (eval.Value, bool) {
+	return nil, false
+}
+
+func (o *reflectedFunc) Equals(other interface{}, g eval.Guard) bool {
+	if ov, ok := other.(*reflectedFunc); ok {
+		return o.typ.Equals(ov.typ, g) && o.function == ov.function
+	}
+	return false
+}
+
+func (o *reflectedFunc) String() string {
+	return eval.ToString(o)
+}
+
+func (o *reflectedFunc) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	ObjectToString(o, s, b, g)
+}
+
+func (o *reflectedFunc) InitHash() eval.OrderedMap {
+	return eval.EMPTY_MAP
 }
