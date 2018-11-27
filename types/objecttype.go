@@ -388,8 +388,8 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			switch pt.(type) {
 			case *StringValue:
 				t.parent = t.parseAttributeType(c, ``, `parent`, pt.(*StringValue))
-			case *TypeReferenceType:
-				t.parent = pt.(*TypeReferenceType).Resolve(c)
+			case eval.ResolvableType:
+				t.parent = pt.(eval.ResolvableType).Resolve(c)
 			default:
 				t.parent = pt.(eval.Type)
 			}
