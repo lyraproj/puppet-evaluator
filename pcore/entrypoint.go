@@ -56,7 +56,7 @@ func InitializePuppet() {
 	}
 
 	puppet.logger = eval.NewStdLogger()
-	c := impl.NewContext(puppet.NewEvaluator(), eval.StaticLoader().(eval.DefiningLoader))
+	c := impl.NewContext(impl.NewEvaluator, eval.StaticLoader().(eval.DefiningLoader), puppet.logger)
 	c.ResolveResolvables()
 	topImplRegistry = c.ImplementationRegistry()
 }
@@ -69,6 +69,10 @@ func (p *pcoreImpl) Reset() {
 		s.reset()
 	}
 	p.lock.Unlock()
+}
+
+func (p *pcoreImpl) SetLogger(logger eval.Logger) {
+	p.logger = logger
 }
 
 func (p *pcoreImpl) SystemLoader() eval.Loader {
@@ -165,7 +169,7 @@ func (p *pcoreImpl) Logger() eval.Logger {
 
 func (p *pcoreImpl) RootContext() eval.Context {
 	InitializePuppet()
-	c := impl.WithParent(context.Background(), p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
+	c := impl.WithParent(context.Background(), impl.NewEvaluator, eval.NewParentedLoader(p.EnvironmentLoader()), p.logger, topImplRegistry)
 	threadlocal.Init()
 	threadlocal.Set(eval.PuppetContextKey, c)
 	return c
@@ -181,7 +185,7 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	if ec, ok := parentCtx.(eval.Context); ok {
 		ctx = ec.Fork()
 	} else {
-		ctx = impl.WithParent(parentCtx, p.NewEvaluator(), eval.NewParentedLoader(p.EnvironmentLoader()), topImplRegistry)
+		ctx = impl.WithParent(parentCtx, impl.NewEvaluator, eval.NewParentedLoader(p.EnvironmentLoader()), p.logger, topImplRegistry)
 	}
 	threadlocal.Init()
 	threadlocal.Set(eval.PuppetContextKey, ctx)
@@ -214,12 +218,8 @@ func (p *pcoreImpl) TryWithParent(parentCtx context.Context, actor func(eval.Con
 	return
 }
 
-func (p *pcoreImpl) NewEvaluator() eval.Evaluator {
-	return p.NewEvaluatorWithLogger(p.logger)
-}
-
-func (p *pcoreImpl) NewEvaluatorWithLogger(logger eval.Logger) eval.Evaluator {
-	return impl.NewEvaluator(logger)
+func (p *pcoreImpl) NewEvaluator(c eval.Context) eval.Evaluator {
+	return impl.NewEvaluator(c)
 }
 
 func (p *pcoreImpl) NewParser() validator.ParserValidator {

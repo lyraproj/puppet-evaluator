@@ -42,6 +42,9 @@ type (
 		// Set changes a setting
 		Set(key string, value Value)
 
+		// SetLogger changes the logger
+		SetLogger(Logger)
+
 		// Do executes a given function with an initialized Context instance.
 		//
 		// The Context will be parented by the Go context returned by context.Background()
@@ -69,12 +72,7 @@ type (
 		// NewEvaluator creates a new evaluator instance that will be initialized
 		// with a loader parented by the EnvironmenLoader and the logger configured
 		// for this instance.
-		NewEvaluator() Evaluator
-
-		// NewEvaluatorWithLogger is like NewEvaluator but with a given logger. This
-		// method is primarily intended for test purposes where it is necessary to
-		// collect log output.
-		NewEvaluatorWithLogger(logger Logger) Evaluator
+		NewEvaluator(Context) Evaluator
 
 		// NewParser returns a parser and validator that corresponds to the current
 		// settings of the receiver.

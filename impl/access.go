@@ -7,7 +7,7 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func eval_AccessExpression(e eval.Evaluator, expr *parser.AccessExpression, c eval.Context) (result eval.Value) {
+func evalAccessExpression(e eval.Evaluator, expr *parser.AccessExpression) (result eval.Value) {
 	keys := expr.Keys()
 	op := expr.Operand()
 	if qr, ok := op.(*parser.QualifiedReference); ok {
@@ -17,7 +17,7 @@ func eval_AccessExpression(e eval.Evaluator, expr *parser.AccessExpression, c ev
 				name := ``
 				ne := hash.Get(`name`)
 				if ne != nil {
-					name = e.Eval(ne, c).String()
+					name = e.Eval(ne).String()
 				}
 				if qr.Name() == `Object` {
 					return types.NewObjectType(name, nil, hash)
@@ -26,42 +26,42 @@ func eval_AccessExpression(e eval.Evaluator, expr *parser.AccessExpression, c ev
 				na := eval.RUNTIME_NAME_AUTHORITY
 				ne = hash.Get(`name_authority`)
 				if ne != nil {
-					na = eval.URI(e.Eval(ne, c).String())
+					na = eval.URI(e.Eval(ne).String())
 				}
 				return types.NewTypeSetType(na, name, hash)
 			}
 		}
 
 		args := make([]eval.Value, len(keys))
-		c.DoStatic(func() {
+		e.DoStatic(func() {
 			for idx, key := range keys {
-				args[idx] = e.Eval(key, c)
+				args[idx] = e.Eval(key)
 			}
 		})
-		return eval_ParameterizedTypeExpression(e, qr, args, expr, c)
+		return eval_ParameterizedTypeExpression(e, qr, args, expr)
 	}
 
 	args := make([]eval.Value, len(keys))
 	for idx, key := range keys {
-		args[idx] = e.Eval(key, c)
+		args[idx] = e.Eval(key)
 	}
 
-	lhs := e.Eval(op, c)
+	lhs := e.Eval(op)
 
 	switch lhs.(type) {
 	case eval.List:
-		return accessIndexedValue(expr, lhs.(eval.List), args, c)
+		return accessIndexedValue(expr, lhs.(eval.List), args)
 	default:
 		if tem, ok := lhs.PType().(eval.TypeWithCallableMembers); ok {
 			if mbr, ok := tem.Member(`[]`); ok {
-				return mbr.Call(c, lhs, nil, args)
+				return mbr.Call(e, lhs, nil, args)
 			}
 		}
 	}
 	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
 }
 
-func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value, c eval.Context) (result eval.Value) {
+func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value) (result eval.Value) {
 	nArgs := len(args)
 
 	intArg := func(index int) int {
@@ -158,7 +158,7 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 	return lhs.At(pos)
 }
 
-func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression, c eval.Context) (tp eval.Type) {
+func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression) (tp eval.Type) {
 	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {
@@ -192,7 +192,7 @@ func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedRefe
 	case `notundef`:
 		tp = types.NewNotUndefType2(args...)
 	case `object`:
-		tp = types.NewObjectType2(c, args...)
+		tp = types.NewObjectType2(e, args...)
 	case `optional`:
 		tp = types.NewOptionalType2(args...)
 	case `pattern`:
@@ -236,9 +236,9 @@ func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedRefe
 	case `unit`:
 		panic(evalError(eval.EVAL_NOT_PARAMETERIZED_TYPE, expr, issue.H{`type`: expr}))
 	default:
-		oe := e.Eval(qr, c)
+		oe := e.Eval(qr)
 		if oo, ok := oe.(eval.ObjectType); ok && oo.IsParameterized() {
-			tp = types.NewObjectTypeExtension(c, oo, args)
+			tp = types.NewObjectTypeExtension(e, oo, args)
 		} else {
 			tp = types.NewTypeReferenceType(expr.String())
 		}

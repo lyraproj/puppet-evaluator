@@ -38,8 +38,8 @@ type Context interface {
 	// restored before this call returns.
 	DoWithScope(scope Scope, doer Doer)
 
-	// Evaluator returns the evaluator of the receiver.
-	Evaluator() Evaluator
+	// EvaluatorConstructor returns the evaluator constructor
+	GetEvaluator() Evaluator
 
 	// Error creates a Reported with the given issue code, location, and arguments
 	// Typical use is to panic with the returned value
@@ -68,10 +68,6 @@ type Context interface {
 	// Logger returns the logger of the receiver. This will be the same logger as the
 	// logger of the evaluator.
 	Logger() Logger
-
-	// WithScope creates a copy of the receiver where the scope is replaced with the
-	// given scope.
-	WithScope(scope Scope) Context
 
 	// ParseAndValidate parses and evaluates the given content. It will panic with
 	// an issue.Reported unless the parsing and evaluation was succesful.
@@ -135,7 +131,7 @@ var TopEvaluate func(c Context, expr parser.Expression) (result Value, err issue
 
 // Evaluate the given expression. Allow return, break, etc.
 func Evaluate(c Context, expr parser.Expression) Value {
-	return c.Evaluator().Eval(expr, c)
+	return c.GetEvaluator().Eval(expr)
 }
 
 var CurrentContext func() Context

@@ -10,11 +10,11 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func eval_ArithmeticExpression(e eval.Evaluator, expr *parser.ArithmeticExpression, c eval.Context) eval.Value {
-	return calculate(expr, e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c), c)
+func evalArithmeticExpression(e eval.Evaluator, expr *parser.ArithmeticExpression) eval.Value {
+	return calculate(expr, e.Eval(expr.Lhs()), e.Eval(expr.Rhs()))
 }
 
-func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value, c eval.Context) eval.Value {
+func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch a.(type) {
 	case *types.HashValue, *types.ArrayValue, *types.UriValue:

@@ -18,16 +18,16 @@ func init() {
 	}
 }
 
-func eval_ComparisonExpression(e eval.Evaluator, expr *parser.ComparisonExpression, c eval.Context) eval.Value {
-	return types.WrapBoolean(doCompare(expr, expr.Operator(), e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c), c))
+func evalComparisonExpression(e eval.Evaluator, expr *parser.ComparisonExpression) eval.Value {
+	return types.WrapBoolean(doCompare(expr, expr.Operator(), e.Eval(expr.Lhs()), e.Eval(expr.Rhs())))
 }
 
-func doCompare(expr parser.Expression, op string, a, b eval.Value, c eval.Context) bool {
+func doCompare(expr parser.Expression, op string, a, b eval.Value) bool {
 	return compare(expr, op, a, b)
 }
 
-func eval_MatchExpression(e eval.Evaluator, expr *parser.MatchExpression, c eval.Context) eval.Value {
-	return types.WrapBoolean(match(c, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.Eval(expr.Lhs(), c), e.Eval(expr.Rhs(), c)))
+func evalMatchExpression(e eval.Evaluator, expr *parser.MatchExpression) eval.Value {
+	return types.WrapBoolean(match(e, expr.Lhs(), expr.Rhs(), expr.Operator(), true, e.Eval(expr.Lhs()), e.Eval(expr.Rhs())))
 }
 
 func compare(expr parser.Expression, op string, a eval.Value, b eval.Value) bool {

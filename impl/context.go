@@ -18,6 +18,7 @@ type (
 		context.Context
 		evaluator    eval.Evaluator
 		loader       eval.Loader
+		logger       eval.Logger
 		stack        []issue.Location
 		scope        eval.Scope
 		implRegistry eval.ImplementationRegistry
@@ -45,20 +46,22 @@ func init() {
 	}
 }
 
-func NewContext(evaluator eval.Evaluator, loader eval.Loader) eval.Context {
-	return WithParent(context.Background(), evaluator, loader, newImplementationRegistry())
+func NewContext(evaluatorCtor func(c eval.Context) eval.Evaluator, loader eval.Loader, logger eval.Logger) eval.Context {
+	return WithParent(context.Background(), evaluatorCtor, loader, logger, newImplementationRegistry())
 }
 
-func WithParent(parent context.Context, evaluator eval.Evaluator, loader eval.Loader, ir eval.ImplementationRegistry) eval.Context {
+func WithParent(parent context.Context, evaluatorCtor func(c eval.Context) eval.Evaluator, loader eval.Loader, logger eval.Logger, ir eval.ImplementationRegistry) eval.Context {
 	var c *evalCtx
 	ir = newParentedImplementationRegistry(ir)
 	if cp, ok := parent.(evalCtx); ok {
 		c = cp.clone()
 		c.Context = parent
-		c.evaluator = evaluator
 		c.loader = loader
+		c.logger = logger
+		c.evaluator = evaluatorCtor(c)
 	} else {
-		c = &evalCtx{Context: parent, evaluator: evaluator, loader: loader, stack: make([]issue.Location, 0, 8), implRegistry: ir}
+		c = &evalCtx{Context: parent, loader: loader, logger: logger, stack: make([]issue.Location, 0, 8), implRegistry: ir}
+		c.evaluator = evaluatorCtor(c)
 	}
 	return c
 }
@@ -138,7 +141,7 @@ func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issu
 	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
 }
 
-func (c *evalCtx) Evaluator() eval.Evaluator {
+func (c *evalCtx) GetEvaluator() eval.Evaluator {
 	return c.evaluator
 }
 
@@ -151,6 +154,7 @@ func (c *evalCtx) Fork() eval.Context {
 	}
 	clone.loader = eval.NewParentedLoader(clone.loader)
 	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)
+	clone.evaluator = NewEvaluator(clone)
 	clone.stack = s
 
 	if c.vars != nil {
@@ -185,7 +189,7 @@ func (c *evalCtx) Loader() eval.Loader {
 }
 
 func (c *evalCtx) Logger() eval.Logger {
-	return c.evaluator.Logger()
+	return c.logger
 }
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
@@ -205,14 +209,14 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 	issues := checker.Issues()
 	if len(issues) > 0 {
 		severity := issue.SEVERITY_IGNORE
-		for _, issue := range issues {
-			c.Logger().Log(eval.LogLevel(issue.Severity()), types.WrapString(issue.String()))
-			if issue.Severity() > severity {
-				severity = issue.Severity()
+		for _, i := range issues {
+			c.Logger().Log(eval.LogLevel(i.Severity()), types.WrapString(i.String()))
+			if i.Severity() > severity {
+				severity = i.Severity()
 			}
 		}
 		if severity == issue.SEVERITY_ERROR {
-			c.Fail(fmt.Sprintf(`Error validating %s`, filename))
+			panic(c.Fail(fmt.Sprintf(`Error validating %s`, filename)))
 		}
 	}
 	return expr
@@ -305,12 +309,6 @@ func (c *evalCtx) Static() bool {
 	return c.static
 }
 
-func (c *evalCtx) WithScope(scope eval.Scope) eval.Context {
-	clone := c.clone()
-	clone.scope = scope
-	return clone
-}
-
 // clone a new context from this context which is an exact copy. It is used
 // internally by methods like Fork, WithLoader, and WithScope to prevent them
 // from creating specific implementations.
@@ -354,11 +352,15 @@ func (c *evalCtx) resolveTypes(types ...eval.Type) {
 	for _, t := range types {
 		if rt, ok := t.(eval.ResolvableType); ok {
 			rt.Resolve(c)
-			if ts, ok := rt.(eval.TypeSet); ok {
+			var ts eval.TypeSet
+			if ts, ok = rt.(eval.TypeSet); ok {
 				typeSets = append(typeSets, ts)
-			} else if ot, ok := rt.(eval.ObjectType); ok {
-				if ctor := ot.Constructor(); ctor != nil {
-					l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
+			} else {
+				var ot eval.ObjectType
+				if ot, ok = rt.(eval.ObjectType); ok {
+					if ctor := ot.Constructor(); ctor != nil {
+						l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
+					}
 				}
 			}
 		}

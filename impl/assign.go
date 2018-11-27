@@ -7,8 +7,8 @@ import (
 	"github.com/puppetlabs/go-parser/parser"
 )
 
-func eval_AssignmentExpression(e eval.Evaluator, expr *parser.AssignmentExpression, c eval.Context) eval.Value {
-	return assign(expr, c.Scope(), lvalue(expr.Lhs()), e.Eval(expr.Rhs(), c))
+func evalAssignmentExpression(e eval.Evaluator, expr *parser.AssignmentExpression) eval.Value {
+	return assign(expr, e.Scope(), lvalue(expr.Lhs()), e.Eval(expr.Rhs()))
 }
 
 func assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.Value, rv eval.Value) eval.Value {
