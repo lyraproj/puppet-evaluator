@@ -187,15 +187,7 @@ func (p *pcoreImpl) DoWithParent(parentCtx context.Context, actor func(eval.Cont
 	} else {
 		ctx = impl.WithParent(parentCtx, impl.NewEvaluator, eval.NewParentedLoader(p.EnvironmentLoader()), p.logger, topImplRegistry)
 	}
-	threadlocal.Init()
-	threadlocal.Set(eval.PuppetContextKey, ctx)
-	actor(ctx)
-}
-
-func DoWithContext(testCtx eval.Context, actor func(eval.Context)) {
-	threadlocal.Init()
-	threadlocal.Set(eval.PuppetContextKey, testCtx)
-	actor(testCtx)
+	eval.DoWithContext(ctx, actor)
 }
 
 func (p *pcoreImpl) Try(actor func(eval.Context) error) (err error) {

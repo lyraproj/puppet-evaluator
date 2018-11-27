@@ -309,9 +309,8 @@ func (c *evalCtx) Static() bool {
 	return c.static
 }
 
-// clone a new context from this context which is an exact copy. It is used
-// internally by methods like Fork, WithLoader, and WithScope to prevent them
-// from creating specific implementations.
+// clone a new context from this context which is an exact copy except for the parent
+// of the clone which is set to the original. It is used internally by Fork
 func (c *evalCtx) clone() *evalCtx {
 	clone := &evalCtx{}
 	*clone = *c

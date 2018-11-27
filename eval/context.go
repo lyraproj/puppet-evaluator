@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"github.com/puppetlabs/go-evaluator/threadlocal"
 
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
@@ -124,6 +125,18 @@ type Context interface {
 // Call calls a function known to the loader with arguments and an optional
 // block.
 var Call func(c Context, name string, args []Value, block Lambda) Value
+
+func DoWithContext(ctx Context, actor func(Context)) {
+	if saveCtx, ok := threadlocal.Get(PuppetContextKey); ok {
+		defer func() {
+			threadlocal.Set(PuppetContextKey, saveCtx)
+		}()
+	} else {
+		threadlocal.Init()
+	}
+	threadlocal.Set(PuppetContextKey, ctx)
+	actor(ctx)
+}
 
 // TopEvaluate resolves all pending definitions prior to evaluating. The evaluated expression is not
 // allowed ot contain return, next, or break.

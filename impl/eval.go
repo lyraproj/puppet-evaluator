@@ -586,7 +586,7 @@ func BasicEval(e eval.Evaluator, expr parser.Expression) eval.Value {
 	}
 
 	if e.Static() {
-		panic(evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
+			panic(evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
 	}
 
 	switch expr.(type) {
