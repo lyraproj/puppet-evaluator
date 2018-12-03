@@ -147,9 +147,14 @@ func (t *CollectionType) Parameters() []eval.Value {
 	return t.size.SizeParameters()
 }
 
-func (t *CollectionType) SerializationString() string {
+func (t *CollectionType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *CollectionType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *CollectionType) Size() *IntegerType {
 	return t.size

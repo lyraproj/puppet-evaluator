@@ -273,9 +273,14 @@ func (t *TimespanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Duration(0)), true
 }
 
-func (t *TimespanType) SerializationString() string {
+func (t *TimespanType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *TimespanType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *TimespanType) String() string {
 	return eval.ToString2(t, NONE)
@@ -464,9 +469,14 @@ func (tv *TimespanValue) Milliseconds() int64 {
 	return tv.totalMilliseconds() % 1000
 }
 
-func (tv *TimespanValue) SerializationString() string {
+func (tv *TimespanValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (tv *TimespanValue)  SerializationString() string {
 	return tv.String()
 }
+
 
 func (tv *TimespanValue) String() string {
 	return fmt.Sprintf(`%d`, tv.Int())

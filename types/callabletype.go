@@ -3,12 +3,11 @@ package types
 import (
 	"io"
 	"strconv"
-
 	"github.com/puppetlabs/go-evaluator/eval"
 )
 
 type CallableType struct {
-	paramsType *TupleType
+	paramsType eval.Type
 	returnType eval.Type
 	blockType  eval.Type // Callable or Optional[Callable]
 }
@@ -33,7 +32,27 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewCallableType2(args...)
+	    var paramsType eval.Type
+	    var returnType eval.Type
+	    var blockType eval.Type
+	    switch len(args) {
+	    case 0:
+	    case 3:
+		    if pt, ok := args[2].(eval.Type); ok {
+			    blockType = pt
+		    }
+		    fallthrough
+	    case 2:
+		    if pt, ok := args[1].(eval.Type); ok {
+			    returnType = pt
+		    }
+		    fallthrough
+	    case 1:
+	    	if pt, ok := args[0].(eval.Type); ok {
+	    		paramsType = pt
+		    }
+	    }
+			return NewCallableType(paramsType, returnType, blockType)
 		})
 }
 
@@ -41,7 +60,7 @@ func DefaultCallableType() *CallableType {
 	return callableType_DEFAULT
 }
 
-func NewCallableType(paramsType *TupleType, returnType eval.Type, blockType eval.Type) *CallableType {
+func NewCallableType(paramsType eval.Type, returnType eval.Type, blockType eval.Type) *CallableType {
 	return &CallableType{paramsType, returnType, blockType}
 }
 
@@ -61,19 +80,16 @@ func NewCallableType3(args eval.List) *CallableType {
 		ok    bool
 	)
 
-	if argc == 2 {
+	if argc == 1 || argc == 2 {
 		// check for [[params, block], return]
 		var iv eval.List
 		if iv, ok = args.At(0).(eval.List); ok {
+			if argc == 2 {
+				if rt, ok = args.At(1).(eval.Type); !ok {
+					panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))
+				}
+			}
 			argc = iv.Len()
-			if argc < 0 || argc > 2 {
-				panic(NewIllegalArgumentType2(`Callable[]`, 0, `Tuple[Type[Tuple], Type[CallableType, 1, 2]]]`, args.At(0)))
-			}
-
-			if rt, ok = args.At(1).(eval.Type); !ok {
-				panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))
-			}
-
 			args = iv
 		}
 	}
@@ -123,7 +139,10 @@ func (t *CallableType) CallableWith(args []eval.Value, block eval.Lambda) bool {
 		// Required block but non provided
 		return false
 	}
-	return t.paramsType.IsInstance3(args, nil)
+	if pt, ok := t.paramsType.(*TupleType); ok {
+		return pt.IsInstance3(args, nil)
+	}
+	return true
 }
 
 func (t *CallableType) Accept(v eval.Visitor, g eval.Guard) {
@@ -232,24 +251,31 @@ func (t *CallableType) Name() string {
 }
 
 func (t *CallableType) ParameterNames() []string {
-	n := len(t.paramsType.types)
-	r := make([]string, 0, n)
-	for i := 0; i < n; {
-		i++
-		r = append(r, strconv.Itoa(i))
+	if pt, ok := t.paramsType.(*TupleType); ok {
+		n := len(pt.types)
+		r := make([]string, 0, n)
+		for i := 0; i < n; {
+			i++
+			r = append(r, strconv.Itoa(i))
+		}
+		return r
 	}
-	return r
+	return []string{}
 }
 
 func (t *CallableType) Parameters() (params []eval.Value) {
 	if *t == *callableType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	tupleParams := t.paramsType.Parameters()
-	if len(tupleParams) == 0 {
-		params = make([]eval.Value, 0)
+	if pt, ok := t.paramsType.(*TupleType); ok {
+		tupleParams := pt.Parameters()
+		if len(tupleParams) == 0 {
+			params = make([]eval.Value, 0)
+		} else {
+			params = eval.Select1(tupleParams, func(p eval.Value) bool { _, ok := p.(*UnitType); return !ok })
+		}
 	} else {
-		params = eval.Select1(tupleParams, func(p eval.Value) bool { _, ok := p.(*UnitType); return !ok })
+		params = make([]eval.Value, 0)
 	}
 	if t.blockType != nil {
 		params = append(params, t.blockType)

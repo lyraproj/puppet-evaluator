@@ -54,9 +54,14 @@ func (t *DefaultType) Name() string {
 	return `Default`
 }
 
-func (t *DefaultType) SerializationString() string {
+func (t *DefaultType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *DefaultType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *DefaultType) String() string {
 	return eval.ToString2(t, NONE)

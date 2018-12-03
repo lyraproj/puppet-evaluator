@@ -170,6 +170,7 @@ func (p *pcoreImpl) Logger() eval.Logger {
 func (p *pcoreImpl) RootContext() eval.Context {
 	InitializePuppet()
 	c := impl.WithParent(context.Background(), impl.NewEvaluator, eval.NewParentedLoader(p.EnvironmentLoader()), p.logger, topImplRegistry)
+	types.InitTypeSetType(c)
 	threadlocal.Init()
 	threadlocal.Set(eval.PuppetContextKey, c)
 	return c

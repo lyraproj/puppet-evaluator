@@ -88,9 +88,14 @@ func (t *TypeReferenceType) Name() string {
 	return `TypeReference`
 }
 
-func (t *TypeReferenceType) SerializationString() string {
+func (t *TypeReferenceType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *TypeReferenceType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *TypeReferenceType) String() string {
 	return eval.ToString2(t, NONE)

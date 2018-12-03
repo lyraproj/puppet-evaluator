@@ -299,9 +299,14 @@ func (t *IntegerType) SizeParameters() []eval.Value {
 	return params
 }
 
-func (t *IntegerType) SerializationString() string {
+func (t *IntegerType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *IntegerType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *IntegerType) String() string {
 	return eval.ToString2(t, NONE)

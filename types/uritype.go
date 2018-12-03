@@ -338,9 +338,14 @@ func (t *UriType) Parameters() []eval.Value {
 	}
 }
 
-func (t *UriType) SerializationString() string {
+func (t *UriType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *UriType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *UriType) String() string {
 	return eval.ToString2(t, NONE)
@@ -429,9 +434,14 @@ func (u *UriValue) Get(key string) (eval.Value, bool) {
 	return _UNDEF, false
 }
 
-func (u *UriValue) SerializationString() string {
+func (u *UriValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (u *UriValue)  SerializationString() string {
 	return u.String()
 }
+
 
 func (u *UriValue) String() string {
 	return eval.ToString(u)

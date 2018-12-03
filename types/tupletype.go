@@ -328,6 +328,20 @@ func (t *TupleType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *TupleType) CanSerializeAsString() bool {
+	for _, v := range t.types {
+		ts, ok := v.(eval.SerializeAsString)
+		if !(ok && ts.CanSerializeAsString()) {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *TupleType) SerializationString() string {
+	return t.String()
+}
+
 func (t *TupleType) Size() *IntegerType {
 	return t.givenOrActualSize
 }

@@ -57,9 +57,14 @@ func (t *ScalarDataType) Name() string {
 	return `ScalarData`
 }
 
-func (t *ScalarDataType) SerializationString() string {
+func (t *ScalarDataType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *ScalarDataType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *ScalarDataType) String() string {
 	return `ScalarData`

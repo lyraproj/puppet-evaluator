@@ -59,9 +59,14 @@ func (t *UndefType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.Value{}.Type(), true
 }
 
-func (t *UndefType) SerializationString() string {
+func (t *UndefType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *UndefType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *UndefType) String() string {
 	return `Undef`

@@ -186,13 +186,14 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 	}
 
 	result := method.(eval.CallableGoMember).CallGoReflected(c, rfArgs)
+
 	switch len(result) {
 	case 0:
 		return _UNDEF, true
 	case 1:
 		r := result[0]
 		if r.IsValid() {
-			return wrap(c, r), true
+			return wrapReflected(c, r), true
 		} else {
 			return _UNDEF, true
 		}
@@ -200,7 +201,7 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 		rs := make([]eval.Value, len(result))
 		for i, r := range result {
 			if r.IsValid() {
-				rs[i] = wrap(c, r)
+				rs[i] = wrapReflected(c, r)
 			} else {
 				rs[i] = _UNDEF
 			}
@@ -343,6 +344,7 @@ func (o *reflectedFunc) Call(c eval.Context, method eval.ObjFunc, args []eval.Va
 			[]eval.Signature{method.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}
 	result := o.function.Call(rfArgs)
+
 	oc := mt.NumOut()
 
 	if method.ReturnsError() {

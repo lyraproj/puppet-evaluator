@@ -242,7 +242,11 @@ func toTypes(types eval.List) ([]eval.Type, int) {
 	if top == 1 {
 		if a, ok := types.At(0).(eval.List); ok {
 			if _, ok = a.(*StringValue); !ok {
-				return toTypes(a)
+				ts, f := toTypes(a)
+				if f >= 0 {
+					return nil, 0
+				}
+				return ts, 0
 			}
 		}
 	}
@@ -256,7 +260,7 @@ func toTypes(types eval.List) ([]eval.Type, int) {
 	}) {
 		return result, -1
 	}
-	return nil, len(result)
+	return nil, 0
 }
 
 func DefaultDataType() *TypeAliasType {
@@ -546,7 +550,8 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		}
 	}
 
-	if pv, ok := WrapPrimitive(vr); ok {
+	pv, ok := WrapPrimitive(vr)
+	if ok {
 		return pv
 	}
 
@@ -569,6 +574,11 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		if vr.IsValid() && vr.CanInterface() {
 			if vr.IsNil() {
 				return _UNDEF
+			}
+			ix := vr.Interface()
+			pv, ok = ix.(eval.Value)
+			if ok {
+				return pv
 			}
 			pv = WrapRuntime(vr.Interface())
 		} else {

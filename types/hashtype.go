@@ -339,6 +339,19 @@ func (t *HashType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *HashType) CanSerializeAsString() bool {
+	if ks, ok := t.keyType.(eval.SerializeAsString); ok && ks.CanSerializeAsString() {
+		if vs, ok := t.valueType.(eval.SerializeAsString); ok {
+			return vs.CanSerializeAsString()
+		}
+	}
+	return false
+}
+
+func (t *HashType) SerializationString() string {
+	return t.String()
+}
+
 func (t *HashType) Size() *IntegerType {
 	return t.size
 }

@@ -187,9 +187,14 @@ func (t *EnumType) Parameters() []eval.Value {
 	return result
 }
 
-func (t *EnumType) SerializationString() string {
+func (t *EnumType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *EnumType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, f, g)

@@ -113,9 +113,14 @@ func (t *BinaryType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf([]byte{}), true
 }
 
-func (t *BinaryType) SerializationString() string {
+func (t *BinaryType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *BinaryType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *BinaryType) String() string {
 	return `Binary`
@@ -232,9 +237,14 @@ func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (bv *BinaryValue) SerializationString() string {
+func (bv *BinaryValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (bv *BinaryValue)  SerializationString() string {
 	return base64.StdEncoding.Strict().EncodeToString(bv.bytes)
 }
+
 
 func (bv *BinaryValue) String() string {
 	return eval.ToString2(bv, NONE)

@@ -191,9 +191,14 @@ func (t *FloatType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 
-func (t *FloatType) SerializationString() string {
+func (t *FloatType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *FloatType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *FloatType) String() string {
 	return eval.ToString2(t, NONE)

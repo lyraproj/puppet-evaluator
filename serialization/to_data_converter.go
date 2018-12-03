@@ -3,6 +3,7 @@ package serialization
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/puppetlabs/go-evaluator/eval"
@@ -18,8 +19,8 @@ type (
 		richData        bool
 		messagePrefix   string
 		path            []eval.Value
-		values          map[eval.Value]interface{}
-		recursiveLock   map[eval.Value]bool
+		values          map[uintptr]interface{}
+		recursiveLock   map[uintptr]bool
 	}
 )
 
@@ -40,7 +41,7 @@ var localRefSym = types.WrapString(PCORE_LOCAL_REF_SYMBOL)
 
 func (t *ToDataConverter) Convert(value eval.Value) eval.Value {
 	t.path = make([]eval.Value, 0, 16)
-	t.values = make(map[eval.Value]interface{}, 63)
+	t.values = make(map[uintptr]interface{}, 63)
 	return t.toData(value)
 }
 
@@ -65,7 +66,7 @@ func (t *ToDataConverter) pathToString() string {
 }
 
 func (t *ToDataConverter) toData(value eval.Value) eval.Value {
-	if value == eval.UNDEF || eval.IsInstance(types.DefaultDataType(), value) {
+	if value == eval.UNDEF || eval.IsInstance(types.DefaultScalarDataType(), value) {
 		return value
 	}
 	if value == types.WrapDefault() {
@@ -76,8 +77,8 @@ func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 		return types.WrapString(`default`)
 	}
 
-	if h, ok := value.(eval.OrderedMap); ok {
-		return t.process(h, func() eval.Value {
+	if h, ok := value.(*types.HashValue); ok {
+		return t.process(value, func() eval.Value {
 			if h.AllPairs(func(k, v eval.Value) bool {
 				if _, ok := k.(*types.StringValue); ok {
 					return true
@@ -98,8 +99,8 @@ func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 		})
 	}
 
-	if a, ok := value.(eval.List); ok {
-		return t.process(a, func() eval.Value {
+	if a, ok := value.(*types.ArrayValue); ok {
+		return t.process(value, func() eval.Value {
 			result := make([]eval.Value, 0, a.Len())
 			a.EachWithIndex(func(elem eval.Value, index int) {
 				t.with(types.WrapInteger(int64(index)), func() eval.Value {
@@ -113,7 +114,7 @@ func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 	}
 
 	if sv, ok := value.(*types.SensitiveValue); ok {
-		return t.process(sv, func() eval.Value {
+		return t.process(value, func() eval.Value {
 			return typeAndValueHash(types.WrapString(PCORE_TYPE_SENSITIVE), t.toData(sv.Unwrap()))
 		})
 	}
@@ -121,16 +122,17 @@ func (t *ToDataConverter) toData(value eval.Value) eval.Value {
 }
 
 func (t *ToDataConverter) withRecursiveGuard(value eval.Value, producer eval.Producer) eval.Value {
+	key := reflect.ValueOf(value).Pointer()
 	if t.recursiveLock == nil {
-		t.recursiveLock = map[eval.Value]bool{value: true}
+		t.recursiveLock = map[uintptr]bool{key: true}
 	} else {
-		if _, ok := t.recursiveLock[value]; ok {
+		if _, ok := t.recursiveLock[key]; ok {
 			panic(eval.Error(eval.EVAL_SERIALIZATION_ENDLESS_RECURSION, issue.H{`type_name`: value.PType().Name()}))
 		}
-		t.recursiveLock[value] = true
+		t.recursiveLock[key] = true
 	}
 	v := producer()
-	delete(t.recursiveLock, value)
+	delete(t.recursiveLock, key)
 	return v
 }
 
@@ -165,26 +167,28 @@ func (t *ToDataConverter) unkownToStringWithWarning(value eval.Value) eval.Value
 }
 
 func (t *ToDataConverter) process(value eval.Value, producer eval.Producer) eval.Value {
-	if t.localReference {
-		if ref, ok := t.values[value]; ok {
-			if hash, ok := ref.(eval.OrderedMap); ok {
-				return hash
-			}
-			jsonRef := t.toJsonPath(ref.([]eval.Value))
-			if jsonRef == `` {
-				// Complex key and hence no way to reference the prior value. The value must therefore be
-				// duplicated which in turn introduces a risk for endless recursion in case of self
-				// referencing structures
-				return t.withRecursiveGuard(value, producer)
-			}
-			v := typeAndValueHash(localRefSym, types.WrapString(jsonRef))
-			t.values[value] = v
-			return v
-		}
-		t.values[value] = eval.CopyValues(t.path)
-		return producer()
+	if !t.localReference {
+		return t.withRecursiveGuard(value, producer)
 	}
-	return t.withRecursiveGuard(value, producer)
+
+	key := reflect.ValueOf(value).Pointer()
+	if ref, ok := t.values[key]; ok {
+		if hash, ok := ref.(eval.OrderedMap); ok {
+			return hash
+		}
+		jsonRef := t.toJsonPath(ref.([]eval.Value))
+		if jsonRef == `` {
+			// Complex key and hence no way to reference the prior value. The value must therefore be
+			// duplicated which in turn introduces a risk for endless recursion in case of self
+			// referencing structures
+			return t.withRecursiveGuard(value, producer)
+		}
+		v := typeAndValueHash(localRefSym, types.WrapString(jsonRef))
+		t.values[key] = v
+		return v
+	}
+	t.values[key] = eval.CopyValues(t.path)
+	return producer()
 }
 
 func (t *ToDataConverter) with(key eval.Value, producer eval.Producer) eval.Value {
@@ -227,56 +231,60 @@ func (t *ToDataConverter) valueToDataHash(value eval.Value) eval.Value {
 
 	vt := value.PType()
 	if tx, ok := value.(eval.Type); ok {
-		if ss, ok := value.(eval.SerializeAsString); ok {
+		if ss, ok := value.(eval.SerializeAsString); ok && ss.CanSerializeAsString() {
 			return typeAndValueHash(t.pcoreTypeToData(vt), types.WrapString(ss.SerializationString()))
 		}
 		if t.typeByReference {
-			return typeAndValueHash(t.pcoreTypeToData(vt), types.WrapString(value.String()))
+			if a, ok := value.(*types.TypeAliasType); ok {
+				return typeAndValueHash(t.pcoreTypeToData(vt), types.WrapString(a.Name()))
+			}
 		}
 		vt = tx.MetaType()
 	}
 
 	pcoreTv := t.pcoreTypeToData(vt)
-	if ss, ok := value.(eval.SerializeAsString); ok {
+	if ss, ok := value.(eval.SerializeAsString); ok && ss.CanSerializeAsString() {
 		return typeAndValueHash(pcoreTv, types.WrapString(ss.SerializationString()))
 	}
 
-
 	if po, ok := value.(eval.PuppetObject); ok {
-		ih := t.toData(po.InitHash()).(eval.OrderedMap)
-		entries := make([]*types.HashEntry, 0, ih.Len())
-		entries = append(entries, types.WrapHashEntry(typeKey, pcoreTv))
-		ih.Each(func(v eval.Value) { entries = append(entries, v.(*types.HashEntry)) })
-		return types.WrapHash(entries)
+		return t.process(value, func() eval.Value {
+			ih := t.toData(po.InitHash()).(eval.OrderedMap)
+			entries := make([]*types.HashEntry, 0, ih.Len())
+			entries = append(entries, types.WrapHashEntry(typeKey, pcoreTv))
+			ih.Each(func(v eval.Value) { entries = append(entries, v.(*types.HashEntry)) })
+			return types.WrapHash(entries)
+		})
 	}
 
 	if ot, ok := vt.(eval.ObjectType); ok {
-		ai := ot.AttributesInfo()
-		attrs := ai.Attributes()
-		args := make([]eval.Value, len(attrs))
-		for i, a := range attrs {
-			args[i] = a.Get(value)
-		}
-
-		for i := len(args) - 1; i >= ai.RequiredCount(); i-- {
-			if !attrs[i].Default(args[i]) {
-				break
+		return t.process(value, func() eval.Value {
+			ai := ot.AttributesInfo()
+			attrs := ai.Attributes()
+			args := make([]eval.Value, len(attrs))
+			for i, a := range attrs {
+				args[i] = a.Get(value)
 			}
-			args = args[:i]
-		}
-		entries := make([]*types.HashEntry, 0, len(attrs)+1)
-		entries = append(entries, types.WrapHashEntry(typeKey, pcoreTv))
-		for i, a := range args {
-			key := types.WrapString(attrs[i].Name())
-			t.with(key, func() eval.Value {
-				a = t.toData(a)
-				entries = append(entries, types.WrapHashEntry(key, a))
-				return a
-			})
-		}
-		return types.WrapHash(entries)
-	}
 
+			for i := len(args) - 1; i >= ai.RequiredCount(); i-- {
+				if !attrs[i].Default(args[i]) {
+					break
+				}
+				args = args[:i]
+			}
+			entries := make([]*types.HashEntry, 0, len(attrs)+1)
+			entries = append(entries, types.WrapHashEntry(typeKey, pcoreTv))
+			for i, a := range args {
+				key := types.WrapString(attrs[i].Name())
+				t.with(key, func() eval.Value {
+					a = t.toData(a)
+					entries = append(entries, types.WrapHashEntry(key, a))
+					return a
+				})
+			}
+			return types.WrapHash(entries)
+		})
+	}
 	return t.unkownToStringWithWarning(value)
 }
 

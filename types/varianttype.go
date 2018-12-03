@@ -132,6 +132,20 @@ func (t *VariantType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *VariantType) CanSerializeAsString() bool {
+	for _, v := range t.types {
+		ts, ok := v.(eval.SerializeAsString)
+		if !(ok && ts.CanSerializeAsString()) {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *VariantType) SerializationString() string {
+	return t.String()
+}
+
 func (t *VariantType) String() string {
 	return eval.ToString2(t, NONE)
 }

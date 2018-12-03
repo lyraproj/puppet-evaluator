@@ -255,9 +255,14 @@ func (t *TimestampType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Time{}), true
 }
 
-func (t *TimestampType) SerializationString() string {
+func (t *TimestampType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *TimestampType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *TimestampType) String() string {
 	return eval.ToString2(t, NONE)
@@ -376,9 +381,14 @@ func (tv *TimestampValue) Int() int64 {
 	return tv.min.Unix()
 }
 
-func (tv *TimestampValue) SerializationString() string {
+func (tv *TimestampValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (tv *TimestampValue)  SerializationString() string {
 	return tv.String()
 }
+
 
 func (tv *TimestampValue) String() string {
 	return eval.ToString2(tv, NONE)

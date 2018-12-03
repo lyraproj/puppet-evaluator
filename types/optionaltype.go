@@ -127,6 +127,15 @@ func (t *OptionalType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *OptionalType) CanSerializeAsString() bool {
+	ts, ok := t.typ.(eval.SerializeAsString)
+	return ok && ts.CanSerializeAsString()
+}
+
+func (t *OptionalType) SerializationString() string {
+	return t.String()
+}
+
 func (t *OptionalType) String() string {
 	return eval.ToString2(t, NONE)
 }

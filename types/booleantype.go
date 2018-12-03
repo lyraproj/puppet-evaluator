@@ -104,7 +104,14 @@ func (t *BooleanType) Name() string {
 }
 
 func (t *BooleanType) String() string {
-	return `Boolean`
+	switch t.value {
+	case 0:
+		return `Boolean[false]`
+	case 1:
+		return `Boolean[true]`
+	default:
+		return `Boolean`
+	}
 }
 
 func (t *BooleanType) IsAssignable(o eval.Type, g eval.Guard) bool {
@@ -130,6 +137,14 @@ func (t *BooleanType) Parameters() []eval.Value {
 
 func (t *BooleanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(true), true
+}
+
+func (t *BooleanType)  CanSerializeAsString() bool {
+	return true
+}
+
+func (t *BooleanType)  SerializationString() string {
+	return t.String()
 }
 
 func (t *BooleanType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -178,9 +193,14 @@ func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (t *BooleanValue) SerializationString() string {
+func (t *BooleanValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *BooleanValue)  SerializationString() string {
 	return t.String()
 }
+
 
 func (bv *BooleanValue) String() string {
 	if bv.value == 1 {

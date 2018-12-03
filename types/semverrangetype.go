@@ -117,9 +117,14 @@ func (t *SemVerRangeType) Name() string {
 	return `SemVerRange`
 }
 
-func (t *SemVerRangeType) SerializationString() string {
+func (t *SemVerRangeType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *SemVerRangeType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *SemVerRangeType) String() string {
 	return `SemVerRange`
@@ -174,9 +179,14 @@ func (bv *SemVerRangeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	dest.Set(rv)
 }
 
-func (bv *SemVerRangeValue) SerializationString() string {
+func (bv *SemVerRangeValue)  CanSerializeAsString() bool {
+  return true
+}
+
+func (bv *SemVerRangeValue)  SerializationString() string {
 	return bv.String()
 }
+
 
 func (bv *SemVerRangeValue) String() string {
 	return eval.ToString2(bv, NONE)

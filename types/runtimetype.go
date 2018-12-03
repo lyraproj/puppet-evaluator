@@ -225,9 +225,14 @@ func (t *RuntimeType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return t.goType, t.goType != nil
 }
 
-func (t *RuntimeType) SerializationString() string {
+func (t *RuntimeType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *RuntimeType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *RuntimeType) String() string {
 	return eval.ToString2(t, NONE)

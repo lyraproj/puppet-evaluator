@@ -56,6 +56,12 @@ type (
 	}
 
 	SerializeAsString interface {
+		// CanSerializeAsString responds true if this instance and all its nested
+		// isntances can serialize as string
+		CanSerializeAsString() bool
+
+		// SerializationString returns the string that the type of the instance can use
+		// to recreate the instance
 		SerializationString() string
 	}
 

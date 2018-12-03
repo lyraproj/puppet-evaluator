@@ -6,6 +6,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-parser/parser"
+	"reflect"
 )
 
 type (
@@ -20,6 +21,7 @@ type (
 		richDataFuncs   map[string]richDataFunc
 		defaultFunc     richDataFunc
 		newTypes        []eval.Type
+		ntUnique        map[uintptr]bool
 	}
 
 	builder interface {
@@ -56,7 +58,29 @@ type (
 )
 
 func (b *valueBuilder) get(key eval.Value) builder {
-	panic(`scalar indexed by string`)
+	if ro, ok := b.value.(eval.ReadableObject); ok {
+		if v, ok := ro.Get(key.String()); ok {
+			return makeBuilder(v)
+		}
+	}
+	return nil
+}
+
+func makeBuilder(v eval.Value) builder {
+	switch v.(type) {
+	case *types.HashValue:
+		h := v.(*types.HashValue)
+		hb := &hashBuilder{hash.NewStringHash(h.Len()), h}
+		h.EachPair(func(k, v eval.Value) { hb.values.Put(string(eval.ToKey(k)), &hbEntry{k, makeBuilder(v)})})
+		return hb
+	case *types.ArrayValue:
+		a := v.(*types.ArrayValue)
+		bvs := make([]builder, a.Len())
+		a.EachWithIndex(func(v eval.Value, i int) { bvs[i] = makeBuilder(v)})
+		return &arrayBuilder{bvs, a}
+	default:
+		return &valueBuilder{v,v}
+	}
 }
 
 func (b *valueBuilder) put(key eval.Value, value builder) {
@@ -275,10 +299,12 @@ func resolveJsonPath(c eval.Context, lhs builder, path string) (eval.Value, bool
 
 func (f *FromDataConverter) Convert(value eval.Value) eval.Value {
 	if f.newTypes == nil {
-		f.newTypes = make([]eval.Type, 0, 4)
+		f.newTypes = make([]eval.Type, 0, 11)
+		f.ntUnique = make(map[uintptr]bool, 11)
 		defer func() {
 			nts := f.newTypes
 			f.newTypes = nil
+			f.ntUnique = nil
 			f.context.AddTypes(nts...)
 		}()
 	}
@@ -326,7 +352,11 @@ func (f *FromDataConverter) buildValue(value eval.Value) eval.Value {
 			}
 			panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
 		}
-		f.newTypes = append(f.newTypes, rt)
+		key := reflect.ValueOf(v).Pointer()
+		if _, ok := f.ntUnique[key]; !ok {
+			f.newTypes = append(f.newTypes, rt)
+			f.ntUnique[key] = true
+		}
 	}
 	return v
 }
@@ -394,6 +424,9 @@ func (f *FromDataConverter) pcoreTypeHashToValue(typ eval.Type, value eval.Value
 func (f *FromDataConverter) allocate(typ eval.Type) (eval.Object, bool) {
 	if allocator, ok := eval.Load(f.context, eval.NewTypedName(eval.NsAllocator, typ.Name())); ok {
 		return allocator.(eval.Lambda).Call(nil, nil).(eval.Object), true
+	}
+	if ot, ok := typ.(eval.ObjectType); ok && ot.Name() == `Pcore::ObjectType` {
+		return types.AllocObjectType(), true
 	}
 	return nil, false
 }

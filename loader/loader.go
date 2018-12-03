@@ -5,6 +5,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/impl"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
+	"reflect"
 	"sync"
 )
 
@@ -132,6 +133,9 @@ func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval
 	l.lock.Lock()
 	if old, ok := l.namedEntries[name.MapKey()]; ok && old.Value() != nil {
 		l.lock.Unlock()
+		if reflect.ValueOf(old.Value()).Pointer() == reflect.ValueOf(entry.Value()).Pointer() {
+			return old
+		}
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: name}))
 	}
 	l.namedEntries[name.MapKey()] = entry

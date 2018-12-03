@@ -66,6 +66,10 @@ func init() {
 		oneArgCtor, oneArgCtor)
 }
 
+func InitTypeSetType(c eval.Context) {
+	TypeSet_Type.(*objectType).createNewFunction(c)
+}
+
 type (
 	typeSetReference struct {
 		annotatable

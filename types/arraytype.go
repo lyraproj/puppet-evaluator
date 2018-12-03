@@ -269,6 +269,15 @@ func (t *ArrayType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return nil, false
 }
 
+func (t *ArrayType) CanSerializeAsString() bool {
+	ts, ok := t.typ.(eval.SerializeAsString)
+	return ok && ts.CanSerializeAsString()
+}
+
+func (t *ArrayType) SerializationString() string {
+	return t.String()
+}
+
 func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }

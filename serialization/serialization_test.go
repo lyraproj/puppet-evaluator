@@ -39,7 +39,7 @@ func ExampleFromDataConverter_ObjectRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		p := impl.NewParameter(`p1`, ctx.ParseType2(`Type[String]`), nil, false)
 		fmt.Println(p)
-		data := NewToDataConverter(eval.EMPTY_MAP).Convert(p)
+		data := NewToDataConverter(eval.EMPTY_MAP).Convert(types.WrapValues([]eval.Value{p, p}))
 
 		buf := bytes.NewBufferString(``)
 		DataToJson(ctx, data, buf, eval.EMPTY_MAP)
@@ -48,13 +48,13 @@ func ExampleFromDataConverter_ObjectRoundtrip() {
 		b := buf.String()
 		fmt.Print(b)
 		data2 := JsonToData(ctx, `/tmp/sample.json`, buf)
-		p2 := fc.Convert(data2)
+		p2 := fc.Convert(data2).(eval.List).At(0)
 
 		fmt.Println(p2)
 	})
 	// Output:
 	// Parameter('name' => 'p1', 'type' => Type[String])
-	// {"__ptype":"Parameter","name":"p1","type":{"__ptype":"Type","__pvalue":"Type[String]"}}
+	// [{"__ptype":"Parameter","name":"p1","type":{"__ptype":"Type","__pvalue":"Type[String]"}},{"__ptype":"LocalRef","__pvalue":"$[0]"}]
 	// Parameter('name' => 'p1', 'type' => Type[String])
 }
 
@@ -88,7 +88,14 @@ func ExampleFromDataConverter_TypeSetRoundtrip() {
       version => '1.0.0',
       pcore_version => '1.0.0',
       types => {
-        Bar => Object[]
+        Bar => Object[
+  attributes => {
+    subnet_id => { type => Optional[String], value => 'FAKED_SUBNET_ID' },
+    vpc_id => String,
+    cidr_block => String,
+    map_public_ip_on_launch => Boolean
+  }
+        ]
       }}]`)
 		ctx.AddTypes(p)
 		fmt.Println(p)
@@ -105,9 +112,9 @@ func ExampleFromDataConverter_TypeSetRoundtrip() {
 		fmt.Println(p2)
 	})
 	// Output:
-	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => Foo::Bar}}]
-	// {"__ptype":"Type","__pvalue":"TypeSet[{pcore_version =\u003e '1.0.0', name_authority =\u003e 'http://puppet.com/2016.1/runtime', name =\u003e 'Foo', version =\u003e '1.0.0', types =\u003e {Bar =\u003e Foo::Bar}}]"}
-	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => Foo::Bar}}]
+	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => {attributes => {'subnet_id' => {'type' => Optional[String], 'value' => 'FAKED_SUBNET_ID'}, 'vpc_id' => String, 'cidr_block' => String, 'map_public_ip_on_launch' => Boolean}}}}]
+	// {"__ptype":"Pcore::TypeSet","name":"Foo","name_authority":{"__ptype":"URI","__pvalue":"http://puppet.com/2016.1/runtime"},"pcore_version":{"__ptype":"SemVer","__pvalue":"1.0.0"},"types":{"Bar":{"__ptype":"Pcore::ObjectType","attributes":{"cidr_block":{"__ptype":"Type","__pvalue":"String"},"map_public_ip_on_launch":{"__ptype":"Type","__pvalue":"Boolean"},"subnet_id":{"type":{"__ptype":"Type","__pvalue":"Optional[String]"},"value":"FAKED_SUBNET_ID"},"vpc_id":{"__ptype":"Type","__pvalue":"String"}},"name":"Foo::Bar"}},"version":{"__ptype":"SemVer","__pvalue":"1.0.0"}}
+	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => {attributes => {'subnet_id' => {'type' => Optional[String], 'value' => 'FAKED_SUBNET_ID'}, 'vpc_id' => String, 'cidr_block' => String, 'map_public_ip_on_launch' => Boolean}}}}]
 }
 
 func ExampleFromDataConverter_goValueRoundtrip() {

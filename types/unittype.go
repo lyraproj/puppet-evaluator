@@ -54,9 +54,14 @@ func (t *UnitType) Name() string {
 	return `Unit`
 }
 
-func (t *UnitType) SerializationString() string {
+func (t *UnitType)  CanSerializeAsString() bool {
+  return true
+}
+
+func (t *UnitType)  SerializationString() string {
 	return t.String()
 }
+
 
 func (t *UnitType) String() string {
 	return `Unit`

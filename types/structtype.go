@@ -357,6 +357,22 @@ func (t *StructType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *StructType) CanSerializeAsString() bool {
+	for _, v := range t.elements {
+		if ks, ok := v.key.(eval.SerializeAsString); ok && ks.CanSerializeAsString() {
+			if vs, ok := v.value.(eval.SerializeAsString); ok && vs.CanSerializeAsString() {
+				continue
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func (t *StructType) SerializationString() string {
+	return t.String()
+}
+
 func (t *StructType) Size() *IntegerType {
 	required := 0
 	for _, e := range t.elements {

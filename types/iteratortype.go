@@ -136,6 +136,15 @@ func (t *IteratorType) Parameters() []eval.Value {
 	return []eval.Value{t.typ}
 }
 
+func (t *IteratorType) CanSerializeAsString() bool {
+	ts, ok := t.typ.(eval.SerializeAsString)
+	return ok && ts.CanSerializeAsString()
+}
+
+func (t *IteratorType) SerializationString() string {
+	return t.String()
+}
+
 func (t *IteratorType) String() string {
 	return eval.ToString2(t, NONE)
 }
