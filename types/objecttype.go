@@ -621,6 +621,11 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	t.isInterface = isInterface
 	t.attrInfo = t.createAttributesInfo()
 	t.annotatable.initialize(initHash.(*HashValue))
+	t.loader = c.Loader()
+
+	if t.name != `` {
+		t.createNewFunction(c)
+	}
 }
 
 func (t *objectType) Implements(ifd eval.ObjectType, g eval.Guard) bool {
@@ -762,11 +767,7 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 		} else {
 			initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
 		}
-		t.loader = c.Loader()
 		t.InitFromHash(c, initHash)
-		if t.name != `` {
-			t.createNewFunction(c)
-		}
 	}
 	return t
 }
