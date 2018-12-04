@@ -4,8 +4,8 @@ import (
 	"io"
 	"math"
 
-	"github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type CollectionType struct {

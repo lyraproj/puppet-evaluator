@@ -1,6 +1,6 @@
 package functions
 
-import "github.com/puppetlabs/go-evaluator/eval"
+import "github.com/lyraproj/puppet-evaluator/eval"
 
 func init() {
 	eval.NewGoFunction(`convert_to`,

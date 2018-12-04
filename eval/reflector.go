@@ -2,7 +2,7 @@ package eval
 
 import (
 	"reflect"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/semver/semver"
 )
 
 // A ReflectedType is implemented by PTypes that can have a potential to

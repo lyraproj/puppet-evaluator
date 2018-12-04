@@ -1,8 +1,8 @@
 package impl
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-parser/parser"
 )
 
 var NewPuppetActivity func(c eval.Context, expr *parser.ActivityExpression) eval.Resolvable

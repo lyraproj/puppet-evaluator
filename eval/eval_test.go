@@ -2,13 +2,13 @@ package eval_test
 
 import (
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/semver/semver"
 	"reflect"
 	"testing"
 
 	// Initialize pcore
-	_ "github.com/puppetlabs/go-evaluator/pcore"
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
 )
 
 func ExampleWrap() {

@@ -1,12 +1,12 @@
 # Puppet Evaluator
 
-This is an evaluator for the AST produced by the [Puppet Language Parser](/puppetlabs/go-parser)
+This is an evaluator for the AST produced by the [Puppet Language Parser](/lyraproj/puppet-parser)
 
 ## Unit Testing
 
 Tests for virtually everything is written in the
 [Puppet Specification Language](https://docs.google.com/document/d/1VySubOiw8pD99OucVjk0ueyw2xlq4ky4WIWkV6Qoq64)
-and can be found under the [tests/testdata](https://github.com/puppetlabs/go-evaluator/tree/master/tests/testdata)
+and can be found under the [tests/testdata](https://github.com/lyraproj/puppet-evaluator/tree/master/tests/testdata)
 directory.
 
 ## Implementation status

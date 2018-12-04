@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"strings"
 	"regexp"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/issue/issue"
 )
 
 type typedName struct {

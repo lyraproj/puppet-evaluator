@@ -3,12 +3,12 @@ package serialization
 import (
 	"bytes"
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/impl"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/semver/semver"
 
-	_ "github.com/puppetlabs/go-evaluator/pcore"
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
 	"reflect"
 )
 

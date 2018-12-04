@@ -3,7 +3,7 @@ package types
 import (
 	"io"
 	"strconv"
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type CallableType struct {

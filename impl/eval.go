@@ -3,15 +3,15 @@ package impl
 import (
 	"bytes"
 	"fmt"
-	"github.com/puppetlabs/go-parser/literal"
+	"github.com/lyraproj/puppet-parser/literal"
 	"sort"
 
-	"github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-parser/parser"
-	"github.com/puppetlabs/go-parser/validator"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-parser/parser"
+	"github.com/lyraproj/puppet-parser/validator"
 )
 
 var coreTypes = map[string]eval.Type{

@@ -1,7 +1,7 @@
 package functions
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func typeOf(c eval.Context, v eval.Value, i string) eval.Type {

@@ -7,9 +7,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/issue/issue"
 	"reflect"
 )
 

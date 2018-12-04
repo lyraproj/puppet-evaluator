@@ -1,9 +1,9 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-evaluator/threadlocal"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-parser/parser"
 )
 
 // An Evaluator is responsible for evaluating an Abstract Syntax Tree, typically produced by

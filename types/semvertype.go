@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/semver/semver"
 	"reflect"
-	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 type (

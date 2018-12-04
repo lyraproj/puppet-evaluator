@@ -2,17 +2,17 @@ package eval_test
 
 import (
 	"strconv"
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"fmt"
 	"reflect"
 	"os"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/semver/semver"
 	"time"
-	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/types"
 	"regexp"
 
 	// Initialize pcore
-	_ "github.com/puppetlabs/go-evaluator/pcore"
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
 )
 
 func ExampleReflector_reflectArray() {

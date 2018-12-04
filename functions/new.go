@@ -3,8 +3,8 @@ package functions
 import (
 	"fmt"
 
-	"github.com/puppetlabs/go-evaluator/errors"
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func callNew(c eval.Context, typ eval.Value, args []eval.Value, block eval.Lambda) eval.Value {

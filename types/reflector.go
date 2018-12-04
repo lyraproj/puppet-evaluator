@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/issue/issue"
 	"math"
 	"reflect"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/semver/semver"
 	"strings"
 )
 

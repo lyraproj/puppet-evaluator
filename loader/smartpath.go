@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type (

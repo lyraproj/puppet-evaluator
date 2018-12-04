@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/lyraproj/puppet-parser/parser"
 )
 
 func AllStrings(strings []string, predicate func(str string) bool) bool {

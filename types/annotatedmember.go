@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/hash"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/hash"
+	"github.com/lyraproj/issue/issue"
 )
 
 type annotatedMember struct {

@@ -1,6 +1,6 @@
 package types
 
-import "github.com/puppetlabs/go-evaluator/eval"
+import "github.com/lyraproj/puppet-evaluator/eval"
 
 type attributesInfo struct {
 	nameToPos                map[string]int

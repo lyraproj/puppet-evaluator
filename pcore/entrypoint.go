@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/impl"
-	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/types"
 
 	// Import ordering and subsequent initialisation currently
 	// results in a segfault if functions is not imported (but
 	// not used) at this point
 	"context"
-	_ "github.com/puppetlabs/go-evaluator/functions"
-	"github.com/puppetlabs/go-parser/parser"
-	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-evaluator/threadlocal"
+	_ "github.com/lyraproj/puppet-evaluator/functions"
+	"github.com/lyraproj/puppet-parser/parser"
+	"github.com/lyraproj/puppet-parser/validator"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
 )
 
 type (

@@ -1,8 +1,8 @@
 package functions
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/issue/issue"
 )
 
 func assertType(c eval.Context, t eval.Type, v eval.Value, b eval.Lambda) eval.Value {

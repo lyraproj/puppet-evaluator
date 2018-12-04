@@ -2,7 +2,7 @@ package hash
 
 import (
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 // Mutable and order preserving hash with string keys and arbitrary values. Used, among other things, by the

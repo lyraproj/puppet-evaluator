@@ -2,10 +2,10 @@ package eval
 
 import (
 	"context"
-	"github.com/puppetlabs/go-evaluator/threadlocal"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
 
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-parser/parser"
 )
 
 const PuppetContextKey = `puppet.context`

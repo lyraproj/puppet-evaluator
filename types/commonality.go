@@ -4,8 +4,8 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 // CommonType returns a type that both a and b are assignable to

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func toFloat(v eval.Value) (float64, bool) {

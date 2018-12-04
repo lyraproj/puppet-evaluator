@@ -3,8 +3,8 @@ package types
 import (
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-parser/parser"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-parser/parser"
 )
 
 type (

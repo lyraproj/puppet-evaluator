@@ -1,8 +1,8 @@
 package eval
 
 import (
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/semver/semver"
 	"reflect"
 )
 

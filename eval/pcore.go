@@ -2,8 +2,8 @@ package eval
 
 import (
 	"context"
-	"github.com/puppetlabs/go-parser/validator"
-	"github.com/puppetlabs/go-semver/semver"
+	"github.com/lyraproj/puppet-parser/validator"
+	"github.com/lyraproj/semver/semver"
 )
 
 type (

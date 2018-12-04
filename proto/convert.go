@@ -1,9 +1,9 @@
 package proto
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/data-protobuf/datapb"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/data-protobuf/datapb"
 )
 
 func ToPBData(v eval.Value) (value *datapb.Data) {

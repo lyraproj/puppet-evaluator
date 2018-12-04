@@ -3,7 +3,7 @@ package types
 import (
 	"io"
 
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type AnyType struct{}

@@ -1,7 +1,7 @@
 package pcore
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"testing"
 )
 

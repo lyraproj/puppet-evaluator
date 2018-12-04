@@ -2,9 +2,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-evaluator/hash"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/hash"
 )
 
 const KEY_GONAME = `go_name`
