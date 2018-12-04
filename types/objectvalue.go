@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
 	"io"
@@ -176,11 +177,41 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 
 	mt := m.Type
 	rf := c.Reflector()
-	rfArgs := make([]reflect.Value, 1 + len(args))
+	var vat reflect.Type
+
+	// argc, the number of arguments + the mandatory call receiver
+	argc := len(args) + 1
+
+	// number of expected arguments
+	top := mt.NumIn()
+	last := top - 1
+
+	if mt.IsVariadic() {
+		if argc < last {
+			// Must be at least expected number of arguments minus one (variadic can have a zero count)
+			panic(fmt.Errorf("Agrument count error. Expected at least %d, got %d", last, argc))
+		}
+
+		// Slice big enough to hold all variadics
+		vat = mt.In(last).Elem()
+	} else {
+		if top != argc {
+			panic(fmt.Errorf("Agrument count error. Expected %d, got %d", top, argc))
+		}
+	}
+
+	rfArgs := make([]reflect.Value, argc)
 	rfArgs[0] = o.value
+
 	for i, arg := range args {
 		pn := i + 1
-		av := reflect.New(mt.In(pn)).Elem()
+		var tp reflect.Type
+		if pn >= last && vat != nil {
+			tp = vat
+		} else {
+			tp = mt.In(pn)
+		}
+		av := reflect.New(tp).Elem()
 		rf.ReflectTo(arg, av)
 		rfArgs[pn] = av
 	}

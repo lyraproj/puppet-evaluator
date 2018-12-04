@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-issues/issue"
+	"math"
 	"reflect"
 	"github.com/puppetlabs/go-semver/semver"
 	"strings"
@@ -194,7 +195,13 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 		for p := ix; p < pc; p++ {
 			ps[p-ix] = wrapReflectedType(r.c, mt.In(p))
 		}
-		pt = NewTupleType(ps, nil)
+		var sz *IntegerType
+		if mt.IsVariadic() {
+			last := pc - ix - 1
+			ps[last] = ps[last].(*ArrayType).ElementType()
+			sz = NewIntegerType(int64(last), math.MaxInt64)
+		}
+		pt = NewTupleType(ps, sz)
 	}
 	ne := 2
 	if returnsError {
