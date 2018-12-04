@@ -6,7 +6,8 @@ This is an evaluator for the AST produced by the [Puppet Language Parser](/lyrap
 
 Tests for virtually everything is written in the
 [Puppet Specification Language](https://docs.google.com/document/d/1VySubOiw8pD99OucVjk0ueyw2xlq4ky4WIWkV6Qoq64)
-and can be found under the [tests/testdata](https://github.com/lyraproj/puppet-spec/tree/master/pspec/tests/eval_test)
+and can be found in the [Puppet Spec](https://github.com/lyraproj/puppet-spec) project under the
+[eval_tests/testdata](https://github.com/lyraproj/puppet-spec/tree/master/pspec/tests/eval_test/testdata)
 directory.
 
 ## Implementation status
