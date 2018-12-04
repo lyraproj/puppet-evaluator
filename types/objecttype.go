@@ -772,6 +772,14 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 	return t
 }
 
+func (t *objectType) CanSerializeAsString() bool {
+	return t == objectType_DEFAULT
+}
+
+func (t *objectType) SerializationString() string {
+	return t.String()
+}
+
 func (t *objectType) String() string {
 	return eval.ToString2(t, EXPANDED)
 }
