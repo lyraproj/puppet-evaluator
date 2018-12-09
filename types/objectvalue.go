@@ -103,10 +103,14 @@ func fillValueSlice(values []eval.Value, attrs []eval.Attribute) {
 	for ix, v := range values {
 		if v == nil {
 			at := attrs[ix]
-			if !at.HasValue() {
-				panic(eval.Error(eval.EVAL_MISSING_REQUIRED_ATTRIBUTE, issue.H{`label`: at.Label()}))
+			if at.Kind() == GIVEN_OR_DERIVED {
+				values[ix] = _UNDEF
+			} else {
+				if !at.HasValue() {
+					panic(eval.Error(eval.EVAL_MISSING_REQUIRED_ATTRIBUTE, issue.H{`label`: at.Label()}))
+				}
+				values[ix] = at.Value()
 			}
-			values[ix] = at.Value()
 		}
 	}
 }
@@ -117,7 +121,11 @@ func (o *attributeSlice) Get(key string) (eval.Value, bool) {
 		if idx < len(o.values) {
 			return o.values[idx], ok
 		}
-		return pi.Attributes()[idx].Value(), ok
+		a := pi.Attributes()[idx]
+		if a.Kind() == GIVEN_OR_DERIVED {
+			return _UNDEF, true
+		}
+		return a.Value(), ok
 	}
 	return nil, false
 }
@@ -157,7 +165,7 @@ func makeValueHash(pi eval.AttributesInfo, values []eval.Value) *HashValue {
 	entries := make([]*HashEntry, 0, len(posToName))
 	for i, v := range values {
 		attr := pi.Attributes()[i]
-		if !(attr.HasValue() && eval.Equals(v, attr.Value())) {
+		if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
 			entries = append(entries, WrapHashEntry2(attr.Name(), v))
 		}
 	}
@@ -306,7 +314,11 @@ func (o *reflectedObject) Get(key string) (eval.Value, bool) {
 		if rf.IsValid() {
 			return wrap(nil, rf), true
 		}
-		return pi.Attributes()[idx].Value(), ok
+		a := pi.Attributes()[idx]
+		if a.Kind() == GIVEN_OR_DERIVED {
+			return _UNDEF, true
+		}
+		return a.Value(), ok
 	}
 	return nil, false
 }
@@ -347,7 +359,7 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 		gn := attr.GoName()
 		if gn != `` {
 			v := wrap(nil, oe.FieldByName(gn))
-			if !(attr.HasValue() && eval.Equals(v, attr.Value())) {
+			if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
 				entries = append(entries, WrapHashEntry2(attr.Name(), v))
 			}
 		}
