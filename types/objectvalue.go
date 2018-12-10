@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"reflect"
 	"strings"
@@ -123,7 +123,7 @@ func (o *attributeSlice) Get(key string) (eval.Value, bool) {
 }
 
 func (o *attributeSlice) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
-	if v, ok := eval.Load(c, NewTypedName(eval.NsFunction, strings.ToLower(o.typ.Name()) + `::` + method.Name())); ok {
+	if v, ok := eval.Load(c, NewTypedName(eval.NsFunction, strings.ToLower(o.typ.Name())+`::`+method.Name())); ok {
 		if f, ok := v.(eval.Function); ok {
 			return f.Call(c, block, args...), true
 		}
@@ -280,7 +280,16 @@ func (o *reflectedObject) setValues(c eval.Context, values []eval.Value) {
 	} else {
 		oe := o.structVal()
 		for i, a := range attrs {
-			v := values[i]
+			var v eval.Value
+			if i < len(values) {
+				v = values[i]
+			} else {
+				if a.HasValue() {
+					v = a.Value()
+				} else {
+					v = _UNDEF
+				}
+			}
 			rf.ReflectTo(v, oe.FieldByName(a.GoName()))
 		}
 	}
