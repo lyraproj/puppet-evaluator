@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
 )
 
@@ -25,8 +25,8 @@ var TYPE_ATTRIBUTE_CALLABLE = NewCallableType2(NewIntegerType(0, 0))
 
 type attribute struct {
 	annotatedMember
-	kind  eval.AttributeKind
-	value eval.Value
+	kind   eval.AttributeKind
+	value  eval.Value
 	goName string
 }
 
@@ -59,6 +59,12 @@ func (a *attribute) initialize(c eval.Context, name string, container *objectTyp
 	} else {
 		if a.kind == CONSTANT {
 			panic(eval.Error(eval.EVAL_CONSTANT_REQUIRES_VALUE, issue.H{`label`: a.Label()}))
+		}
+		if a.kind == GIVEN_OR_DERIVED {
+			// Type is always optional
+			if !eval.IsInstance(a.typ, _UNDEF) {
+				a.typ = NewOptionalType(a.typ)
+			}
 		}
 		a.value = nil // Not to be confused with undef
 	}

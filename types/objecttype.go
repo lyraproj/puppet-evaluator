@@ -8,14 +8,14 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"bytes"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
-	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/puppet-parser/validator"
-	"bytes"
-	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/puppet-evaluator/errors"
 )
 
 var Object_Type eval.ObjectType
@@ -367,7 +367,7 @@ func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver s
 				panic(eval.Error(eval.EVAL_BAD_TYPE_STRING,
 					issue.H{
 						`string`: typeString,
-						`label`: label,
+						`label`:  label,
 						`detail`: err.Error()}))
 			}
 			panic(r)
@@ -608,7 +608,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			if attr.Kind() == CONSTANT || attr.Kind() == DERIVED {
 				panic(eval.Error(eval.EVAL_SERIALIZATION_BAD_KIND, issue.H{`label`: t.Label(), `kind`: attr.Kind(), `attribute`: attr.Label()}))
 			}
-			if attr.HasValue() {
+			if attr.Kind() == GIVEN_OR_DERIVED || attr.HasValue() {
 				optFound = attr
 			} else if optFound != nil {
 				panic(eval.Error(eval.EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, issue.H{`label`: t.Label(), `required`: attr.Label(), `optional`: optFound.Label()}))
@@ -638,7 +638,7 @@ func (t *objectType) Implements(ifd eval.ObjectType, g eval.Guard) bool {
 		if !ok {
 			return false
 		}
-		mf, ok := m.(eval.ObjFunc);
+		mf, ok := m.(eval.ObjFunc)
 		if !ok {
 			return false
 		}
@@ -816,7 +816,9 @@ func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 			bld := bytes.NewBufferString(``)
 			t.basicTypeToString(bld, f, s, g)
 			f.ApplyStringFlags(b, bld.String(), quoted)
-		} else {t.basicTypeToString( b, f,s, g)}
+		} else {
+			t.basicTypeToString(b, f, s, g)
+		}
 	default:
 		panic(s.UnsupportedFormat(t.PType(), `sp`, f))
 	}
@@ -1020,6 +1022,8 @@ func (t *objectType) createAttributesInfo() *attributesInfo {
 		t.EachAttribute(true, func(attr eval.Attribute) {
 			switch attr.Kind() {
 			case CONSTANT, DERIVED:
+			case GIVEN_OR_DERIVED:
+				optAttrs = append(optAttrs, attr)
 			default:
 				if attr.HasValue() {
 					optAttrs = append(optAttrs, attr)
@@ -1049,6 +1053,8 @@ func (t *objectType) createInitType() *StructType {
 	t.EachAttribute(true, func(attr eval.Attribute) {
 		switch attr.Kind() {
 		case CONSTANT, DERIVED:
+		case GIVEN_OR_DERIVED:
+			elements = append(elements, NewStructElement(NewOptionalType3(attr.Name()), attr.Type()))
 		default:
 			var key eval.Type
 			if attr.HasValue() {
@@ -1098,6 +1104,8 @@ func (t *objectType) createNewFunction(c eval.Context) {
 		for i, attr := range pi.Attributes() {
 			switch attr.Kind() {
 			case CONSTANT, DERIVED:
+			case GIVEN_OR_DERIVED:
+				d.OptionalParam2(attr.Type())
 			default:
 				if i >= pi.RequiredCount() {
 					d.OptionalParam2(attr.Type())
