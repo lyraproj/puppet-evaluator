@@ -18,10 +18,25 @@ func DefaultAnnotationType() eval.Type {
 	return annotationType_DEFAULT
 }
 
-var TYPE_ANNOTATIONS = NewHashType(annotationType_DEFAULT, DefaultHashType(), nil)
+var TYPE_ANNOTATIONS = NewHashType(NewTypeType(annotationType_DEFAULT), DefaultHashType(), nil)
 
 type annotatable struct {
-	annotations *HashValue
+	annotations         *HashValue
+	resolvedAnnotations *HashValue
+}
+
+func (a *annotatable) Annotations() eval.OrderedMap {
+	return a.resolvedAnnotations
+}
+
+func (a *annotatable) Resolve(c eval.Context) {
+	ah := a.annotations
+	as := make([]*HashEntry, 0, ah.Len())
+	ah.EachPair(func(k, v eval.Value) {
+		at := k.(eval.ObjectType)
+		as = append(as, WrapHashEntry(k, eval.New(c, at, v)))
+	})
+	a.resolvedAnnotations = WrapHash(as)
 }
 
 func (a *annotatable) initialize(initHash *HashValue) {
