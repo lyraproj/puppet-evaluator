@@ -15,9 +15,9 @@ import (
 	// not used) at this point
 	"context"
 	_ "github.com/lyraproj/puppet-evaluator/functions"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/puppet-parser/validator"
-	"github.com/lyraproj/puppet-evaluator/threadlocal"
 )
 
 type (
@@ -32,7 +32,7 @@ type (
 )
 
 var staticLock sync.Mutex
-var puppet = &pcoreImpl{settings:make(map[string]*setting, 32)}
+var puppet = &pcoreImpl{settings: make(map[string]*setting, 32)}
 var topImplRegistry eval.ImplementationRegistry
 
 func init() {
@@ -56,6 +56,12 @@ func InitializePuppet() {
 	}
 
 	puppet.logger = eval.NewStdLogger()
+
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::MemberName`, nil, types.TYPE_MEMBER_NAME))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::SimpleTypeName`, nil, types.TYPE_SIMPLE_TYPE_NAME))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::TypeName`, nil, types.TYPE_TYPE_NAME))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::QRef`, nil, types.TYPE_QUALIFIED_REFERENCE))
+
 	c := impl.NewContext(impl.NewEvaluator, eval.StaticLoader().(eval.DefiningLoader), puppet.logger)
 	c.ResolveResolvables()
 	topImplRegistry = c.ImplementationRegistry()
