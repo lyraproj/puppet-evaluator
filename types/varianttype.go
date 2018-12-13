@@ -134,8 +134,7 @@ func (t *VariantType) Resolve(c eval.Context) eval.Type {
 
 func (t *VariantType) CanSerializeAsString() bool {
 	for _, v := range t.types {
-		ts, ok := v.(eval.SerializeAsString)
-		if !(ok && ts.CanSerializeAsString()) {
+		if !canSerializeAsString(v) {
 			return false
 		}
 	}

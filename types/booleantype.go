@@ -2,6 +2,7 @@ package types
 
 import (
 	"io"
+	"strings"
 
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
@@ -32,6 +33,37 @@ func init() {
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewBooleanType2(args...)
 	})
+
+	newGoConstructor(`Boolean`,
+		func(d eval.Dispatch) {
+			d.Param(`Variant[Integer, Float, Boolean, Enum['false','true','yes','no','y','n',true]]`)
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				arg := args[0]
+				switch arg.(type) {
+				case *IntegerValue:
+					if arg.(*IntegerValue).Int() == 0 {
+						return Boolean_FALSE
+					}
+					return Boolean_TRUE
+				case *FloatValue:
+					if arg.(*FloatValue).Float() == 0.0 {
+						return Boolean_FALSE
+					}
+					return Boolean_TRUE
+				case *BooleanValue:
+					return arg
+				default:
+					switch strings.ToLower(arg.String()) {
+					case `false`, `no`, `n`:
+						return Boolean_FALSE
+					default:
+						return Boolean_TRUE
+					}
+					return arg.(eval.IterableValue).Iterator().AsArray()
+				}
+			})
+		},
+	)
 }
 
 func DefaultBooleanType() *BooleanType {
@@ -139,11 +171,11 @@ func (t *BooleanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(true), true
 }
 
-func (t *BooleanType)  CanSerializeAsString() bool {
+func (t *BooleanType) CanSerializeAsString() bool {
 	return true
 }
 
-func (t *BooleanType)  SerializationString() string {
+func (t *BooleanType) SerializationString() string {
 	return t.String()
 }
 
@@ -193,14 +225,13 @@ func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (t *BooleanValue)  CanSerializeAsString() bool {
-  return true
+func (t *BooleanValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *BooleanValue)  SerializationString() string {
+func (t *BooleanValue) SerializationString() string {
 	return t.String()
 }
-
 
 func (bv *BooleanValue) String() string {
 	if bv.value == 1 {

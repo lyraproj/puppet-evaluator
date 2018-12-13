@@ -119,8 +119,7 @@ func (t *SensitiveType) Resolve(c eval.Context) eval.Type {
 }
 
 func (t *SensitiveType) CanSerializeAsString() bool {
-	ts, ok := t.typ.(eval.SerializeAsString)
-	return ok && ts.CanSerializeAsString()
+	return canSerializeAsString(t.typ)
 }
 
 func (t *SensitiveType) SerializationString() string {

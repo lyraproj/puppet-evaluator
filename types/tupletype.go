@@ -32,6 +32,8 @@ func init() {
 			}
 			return NewTupleType2(tupleArgs...)
 		})
+
+	// Go constructor for Tuple instances is registered by ArrayType
 }
 
 func DefaultTupleType() *TupleType {
@@ -330,8 +332,7 @@ func (t *TupleType) Resolve(c eval.Context) eval.Type {
 
 func (t *TupleType) CanSerializeAsString() bool {
 	for _, v := range t.types {
-		ts, ok := v.(eval.SerializeAsString)
-		if !(ok && ts.CanSerializeAsString()) {
+		if !canSerializeAsString(v) {
 			return false
 		}
 	}

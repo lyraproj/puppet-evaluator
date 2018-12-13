@@ -6,10 +6,10 @@ import (
 	"github.com/lyraproj/puppet-parser/literal"
 	"sort"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/puppet-parser/validator"
 )
@@ -27,9 +27,11 @@ var coreTypes = map[string]eval.Type{
 	`enum`:          types.DefaultEnumType(),
 	`float`:         types.DefaultFloatType(),
 	`hash`:          types.DefaultHashType(),
+	`init`:          types.DefaultInitType(),
 	`integer`:       types.DefaultIntegerType(),
 	`iterable`:      types.DefaultIterableType(),
 	`iterator`:      types.DefaultIteratorType(),
+	`like`:          types.DefaultLikeType(),
 	`notundef`:      types.DefaultNotUndefType(),
 	`numeric`:       types.DefaultNumericType(),
 	`optional`:      types.DefaultOptionalType(),
@@ -299,6 +301,9 @@ func evalCallNamedFunctionExpression(e eval.Evaluator, call *parser.CallNamedFun
 		return callFunction(e, fc.(*parser.QualifiedName).Name(), unfold(e, call.Arguments()), call)
 	case *parser.QualifiedReference:
 		return callFunction(e, `new`, unfold(e, call.Arguments(), types.WrapString(fc.(*parser.QualifiedReference).Name())), call)
+	case *parser.AccessExpression:
+		receiver := unfold(e, []parser.Expression{fc})
+		return callFunction(e, `new`, unfold(e, call.Arguments(), receiver...), call)
 	}
 	panic(evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
 		issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
@@ -586,7 +591,7 @@ func BasicEval(e eval.Evaluator, expr parser.Expression) eval.Value {
 	}
 
 	if e.Static() {
-			panic(evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
+		panic(evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
 	}
 
 	switch expr.(type) {

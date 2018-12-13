@@ -690,6 +690,9 @@ func (t *objectType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *objectType) IsInstance(o eval.Value, g eval.Guard) bool {
+	if po, ok := o.(eval.Type); ok {
+		return isAssignable(t, po.MetaType())
+	}
 	return isAssignable(t, o.PType())
 }
 

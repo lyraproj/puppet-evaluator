@@ -1,9 +1,9 @@
 package types
 
 import (
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"strconv"
-	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type CallableType struct {
@@ -32,26 +32,26 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-	    var paramsType eval.Type
-	    var returnType eval.Type
-	    var blockType eval.Type
-	    switch len(args) {
-	    case 0:
-	    case 3:
-		    if pt, ok := args[2].(eval.Type); ok {
-			    blockType = pt
-		    }
-		    fallthrough
-	    case 2:
-		    if pt, ok := args[1].(eval.Type); ok {
-			    returnType = pt
-		    }
-		    fallthrough
-	    case 1:
-	    	if pt, ok := args[0].(eval.Type); ok {
-	    		paramsType = pt
-		    }
-	    }
+			var paramsType eval.Type
+			var returnType eval.Type
+			var blockType eval.Type
+			switch len(args) {
+			case 0:
+			case 3:
+				if pt, ok := args[2].(eval.Type); ok {
+					blockType = pt
+				}
+				fallthrough
+			case 2:
+				if pt, ok := args[1].(eval.Type); ok {
+					returnType = pt
+				}
+				fallthrough
+			case 1:
+				if pt, ok := args[0].(eval.Type); ok {
+					paramsType = pt
+				}
+			}
 			return NewCallableType(paramsType, returnType, blockType)
 		})
 }
@@ -160,6 +160,14 @@ func (t *CallableType) Accept(v eval.Visitor, g eval.Guard) {
 
 func (t *CallableType) BlockName() string {
 	return `block`
+}
+
+func (t *CallableType) CanSerializeAsString() bool {
+	return canSerializeAsString(t.paramsType) && canSerializeAsString(t.blockType) && canSerializeAsString(t.returnType)
+}
+
+func (t *CallableType) SerializationString() string {
+	return t.String()
 }
 
 func (t *CallableType) Default() eval.Type {

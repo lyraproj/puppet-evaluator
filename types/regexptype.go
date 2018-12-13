@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 )
 
@@ -40,6 +40,19 @@ func init() {
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewRegexpType2(args...)
 		})
+
+	newGoConstructor(`Regexp`,
+		func(d eval.Dispatch) {
+			d.Param(`Variant[String,Regexp]`)
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				arg := args[0]
+				if s, ok := arg.(*RegexpValue); ok {
+					return s
+				}
+				return WrapRegexp(arg.String())
+			})
+		},
+	)
 }
 
 func DefaultRegexpType() *RegexpType {
@@ -150,14 +163,13 @@ func (t *RegexpType) Regexp() *regexp.Regexp {
 	return t.pattern
 }
 
-func (t *RegexpType)  CanSerializeAsString() bool {
-  return true
+func (t *RegexpType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *RegexpType)  SerializationString() string {
+func (t *RegexpType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *RegexpType) String() string {
 	return eval.ToString2(t, NONE)

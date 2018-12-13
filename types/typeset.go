@@ -9,10 +9,10 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/semver/semver"
 )
@@ -157,7 +157,7 @@ func (r *typeSetReference) resolve(c eval.Context) {
 }
 
 var typeSetType_DEFAULT = &typeSet{
-	name:          `DefaultTypeSet`,
+	name:          `TypeSet`,
 	nameAuthority: eval.RUNTIME_NAME_AUTHORITY,
 	pcoreURI:      eval.PCORE_URI,
 	pcoreVersion:  eval.PCORE_VERSION,

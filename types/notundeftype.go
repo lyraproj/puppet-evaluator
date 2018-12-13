@@ -128,8 +128,7 @@ func (t *NotUndefType) ReflectType(c eval.Context) (reflect.Type, bool) {
 }
 
 func (t *NotUndefType) CanSerializeAsString() bool {
-	ts, ok := t.typ.(eval.SerializeAsString)
-	return ok && ts.CanSerializeAsString()
+	return canSerializeAsString(t.typ)
 }
 
 func (t *NotUndefType) SerializationString() string {
