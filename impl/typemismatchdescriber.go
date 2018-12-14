@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 )
 
 type (
@@ -113,9 +113,9 @@ func (p pathType) String(key string) string {
 		return key
 	}
 	if p == _parameter && utils.IsDecimalInteger(key) {
-		return fmt.Sprintf("%s %s", p, key)
+		return fmt.Sprintf("parameter %s", key)
 	}
-	return fmt.Sprintf("%s '%s'", p, key)
+	return fmt.Sprintf("%s '%s'", string(p), key)
 }
 
 func (pe *pathElement) String() string {
