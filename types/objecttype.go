@@ -96,7 +96,7 @@ type objectType struct {
 	equalityIncludeType bool
 	serialization       []string
 	loader              eval.Loader
-	initHashExpression  interface{} // Expression or *HashValue
+	initHashExpression  interface{} // Expression, *HashValue, or Go zero value
 	attrInfo            *attributesInfo
 	ctor                eval.Function
 	goType              reflect.Type
@@ -193,7 +193,7 @@ func NewObjectType2(c eval.Context, args ...eval.Value) *objectType {
 	}
 }
 
-func NewObjectType3(name string, parent eval.Type, hashProducer func(eval.ObjectType) *HashValue) eval.ObjectType {
+func NewObjectType3(name string, parent eval.Type, hashProducer func(eval.ObjectType) eval.OrderedMap) eval.ObjectType {
 	obj := AllocObjectType()
 	obj.name = name
 	obj.parent = parent
@@ -766,13 +766,17 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 			t.parent = resolveTypeRefs(c, prt).(eval.Type)
 		}
 
-		var initHash *HashValue
+		var initHash eval.OrderedMap
 		if lh, ok := ihe.(*parser.LiteralHash); ok {
 			c.DoStatic(func() {
-				initHash = eval.Evaluate(c, lh).(*HashValue)
+				initHash = eval.Evaluate(c, lh).(eval.OrderedMap)
 			})
+		} else if hv, ok := ihe.(*HashValue); ok {
+			initHash = resolveTypeRefs(c, hv).(eval.OrderedMap)
 		} else {
-			initHash = resolveTypeRefs(c, ihe.(*HashValue)).(*HashValue)
+			t.goType = reflect.TypeOf(ihe)
+			initHash = c.Reflector().ObjectInitializerFromReflect(t.name, t.parent, t.goType)
+			c.ImplementationRegistry().RegisterType(c, t, t.goType)
 		}
 		t.InitFromHash(c, initHash)
 	}

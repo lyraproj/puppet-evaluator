@@ -1,10 +1,10 @@
 package loader
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/impl"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 	"sync"
 )
@@ -32,8 +32,6 @@ type (
 )
 
 var staticLoader = &basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}
-var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
-var resolvableFunctionsLock sync.Mutex
 
 func init() {
 	sh := staticLoader.namedEntries
@@ -53,27 +51,11 @@ func init() {
 		return &typeSetLoader{parentedLoader{basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)}, parent}, typeSet.(eval.TypeSet)}
 	}
 
-	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
-		resolvableFunctionsLock.Lock()
-		resolvableFunctions = append(resolvableFunctions, function)
-		resolvableFunctionsLock.Unlock()
-	}
-
 	eval.NewLoaderEntry = func(value interface{}, origin issue.Location) eval.LoaderEntry {
 		return &loaderEntry{value, origin}
 	}
 
 	eval.Load = load
-}
-
-func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {
-	resolvableFunctionsLock.Lock()
-	funcs = resolvableFunctions
-	if len(funcs) > 0 {
-		resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
-	}
-	resolvableFunctionsLock.Unlock()
-	return
 }
 
 func (e *loaderEntry) Origin() issue.Location {
@@ -82,22 +64,6 @@ func (e *loaderEntry) Origin() issue.Location {
 
 func (e *loaderEntry) Value() interface{} {
 	return e.value
-}
-
-func (l *basicLoader) ResolveResolvables(c eval.Context) {
-	ts := types.PopDeclaredTypes()
-	c.AddTypes(ts...)
-
-	ctors := types.PopDeclaredConstructors()
-	for _, ct := range ctors {
-		rf := eval.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
-		l.SetEntry(eval.NewTypedName(eval.NsConstructor, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
-	}
-
-	funcs := popDeclaredGoFunctions()
-	for _, rf := range funcs {
-		l.SetEntry(eval.NewTypedName(eval.NsFunction, rf.Name()), &loaderEntry{rf.Resolve(c), nil})
-	}
 }
 
 func load(c eval.Context, name eval.TypedName) (interface{}, bool) {

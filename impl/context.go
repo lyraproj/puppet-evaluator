@@ -3,13 +3,14 @@ package impl
 import (
 	"context"
 	"fmt"
+	"sync"
 
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
+	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/puppet-parser/validator"
-	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"runtime"
 )
 
@@ -28,12 +29,15 @@ type (
 	}
 )
 
+var resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
+var resolvableFunctionsLock sync.Mutex
+
 func init() {
 	eval.Call = func(c eval.Context, name string, args []eval.Value, block eval.Lambda) eval.Value {
 		tn := eval.NewTypedName2(`function`, name, c.Loader().NameAuthority())
 		if f, ok := eval.Load(c, tn); ok {
-		return f.(eval.Function).Call(c, block, args...)
-	}
+			return f.(eval.Function).Call(c, block, args...)
+		}
 		panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
 	}
 
@@ -43,6 +47,12 @@ func init() {
 		}
 		_, file, line, _ := runtime.Caller(1)
 		panic(issue.NewReported(eval.EVAL_NO_CURRENT_CONTEXT, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
+	}
+
+	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
+		resolvableFunctionsLock.Lock()
+		resolvableFunctions = append(resolvableFunctions, function)
+		resolvableFunctionsLock.Unlock()
 	}
 }
 
@@ -256,7 +266,23 @@ func (c *evalCtx) ResolveDefinitions() []interface{} {
 }
 
 func (c *evalCtx) ResolveResolvables() {
-	c.Loader().(eval.DefiningLoader).ResolveResolvables(c)
+	l := c.Loader().(eval.DefiningLoader)
+	ts := types.PopDeclaredTypes()
+	for _, rt := range ts {
+		l.SetEntry(eval.NewTypedName(eval.NsType, rt.Name()), eval.NewLoaderEntry(rt, nil))
+	}
+	c.resolveTypes(ts...)
+
+	ctors := types.PopDeclaredConstructors()
+	for _, ct := range ctors {
+		rf := eval.BuildFunction(ct.Name, ct.LocalTypes, ct.Creators)
+		l.SetEntry(eval.NewTypedName(eval.NsConstructor, rf.Name()), eval.NewLoaderEntry(rf.Resolve(c), nil))
+	}
+
+	funcs := popDeclaredGoFunctions()
+	for _, rf := range funcs {
+		l.SetEntry(eval.NewTypedName(eval.NsFunction, rf.Name()), eval.NewLoaderEntry(rf.Resolve(c), nil))
+	}
 }
 
 func (c *evalCtx) ResolveType(expr parser.Expression) eval.Type {
@@ -389,4 +415,14 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
 			}
 		}
 	})
+}
+
+func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {
+	resolvableFunctionsLock.Lock()
+	funcs = resolvableFunctions
+	if len(funcs) > 0 {
+		resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
+	}
+	resolvableFunctionsLock.Unlock()
+	return
 }
