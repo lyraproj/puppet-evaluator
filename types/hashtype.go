@@ -60,7 +60,7 @@ func init() {
 			return NewHashType2(args...)
 		})
 
-	newGoConstructor2(`Hash`,
+	newGoConstructor3([]string{`Hash`, `Struct`},
 		func(t eval.LocalTypes) {
 			t.Type(`KeyValueArray`, `Array[Tuple[Any,Any],1]`)
 			t.Type(`TreeArray`, `Array[Tuple[Array,Any],1]`)
@@ -340,12 +340,7 @@ func (t *HashType) Resolve(c eval.Context) eval.Type {
 }
 
 func (t *HashType) CanSerializeAsString() bool {
-	if ks, ok := t.keyType.(eval.SerializeAsString); ok && ks.CanSerializeAsString() {
-		if vs, ok := t.valueType.(eval.SerializeAsString); ok {
-			return vs.CanSerializeAsString()
-		}
-	}
-	return false
+	return canSerializeAsString(t.keyType) && canSerializeAsString(t.valueType)
 }
 
 func (t *HashType) SerializationString() string {
@@ -752,6 +747,14 @@ func (hv *HashValue) AppendTo(slice []eval.Value) []eval.Value {
 		slice = append(slice, e)
 	}
 	return slice
+}
+
+func (hv *HashValue) AsArray() eval.List {
+	values := make([]eval.Value, len(hv.entries))
+	for idx, entry := range hv.entries {
+		values[idx] = WrapValues([]eval.Value{entry.key, entry.value})
+	}
+	return WrapValues(values)
 }
 
 func (hv *HashValue) At(i int) eval.Value {

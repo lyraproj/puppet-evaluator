@@ -137,8 +137,7 @@ func (t *IteratorType) Parameters() []eval.Value {
 }
 
 func (t *IteratorType) CanSerializeAsString() bool {
-	ts, ok := t.typ.(eval.SerializeAsString)
-	return ok && ts.CanSerializeAsString()
+	return canSerializeAsString(t.typ)
 }
 
 func (t *IteratorType) SerializationString() string {

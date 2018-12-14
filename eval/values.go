@@ -206,6 +206,15 @@ var ToFloat func(v Value) (float64, bool)
 var Wrap func(c Context, v interface{}) Value
 var WrapReflected func(c Context, v reflect.Value) Value
 
+// StringElements returns a slice containing each element in the given list as a string
+func StringElements(l List) []string {
+	ss := make([]string, l.Len())
+	l.EachWithIndex(func(e Value, i int) {
+		ss[i] = e.String()
+	})
+	return ss
+}
+
 func ToString(t Value) string {
 	return ToString2(t, DEFAULT_FORMAT_CONTEXT)
 }

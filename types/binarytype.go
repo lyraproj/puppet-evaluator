@@ -7,12 +7,12 @@ import (
 	"unicode/utf8"
 
 	"fmt"
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
-	"reflect"
 	"io/ioutil"
 	"os"
+	"reflect"
 )
 
 var binaryType_DEFAULT = &BinaryType{}
@@ -113,14 +113,13 @@ func (t *BinaryType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf([]byte{}), true
 }
 
-func (t *BinaryType)  CanSerializeAsString() bool {
-  return true
+func (t *BinaryType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *BinaryType)  SerializationString() string {
+func (t *BinaryType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *BinaryType) String() string {
 	return `Binary`
@@ -215,6 +214,14 @@ func BinaryFromArray(array eval.List) *BinaryValue {
 	return WrapBinary(result)
 }
 
+func (bv *BinaryValue) AsArray() eval.List {
+	vs := make([]eval.Value, len(bv.bytes))
+	for i, b := range bv.bytes {
+		vs[i] = WrapInteger(int64(b))
+	}
+	return WrapValues(vs)
+}
+
 func (bv *BinaryValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*BinaryValue); ok {
 		return bytes.Equal(bv.bytes, ov.bytes)
@@ -237,14 +244,13 @@ func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (bv *BinaryValue)  CanSerializeAsString() bool {
-  return true
+func (bv *BinaryValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (bv *BinaryValue)  SerializationString() string {
+func (bv *BinaryValue) SerializationString() string {
 	return base64.StdEncoding.Strict().EncodeToString(bv.bytes)
 }
-
 
 func (bv *BinaryValue) String() string {
 	return eval.ToString2(bv, NONE)

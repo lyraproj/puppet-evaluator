@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/semver/semver"
 	"strings"
@@ -327,6 +327,7 @@ func init() {
 	eval.Normalize = normalize
 	eval.IsAssignable = isAssignable
 	eval.IsInstance = isInstance
+	eval.New = new
 
 	eval.DetailedValueType = func(value eval.Value) eval.Type {
 		if dt, ok := value.(eval.DetailedTypeValue); ok {
@@ -381,12 +382,79 @@ func init() {
 	eval.WrapReflectedType = wrapReflectedType
 }
 
+func canSerializeAsString(t eval.Type) bool {
+	if t == nil {
+		// true because nil members will not participate
+		return true
+	}
+	if st, ok := t.(eval.SerializeAsString); ok {
+		return st.CanSerializeAsString()
+	}
+	return false
+}
+
+// New creates a new instance of type t
+func new(c eval.Context, receiver eval.Value, args ...eval.Value) eval.Value {
+	name := ``
+	typ, ok := receiver.(eval.Type)
+	if ok {
+		name = typ.Name()
+	} else {
+		// Type might be in string form
+		_, ok = receiver.(*StringValue)
+		if !ok {
+			// Only types or names of types can be used
+			panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: receiver.PType(), `message`: `new`}))
+		}
+
+		name = receiver.String()
+		var t interface{}
+		if t, ok = eval.Load(c, NewTypedName(eval.NsType, name)); ok {
+			typ = t.(eval.Type)
+		}
+	}
+
+	if nb, ok := typ.(eval.Newable); ok {
+		return nb.New(c, args)
+	}
+
+	var ctor eval.Function
+	var ct eval.Creatable
+	ct, ok = typ.(eval.Creatable)
+	if ok {
+		ctor = ct.Constructor()
+	}
+
+	if ctor == nil {
+		tn := NewTypedName(eval.NsConstructor, name)
+		if t, ok := eval.Load(c, tn); ok {
+			ctor = t.(eval.Function)
+		}
+	}
+
+	if ctor == nil {
+		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: name, `message`: `new`}))
+	}
+
+	r := ctor.(eval.Function).Call(c, nil, args...)
+	if typ != nil {
+		eval.AssertInstance(`new`, typ, r)
+	}
+	return r
+}
+
 func newGoConstructor(typeName string, creators ...eval.DispatchCreator) {
 	registerGoConstructor(&BuildFunctionArgs{typeName, nil, creators})
 }
 
 func newGoConstructor2(typeName string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) {
 	registerGoConstructor(&BuildFunctionArgs{typeName, localTypes, creators})
+}
+
+func newGoConstructor3(typeNames []string, localTypes eval.LocalTypesCreator, creators ...eval.DispatchCreator) {
+	for _, tn := range typeNames {
+		registerGoConstructor(&BuildFunctionArgs{tn, localTypes, creators})
+	}
 }
 
 func PopDeclaredTypes() (types []eval.Type) {
@@ -615,26 +683,26 @@ func loadFromImplementarionRegistry(c eval.Context, vt reflect.Type) (eval.Type,
 }
 
 var wellknowns = map[reflect.Type]eval.Type{
-	reflect.TypeOf(&ArrayValue{}):                  DefaultArrayType(),
-	reflect.TypeOf((*eval.List)(nil)).Elem():       DefaultArrayType(),
-	reflect.TypeOf(&BinaryValue{}):                 DefaultBinaryType(),
-	reflect.TypeOf(&FloatValue{}):                  DefaultFloatType(),
-	reflect.TypeOf(&HashValue{}):                   DefaultHashType(),
-	reflect.TypeOf((*eval.OrderedMap)(nil)).Elem(): DefaultHashType(),
-	reflect.TypeOf(&IntegerValue{}):                DefaultIntegerType(),
-	reflect.TypeOf(&RegexpValue{}):                 DefaultRegexpType(),
-	reflect.TypeOf(&SemVerValue{}):                 DefaultSemVerType(),
-	reflect.TypeOf(&SensitiveValue{}):              DefaultSensitiveType(),
-	reflect.TypeOf(&StringValue{}):                 DefaultStringType(),
-	reflect.TypeOf(&TimespanValue{}):               DefaultTimespanType(),
-	reflect.TypeOf(&TimestampValue{}):              DefaultTimestampType(),
-	reflect.TypeOf(&TypeType{}):                    DefaultTypeType(),
+	reflect.TypeOf(&ArrayValue{}):                    DefaultArrayType(),
+	reflect.TypeOf((*eval.List)(nil)).Elem():         DefaultArrayType(),
+	reflect.TypeOf(&BinaryValue{}):                   DefaultBinaryType(),
+	reflect.TypeOf(&FloatValue{}):                    DefaultFloatType(),
+	reflect.TypeOf(&HashValue{}):                     DefaultHashType(),
+	reflect.TypeOf((*eval.OrderedMap)(nil)).Elem():   DefaultHashType(),
+	reflect.TypeOf(&IntegerValue{}):                  DefaultIntegerType(),
+	reflect.TypeOf(&RegexpValue{}):                   DefaultRegexpType(),
+	reflect.TypeOf(&SemVerValue{}):                   DefaultSemVerType(),
+	reflect.TypeOf(&SensitiveValue{}):                DefaultSensitiveType(),
+	reflect.TypeOf(&StringValue{}):                   DefaultStringType(),
+	reflect.TypeOf(&TimespanValue{}):                 DefaultTimespanType(),
+	reflect.TypeOf(&TimestampValue{}):                DefaultTimestampType(),
+	reflect.TypeOf(&TypeType{}):                      DefaultTypeType(),
 	reflect.TypeOf((*eval.PuppetObject)(nil)).Elem(): DefaultObjectType(),
-	reflect.TypeOf((*eval.Object)(nil)).Elem():     DefaultObjectType(),
-	reflect.TypeOf((*eval.Type)(nil)).Elem():       DefaultTypeType(),
-	reflect.TypeOf((*eval.TypedName)(nil)).Elem():  TypedName_Type,
-	reflect.TypeOf(&UndefValue{}):                  DefaultUndefType(),
-	reflect.TypeOf(&UriValue{}):                    DefaultUriType(),
+	reflect.TypeOf((*eval.Object)(nil)).Elem():       DefaultObjectType(),
+	reflect.TypeOf((*eval.Type)(nil)).Elem():         DefaultTypeType(),
+	reflect.TypeOf((*eval.TypedName)(nil)).Elem():    TypedName_Type,
+	reflect.TypeOf(&UndefValue{}):                    DefaultUndefType(),
+	reflect.TypeOf(&UriValue{}):                      DefaultUriType(),
 }
 
 func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
@@ -671,20 +739,20 @@ func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 }
 
 var primitivePTypes = map[reflect.Kind]eval.Type{
-	reflect.String: DefaultStringType(),
-	reflect.Int: DefaultIntegerType(),
-	reflect.Int8: integerType_8,
-	reflect.Int16: integerType_16,
-	reflect.Int32: integerType_32,
-	reflect.Int64: DefaultIntegerType(),
-	reflect.Uint: integerType_u64,
-	reflect.Uint8: integerType_u8,
-	reflect.Uint16: integerType_u16,
-	reflect.Uint32: integerType_u32,
-	reflect.Uint64: integerType_u64,
+	reflect.String:  DefaultStringType(),
+	reflect.Int:     DefaultIntegerType(),
+	reflect.Int8:    integerType_8,
+	reflect.Int16:   integerType_16,
+	reflect.Int32:   integerType_32,
+	reflect.Int64:   DefaultIntegerType(),
+	reflect.Uint:    integerType_u64,
+	reflect.Uint8:   integerType_u8,
+	reflect.Uint16:  integerType_u16,
+	reflect.Uint32:  integerType_u32,
+	reflect.Uint64:  integerType_u64,
 	reflect.Float32: floatType_32,
 	reflect.Float64: DefaultFloatType(),
-	reflect.Bool: DefaultBooleanType(),
+	reflect.Bool:    DefaultBooleanType(),
 }
 
 func PrimitivePType(vt reflect.Type) (pt eval.Type, ok bool) {
@@ -693,20 +761,20 @@ func PrimitivePType(vt reflect.Type) (pt eval.Type, ok bool) {
 }
 
 var primitiveRTypes = map[reflect.Kind]reflect.Type{
-	reflect.String: reflect.TypeOf(``),
-	reflect.Int: reflect.TypeOf(int(0)),
-	reflect.Int8: reflect.TypeOf(int8(0)),
-	reflect.Int16: reflect.TypeOf(int16(0)),
-	reflect.Int32: reflect.TypeOf(int32(0)),
-	reflect.Int64: reflect.TypeOf(int64(0)),
-	reflect.Uint: reflect.TypeOf(uint(0)),
-	reflect.Uint8: reflect.TypeOf(uint8(0)),
-	reflect.Uint16: reflect.TypeOf(uint16(0)),
-	reflect.Uint32: reflect.TypeOf(uint32(0)),
-	reflect.Uint64: reflect.TypeOf(uint64(0)),
+	reflect.String:  reflect.TypeOf(``),
+	reflect.Int:     reflect.TypeOf(int(0)),
+	reflect.Int8:    reflect.TypeOf(int8(0)),
+	reflect.Int16:   reflect.TypeOf(int16(0)),
+	reflect.Int32:   reflect.TypeOf(int32(0)),
+	reflect.Int64:   reflect.TypeOf(int64(0)),
+	reflect.Uint:    reflect.TypeOf(uint(0)),
+	reflect.Uint8:   reflect.TypeOf(uint8(0)),
+	reflect.Uint16:  reflect.TypeOf(uint16(0)),
+	reflect.Uint32:  reflect.TypeOf(uint32(0)),
+	reflect.Uint64:  reflect.TypeOf(uint64(0)),
 	reflect.Float32: reflect.TypeOf(float32(0)),
 	reflect.Float64: reflect.TypeOf(float64(0)),
-	reflect.Bool: reflect.TypeOf(false),
+	reflect.Bool:    reflect.TypeOf(false),
 }
 
 func PrimitiveRType(vt reflect.Type) (pt reflect.Type, ok bool) {
@@ -851,6 +919,20 @@ func boolArg(hash eval.OrderedMap, key string, d bool) bool {
 		return t.Bool()
 	}
 	panic(argError(DefaultBooleanType(), v))
+}
+
+type LazyType interface {
+	LazyIsInstance(v eval.Value, g eval.Guard) int
+}
+
+func LazyIsInstance(a eval.Type, b eval.Value, g eval.Guard) int {
+	if lt, ok := a.(LazyType); ok {
+		return lt.LazyIsInstance(b, g)
+	}
+	if a.IsInstance(b, g) {
+		return 1
+	}
+	return -1
 }
 
 func stringArg(hash eval.OrderedMap, key string, d string) string {

@@ -3,16 +3,16 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type LikeType struct {
-	baseType eval.Type
-	resolved eval.Type
+	baseType   eval.Type
+	resolved   eval.Type
 	navigation string
 }
 
@@ -45,7 +45,7 @@ func NewLikeType2(args ...eval.Value) *LikeType {
 	case 2:
 		if tp, ok := args[0].(eval.Type); ok {
 			if an, ok := args[1].(*StringValue); ok {
-				return &LikeType{baseType: tp, navigation: an.String()}
+				return NewLikeType(tp, an.String())
 			} else {
 				panic(NewIllegalArgumentType2(`Like[]`, 1, `String`, args[1]))
 			}

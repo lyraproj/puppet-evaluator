@@ -135,8 +135,7 @@ func (t *TypeType) Resolve(c eval.Context) eval.Type {
 }
 
 func (t *TypeType) CanSerializeAsString() bool {
-	ts, ok := t.typ.(eval.SerializeAsString)
-	return ok && ts.CanSerializeAsString()
+	return canSerializeAsString(t.typ)
 }
 
 func (t *TypeType) SerializationString() string {

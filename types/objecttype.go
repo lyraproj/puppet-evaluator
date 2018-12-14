@@ -626,6 +626,10 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	if t.name != `` {
 		t.createNewFunction(c)
 	}
+
+	t.attributes.EachValue(func(v interface{}) { v.(*attribute).Resolve(c) })
+	t.functions.EachValue(func(v interface{}) { v.(*function).Resolve(c) })
+	t.annotatable.Resolve(c)
 }
 
 func (t *objectType) Implements(ifd eval.ObjectType, g eval.Guard) bool {
@@ -686,6 +690,9 @@ func (t *objectType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *objectType) IsInstance(o eval.Value, g eval.Guard) bool {
+	if po, ok := o.(eval.Type); ok {
+		return isAssignable(t, po.MetaType())
+	}
 	return isAssignable(t, o.PType())
 }
 

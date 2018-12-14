@@ -45,6 +45,8 @@ func init() {
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewStructType2(args[0].(*ArrayValue).AppendTo([]eval.Value{})...)
 		})
+
+	// Go constructor for Struct instances is registered by HashType
 }
 
 func NewStructElement(key eval.Value, value eval.Type) *StructElement {
@@ -359,12 +361,9 @@ func (t *StructType) Resolve(c eval.Context) eval.Type {
 
 func (t *StructType) CanSerializeAsString() bool {
 	for _, v := range t.elements {
-		if ks, ok := v.key.(eval.SerializeAsString); ok && ks.CanSerializeAsString() {
-			if vs, ok := v.value.(eval.SerializeAsString); ok && vs.CanSerializeAsString() {
-				continue
-			}
+		if !(canSerializeAsString(v.key) && canSerializeAsString(v.value)) {
+			return false
 		}
-		return false
 	}
 	return true
 }

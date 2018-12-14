@@ -1,9 +1,9 @@
 package impl
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
@@ -181,6 +181,8 @@ func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedRefe
 		tp = types.NewFloatType2(args...)
 	case `hash`:
 		tp = types.NewHashType2(args...)
+	case `init`:
+		tp = types.NewInitType2(args...)
 	case `integer`:
 		tp = types.NewIntegerType2(args...)
 	case `iterable`:

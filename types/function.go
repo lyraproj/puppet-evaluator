@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"reflect"
 )
 
@@ -23,7 +23,7 @@ var TYPE_FUNCTION = NewStructType([]*StructElement{
 type function struct {
 	annotatedMember
 	returnsError bool
-	goName string
+	goName       string
 }
 
 func newFunction(c eval.Context, name string, container *objectType, initHash *HashValue) eval.ObjFunc {
@@ -51,7 +51,7 @@ func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, 
 			}
 		}
 
-		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: receiver, `message`: a.name}))
+		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: receiver.PType(), `message`: a.name}))
 	}
 	types := make([]eval.Value, len(args))
 	for i, a := range args {
@@ -62,7 +62,7 @@ func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, 
 }
 
 func (f *function) CallGo(c eval.Context, receiver interface{}, args ...interface{}) []interface{} {
-	rfArgs := make([]reflect.Value, 1 + len(args))
+	rfArgs := make([]reflect.Value, 1+len(args))
 	rfArgs[0] = reflect.ValueOf(receiver)
 	for i, arg := range args {
 		rfArgs[i+1] = reflect.ValueOf(arg)
@@ -81,7 +81,7 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []refle
 	rt := args[0].Type()
 	m, ok := rt.MethodByName(f.goName)
 	if !ok {
-		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`instance`: rt.String(), `message`: f.goName}))
+		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: rt.String(), `message`: f.goName}))
 	}
 
 	mt := m.Type

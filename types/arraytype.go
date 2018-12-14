@@ -40,6 +40,30 @@ func init() {
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewArrayType2(args...)
 		})
+
+	newGoConstructor3([]string{`Array`, `Tuple`}, nil,
+		func(d eval.Dispatch) {
+			d.Param(`Variant[Array,Hash,Binary,Iterable]`)
+			d.OptionalParam(`Boolean`)
+			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+				arg := args[0]
+				switch arg.(type) {
+				case *ArrayValue:
+					if len(args) > 1 && args[1].(*BooleanValue).Bool() {
+						// Wrapped
+						return WrapValues(args[:1])
+					}
+					return arg
+				case *HashValue:
+					return arg.(*HashValue).AsArray()
+				case *BinaryValue:
+					return arg.(*BinaryValue).AsArray()
+				default:
+					return arg.(eval.IterableValue).Iterator().AsArray()
+				}
+			})
+		},
+	)
 }
 
 func DefaultArrayType() *ArrayType {
@@ -270,8 +294,7 @@ func (t *ArrayType) ReflectType(c eval.Context) (reflect.Type, bool) {
 }
 
 func (t *ArrayType) CanSerializeAsString() bool {
-	ts, ok := t.typ.(eval.SerializeAsString)
-	return ok && ts.CanSerializeAsString()
+	return canSerializeAsString(t.typ)
 }
 
 func (t *ArrayType) SerializationString() string {

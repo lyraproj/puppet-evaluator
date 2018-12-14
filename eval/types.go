@@ -29,6 +29,14 @@ type (
 		Size() Type
 	}
 
+	Creatable interface {
+		Constructor() Function
+	}
+
+	Newable interface {
+		New(c Context, args []Value) Value
+	}
+
 	Resolvable interface {
 		Resolve(c Context)
 	}
@@ -37,12 +45,6 @@ type (
 		Type
 
 		Resolve(c Context) Type
-	}
-
-	ObjectTypeAndCtor interface {
-		Type() ObjectType
-
-		Creator() DispatchFunction
 	}
 
 	ParameterizedType interface {
@@ -164,6 +166,7 @@ type (
 	ObjectType interface {
 		ParameterizedType
 		TypeWithCallableMembers
+		Creatable
 
 		HasHashConstructor() bool
 
@@ -184,9 +187,6 @@ type (
 		Implements(ObjectType, Guard) bool
 
 		AttributesInfo() AttributesInfo
-
-		// Constructor returns the function that creates instances of the type
-		Constructor() Function
 
 		// FromReflectedValue creates a new instance of the reciever type
 		// and initializes that instance from the given src
@@ -373,11 +373,16 @@ func MapTypes(types []Type, mapper TypeMapper) []Value {
 }
 
 // New creates a new instance of type t
-func New(c Context, t Type, args ...Value) Value {
-	if ctor, ok := Load(c, NewTypedName(NsConstructor, t.Name())); ok {
-		return ctor.(Function).Call(c, nil, args...)
+var New func(c Context, receiver Value, args ...Value) Value
+
+// New creates a new instance of type t and calls the block with the created instance. It
+// returns the value returned from the block
+func NewWithBlock(c Context, receiver Value, args []Value, block Lambda) Value {
+	r := New(c, receiver, args...)
+	if block != nil {
+		r = block.Call(c, nil, r)
 	}
-	panic(Error(EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.Name()}))
+	return r
 }
 
 func Reduce(elements []Value, memo Value, reductor BiMapper) Value {

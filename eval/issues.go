@@ -206,7 +206,7 @@ func init() {
 
 	issue.Hard(EVAL_IS_DIRECTORY, `The path '%{path}' is a directory`)
 
-	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %<instance>T does not respond to %{message}`)
+	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %{type} does not respond to %{message}`)
 
 	issue.Hard(EVAL_INVALID_CHARACTERS_IN_NAME, `Name '%{name} contains invalid characters. Must start with letter and only contain letters, digits, and underscore'`)
 
