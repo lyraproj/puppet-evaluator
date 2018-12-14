@@ -93,6 +93,15 @@ func (t *InitType) Get(key string) (eval.Value, bool) {
 	}
 }
 
+func (t *InitType) EachSignature(doer func(signature eval.Signature)) {
+	t.assertInitialized()
+	if t.ctor != nil {
+		for _, lambda := range t.ctor.Dispatchers() {
+			doer(lambda.Signature())
+		}
+	}
+}
+
 func (t *InitType) anySignature(doer func(signature eval.Signature) bool) bool {
 	t.assertInitialized()
 	if t.ctor != nil {
@@ -231,6 +240,10 @@ func (t *InitType) Parameters() []eval.Value {
 
 func (t *InitType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
+}
+
+func (t *InitType) Type() eval.Type {
+	return t.typ
 }
 
 func (t *InitType) PType() eval.Type {

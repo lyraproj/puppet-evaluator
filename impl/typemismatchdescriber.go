@@ -485,6 +485,8 @@ func alwaysFullyDetailed(es []eval.Type, a eval.Type) bool {
 
 func specialization(e eval.Type, a eval.Type) (result bool) {
 	switch e.(type) {
+	case *types.InitType:
+		result = true
 	case *types.StructType:
 		_, result = a.(*types.HashType)
 	case *types.TupleType:
@@ -632,6 +634,20 @@ func describeEnumType(expected *types.EnumType, original, actual eval.Type, path
 		return []mismatch{}
 	}
 	return []mismatch{newPatternMismatch(path, original, actual)}
+}
+
+func describeInitType(expected *types.InitType, original, actual eval.Type, path []*pathElement) []mismatch {
+	if eval.IsAssignable(expected, actual) {
+		return []mismatch{}
+	}
+
+	ds := make([]mismatch, 0, 4)
+	ix := 0
+	at := types.NewTupleType([]eval.Type{actual}, nil)
+	expected.EachSignature(func(sg eval.Signature) {
+		ds = append(ds, describeSignatureArguments(sg, at, append(path, &pathElement{strconv.Itoa(ix), signature}))...)
+	})
+	return ds
 }
 
 func describePatternType(expected *types.PatternType, original, actual eval.Type, path []*pathElement) []mismatch {
@@ -883,6 +899,8 @@ func internalDescribe(expected eval.Type, original, actual eval.Type, path []*pa
 		return describePatternType(expected.(*types.PatternType), original, actual, path)
 	case *types.EnumType:
 		return describeEnumType(expected.(*types.EnumType), original, actual, path)
+	case *types.InitType:
+		return describeInitType(expected.(*types.InitType), original, actual, path)
 	case *types.TypeAliasType:
 		return describeTypeAliasType(expected.(*types.TypeAliasType), original, actual, path)
 	default:
