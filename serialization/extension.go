@@ -13,57 +13,64 @@ const (
 
 	// Tabulation internal to the low level protocol reader/writer
 
-	EX_INNER_TABULATION = Extension(0x00)
+	ExInnerTabulation = Extension(0x00)
 
 	// Tabulation managed by the serializer / deserializer
 
-	EX_TABULATION = Extension(0x01)
+	ExTabulation = Extension(0x01)
 
 	// 0x10 - 0x1F are reserved for structural extensions
 
-	EX_ARRAY_START        = Extension(0x10)
-	EX_MAP_START          = Extension(0x11)
-	EX_PCORE_OBJECT_START = Extension(0x12)
-	EX_OBJECT_START       = Extension(0x13)
-	EX_SENSITIVE_START    = Extension(0x14)
+	ExArrayStart       = Extension(0x10)
+	ExMapStart         = Extension(0x11)
+	ExPcoreObjectStart = Extension(0x12)
+	ExObjectStart      = Extension(0x13)
+	ExSensitiveStart   = Extension(0x14)
 
 	// 0x20 - 0x2f reserved for special extension objects
 
-	EX_DEFAULT = Extension(0x20)
-	EX_COMMENT = Extension(0x21)
+	ExDefault = Extension(0x20)
+	ExComment = Extension(0x21)
 
 	// 0x30 - 0x7f reserved for mapping of specific runtime classes
 
-	EX_REGEXP         = Extension(0x30)
-	EX_TYPE_REFERENCE = Extension(0x31)
-	EX_SYMBOL         = Extension(0x32)
-	EX_TIME           = Extension(0x33)
-	EX_TIMESPAN       = Extension(0x34)
-	EX_VERSION        = Extension(0x35)
-	EX_VERSION_RANGE  = Extension(0x36)
-	EX_BINARY         = Extension(0x37)
-	EX_BASE64         = Extension(0x38)
-	EX_URI            = Extension(0x39)
+	ExRegexp        = Extension(0x30)
+	ExTypeReference = Extension(0x31)
+	ExSymbol        = Extension(0x32)
+	ExTime          = Extension(0x33)
+	ExTimespan      = Extension(0x34)
+	ExVersion       = Extension(0x35)
+	ExVersionRange  = Extension(0x36)
+	ExBinary        = Extension(0x37)
+	ExBase64        = Extension(0x38)
+	ExUri           = Extension(0x39)
 
-	// PCORE_TYPE_KEY is the key used to signify the type of a serialized value
-	PCORE_TYPE_KEY = `__ptype`
+	// PcoreTypeKey is the key used to signify the type of a serialized value
+	PcoreTypeKey = `__ptype`
 
-	// PCORE_VALUE_KEY is used when the value can be represented as, and recreated from, a single string that can
+	// PcoreValueKey is used when the value can be represented as, and recreated from, a single string that can
 	// be passed to a `from_string` method or an array of values that can be passed to the default
 	// initializer method.
-	PCORE_VALUE_KEY = `__pvalue`
+	PcoreValueKey = `__pvalue`
 
-	// PCORE_TYPE_HASH is used for hashes that contain keys that are not of type String
-	PCORE_TYPE_HASH = `Hash`
+	// PCORE_REF_KEY is the key used to signify the ordinal number of a previously serialized value. The
+	// value is always an integer
+	PCORE_REF_KEY = `__pref`
 
-	// PCORE_TYPE_SENSITIVE is the type key used for sensitive values
-	PCORE_TYPE_SENSITIVE = `Sensitive`
+	// PCORE_TYPE_BINARY is used for binaries serialized using base64
+	PCORE_TYPE_BINARY = `Binary`
+
+	// PcoreTypeHash is used for hashes that contain keys that are not of type String
+	PcoreTypeHash = `Hash`
+
+	// PcoreTypeSensitive is the type key used for sensitive values
+	PcoreTypeSensitive = `Sensitive`
 
 	// PCORE_TYPE_SYMBOL is the type key used for symbols
 	PCORE_TYPE_SYMBOL = `Symbol`
 
-	// PCORE_TYPE_DEFAULT is the type key used for Default
-	PCORE_TYPE_DEFAULT = `Default`
+	// PcoreTypeDefault is the type key used for Default
+	PcoreTypeDefault = `Default`
 
 	// PCORE_LOCAL_REF_SYMBOL is the type key used for document local references
 	PCORE_LOCAL_REF_SYMBOL = `LocalRef`

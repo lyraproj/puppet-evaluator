@@ -559,6 +559,12 @@ func (he *HashEntry) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 	WrapValues([]eval.Value{he.key, he.value}).ToString(b, s, g)
 }
 
+func BuildHash(len int, bld func(*HashValue, []*HashEntry) []*HashEntry) *HashValue {
+	h := &HashValue{entries: make([]*HashEntry, 0, len)}
+	h.entries = bld(h, h.entries)
+	return h
+}
+
 func WrapHash(entries []*HashEntry) *HashValue {
 	return &HashValue{entries: entries}
 }
@@ -714,6 +720,15 @@ func (hv *HashValue) All(predicate eval.Predicate) bool {
 func (hv *HashValue) AllPairs(predicate eval.BiPredicate) bool {
 	for _, e := range hv.entries {
 		if !predicate(e.key, e.value) {
+			return false
+		}
+	}
+	return true
+}
+
+func (hv *HashValue) AllKeysAreStrings() bool {
+	for _, e := range hv.entries {
+		if _, ok := e.key.(*StringValue); !ok {
 			return false
 		}
 	}
