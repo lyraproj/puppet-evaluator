@@ -374,6 +374,7 @@ func init() {
 	eval.NewObjectType = newObjectType
 	eval.NewTypeAlias = newTypeAlias
 	eval.NewTypeSet = newTypeSet
+	eval.NewGoType = newGoType
 	eval.RegisterResolvableType = registerResolvableType
 	eval.NewGoConstructor = newGoConstructor
 	eval.NewGoConstructor2 = newGoConstructor2
@@ -481,6 +482,12 @@ func registerGoConstructor(ctorDecl *BuildFunctionArgs) {
 	resolvableTypesLock.Lock()
 	constructorsDecls = append(constructorsDecls, ctorDecl)
 	resolvableTypesLock.Unlock()
+}
+
+func newGoType(name string, zeroValue interface{}) eval.ObjectType {
+	t := NewObjectType(name, nil, zeroValue)
+	registerResolvableType(t)
+	return t
 }
 
 func registerResolvableType(tp eval.ResolvableType) {

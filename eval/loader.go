@@ -14,7 +14,6 @@ type (
 		Origin() issue.Location
 	}
 
-
 	Loader interface {
 		// LoadEntry returns the requested entry or nil if no such entry can be found
 		LoadEntry(c Context, name TypedName) LoaderEntry
@@ -25,8 +24,6 @@ type (
 
 	DefiningLoader interface {
 		Loader
-
-		ResolveResolvables(c Context)
 
 		SetEntry(name TypedName, entry LoaderEntry) LoaderEntry
 	}

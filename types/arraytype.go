@@ -308,6 +308,12 @@ func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 var arrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, anyType_DEFAULT}
 var arrayType_EMPTY = &ArrayType{IntegerType_ZERO, unitType_DEFAULT}
 
+func BuildArray(len int, bld func(*ArrayValue, []eval.Value) []eval.Value) *ArrayValue {
+	ar := &ArrayValue{elements: make([]eval.Value, 0, len)}
+	ar.elements = bld(ar, ar.elements)
+	return ar
+}
+
 func SingletonArray(element eval.Value) *ArrayValue {
 	return &ArrayValue{elements: []eval.Value{element}}
 }

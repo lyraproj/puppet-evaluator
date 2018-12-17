@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/semver/semver"
 	"math"
 	"reflect"
-	"github.com/lyraproj/semver/semver"
 	"strings"
 )
 
@@ -191,7 +191,7 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	if pc == ix {
 		pt = EmptyTupleType()
 	} else {
-		ps := make([]eval.Type, pc - ix)
+		ps := make([]eval.Type, pc-ix)
 		for p := ix; p < pc; p++ {
 			ps[p-ix] = wrapReflectedType(r.c, mt.In(p))
 		}
@@ -216,65 +216,68 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	return WrapHash(ds)
 }
 
+func (r *reflector) ObjectInitializerFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.OrderedMap {
+	ie := make([]*HashEntry, 0, 2)
+	if rf.Kind() == reflect.Func {
+		fn := rf.Name()
+		if fn == `` {
+			fn = `do`
+		}
+		ie = append(ie, WrapHashEntry2(`functions`, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
+	} else {
+		fs := r.Fields(rf)
+		nf := len(fs)
+		var pt reflect.Type
+
+		if nf > 0 {
+			es := make([]*HashEntry, 0, nf)
+			for i, f := range fs {
+				if i == 0 && f.Anonymous {
+					// Parent
+					pt = reflect.PtrTo(f.Type)
+					continue
+				}
+				if f.PkgPath != `` {
+					// Unexported
+					continue
+				}
+
+				name, decl := r.ReflectFieldTags(&f)
+				es = append(es, WrapHashEntry2(name, decl))
+			}
+			ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
+		}
+
+		ms := r.Methods(rf)
+		nm := len(ms)
+		if nm > 0 {
+			es := make([]*HashEntry, 0, nm)
+			for _, m := range ms {
+				if m.PkgPath != `` {
+					// Not exported struct method
+					continue
+				}
+
+				if pt != nil {
+					if _, ok := pt.MethodByName(m.Name); ok {
+						// Redeclarations of parent method are not included
+						continue
+					}
+				}
+				es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
+			}
+			ie = append(ie, WrapHashEntry2(`functions`, WrapHash(es)))
+		}
+	}
+	return WrapHash(ie)
+}
+
 func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.ObjectType {
-	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) *HashValue {
+	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) eval.OrderedMap {
 		obj.(*objectType).goType = rf
 
 		r.c.ImplementationRegistry().RegisterType(r.c, obj, rf)
-
-		ie := make([]*HashEntry, 0, 2)
-		if rf.Kind() == reflect.Func {
-			fn := rf.Name()
-			if fn == `` {
-				fn = `do`
-			}
-			ie = append(ie, WrapHashEntry2(`functions`, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
-		} else {
-			fs := r.Fields(rf)
-			nf := len(fs)
-			var pt reflect.Type
-
-			if nf > 0 {
-				es := make([]*HashEntry, 0, nf)
-				for i, f := range fs {
-					if i == 0 && f.Anonymous {
-						// Parent
-						pt = reflect.PtrTo(f.Type)
-						continue
-					}
-					if f.PkgPath != `` {
-						// Unexported
-						continue
-					}
-
-					name, decl := r.ReflectFieldTags(&f)
-					es = append(es, WrapHashEntry2(name, decl))
-				}
-				ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
-			}
-
-			ms := r.Methods(rf)
-			nm := len(ms)
-			if nm > 0 {
-				es := make([]*HashEntry, 0, nm)
-				for _, m := range ms {
-					if m.PkgPath != `` {
-						// Not exported struct method
-						continue
-					}
-
-					if pt != nil {
-						if _, ok := pt.MethodByName(m.Name); ok {
-							// Redeclarations of parent method are not included
-							continue
-						}
-					}
-					es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
-				}
-				ie = append(ie, WrapHashEntry2(`functions`, WrapHash(es)))
-			}
-		}
-		return WrapHash(ie)
+		return r.ObjectInitializerFromReflect(typeName, parent, rf)
 	})
 }
 
@@ -334,7 +337,7 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 		}
 		name := typeName(prefix, aliases, rt)
 		types = append(types, WrapHashEntry2(
-			name[strings.LastIndex(name, `::`) + 2:],
+			name[strings.LastIndex(name, `::`)+2:],
 			r.ObjectTypeFromReflect(name, parent, rt)))
 	}
 

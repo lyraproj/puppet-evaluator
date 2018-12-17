@@ -1,8 +1,8 @@
 package eval
 
 import (
-	"reflect"
 	"github.com/lyraproj/semver/semver"
+	"reflect"
 )
 
 // A ReflectedType is implemented by PTypes that can have a potential to
@@ -59,7 +59,7 @@ type Reflector interface {
 
 	// ReflectFieldTags reflects the name, type, and value from a reflect.StructField
 	// using the 'puppet' tag.
-	ReflectFieldTags(f *reflect.StructField)  (name string, decl OrderedMap)
+	ReflectFieldTags(f *reflect.StructField) (name string, decl OrderedMap)
 
 	// ReflectTo assigns the native value of src to dest
 	ReflectTo(src Value, dest reflect.Value)
@@ -68,6 +68,9 @@ type Reflector interface {
 	// PTypes that represent a value can be represented as a reflected type. Types
 	// like Any, Default, Unit, or Variant have no reflected type representation
 	ReflectType(src Type) (reflect.Type, bool)
+
+	// ObjectInitializerFromReflect creates an Object initializer hash based on the given reflected type.
+	ObjectInitializerFromReflect(typeName string, parent Type, rType reflect.Type) OrderedMap
 
 	// ObjectTypeFromReflect creates an Object type based on the given reflected type.
 	// The new type is automatically added to the ImplementationRegistry registered to

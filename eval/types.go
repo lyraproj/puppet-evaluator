@@ -450,6 +450,8 @@ var DescribeMismatch func(pfx string, expected Type, actual Type) string
 
 var NewTypeAlias func(name, typeDecl string) Type
 
+var NewGoType func(name string, zeroValue interface{}) ObjectType
+
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
 var NewTypeSet func(name, typeDecl string) TypeSet

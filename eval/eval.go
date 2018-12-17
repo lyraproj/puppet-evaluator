@@ -1,8 +1,8 @@
 package eval
 
 import (
-	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
@@ -36,6 +36,10 @@ func Fork(c Context, doer ContextDoer) {
 		threadlocal.Set(PuppetContextKey, cf)
 		doer(cf)
 	}()
+}
+
+func LogWarning(issueCode issue.Code, args issue.H) {
+	CurrentContext().Logger().LogIssue(Warning(issueCode, args))
 }
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments

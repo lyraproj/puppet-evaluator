@@ -144,6 +144,7 @@ type (
 		List
 		AllPairs(BiPredicate) bool
 		AnyPair(BiPredicate) bool
+		AllKeysAreStrings() bool
 		Entries() List
 		EachKey(Consumer)
 		EachPair(BiConsumer)
