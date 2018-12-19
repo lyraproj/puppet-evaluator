@@ -214,14 +214,13 @@ func (t *StringType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
-func (t *StringType)  CanSerializeAsString() bool {
-  return true
+func (t *StringType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *StringType)  SerializationString() string {
+func (t *StringType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *StringType) String() string {
 	return eval.ToString2(t, NONE)
@@ -408,9 +407,13 @@ func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
-	if value.Kind() == reflect.Interface {
+	switch value.Kind() {
+	case reflect.Interface:
 		value.Set(sv.Reflect(c))
-	} else {
+	case reflect.Ptr:
+		s := (*StringType)(sv).value
+		value.Set(reflect.ValueOf(&s))
+	default:
 		value.SetString(sv.String())
 	}
 }

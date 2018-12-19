@@ -99,13 +99,13 @@ type objectType struct {
 	initHashExpression  interface{} // Expression, *HashValue, or Go zero value
 	attrInfo            *attributesInfo
 	ctor                eval.Function
-	goType              reflect.Type
+	goType              eval.TaggedType
 	isInterface         bool
 }
 
 func (t *objectType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	if t.goType != nil {
-		return t.goType, true
+		return t.goType.Type(), true
 	}
 	return c.ImplementationRegistry().TypeToReflected(t)
 }
@@ -347,7 +347,10 @@ func (t *objectType) GetValue(key string, o eval.Value) (value eval.Value, ok bo
 }
 
 func (t *objectType) GoType() reflect.Type {
-	return t.goType
+	if t.goType != nil {
+		return t.goType.Type()
+	}
+	return nil
 }
 
 func (t *objectType) HasHashConstructor() bool {
@@ -498,7 +501,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	isInterface := t.attributes.IsEmpty() && (parentObjectType == nil || parentObjectType.isInterface)
 
 	if t.goType != nil && t.attributes.IsEmpty() {
-		if pt, ok := PrimitivePType(t.goType); ok {
+		if pt, ok := PrimitivePType(t.goType.Type()); ok {
 			t.isInterface = false
 
 			// Create the special attribute that holds the primitive value that is
@@ -773,10 +776,15 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 			})
 		} else if hv, ok := ihe.(*HashValue); ok {
 			initHash = resolveTypeRefs(c, hv).(eval.OrderedMap)
+		} else if tg, ok := ihe.(*taggedType); ok {
+			t.goType = tg
+			initHash = c.Reflector().InitializerFromTagged(t.name, t.parent, tg)
+			c.ImplementationRegistry().RegisterType(c, t, tg.Type())
 		} else {
-			t.goType = reflect.TypeOf(ihe)
-			initHash = c.Reflector().ObjectInitializerFromReflect(t.name, t.parent, t.goType)
-			c.ImplementationRegistry().RegisterType(c, t, t.goType)
+			tg := eval.NewTaggedType(reflect.TypeOf(ihe), nil)
+			t.goType = tg
+			initHash = c.Reflector().InitializerFromTagged(t.name, t.parent, tg)
+			c.ImplementationRegistry().RegisterType(c, t, tg.Type())
 		}
 		t.InitFromHash(c, initHash)
 	}

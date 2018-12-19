@@ -676,6 +676,8 @@ func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
 		pv = WrapBoolean(vr.Bool())
 	case reflect.Float64, reflect.Float32:
 		pv = WrapFloat(vr.Float())
+	case reflect.Ptr:
+		return WrapPrimitive(vr.Elem())
 	default:
 		ok = false
 	}
@@ -721,6 +723,12 @@ func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 	pt, ok = loadFromImplementarionRegistry(c, vt)
 	if !ok {
 		pt, ok = primitivePTypes[vt.Kind()]
+		if !ok && vt.Kind() == reflect.Ptr {
+			if pt, ok = primitivePTypes[vt.Elem().Kind()]; ok {
+				pt = NewOptionalType(pt)
+			}
+		}
+
 		if !ok {
 			ok = true
 			kind := vt.Kind()
