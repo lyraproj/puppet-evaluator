@@ -1,15 +1,15 @@
 package eval_test
 
 import (
-	"strconv"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"fmt"
-	"reflect"
-	"os"
-	"github.com/lyraproj/semver/semver"
-	"time"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/semver/semver"
+	"os"
+	"reflect"
 	"regexp"
+	"strconv"
+	"time"
 
 	// Initialize pcore
 	_ "github.com/lyraproj/puppet-evaluator/pcore"
@@ -120,7 +120,7 @@ func ExampleReflector_reflectToFloat() {
 	rv := reflect.ValueOf(ts).Elem()
 	n := rv.NumField()
 	for i := 0; i < n; i++ {
-		fv := eval.Wrap(nil, float64(10+i+1) / 10.0)
+		fv := eval.Wrap(nil, float64(10+i+1)/10.0)
 		rf.ReflectTo(fv, rv.Field(i))
 	}
 	fmt.Println(ts)
@@ -213,10 +213,10 @@ func ExampleReflector_ReflectToPuppetObject() {
 	// Output: message: the message, kind THE_KIND, issueCode THE_CODE
 }
 
-func ExampleReflector_objectTypeFromReflect() {
+func ExampleReflector_typeFromReflect() {
 	type TestAddress struct {
 		Street string
-		Zip    string `puppet:"name=>zip_code"`
+		Zip    string
 	}
 	type TestPerson struct {
 		Name    string
@@ -224,7 +224,7 @@ func ExampleReflector_objectTypeFromReflect() {
 	}
 	type TestExtendedPerson struct {
 		TestPerson
-		Age    int  `puppet:"type=>Optional[Integer],value=>undef"`
+		Age    *int
 		Active bool `puppet:"name=>enabled"`
 	}
 
@@ -234,16 +234,17 @@ func ExampleReflector_objectTypeFromReflect() {
 	rtExtPerson := reflect.TypeOf(&TestExtendedPerson{})
 
 	rf := c.Reflector()
-	tAddress := rf.ObjectTypeFromReflect(`My::Address`, nil, rtAddress)
-	tPerson := rf.ObjectTypeFromReflect(`My::Person`, nil, rtPerson)
-	tExtPerson := rf.ObjectTypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
+	tAddress := rf.TypeFromTagged(`My::Address`, nil, eval.NewTaggedType(rtAddress, map[string]string{`Zip`: `name=>zip_code`}))
+	tPerson := rf.TypeFromReflect(`My::Person`, nil, rtPerson)
+	tExtPerson := rf.TypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
 	c.AddTypes(tAddress, tPerson, tExtPerson)
 
 	fmt.Println(tAddress)
 	fmt.Println(tPerson)
 	fmt.Println(tExtPerson)
 
-	ts := &TestExtendedPerson{TestPerson{`Bob Tester`, &TestAddress{`Example Road 23`, `12345`}}, 34, true}
+	age := 34
+	ts := &TestExtendedPerson{TestPerson{`Bob Tester`, &TestAddress{`Example Road 23`, `12345`}}, &age, true}
 	ev := eval.Wrap(c, ts)
 	fmt.Println(ev)
 
@@ -278,12 +279,12 @@ func (b B) Y(a A) A {
 	return NewA(int(b) + a.Int())
 }
 
-func ExampleReflector_objectTypeFromReflectInterface() {
+func ExampleReflector_typeFromReflectInterface() {
 	c := eval.Puppet.RootContext()
 
 	// Create ObjectType from reflected type
-	xa := c.Reflector().ObjectTypeFromReflect(`X::A`, nil, reflect.TypeOf((*A)(nil)).Elem())
-	xb := c.Reflector().ObjectTypeFromReflect(`X::B`, nil, reflect.TypeOf(B(0)))
+	xa := c.Reflector().TypeFromReflect(`X::A`, nil, reflect.TypeOf((*A)(nil)).Elem())
+	xb := c.Reflector().TypeFromReflect(`X::B`, nil, reflect.TypeOf(B(0)))
 
 	// Ensure that the type is resolved
 	c.AddTypes(xa, xb)
@@ -362,7 +363,7 @@ type Person struct {
 }
 type ExtendedPerson struct {
 	Person
-	Age    int  `puppet:"type=>Optional[Integer],value=>undef"`
+	Age    *int
 	Active bool `puppet:"name=>enabled"`
 }
 
@@ -385,7 +386,8 @@ func ExampleReflector_typeSetFromReflect() {
 
 		// Create an instance of something included in the TypeSet
 		ad := &Address{`Example Road 23`, `12345`}
-		ep := &ExtendedPerson{Person{`Bob Tester`, ad}, 34, true}
+		age := 34
+		ep := &ExtendedPerson{Person{`Bob Tester`, ad}, &age, true}
 
 		// Wrap the instance as a Value and print it
 		v := eval.Wrap(c, ep)
@@ -453,22 +455,22 @@ func (t *twoValueReturn) ReturnTwoAndErrorFail() (string, int, error) {
 }
 
 func ExampleReflector_twoValueReturn() {
-  eval.Puppet.Do(func(c eval.Context) {
-  	gv := &twoValueReturn{}
-	  api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
-	  c.AddTypes(api)
-	  v := eval.Wrap(c, gv)
-	  r, _ := api.Member(`return_two`)
-	  fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
-  })
-  // Output:
-  // ['number', 42]
+	eval.Puppet.Do(func(c eval.Context) {
+		gv := &twoValueReturn{}
+		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+		c.AddTypes(api)
+		v := eval.Wrap(c, gv)
+		r, _ := api.Member(`return_two`)
+		fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
+	})
+	// Output:
+	// ['number', 42]
 }
 
 func ExampleReflectortwoValueReturnErrorOk() {
 	eval.Puppet.Do(func(c eval.Context) {
 		gv := &twoValueReturn{}
-		api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
 		c.AddTypes(api)
 		v := eval.Wrap(c, gv)
 		r, _ := api.Member(`return_two_and_error_ok`)
@@ -481,7 +483,7 @@ func ExampleReflectortwoValueReturnErrorOk() {
 func ExampleReflectortwoValueReturnErrorFail() {
 	err := eval.Puppet.Try(func(c eval.Context) error {
 		gv := &twoValueReturn{}
-		api := c.Reflector().ObjectTypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
+		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
 		c.AddTypes(api)
 		v := eval.Wrap(c, gv)
 		r, _ := api.Member(`return_two_and_error_fail`)
@@ -508,7 +510,7 @@ func (v *valueStruct) Get(key *types.IntegerValue, dflt eval.Value) *types.Strin
 
 func ExampleReflector_reflectPType() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().ObjectTypeFromReflect(`X::M`, nil, reflect.TypeOf(&valueStruct{}))
+		xm := c.Reflector().TypeFromReflect(`X::M`, nil, reflect.TypeOf(&valueStruct{}))
 		c.AddTypes(xm)
 		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
@@ -528,4 +530,448 @@ func ExampleReflector_reflectPType() {
 	//       String]
 	//   }
 	// }]
+}
+
+type optionalString struct {
+	A string
+	B *string
+}
+
+func ExampleReflect_TypeFromReflect_optionalString() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => String,
+	//     'b' => {
+	//       'type' => Optional[String],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_optionalStringReflect() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		w := `World`
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalString{`Hello`, &w})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 'Hello',
+	//   'b' => 'World'
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalStringReflectZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		var w string
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalString{`Hello`, &w})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 'Hello',
+	//   'b' => ''
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalStringCreate() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapString(`Hello`), types.WrapString(`World`))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 'Hello',
+	//   'b' => 'World'
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalStringDefault() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapString(`Hello`))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 'Hello'
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalStringDefaultZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalString{}))
+		c.AddTypes(xm)
+		var w string
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapString(`Hello`), types.WrapString(w))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 'Hello',
+	//   'b' => ''
+	// )
+}
+
+type optionalBoolean struct {
+	A bool
+	B *bool
+}
+
+func ExampleReflect_TypeFromReflect_optionalBoolean() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => Boolean,
+	//     'b' => {
+	//       'type' => Optional[Boolean],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_optionalBooleanReflect() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		w := true
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalBoolean{true, &w})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => true,
+	//   'b' => true
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalBooleanReflectZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		var w bool
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalBoolean{true, &w})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => true,
+	//   'b' => false
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalBooleanCreate() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapBoolean(true), types.WrapBoolean(true))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => true,
+	//   'b' => true
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalBooleanDefault() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapBoolean(true))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => true
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalBooleanZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalBoolean{}))
+		c.AddTypes(xm)
+		var w bool
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapBoolean(true), types.WrapBoolean(w))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => true,
+	//   'b' => false
+	// )
+}
+
+type optionalInt struct {
+	A int64
+	B *int64
+	C *byte
+	D *int16
+	E *uint32
+}
+
+func ExampleReflect_TypeFromReflect_optionalInt() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => Integer,
+	//     'b' => {
+	//       'type' => Optional[Integer],
+	//       'value' => undef
+	//     },
+	//     'c' => {
+	//       'type' => Optional[Integer
+	//         [0, 255]],
+	//       'value' => undef
+	//     },
+	//     'd' => {
+	//       'type' => Optional[Integer
+	//         [-32768, 32767]],
+	//       'value' => undef
+	//     },
+	//     'e' => {
+	//       'type' => Optional[Integer
+	//         [0, 4294967295]],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntReflect() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		w1 := int64(2)
+		w2 := byte(3)
+		w3 := int16(4)
+		w4 := uint32(5)
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalInt{1, &w1, &w2, &w3, &w4})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1,
+	//   'b' => 2,
+	//   'c' => 3,
+	//   'd' => 4,
+	//   'e' => 5
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntReflectZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		var w1 int64
+		var w2 byte
+		var w3 int16
+		var w4 uint32
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalInt{1, &w1, &w2, &w3, &w4})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1,
+	//   'b' => 0,
+	//   'c' => 0,
+	//   'd' => 0,
+	//   'e' => 0
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntCreate() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapInteger(1), types.WrapInteger(2), types.WrapInteger(3), types.WrapInteger(4), types.WrapInteger(5))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1,
+	//   'b' => 2,
+	//   'c' => 3,
+	//   'd' => 4,
+	//   'e' => 5
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntDefault() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapInteger(1))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntDefaultZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalInt{}))
+		c.AddTypes(xm)
+		var w1 int64
+		var w2 byte
+		var w3 int16
+		var w4 uint32
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapInteger(1), types.WrapInteger(w1), types.WrapInteger(int64(w2)), types.WrapInteger(int64(w3)), types.WrapInteger(int64(w4)))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1,
+	//   'b' => 0,
+	//   'c' => 0,
+	//   'd' => 0,
+	//   'e' => 0
+	// )
+}
+
+type optionalFloat struct {
+	A float64
+	B *float64
+	C *float32
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloat() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => Float,
+	//     'b' => {
+	//       'type' => Optional[Float],
+	//       'value' => undef
+	//     },
+	//     'c' => {
+	//       'type' => Optional[Float
+	//         [-3.4028234663852886e+38, 3.4028234663852886e+38]],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloatReflect() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		w1 := float64(2)
+		w2 := float32(3)
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalFloat{1, &w1, &w2})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1.00000,
+	//   'b' => 2.00000,
+	//   'c' => 3.00000
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloatReflectZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		var w1 float64
+		var w2 float32
+		fmt.Println(eval.ToPrettyString(eval.Wrap(c, &optionalFloat{1, &w1, &w2})))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1.00000,
+	//   'b' => 0.00000,
+	//   'c' => 0.00000
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloatCreate() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapFloat(1), types.WrapFloat(2), types.WrapFloat(3))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1.00000,
+	//   'b' => 2.00000,
+	//   'c' => 3.00000
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloatDefault() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapFloat(1))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1.00000
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalFloatZero() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		c.AddTypes(xm)
+		var w1 float64
+		var w2 float32
+		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapFloat(1), types.WrapFloat(w1), types.WrapFloat(float64(w2)))))
+	})
+
+	// Output:
+	// X(
+	//   'a' => 1.00000,
+	//   'b' => 0.00000,
+	//   'c' => 0.00000
+	// )
 }

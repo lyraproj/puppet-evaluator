@@ -7,9 +7,9 @@ import (
 	"math"
 	"strings"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 )
 
@@ -191,14 +191,13 @@ func (t *FloatType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 
-func (t *FloatType)  CanSerializeAsString() bool {
-  return true
+func (t *FloatType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *FloatType)  SerializationString() string {
+func (t *FloatType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *FloatType) String() string {
 	return eval.ToString2(t, NONE)
@@ -250,11 +249,22 @@ func (fv *FloatValue) ReflectTo(c eval.Context, value reflect.Value) {
 	switch value.Kind() {
 	case reflect.Float64, reflect.Float32:
 		value.SetFloat(fv.Float())
+		return
 	case reflect.Interface:
 		value.Set(reflect.ValueOf(fv.Float()))
-	default:
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
+		return
+	case reflect.Ptr:
+		switch value.Type().Elem().Kind() {
+		case reflect.Float64:
+			value.Set(reflect.ValueOf(&(*FloatType)(fv).min))
+			return
+		case reflect.Float32:
+			f32 := float32((*FloatType)(fv).min)
+			value.Set(reflect.ValueOf(&f32))
+			return
+		}
 	}
+	panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
 }
 
 func (fv *FloatValue) String() string {

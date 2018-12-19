@@ -217,9 +217,29 @@ func (bv *BooleanValue) Reflect(c eval.Context) reflect.Value {
 	return reflect.ValueOf(bv.value == 1)
 }
 
+var theTrue = true
+var theFalse = false
+var theTruePtr = &theTrue
+var theFalsePtr = &theFalse
+
+var reflectTrue = reflect.ValueOf(theTrue)
+var reflectFalse = reflect.ValueOf(theFalse)
+var reflectTruePtr = reflect.ValueOf(theTruePtr)
+var reflectFalsePtr = reflect.ValueOf(theFalsePtr)
+
 func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if value.Kind() == reflect.Interface {
-		value.Set(bv.Reflect(c))
+		if bv.value == 1 {
+			value.Set(reflectTrue)
+		} else {
+			value.Set(reflectFalse)
+		}
+	} else if value.Kind() == reflect.Ptr {
+		if bv.value == 1 {
+			value.Set(reflectTruePtr)
+		} else {
+			value.Set(reflectFalsePtr)
+		}
 	} else {
 		value.SetBool(bv.value == 1)
 	}
@@ -256,7 +276,7 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
 		WrapFloat(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':
-		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), f.IsAlt())
+		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), false)
 	default:
 		panic(s.UnsupportedFormat(bv.PType(), `tTyYdxXobBeEfgGaAsp`, f))
 	}

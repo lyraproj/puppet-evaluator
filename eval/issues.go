@@ -42,6 +42,7 @@ const (
 	EVAL_IMPL_ALREDY_REGISTERED                    = `EVAL_IMPL_ALREDY_REGISTERED`
 	EVAL_ILLEGAL_REASSIGNMENT                      = `EVAL_ILLEGAL_REASSIGNMENT`
 	EVAL_INSTANCE_DOES_NOT_RESPOND                 = `EVAL_INSTANCE_DOES_NOT_RESPOND`
+	EVAL_IMPOSSIBLE_OPTIONAL                       = `EVAL_IMPOSSIBLE_OPTIONAL`
 	EVAL_INVALID_CHARACTERS_IN_NAME                = `EVAL_INVALID_CHARACTERS_IN_NAME`
 	EVAL_INVALID_REGEXP                            = `EVAL_INVALID_REGEXP`
 	EVAL_INVALID_SOURCE_FOR_GET                    = `EVAL_INVALID_SOURCE_FOR_GET`
@@ -205,6 +206,8 @@ func init() {
 	issue.Hard(EVAL_IMPL_ALREDY_REGISTERED, `The type %{type} is already present in the implementation registry`)
 
 	issue.Hard(EVAL_IS_DIRECTORY, `The path '%{path}' is a directory`)
+
+	issue.Hard(EVAL_IMPOSSIBLE_OPTIONAL, `The field %{name} cannot have the type %{type}. Optional attributes must be pointers`)
 
 	issue.Hard(EVAL_INSTANCE_DOES_NOT_RESPOND, `An instance of %{type} does not respond to %{message}`)
 

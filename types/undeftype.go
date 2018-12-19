@@ -3,8 +3,8 @@ package types
 import (
 	"io"
 
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"reflect"
 )
 
@@ -59,14 +59,13 @@ func (t *UndefType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.Value{}.Type(), true
 }
 
-func (t *UndefType)  CanSerializeAsString() bool {
-  return true
+func (t *UndefType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *UndefType)  SerializationString() string {
+func (t *UndefType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *UndefType) String() string {
 	return `Undef`
@@ -94,9 +93,6 @@ func (uv *UndefValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (uv *UndefValue) ReflectTo(c eval.Context, value reflect.Value) {
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
 	if !value.CanSet() {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Kind().String()}))
 	}

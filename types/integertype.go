@@ -7,9 +7,9 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 )
 
@@ -299,14 +299,13 @@ func (t *IntegerType) SizeParameters() []eval.Value {
 	return params
 }
 
-func (t *IntegerType)  CanSerializeAsString() bool {
-  return true
+func (t *IntegerType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *IntegerType)  SerializationString() string {
+func (t *IntegerType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *IntegerType) String() string {
 	return eval.ToString2(t, NONE)
@@ -354,6 +353,7 @@ func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
 	}
+	ok := true
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		value.SetInt(iv.Int())
@@ -361,7 +361,45 @@ func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
 		value.SetUint(uint64(iv.Int()))
 	case reflect.Interface:
 		value.Set(reflect.ValueOf(iv.Int()))
+	case reflect.Ptr:
+		mv := iv.Int()
+		switch value.Type().Elem().Kind() {
+		case reflect.Int64:
+			value.Set(reflect.ValueOf(&mv))
+		case reflect.Int:
+			iv := int(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Int8:
+			iv := int8(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Int16:
+			iv := int16(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Int32:
+			iv := int32(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Uint:
+			iv := uint(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Uint8:
+			iv := uint8(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Uint16:
+			iv := uint16(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Uint32:
+			iv := uint32(mv)
+			value.Set(reflect.ValueOf(&iv))
+		case reflect.Uint64:
+			iv := uint64(mv)
+			value.Set(reflect.ValueOf(&iv))
+		default:
+			ok = false
+		}
 	default:
+		ok = false
+	}
+	if !ok {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
 	}
 }

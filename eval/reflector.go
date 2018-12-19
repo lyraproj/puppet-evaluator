@@ -37,6 +37,20 @@ type ImplementationRegistry interface {
 	ReflectedNameToType(name string) (Type, bool)
 }
 
+// A TaggedType represenst a reflect.Type with fields that may have 'puppet' tag overrides.
+type TaggedType interface {
+	// Type returns the reflect.Type
+	Type() reflect.Type
+
+	// Tags returns a map, keyed by field names, containing values that are the
+	// 'puppet' tag parsed into an OrderedMap. The map is merged with possible
+	// overrides given when the TaggedType instance was created
+	Tags(c Context) map[string]OrderedMap
+}
+
+// NewTaggedType returns a new instance of a TaggedType
+var NewTaggedType func(reflect.Type, map[string]string) TaggedType
+
 // A Reflector deals with conversions between Value and reflect.Value and
 // between Type and reflect.Type
 type Reflector interface {
@@ -58,8 +72,8 @@ type Reflector interface {
 	Reflect2(src Value, rt reflect.Type) reflect.Value
 
 	// ReflectFieldTags reflects the name, type, and value from a reflect.StructField
-	// using the 'puppet' tag.
-	ReflectFieldTags(f *reflect.StructField) (name string, decl OrderedMap)
+	// using the field tags and the optionally given puppetTag
+	ReflectFieldTags(f *reflect.StructField, puppetTag OrderedMap) (name string, decl OrderedMap)
 
 	// ReflectTo assigns the native value of src to dest
 	ReflectTo(src Value, dest reflect.Value)
@@ -69,13 +83,18 @@ type Reflector interface {
 	// like Any, Default, Unit, or Variant have no reflected type representation
 	ReflectType(src Type) (reflect.Type, bool)
 
-	// ObjectInitializerFromReflect creates an Object initializer hash based on the given reflected type.
-	ObjectInitializerFromReflect(typeName string, parent Type, rType reflect.Type) OrderedMap
+	// InitializerFromTagged creates an Object initializer hash based on the given reflected type.
+	InitializerFromTagged(typeName string, parent Type, rType TaggedType) OrderedMap
 
-	// ObjectTypeFromReflect creates an Object type based on the given reflected type.
+	// TypeFromReflect creates an ObjectType based on the given reflected type.
 	// The new type is automatically added to the ImplementationRegistry registered to
 	// the Context from where the Reflector was obtained.
-	ObjectTypeFromReflect(typeName string, parent Type, rType reflect.Type) ObjectType
+	TypeFromReflect(typeName string, parent Type, rType reflect.Type) ObjectType
+
+	// TypeFromTagged creates an Object type based on the given reflected type.
+	// The new type is automatically added to the ImplementationRegistry registered to
+	// the Context from where the Reflector was obtained.
+	TypeFromTagged(typeName string, parent Type, rType TaggedType) ObjectType
 
 	// TypeSetFromReflect creates a TypeSet based on the given reflected types The new types are automatically
 	// added to the ImplementationRegistry registered to the Context from where the Reflector was obtained.

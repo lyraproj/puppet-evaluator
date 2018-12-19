@@ -134,9 +134,17 @@ func ReflectType(c eval.Context, src eval.Type) (reflect.Type, bool) {
 }
 
 func (r *reflector) TagHash(f *reflect.StructField) (eval.OrderedMap, bool) {
-	if tag := f.Tag.Get(tagName); tag != `` {
-		tagExpr := r.c.ParseAndValidate(``, `{`+tag+`}`, true)
-		if tagHash, ok := eval.Evaluate(r.c, tagExpr).(eval.OrderedMap); ok {
+	return TagHash(r.c, f)
+}
+
+func TagHash(c eval.Context, f *reflect.StructField) (eval.OrderedMap, bool) {
+	return ParseTagHash(c, f.Tag.Get(tagName))
+}
+
+func ParseTagHash(c eval.Context, tag string) (eval.OrderedMap, bool) {
+	if tag != `` {
+		tagExpr := c.ParseAndValidate(``, `{`+tag+`}`, true)
+		if tagHash, ok := eval.Evaluate(c, tagExpr).(eval.OrderedMap); ok {
 			return tagHash, true
 		}
 	}
@@ -216,7 +224,8 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	return WrapHash(ds)
 }
 
-func (r *reflector) ObjectInitializerFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.OrderedMap {
+func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg eval.TaggedType) eval.OrderedMap {
+	rf := tg.Type()
 	ie := make([]*HashEntry, 0, 2)
 	if rf.Kind() == reflect.Func {
 		fn := rf.Name()
@@ -225,6 +234,7 @@ func (r *reflector) ObjectInitializerFromReflect(typeName string, parent eval.Ty
 		}
 		ie = append(ie, WrapHashEntry2(`functions`, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
 	} else {
+		tags := tg.Tags(r.c)
 		fs := r.Fields(rf)
 		nf := len(fs)
 		var pt reflect.Type
@@ -242,7 +252,7 @@ func (r *reflector) ObjectInitializerFromReflect(typeName string, parent eval.Ty
 					continue
 				}
 
-				name, decl := r.ReflectFieldTags(&f)
+				name, decl := r.ReflectFieldTags(&f, tags[f.Name])
 				es = append(es, WrapHashEntry2(name, decl))
 			}
 			ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
@@ -272,21 +282,25 @@ func (r *reflector) ObjectInitializerFromReflect(typeName string, parent eval.Ty
 	return WrapHash(ie)
 }
 
-func (r *reflector) ObjectTypeFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.ObjectType {
-	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) eval.OrderedMap {
-		obj.(*objectType).goType = rf
+func (r *reflector) TypeFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.ObjectType {
+	return r.TypeFromTagged(typeName, parent, eval.NewTaggedType(rf, nil))
+}
 
-		r.c.ImplementationRegistry().RegisterType(r.c, obj, rf)
-		return r.ObjectInitializerFromReflect(typeName, parent, rf)
+func (r *reflector) TypeFromTagged(typeName string, parent eval.Type, tg eval.TaggedType) eval.ObjectType {
+	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) eval.OrderedMap {
+		obj.(*objectType).goType = tg
+
+		r.c.ImplementationRegistry().RegisterType(r.c, obj, tg.Type())
+		return r.InitializerFromTagged(typeName, parent, tg)
 	})
 }
 
-func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl eval.OrderedMap) {
+func (r *reflector) ReflectFieldTags(f *reflect.StructField, fh eval.OrderedMap) (name string, decl eval.OrderedMap) {
 	as := make([]*HashEntry, 0)
 	var val eval.Value
 	var typ eval.Type
 
-	if fh, ok := r.TagHash(f); ok {
+	if fh != nil {
 		if v, ok := fh.Get4(KEY_NAME); ok {
 			name = v.String()
 		}
@@ -307,13 +321,33 @@ func (r *reflector) ReflectFieldTags(f *reflect.StructField) (name string, decl 
 	if typ == nil {
 		typ = eval.WrapReflectedType(r.c, f.Type)
 	}
-	// Convenience. If a value is declared as being undef, then make the
-	// type Optional if undef isn't an acceptable value
-	if val != nil && eval.Equals(val, eval.UNDEF) {
-		if !typ.IsInstance(eval.UNDEF, nil) {
+
+	optional := typ.IsInstance(eval.UNDEF, nil)
+	if optional {
+		if val == nil {
+			// If no value is declared and the type is declared as optional, then
+			// value is an implicit undef
+			as = append(as, WrapHashEntry2(KEY_VALUE, _UNDEF))
+		}
+	} else {
+		if eval.Equals(val, _UNDEF) {
+			// Convenience. If a value is declared as being undef, then ensure that
+			// type accepts undef
 			typ = NewOptionalType(typ)
+			optional = true
 		}
 	}
+
+	if optional {
+		switch f.Type.Kind() {
+		case reflect.Ptr, reflect.Interface:
+			// OK. Can be nil
+		default:
+			// The field will always have a value (the Go zero value), so it cannot be nil.
+			panic(eval.Error(eval.EVAL_IMPOSSIBLE_OPTIONAL, issue.H{`name`: f.Name, `type`: typ.String()}))
+		}
+	}
+
 	as = append(as, WrapHashEntry2(KEY_TYPE, typ))
 	as = append(as, WrapHashEntry2(KEY_GONAME, WrapString(f.Name)))
 	if name == `` {
@@ -338,7 +372,7 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 		name := typeName(prefix, aliases, rt)
 		types = append(types, WrapHashEntry2(
 			name[strings.LastIndex(name, `::`)+2:],
-			r.ObjectTypeFromReflect(name, parent, rt)))
+			r.TypeFromReflect(name, parent, rt)))
 	}
 
 	es := make([]*HashEntry, 0)
