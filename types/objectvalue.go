@@ -355,10 +355,11 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 
 	entries := make([]*HashEntry, 0, nc)
 	oe := o.structVal()
+	c := eval.CurrentContext()
 	for _, attr := range pi.Attributes() {
 		gn := attr.GoName()
 		if gn != `` {
-			v := wrap(nil, oe.FieldByName(gn))
+			v := wrapReflected(c, oe.FieldByName(gn))
 			if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
 				entries = append(entries, WrapHashEntry2(attr.Name(), v))
 			}

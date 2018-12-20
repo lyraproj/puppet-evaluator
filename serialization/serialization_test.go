@@ -118,7 +118,7 @@ func ExampleRichDataSerializer_goValueRoundtrip() {
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := MyInt(32)
-		ctx.AddTypes(ctx.Reflector().ObjectTypeFromReflect(`Test::MyInt`, nil, reflect.TypeOf(mi)))
+		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyInt`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
@@ -146,7 +146,7 @@ func ExampleRichDataSerializer_goStructRoundtrip() {
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := &MyStruct{32, "hello"}
-		ctx.AddTypes(ctx.Reflector().ObjectTypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
+		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
@@ -177,7 +177,7 @@ func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := &MyStruct{eval.Wrap(ctx, []int{32}).(eval.List), eval.Wrap(ctx, map[string]string{"msg": "hello"}).(eval.OrderedMap)}
-		ctx.AddTypes(ctx.Reflector().ObjectTypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
+		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
