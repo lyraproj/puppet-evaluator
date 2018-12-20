@@ -607,6 +607,19 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		c = eval.CurrentContext()
 	}
 
+	// Invalid shouldn't happen, but needs a check
+	if !vr.IsValid() {
+		return _UNDEF
+	}
+
+	// Check for nil
+	switch vr.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Array, reflect.Map, reflect.Interface:
+		if vr.IsNil() {
+			return _UNDEF
+		}
+	}
+
 	vi := vr
 	if _, ok := wellknowns[vr.Type()]; ok {
 		return vr.Interface().(eval.Value)
@@ -616,12 +629,11 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		// Need implementation here.
 		vi = vi.Elem()
 	}
-	if vi.IsValid() {
-		if t, ok := loadFromImplementarionRegistry(c, vi.Type()); ok {
-			if pt, ok := t.(eval.ObjectType); ok {
-				pv = pt.FromReflectedValue(c, vi)
-				return
-			}
+
+	if t, ok := loadFromImplementarionRegistry(c, vi.Type()); ok {
+		if pt, ok := t.(eval.ObjectType); ok {
+			pv = pt.FromReflectedValue(c, vi)
+			return
 		}
 	}
 
