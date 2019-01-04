@@ -31,12 +31,16 @@ func (a *annotatable) Annotations() eval.OrderedMap {
 
 func (a *annotatable) Resolve(c eval.Context) {
 	ah := a.annotations
-	as := make([]*HashEntry, 0, ah.Len())
-	ah.EachPair(func(k, v eval.Value) {
-		at := k.(eval.ObjectType)
-		as = append(as, WrapHashEntry(k, eval.New(c, at, v)))
-	})
-	a.resolvedAnnotations = WrapHash(as)
+	if ah.IsEmpty() {
+		a.resolvedAnnotations = _EMPTY_MAP
+	} else {
+		as := make([]*HashEntry, 0, ah.Len())
+		ah.EachPair(func(k, v eval.Value) {
+			at := k.(eval.ObjectType)
+			as = append(as, WrapHashEntry(k, eval.New(c, at, v)))
+		})
+		a.resolvedAnnotations = WrapHash(as)
+	}
 }
 
 func (a *annotatable) initialize(initHash *HashValue) {

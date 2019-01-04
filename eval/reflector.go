@@ -37,19 +37,26 @@ type ImplementationRegistry interface {
 	ReflectedNameToType(name string) (Type, bool)
 }
 
-// A TaggedType represenst a reflect.Type with fields that may have 'puppet' tag overrides.
-type TaggedType interface {
+// A AnnotatedType represenst a reflect.Type with fields that may have 'puppet' tag overrides.
+type AnnotatedType interface {
 	// Type returns the reflect.Type
 	Type() reflect.Type
 
+	// Annotations returns a map of annotations where each key is an Annotation type and the
+	// associated value is an instance of Init[<AnnotationType>].
+	Annotations() OrderedMap
+
 	// Tags returns a map, keyed by field names, containing values that are the
 	// 'puppet' tag parsed into an OrderedMap. The map is merged with possible
-	// overrides given when the TaggedType instance was created
+	// overrides given when the AnnotatedType instance was created
 	Tags(c Context) map[string]OrderedMap
 }
 
-// NewTaggedType returns a new instance of a TaggedType
-var NewTaggedType func(reflect.Type, map[string]string) TaggedType
+// NewTaggedType returns a new instance of a AnnotatedType
+var NewTaggedType func(reflect.Type, map[string]string) AnnotatedType
+
+// NewAnnotatedType returns a new instance of a AnnotatedType that is annotated
+var NewAnnotatedType func(reflect.Type, map[string]string, OrderedMap) AnnotatedType
 
 // A Reflector deals with conversions between Value and reflect.Value and
 // between Type and reflect.Type
@@ -84,7 +91,7 @@ type Reflector interface {
 	ReflectType(src Type) (reflect.Type, bool)
 
 	// InitializerFromTagged creates an Object initializer hash based on the given reflected type.
-	InitializerFromTagged(typeName string, parent Type, rType TaggedType) OrderedMap
+	InitializerFromTagged(typeName string, parent Type, rType AnnotatedType) OrderedMap
 
 	// TypeFromReflect creates an ObjectType based on the given reflected type.
 	// The new type is automatically added to the ImplementationRegistry registered to
@@ -94,7 +101,7 @@ type Reflector interface {
 	// TypeFromTagged creates an Object type based on the given reflected type.
 	// The new type is automatically added to the ImplementationRegistry registered to
 	// the Context from where the Reflector was obtained.
-	TypeFromTagged(typeName string, parent Type, rType TaggedType) ObjectType
+	TypeFromTagged(typeName string, parent Type, rType AnnotatedType) ObjectType
 
 	// TypeSetFromReflect creates a TypeSet based on the given reflected types The new types are automatically
 	// added to the ImplementationRegistry registered to the Context from where the Reflector was obtained.

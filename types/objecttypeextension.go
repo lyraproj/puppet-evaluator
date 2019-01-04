@@ -3,9 +3,9 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 )
 
@@ -35,6 +35,10 @@ func NewObjectTypeExtension(c eval.Context, baseType eval.ObjectType, initParame
 func (te *objectTypeExtension) Accept(v eval.Visitor, g eval.Guard) {
 	v(te)
 	te.baseType.Accept(v, g)
+}
+
+func (te *objectTypeExtension) Annotations() eval.OrderedMap {
+	return te.baseType.Annotations()
 }
 
 func (te *objectTypeExtension) Constructor() eval.Function {

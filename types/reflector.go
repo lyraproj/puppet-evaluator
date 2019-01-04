@@ -224,7 +224,7 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	return WrapHash(ds)
 }
 
-func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg eval.TaggedType) eval.OrderedMap {
+func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg eval.AnnotatedType) eval.OrderedMap {
 	rf := tg.Type()
 	ie := make([]*HashEntry, 0, 2)
 	if rf.Kind() == reflect.Func {
@@ -232,7 +232,7 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 		if fn == `` {
 			fn = `do`
 		}
-		ie = append(ie, WrapHashEntry2(`functions`, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
+		ie = append(ie, WrapHashEntry2(KEY_FUNCTIONS, SingletonHash2(`do`, r.FunctionDeclFromReflect(fn, rf, false))))
 	} else {
 		tags := tg.Tags(r.c)
 		fs := r.Fields(rf)
@@ -255,7 +255,7 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 				name, decl := r.ReflectFieldTags(&f, tags[f.Name])
 				es = append(es, WrapHashEntry2(name, decl))
 			}
-			ie = append(ie, WrapHashEntry2(`attributes`, WrapHash(es)))
+			ie = append(ie, WrapHashEntry2(KEY_ATTRIBUTES, WrapHash(es)))
 		}
 
 		ms := r.Methods(rf)
@@ -276,8 +276,11 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 				}
 				es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
 			}
-			ie = append(ie, WrapHashEntry2(`functions`, WrapHash(es)))
+			ie = append(ie, WrapHashEntry2(KEY_FUNCTIONS, WrapHash(es)))
 		}
+	}
+	if at, ok := tg.(eval.Annotatable); ok {
+		ie = append(ie, WrapHashEntry2(KEY_ANNOTATIONS, at.Annotations()))
 	}
 	return WrapHash(ie)
 }
@@ -286,7 +289,7 @@ func (r *reflector) TypeFromReflect(typeName string, parent eval.Type, rf reflec
 	return r.TypeFromTagged(typeName, parent, eval.NewTaggedType(rf, nil))
 }
 
-func (r *reflector) TypeFromTagged(typeName string, parent eval.Type, tg eval.TaggedType) eval.ObjectType {
+func (r *reflector) TypeFromTagged(typeName string, parent eval.Type, tg eval.AnnotatedType) eval.ObjectType {
 	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) eval.OrderedMap {
 		obj.(*objectType).goType = tg
 

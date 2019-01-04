@@ -67,6 +67,10 @@ type (
 		SerializationString() string
 	}
 
+	Annotation interface {
+		Validate(Context, Annotatable)
+	}
+
 	Annotatable interface {
 		Annotations() OrderedMap
 	}
@@ -164,6 +168,7 @@ type (
 	}
 
 	ObjectType interface {
+		Annotatable
 		ParameterizedType
 		TypeWithCallableMembers
 		Creatable

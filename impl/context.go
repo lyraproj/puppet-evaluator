@@ -254,13 +254,17 @@ func (c *evalCtx) ResolveDefinitions() []interface{} {
 
 	defs := c.definitions
 	c.definitions = nil
+	ts := make([]eval.Type, 0, 8)
 	for _, d := range defs {
 		switch d.(type) {
 		case eval.Resolvable:
 			d.(eval.Resolvable).Resolve(c)
 		case eval.ResolvableType:
-			c.resolveTypes(d.(eval.Type))
+			ts = append(ts, d.(eval.Type))
 		}
+	}
+	if len(ts) > 0 {
+		c.resolveTypes(ts...)
 	}
 	return defs
 }
@@ -374,6 +378,7 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 func (c *evalCtx) resolveTypes(types ...eval.Type) {
 	l := c.DefiningLoader()
 	typeSets := make([]eval.TypeSet, 0)
+	allAnnotated := make([]eval.Annotatable, 0, len(types))
 	for _, t := range types {
 		if rt, ok := t.(eval.ResolvableType); ok {
 			rt.Resolve(c)
@@ -389,24 +394,37 @@ func (c *evalCtx) resolveTypes(types ...eval.Type) {
 				}
 			}
 		}
+		if a, ok := t.(eval.Annotatable); ok && !a.Annotations().IsEmpty() {
+			allAnnotated = append(allAnnotated, a)
+		}
 	}
 
 	for _, ts := range typeSets {
-		c.resolveTypeSet(l, ts)
+		allAnnotated = c.resolveTypeSet(l, ts, allAnnotated)
+	}
+
+	// Validate type annotations
+	for _, a := range allAnnotated {
+		a.Annotations().EachValue(func(v eval.Value) {
+			v.(eval.Annotation).Validate(c, a)
+		})
 	}
 }
 
-func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
+func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet, allAnnotated []eval.Annotatable) []eval.Annotatable {
 	ts.Types().EachValue(func(tv eval.Value) {
 		t := tv.(eval.Type)
 		if tsc, ok := t.(eval.TypeSet); ok {
-			c.resolveTypeSet(l, tsc)
+			allAnnotated = c.resolveTypeSet(l, tsc, allAnnotated)
 		}
 		// Types already known to the loader might have been added to a TypeSet. When that
 		// happens, we don't want them added again.
 		tn := eval.NewTypedName(eval.NsType, t.Name())
 		le := l.LoadEntry(c, tn)
 		if le == nil || le.Value() == nil {
+			if a, ok := t.(eval.Annotatable); ok && !a.Annotations().IsEmpty() {
+				allAnnotated = append(allAnnotated, a)
+			}
 			l.SetEntry(tn, eval.NewLoaderEntry(t, nil))
 			if ot, ok := t.(eval.ObjectType); ok {
 				if ctor := ot.Constructor(); ctor != nil {
@@ -415,6 +433,7 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet) {
 			}
 		}
 	})
+	return allAnnotated
 }
 
 func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {

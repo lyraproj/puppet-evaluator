@@ -6,14 +6,23 @@ import (
 )
 
 type taggedType struct {
-	typ        reflect.Type
-	puppetTags map[string]string
+	typ         reflect.Type
+	puppetTags  map[string]string
+	annotations eval.OrderedMap
 }
 
 func init() {
-	eval.NewTaggedType = func(typ reflect.Type, puppetTags map[string]string) eval.TaggedType {
-		return &taggedType{typ, puppetTags}
+	eval.NewTaggedType = func(typ reflect.Type, puppetTags map[string]string) eval.AnnotatedType {
+		return &taggedType{typ, puppetTags, _EMPTY_MAP}
 	}
+
+	eval.NewAnnotatedType = func(typ reflect.Type, puppetTags map[string]string, annotations eval.OrderedMap) eval.AnnotatedType {
+		return &taggedType{typ, puppetTags, annotations}
+	}
+}
+
+func (tg *taggedType) Annotations() eval.OrderedMap {
+	return tg.annotations
 }
 
 func (tg *taggedType) Type() reflect.Type {

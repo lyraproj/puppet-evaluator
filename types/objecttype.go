@@ -99,7 +99,7 @@ type objectType struct {
 	initHashExpression  interface{} // Expression, *HashValue, or Go zero value
 	attrInfo            *attributesInfo
 	ctor                eval.Function
-	goType              eval.TaggedType
+	goType              eval.AnnotatedType
 	isInterface         bool
 }
 
