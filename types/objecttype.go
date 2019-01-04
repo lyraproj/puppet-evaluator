@@ -1198,6 +1198,11 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		}
 		h.Put(KEY_EQUALITY, WrapValues(ev))
 	}
+
+	if !t.equalityIncludeType {
+		h.Put(KEY_EQUALITY_INCLUDE_TYPE, Boolean_FALSE)
+	}
+
 	if t.serialization != nil {
 		sv := make([]eval.Value, len(t.serialization))
 		for i, s := range t.serialization {

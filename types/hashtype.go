@@ -58,6 +58,13 @@ func init() {
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewHashType2(args...)
+		},
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			h := args[0].(*HashValue)
+			kt := h.Get5(`key_type`, DefaultAnyType())
+			vt := h.Get5(`value_type`, DefaultAnyType())
+			st := h.Get5(`size_type`, PositiveIntegerType())
+			return NewHashType2(kt, vt, st)
 		})
 
 	newGoConstructor3([]string{`Hash`, `Struct`},
