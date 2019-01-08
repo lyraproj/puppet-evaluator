@@ -388,13 +388,13 @@ func (c *evalCtx) resolveTypes(types ...eval.Type) {
 			} else {
 				var ot eval.ObjectType
 				if ot, ok = rt.(eval.ObjectType); ok {
-					if ctor := ot.Constructor(); ctor != nil {
+					if ctor := ot.Constructor(c); ctor != nil {
 						l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
 					}
 				}
 			}
 		}
-		if a, ok := t.(eval.Annotatable); ok && !a.Annotations().IsEmpty() {
+		if a, ok := t.(eval.Annotatable); ok {
 			allAnnotated = append(allAnnotated, a)
 		}
 	}
@@ -405,7 +405,7 @@ func (c *evalCtx) resolveTypes(types ...eval.Type) {
 
 	// Validate type annotations
 	for _, a := range allAnnotated {
-		a.Annotations().EachValue(func(v eval.Value) {
+		a.Annotations(c).EachValue(func(v eval.Value) {
 			v.(eval.Annotation).Validate(c, a)
 		})
 	}
@@ -422,12 +422,12 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet, allAnno
 		tn := eval.NewTypedName(eval.NsType, t.Name())
 		le := l.LoadEntry(c, tn)
 		if le == nil || le.Value() == nil {
-			if a, ok := t.(eval.Annotatable); ok && !a.Annotations().IsEmpty() {
+			if a, ok := t.(eval.Annotatable); ok {
 				allAnnotated = append(allAnnotated, a)
 			}
 			l.SetEntry(tn, eval.NewLoaderEntry(t, nil))
 			if ot, ok := t.(eval.ObjectType); ok {
-				if ctor := ot.Constructor(); ctor != nil {
+				if ctor := ot.Constructor(c); ctor != nil {
 					l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
 				}
 			}

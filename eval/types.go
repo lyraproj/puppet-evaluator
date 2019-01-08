@@ -30,7 +30,7 @@ type (
 	}
 
 	Creatable interface {
-		Constructor() Function
+		Constructor(c Context) Function
 	}
 
 	Newable interface {
@@ -72,7 +72,7 @@ type (
 	}
 
 	Annotatable interface {
-		Annotations() OrderedMap
+		Annotations(c Context) OrderedMap
 	}
 
 	CallableMember interface {

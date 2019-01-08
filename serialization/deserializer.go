@@ -44,38 +44,40 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 	}
 
 	if hash, ok := value.(*types.HashValue); ok {
-		if pcoreType, ok := hash.Get4(PcoreTypeKey); ok {
-			switch pcoreType.String() {
-			case PcoreTypeHash:
-				return ds.convertHash(hash, key)
-			case PcoreTypeSensitive:
-				return ds.convertSensitive(hash, key)
-			case PcoreTypeDefault:
-				return types.WrapDefault()
-			default:
-				v := ds.convertOther(hash, key, pcoreType)
-				switch v.(type) {
-				case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
-					// Ensure that type is made known to current loader
-					rt := v.(eval.ResolvableType)
-					tn := eval.NewTypedName(eval.NsType, rt.Name())
-					if lt, ok := eval.Load(ds.context, tn); ok && lt != rt {
-						t := rt.Resolve(ds.context)
-						if t.Equals(lt, nil) {
-							return lt.(eval.Value)
+		if hash.AllKeysAreStrings() {
+			if pcoreType, ok := hash.Get4(PcoreTypeKey); ok {
+				switch pcoreType.String() {
+				case PcoreTypeHash:
+					return ds.convertHash(hash, key)
+				case PcoreTypeSensitive:
+					return ds.convertSensitive(hash, key)
+				case PcoreTypeDefault:
+					return types.WrapDefault()
+				default:
+					v := ds.convertOther(hash, key, pcoreType)
+					switch v.(type) {
+					case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
+						// Ensure that type is made known to current loader
+						rt := v.(eval.ResolvableType)
+						tn := eval.NewTypedName(eval.NsType, rt.Name())
+						if lt, ok := eval.Load(ds.context, tn); ok && lt != rt {
+							t := rt.Resolve(ds.context)
+							if t.Equals(lt, nil) {
+								return lt.(eval.Value)
+							}
+							panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
 						}
-						panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
+						ds.newTypes = append(ds.newTypes, rt)
 					}
-					ds.newTypes = append(ds.newTypes, rt)
+					return v
 				}
-				return v
 			}
 		}
 
 		return types.BuildHash(hash.Len(), func(h *types.HashValue, entries []*types.HashEntry) []*types.HashEntry {
 			ds.converted[key] = h
 			hash.EachPair(func(k, v eval.Value) {
-				entries = append(entries, types.WrapHashEntry(k, ds.convert(v)))
+				entries = append(entries, types.WrapHashEntry(ds.convert(k), ds.convert(v)))
 			})
 			return entries
 		})
@@ -119,7 +121,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, key uintptr, typeValue e
 	})
 	if typeHash, ok := typeValue.(*types.HashValue); ok {
 		typ := ds.convert(typeHash)
-		if typ, ok := typeValue.(*types.HashValue); ok {
+		if _, ok := typ.(*types.HashValue); ok {
 			if !ds.allowUnresolved {
 				panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
 			}

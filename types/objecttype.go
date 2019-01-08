@@ -121,12 +121,13 @@ func ObjectToString(o eval.PuppetObject, s eval.FormatContext, b io.Writer, g ev
 }
 
 var objectType_DEFAULT = &objectType{
-	annotatable: annotatable{annotations: _EMPTY_MAP},
-	name:        `Object`,
-	hashKey:     eval.HashKey("\x00tObject"),
-	parameters:  hash.EMPTY_STRINGHASH,
-	attributes:  hash.EMPTY_STRINGHASH,
-	functions:   hash.EMPTY_STRINGHASH}
+	annotatable:         annotatable{annotations: _EMPTY_MAP},
+	name:                `Object`,
+	hashKey:             eval.HashKey("\x00tObject"),
+	parameters:          hash.EMPTY_STRINGHASH,
+	attributes:          hash.EMPTY_STRINGHASH,
+	functions:           hash.EMPTY_STRINGHASH,
+	equalityIncludeType: true}
 
 func DefaultObjectType() *objectType {
 	return objectType_DEFAULT
@@ -136,11 +137,12 @@ var objectId = int64(0)
 
 func AllocObjectType() *objectType {
 	return &objectType{
-		annotatable: annotatable{annotations: _EMPTY_MAP},
-		hashKey:     eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
-		parameters:  hash.EMPTY_STRINGHASH,
-		attributes:  hash.EMPTY_STRINGHASH,
-		functions:   hash.EMPTY_STRINGHASH}
+		annotatable:         annotatable{annotations: _EMPTY_MAP},
+		hashKey:             eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
+		parameters:          hash.EMPTY_STRINGHASH,
+		attributes:          hash.EMPTY_STRINGHASH,
+		functions:           hash.EMPTY_STRINGHASH,
+		equalityIncludeType: true}
 }
 
 func (t *objectType) Initialize(c eval.Context, args []eval.Value) {
@@ -222,7 +224,10 @@ func (t *objectType) AttributesInfo() eval.AttributesInfo {
 	return t.attrInfo
 }
 
-func (t *objectType) Constructor() eval.Function {
+func (t *objectType) Constructor(c eval.Context) eval.Function {
+	if t.ctor == nil && t.name != `` {
+		t.createNewFunction(c)
+	}
 	return t.ctor
 }
 
@@ -625,14 +630,6 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	t.attrInfo = t.createAttributesInfo()
 	t.annotatable.initialize(initHash.(*HashValue))
 	t.loader = c.Loader()
-
-	if t.name != `` {
-		t.createNewFunction(c)
-	}
-
-	t.attributes.EachValue(func(v interface{}) { v.(*attribute).Resolve(c) })
-	t.functions.EachValue(func(v interface{}) { v.(*function).Resolve(c) })
-	t.annotatable.Resolve(c)
 }
 
 func (t *objectType) Implements(ifd eval.ObjectType, g eval.Guard) bool {
@@ -800,7 +797,7 @@ func (t *objectType) SerializationString() string {
 }
 
 func (t *objectType) String() string {
-	return eval.ToString2(t, EXPANDED)
+	return eval.ToString(t)
 }
 
 func (t *objectType) ToKey() eval.HashKey {

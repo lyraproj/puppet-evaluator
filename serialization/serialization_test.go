@@ -18,7 +18,7 @@ func ExampleRichDataSerializer_roundtrip() {
 		v := types.WrapSemVer(ver)
 		fmt.Printf("%T '%s'\n", v, v)
 
-		dc := NewSerializer(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
 		buf := bytes.NewBufferString(``)
 		dc.Convert(v, NewJsonStreamer(buf))
 
@@ -38,7 +38,7 @@ func ExampleRichDataSerializer_ObjectRoundtrip() {
 		p := impl.NewParameter(`p1`, ctx.ParseType2(`Type[String]`), nil, false)
 		fmt.Println(p)
 
-		dc := NewSerializer(eval.EMPTY_MAP)
+		dc := NewSerializer(ctx, eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(types.WrapValues([]eval.Value{p, p}), NewJsonStreamer(buf))
 
@@ -60,7 +60,7 @@ func ExampleRichDataSerializer_StructInArrayRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		p := types.WrapValues([]eval.Value{ctx.ParseType2(`Struct[a => String, b => Integer]`)})
 		fmt.Println(p)
-		dc := NewSerializer(eval.EMPTY_MAP)
+		dc := NewSerializer(ctx, eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(p, NewJsonStreamer(buf))
 
@@ -96,7 +96,7 @@ func ExampleRichDataSerializer_TypeSetRoundtrip() {
       }}]`)
 		ctx.AddTypes(p)
 		fmt.Println(p)
-		dc := NewSerializer(eval.EMPTY_MAP)
+		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(p, NewJsonStreamer(buf))
 
@@ -123,7 +123,7 @@ func ExampleRichDataSerializer_goValueRoundtrip() {
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(v, NewJsonStreamer(buf))
 
@@ -151,7 +151,7 @@ func ExampleRichDataSerializer_goStructRoundtrip() {
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(v, NewJsonStreamer(buf))
 
@@ -182,7 +182,7 @@ func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
 		buf := bytes.NewBufferString(``)
 		dc.Convert(v, NewJsonStreamer(buf))
 
@@ -211,7 +211,7 @@ func ExampleRichDataSerializer_Convert() {
 func ExampleRichDataSerializer_ToJson() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		buf := bytes.NewBufferString(``)
-		NewSerializer(eval.EMPTY_MAP).Convert(
+		NewSerializer(ctx, eval.EMPTY_MAP).Convert(
 			types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), NewJsonStreamer(buf))
 		fmt.Println(buf)
 	})

@@ -171,6 +171,7 @@ func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 		if g == nil {
 			g = make(eval.RDetect)
 		} else if g[t] {
+			io.WriteString(b, `<recursive reference>`)
 			return
 		}
 		g[t] = true
@@ -178,6 +179,7 @@ func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 
 		// TODO: Need to be adjusted when included in TypeSet
 		t.resolvedType.ToString(b, s, g)
+		delete(g, t)
 	}
 }
 

@@ -14,7 +14,7 @@ var localRefSym = types.WrapString(PCORE_LOCAL_REF_SYMBOL)
 
 // NewToDataConverter is deprecated. Use NewSerializer instead
 func NewToDataConverter(options eval.OrderedMap) *ToDataConverter {
-	return &ToDataConverter{serializer: NewSerializer(options)}
+	return &ToDataConverter{serializer: NewSerializer(eval.Puppet.RootContext(), options)}
 }
 
 // Convert is deprecated. Use a Serializer instead

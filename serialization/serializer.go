@@ -24,11 +24,11 @@ type Serializer interface {
 }
 
 type rdSerializer struct {
-	typeByReference bool
-	symbolAsString  bool
-	richData        bool
-	messagePrefix   string
-	dedupLevel      int
+	context        eval.Context
+	symbolAsString bool
+	richData       bool
+	messagePrefix  string
+	dedupLevel     int
 }
 
 type context struct {
@@ -42,9 +42,8 @@ type context struct {
 }
 
 // NewSerializer returns a new Serializer
-func NewSerializer(options eval.OrderedMap) Serializer {
-	t := &rdSerializer{}
-	t.typeByReference = options.Get5(`type_by_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
+func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
+	t := &rdSerializer{context: ctx}
 	t.symbolAsString = options.Get5(`symbol_as_string`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
 	t.richData = options.Get5(`rich_data`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
 	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
@@ -272,6 +271,31 @@ func (sc *context) valueToDataHash(value eval.Value) {
 		return
 	}
 
+	switch value.(type) {
+	case *types.TypeAliasType:
+		tv := value.(*types.TypeAliasType)
+		if sc.isKnownType(tv.Name()) {
+			sc.addHash(2, func() {
+				sc.toData(2, typeKey)
+				sc.toData(2, types.WrapString(`Type`))
+				sc.toData(2, valueKey)
+				sc.toData(1, types.WrapString(tv.Name()))
+			})
+			return
+		}
+	case eval.ObjectType:
+		tv := value.(eval.ObjectType)
+		if sc.isKnownType(tv.Name()) {
+			sc.addHash(2, func() {
+				sc.toData(2, typeKey)
+				sc.toData(2, types.WrapString(`Type`))
+				sc.toData(2, valueKey)
+				sc.toData(1, types.WrapString(tv.String()))
+			})
+			return
+		}
+	}
+
 	vt := value.PType()
 	if tx, ok := value.(eval.Type); ok {
 		if ss, ok := value.(eval.SerializeAsString); ok && ss.CanSerializeAsString() {
@@ -282,17 +306,6 @@ func (sc *context) valueToDataHash(value eval.Value) {
 				sc.toData(1, types.WrapString(ss.SerializationString()))
 			})
 			return
-		}
-		if sc.config.typeByReference {
-			if a, ok := value.(*types.TypeAliasType); ok {
-				sc.addHash(2, func() {
-					sc.toData(2, typeKey)
-					sc.withPath(typeKey, func() { sc.pcoreTypeToData(vt) })
-					sc.toData(2, valueKey)
-					sc.toData(1, types.WrapString(a.Name()))
-				})
-				return
-			}
 		}
 		vt = tx.MetaType()
 	}
@@ -351,9 +364,17 @@ func (sc *context) valueToDataHash(value eval.Value) {
 	sc.unknownToStringWithWarning(1, value)
 }
 
+func (sc *context) isKnownType(typeName string) bool {
+	if strings.HasPrefix(typeName, `Pcore::`) {
+		return true
+	}
+	_, found := eval.Load(sc.config.context, eval.NewTypedName(eval.NsType, typeName))
+	return found
+}
+
 func (sc *context) pcoreTypeToData(pcoreType eval.Type) {
 	typeName := pcoreType.Name()
-	if sc.config.typeByReference || strings.HasPrefix(typeName, `Pcore::`) {
+	if sc.isKnownType(typeName) {
 		sc.toData(1, types.WrapString(typeName))
 	} else {
 		sc.toData(1, pcoreType)

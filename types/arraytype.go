@@ -3,13 +3,11 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"math"
-	"sync"
-
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
+	"io"
+	"math"
 	"reflect"
 	"sort"
 )
@@ -21,8 +19,7 @@ type (
 	}
 
 	ArrayValue struct {
-		lock         sync.Mutex
-		reducedType  eval.Type
+		reducedType  *ArrayType
 		detailedType eval.Type
 		elements     []eval.Value
 	}
@@ -39,6 +36,12 @@ func init() {
   serialization => [ 'element_type', 'size_type' ]
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewArrayType2(args...)
+		},
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			h := args[0].(*HashValue)
+			et := h.Get5(`element_type`, DefaultAnyType())
+			st := h.Get5(`size_type`, PositiveIntegerType())
+			return NewArrayType2(et, st)
 		})
 
 	newGoConstructor3([]string{`Array`, `Tuple`}, nil,
@@ -424,10 +427,7 @@ func (av *ArrayValue) DeleteAll(ov eval.List) eval.List {
 }
 
 func (av *ArrayValue) DetailedType() eval.Type {
-	av.lock.Lock()
-	t := av.prtvDetailedType()
-	av.lock.Unlock()
-	return t
+	return av.prtvDetailedType()
 }
 
 func (av *ArrayValue) Each(consumer eval.Consumer) {
@@ -640,6 +640,14 @@ func (av *ArrayValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 }
 
 func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format, delim byte, g eval.RDetect) {
+	if g == nil {
+		g = make(eval.RDetect)
+	} else if g[av] {
+		io.WriteString(b, `<recursive reference>`)
+		return
+	}
+	g[av] = true
+
 	switch f.FormatChar() {
 	case 'a', 's', 'p':
 	default:
@@ -720,6 +728,7 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 	if delims[1] != 0 {
 		b.Write(delims[1:])
 	}
+	delete(g, av)
 }
 
 func (av *ArrayValue) Unique() eval.List {
@@ -772,10 +781,7 @@ func isContainer(child eval.Value, s eval.FormatContext) bool {
 }
 
 func (av *ArrayValue) PType() eval.Type {
-	av.lock.Lock()
-	t := av.prtvReducedType()
-	av.lock.Unlock()
-	return t
+	return av.prtvReducedType()
 }
 
 func (av *ArrayValue) prtvDetailedType() eval.Type {
@@ -784,26 +790,30 @@ func (av *ArrayValue) prtvDetailedType() eval.Type {
 			av.detailedType = av.prtvReducedType()
 		} else {
 			types := make([]eval.Type, len(av.elements))
+			av.detailedType = NewTupleType(types, nil)
+			for idx, _ := range types {
+				types[idx] = DefaultAnyType()
+			}
 			for idx, element := range av.elements {
 				types[idx] = eval.DetailedValueType(element)
 			}
-			av.detailedType = NewTupleType(types, nil)
 		}
 	}
 	return av.detailedType
 }
 
-func (av *ArrayValue) prtvReducedType() eval.Type {
+func (av *ArrayValue) prtvReducedType() *ArrayType {
 	if av.reducedType == nil {
 		top := len(av.elements)
 		if top == 0 {
 			av.reducedType = EmptyArrayType()
 		} else {
+			av.reducedType = NewArrayType(DefaultAnyType(), NewIntegerType(int64(top), int64(top)))
 			elemType := av.elements[0].PType()
 			for idx := 1; idx < top; idx++ {
 				elemType = commonType(elemType, av.elements[idx].PType())
 			}
-			av.reducedType = NewArrayType(elemType, NewIntegerType(int64(top), int64(top)))
+			av.reducedType.typ = elemType
 		}
 	}
 	return av.reducedType

@@ -239,9 +239,12 @@ func ExampleReflector_typeFromReflect() {
 	tExtPerson := rf.TypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
 	c.AddTypes(tAddress, tPerson, tExtPerson)
 
-	fmt.Println(tAddress)
-	fmt.Println(tPerson)
-	fmt.Println(tExtPerson)
+	tAddress.ToString(os.Stdout, types.EXPANDED, nil)
+	fmt.Println()
+	tPerson.ToString(os.Stdout, types.EXPANDED, nil)
+	fmt.Println()
+	tExtPerson.ToString(os.Stdout, types.EXPANDED, nil)
+	fmt.Println()
 
 	age := 34
 	ts := &TestExtendedPerson{TestPerson{`Bob Tester`, &TestAddress{`Example Road 23`, `12345`}}, &age, true}
