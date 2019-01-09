@@ -27,7 +27,7 @@ type jsonStreamer struct {
 func DataToJson(value eval.Value, out io.Writer) {
 	he := make([]*types.HashEntry, 0, 2)
 	he = append(he, types.WrapHashEntry2(`rich_data`, types.Boolean_FALSE))
-	NewSerializer(types.WrapHash(he)).Convert(value, NewJsonStreamer(out))
+	NewSerializer(eval.Puppet.RootContext(), types.WrapHash(he)).Convert(value, NewJsonStreamer(out))
 	assertOk(out.Write([]byte("\n")))
 }
 

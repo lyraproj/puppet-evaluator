@@ -67,7 +67,6 @@ func init() {
 }
 
 func InitTypeSetType(c eval.Context) {
-	TypeSet_Type.(*objectType).createNewFunction(c)
 }
 
 type (

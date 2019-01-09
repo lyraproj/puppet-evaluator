@@ -279,8 +279,9 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 			ie = append(ie, WrapHashEntry2(KEY_FUNCTIONS, WrapHash(es)))
 		}
 	}
-	if at, ok := tg.(eval.Annotatable); ok {
-		ie = append(ie, WrapHashEntry2(KEY_ANNOTATIONS, at.Annotations()))
+	ats := tg.Annotations()
+	if ats != nil && !ats.IsEmpty() {
+		ie = append(ie, WrapHashEntry2(KEY_ANNOTATIONS, ats))
 	}
 	return WrapHash(ie)
 }

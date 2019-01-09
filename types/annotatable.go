@@ -6,13 +6,14 @@ import (
 )
 
 var annotationType_DEFAULT = &objectType{
-	annotatable: annotatable{annotations: _EMPTY_MAP},
-	hashKey:     eval.HashKey("\x00tAnnotation"),
-	name:        `Annotation`,
-	parameters:  hash.EMPTY_STRINGHASH,
-	attributes:  hash.EMPTY_STRINGHASH,
-	functions:   hash.EMPTY_STRINGHASH,
-	equality:    nil}
+	annotatable:         annotatable{annotations: _EMPTY_MAP},
+	hashKey:             eval.HashKey("\x00tAnnotation"),
+	name:                `Annotation`,
+	parameters:          hash.EMPTY_STRINGHASH,
+	attributes:          hash.EMPTY_STRINGHASH,
+	functions:           hash.EMPTY_STRINGHASH,
+	equalityIncludeType: true,
+	equality:            nil}
 
 func DefaultAnnotationType() eval.Type {
 	return annotationType_DEFAULT
@@ -25,22 +26,21 @@ type annotatable struct {
 	resolvedAnnotations *HashValue
 }
 
-func (a *annotatable) Annotations() eval.OrderedMap {
-	return a.resolvedAnnotations
-}
-
-func (a *annotatable) Resolve(c eval.Context) {
-	ah := a.annotations
-	if ah.IsEmpty() {
-		a.resolvedAnnotations = _EMPTY_MAP
-	} else {
-		as := make([]*HashEntry, 0, ah.Len())
-		ah.EachPair(func(k, v eval.Value) {
-			at := k.(eval.ObjectType)
-			as = append(as, WrapHashEntry(k, eval.New(c, at, v)))
-		})
-		a.resolvedAnnotations = WrapHash(as)
+func (a *annotatable) Annotations(c eval.Context) eval.OrderedMap {
+	if a.resolvedAnnotations == nil {
+		ah := a.annotations
+		if ah.IsEmpty() {
+			a.resolvedAnnotations = _EMPTY_MAP
+		} else {
+			as := make([]*HashEntry, 0, ah.Len())
+			ah.EachPair(func(k, v eval.Value) {
+				at := k.(eval.ObjectType)
+				as = append(as, WrapHashEntry(k, eval.New(c, at, v)))
+			})
+			a.resolvedAnnotations = WrapHash(as)
+		}
 	}
+	return a.resolvedAnnotations
 }
 
 func (a *annotatable) initialize(initHash *HashValue) {

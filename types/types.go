@@ -423,7 +423,7 @@ func new(c eval.Context, receiver eval.Value, args ...eval.Value) eval.Value {
 	var ct eval.Creatable
 	ct, ok = typ.(eval.Creatable)
 	if ok {
-		ctor = ct.Constructor()
+		ctor = ct.Constructor(c)
 	}
 
 	if ctor == nil {

@@ -2,15 +2,13 @@ package types
 
 import (
 	"fmt"
-	"io"
-	"math"
-	"sort"
-	"sync"
-
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
+	"io"
+	"math"
 	"reflect"
+	"sort"
 )
 
 type (
@@ -26,8 +24,7 @@ type (
 	}
 
 	HashValue struct {
-		lock         sync.Mutex
-		reducedType  eval.Type
+		reducedType  *HashType
 		detailedType eval.Type
 		entries      []*HashEntry
 		index        map[eval.HashKey]int
@@ -55,7 +52,8 @@ func init() {
 			type => Optional[Type],
 			value => Any
 		},
-	}
+	},
+  serialization => [ 'key_type', 'value_type', 'size_type' ]
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
 			return NewHashType2(args...)
 		},
@@ -808,10 +806,7 @@ func (hv *HashValue) DeleteAll(keys eval.List) eval.List {
 }
 
 func (hv *HashValue) DetailedType() eval.Type {
-	hv.lock.Lock()
-	t := hv.prtvDetailedType()
-	hv.lock.Unlock()
-	return t
+	return hv.prtvDetailedType()
 }
 
 func (hv *HashValue) ElementType() eval.Type {
@@ -1156,6 +1151,14 @@ func (hv *HashValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 }
 
 func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format, delim byte, g eval.RDetect) {
+	if g == nil {
+		g = make(eval.RDetect)
+	} else if g[hv] {
+		io.WriteString(b, `<recursive reference>`)
+		return
+	}
+	g[hv] = true
+
 	switch f.FormatChar() {
 	case 'a':
 		WrapArray3(hv).ToString(b, s, g)
@@ -1238,13 +1241,11 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 	default:
 		panic(s.UnsupportedFormat(hv.PType(), `hasp`, f))
 	}
+	delete(g, hv)
 }
 
 func (hv *HashValue) PType() eval.Type {
-	hv.lock.Lock()
-	t := hv.prtvReducedType()
-	hv.lock.Unlock()
-	return t
+	return hv.prtvReducedType()
 }
 
 // Unique on a HashValue will always return self since the keys of a hash are unique
@@ -1268,6 +1269,19 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 			return hv.detailedType
 		}
 
+		structEntries := make([]*StructElement, top)
+		for idx, entry := range hv.entries {
+			if ks, ok := entry.key.(*StringValue); ok {
+				structEntries[idx] = NewStructElement(ks, DefaultAnyType())
+				continue
+			}
+
+			// Struct type cannot be used unless all keys are strings
+			hv.detailedType = hv.prtvReducedType()
+			return hv.detailedType
+		}
+		hv.detailedType = NewStructType(structEntries)
+
 		for _, entry := range hv.entries {
 			if sv, ok := entry.key.(*StringValue); !ok || len(sv.String()) == 0 {
 				firstEntry := hv.entries[0]
@@ -1284,11 +1298,9 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 			}
 		}
 
-		structEntries := make([]*StructElement, top)
 		for idx, entry := range hv.entries {
 			structEntries[idx] = NewStructElement(entry.key, eval.DetailedValueType(entry.value))
 		}
-		hv.detailedType = NewStructType(structEntries)
 	}
 	return hv.detailedType
 }
@@ -1299,6 +1311,9 @@ func (hv *HashValue) prtvReducedType() eval.Type {
 		if top == 0 {
 			hv.reducedType = EmptyHashType()
 		} else {
+			sz := int64(top)
+			ht := NewHashType(DefaultAnyType(), DefaultAnyType(), NewIntegerType(sz, sz))
+			hv.reducedType = ht
 			firstEntry := hv.entries[0]
 			commonKeyType := firstEntry.key.PType()
 			commonValueType := firstEntry.value.PType()
@@ -1307,15 +1322,14 @@ func (hv *HashValue) prtvReducedType() eval.Type {
 				commonKeyType = commonType(commonKeyType, entry.key.PType())
 				commonValueType = commonType(commonValueType, entry.value.PType())
 			}
-			sz := int64(len(hv.entries))
-			hv.reducedType = NewHashType(commonKeyType, commonValueType, NewIntegerType(sz, sz))
+			ht.keyType = commonKeyType
+			ht.valueType = commonValueType
 		}
 	}
 	return hv.reducedType
 }
 
 func (hv *HashValue) valueIndex() map[eval.HashKey]int {
-	hv.lock.Lock()
 	if hv.index == nil {
 		result := make(map[eval.HashKey]int, len(hv.entries))
 		for idx, entry := range hv.entries {
@@ -1323,7 +1337,6 @@ func (hv *HashValue) valueIndex() map[eval.HashKey]int {
 		}
 		hv.index = result
 	}
-	hv.lock.Unlock()
 	return hv.index
 }
 

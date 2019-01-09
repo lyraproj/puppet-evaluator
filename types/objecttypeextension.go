@@ -37,12 +37,12 @@ func (te *objectTypeExtension) Accept(v eval.Visitor, g eval.Guard) {
 	te.baseType.Accept(v, g)
 }
 
-func (te *objectTypeExtension) Annotations() eval.OrderedMap {
-	return te.baseType.Annotations()
+func (te *objectTypeExtension) Annotations(c eval.Context) eval.OrderedMap {
+	return te.baseType.Annotations(c)
 }
 
-func (te *objectTypeExtension) Constructor() eval.Function {
-	return te.baseType.Constructor()
+func (te *objectTypeExtension) Constructor(c eval.Context) eval.Function {
+	return te.baseType.Constructor(c)
 }
 
 func (te *objectTypeExtension) Default() eval.Type {
