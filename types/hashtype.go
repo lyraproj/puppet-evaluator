@@ -919,6 +919,10 @@ func (hv *HashValue) Reflect(c eval.Context) reflect.Value {
 
 func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 	ht := value.Type()
+	ptr := ht.Kind() == reflect.Ptr
+	if ptr {
+		ht = ht.Elem()
+	}
 	if ht.Kind() == reflect.Interface {
 		ok := false
 		if ht, ok = ReflectType(c, hv.PType()); !ok {
@@ -927,10 +931,16 @@ func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 	keyType := ht.Key()
 	valueType := ht.Elem()
-	m := reflect.MakeMapWithSize(value.Type(), hv.Len())
+	m := reflect.MakeMapWithSize(ht, hv.Len())
 	rf := c.Reflector()
 	for _, e := range hv.entries {
 		m.SetMapIndex(rf.Reflect2(e.key, keyType), rf.Reflect2(e.value, valueType))
+	}
+	if ptr {
+		// The created map cannot be addressed. A pointer to it is necessary
+		x := reflect.New(m.Type())
+		x.Elem().Set(m)
+		m = x
 	}
 	value.Set(m)
 }

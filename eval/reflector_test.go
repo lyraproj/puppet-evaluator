@@ -978,3 +978,170 @@ func ExampleReflect_TypeFromReflect_optionalFloatZero() {
 	//   'c' => 0.00000
 	// )
 }
+
+type optionalIntSlice struct {
+	A []int64
+	B *[]int64
+	C *map[string]int32
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntSlice() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
+		c.AddTypes(xm)
+		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => Array[Integer],
+	//     'b' => {
+	//       'type' => Optional[Array
+	//         [Integer]],
+	//       'value' => undef
+	//     },
+	//     'c' => {
+	//       'type' => Optional[Hash
+	//         [String, Integer[-2147483648, 2147483647]]],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntSliceAssign() {
+	eval.Puppet.Do(func(c eval.Context) {
+		ois := &optionalIntSlice{}
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(ois))
+		c.AddTypes(xm)
+
+		ois.A = []int64{1, 2, 3}
+		ois.B = &[]int64{4, 5, 6}
+		ois.C = &map[string]int32{`a`: 7, `b`: 8, `c`: 9}
+		eval.Wrap(c, ois).ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// X(
+	//   'a' => [1, 2, 3],
+	//   'b' => [4, 5, 6],
+	//   'c' => {
+	//     'a' => 7,
+	//     'b' => 8,
+	//     'c' => 9
+	//   }
+	// )
+}
+
+func ExampleReflect_TypeFromReflect_optionalIntSlicePuppetAssign() {
+	eval.Puppet.Do(func(c eval.Context) {
+		ois := &optionalIntSlice{}
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(ois))
+		c.AddTypes(xm)
+
+		pv := eval.New(c, xm, eval.Wrap(c, map[string]interface{}{
+			`a`: []int64{1, 2, 3},
+			`b`: []int64{4, 5, 6},
+			`c`: map[string]int32{`a`: 7, `b`: 8, `c`: 9}}))
+		pv.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// X(
+	//   'a' => [1, 2, 3],
+	//   'b' => [4, 5, 6],
+	//   'c' => {
+	//     'a' => 7,
+	//     'b' => 8,
+	//     'c' => 9
+	//   }
+	// )
+}
+
+type structSlice struct {
+	A []optionalIntSlice
+	B *[]optionalIntSlice
+	C *[]*optionalIntSlice
+}
+
+func ExampleReflect_TypeFromReflect_structSlice() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
+		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(&structSlice{}))
+		c.AddTypes(xm, ym)
+		ym.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'Y',
+	//   attributes => {
+	//     'a' => Array[X],
+	//     'b' => {
+	//       'type' => Optional[Array
+	//         [X]],
+	//       'value' => undef
+	//     },
+	//     'c' => {
+	//       'type' => Optional[Array
+	//         [X]],
+	//       'value' => undef
+	//     }
+	//   }
+	// }]
+}
+
+func ExampleReflect_TypeFromReflect_structSliceAssign() {
+	eval.Puppet.Do(func(c eval.Context) {
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
+		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(&structSlice{}))
+		c.AddTypes(xm, ym)
+		ss := eval.Wrap(c, structSlice{
+			A: []optionalIntSlice{{[]int64{1, 2, 3}, &[]int64{4, 5, 6}, &map[string]int32{`a`: 7, `b`: 8, `c`: 9}}},
+			B: &[]optionalIntSlice{{[]int64{11, 12, 13}, &[]int64{14, 15, 16}, &map[string]int32{`a`: 17, `b`: 18, `c`: 19}}},
+			C: &[]*optionalIntSlice{{[]int64{21, 22, 23}, &[]int64{24, 25, 26}, &map[string]int32{`a`: 27, `b`: 28, `c`: 29}}},
+		})
+		ss.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Y(
+	//   'a' => [
+	//     X(
+	//       'a' => [1, 2, 3],
+	//       'b' => [4, 5, 6],
+	//       'c' => {
+	//         'a' => 7,
+	//         'b' => 8,
+	//         'c' => 9
+	//       }
+	//     )],
+	//   'b' => [
+	//     X(
+	//       'a' => [11, 12, 13],
+	//       'b' => [14, 15, 16],
+	//       'c' => {
+	//         'a' => 17,
+	//         'b' => 18,
+	//         'c' => 19
+	//       }
+	//     )],
+	//   'c' => [
+	//     X(
+	//       'a' => [21, 22, 23],
+	//       'b' => [24, 25, 26],
+	//       'c' => {
+	//         'a' => 27,
+	//         'b' => 28,
+	//         'c' => 29
+	//       }
+	//     )]
+	// )
+}

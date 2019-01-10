@@ -559,10 +559,21 @@ func (av *ArrayValue) Reflect(c eval.Context) reflect.Value {
 }
 
 func (av *ArrayValue) ReflectTo(c eval.Context, value reflect.Value) {
-	s := reflect.MakeSlice(value.Type(), av.Len(), av.Len())
+	vt := value.Type()
+	ptr := vt.Kind() == reflect.Ptr
+	if ptr {
+		vt = vt.Elem()
+	}
+	s := reflect.MakeSlice(vt, av.Len(), av.Len())
 	rf := c.Reflector()
 	for i, e := range av.elements {
 		rf.ReflectTo(e, s.Index(i))
+	}
+	if ptr {
+		// The created slice cannot be addressed. A pointer to it is necessary
+		x := reflect.New(s.Type())
+		x.Elem().Set(s)
+		s = x
 	}
 	value.Set(s)
 }
