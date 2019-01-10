@@ -656,12 +656,17 @@ func wrapReflected(c eval.Context, vr reflect.Value) (pv eval.Value) {
 		for i, k := range keys {
 			els[i] = WrapHashEntry(wrap(c, interfaceOrNil(k)), wrap(c, interfaceOrNil(vr.MapIndex(k))))
 		}
-		pv = WrapHash(els)
+		pv = sortedMap(els)
+	case reflect.Ptr:
+		// Wrap pointers to array, map, and slice as the appointed value
+		ve := vr.Elem()
+		switch ve.Kind() {
+		case reflect.Slice, reflect.Array, reflect.Map:
+			return wrapReflected(c, ve)
+		}
+		fallthrough
 	default:
 		if vr.IsValid() && vr.CanInterface() {
-			if vr.IsNil() {
-				return _UNDEF
-			}
 			ix := vr.Interface()
 			pv, ok = ix.(eval.Value)
 			if ok {
@@ -751,10 +756,11 @@ func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 				pt = NewHashType(wrapReflectedType(c, vt.Key()), wrapReflectedType(c, vt.Elem()), nil)
 			case reflect.Ptr, reflect.Interface:
 				if pt, ok = wellknowns[vt]; ok {
-					return pt
+					break
 				}
 				if kind == reflect.Ptr {
-					pt = wrapReflectedType(c, vt.Elem())
+					pt = NewOptionalType(wrapReflectedType(c, vt.Elem()))
+					break
 				}
 				fallthrough
 			default:

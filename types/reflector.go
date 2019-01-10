@@ -97,7 +97,9 @@ func (r *reflector) Reflect2(src eval.Value, rt reflect.Type) reflect.Value {
 			return sv
 		}
 	}
-	return r.Reflect(src)
+	v := reflect.New(rt).Elem()
+	r.ReflectTo(src, v)
+	return v
 }
 
 // ReflectTo assigns the native value of src to dest
