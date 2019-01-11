@@ -1145,3 +1145,26 @@ func ExampleReflect_TypeFromReflect_structSliceAssign() {
 	//     )]
 	// )
 }
+
+// For third party vendors using anonymous fields to tag structs
+type anon struct {
+	_ struct{} `some:"tag here"`
+	A string
+}
+
+func ExampleReflect_TypeFromReflect_structAnonField() {
+	eval.Puppet.Do(func(c eval.Context) {
+		x := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&anon{}))
+		c.AddTypes(x)
+		x.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
+		fmt.Println()
+	})
+
+	// Output:
+	// Object[{
+	//   name => 'X',
+	//   attributes => {
+	//     'a' => String
+	//   }
+	// }]
+}
