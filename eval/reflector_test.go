@@ -234,7 +234,7 @@ func ExampleReflector_typeFromReflect() {
 	rtExtPerson := reflect.TypeOf(&TestExtendedPerson{})
 
 	rf := c.Reflector()
-	tAddress := rf.TypeFromTagged(`My::Address`, nil, eval.NewTaggedType(rtAddress, map[string]string{`Zip`: `name=>zip_code`}))
+	tAddress := rf.TypeFromTagged(`My::Address`, nil, eval.NewTaggedType(rtAddress, map[string]string{`Zip`: `name=>zip_code`}), nil)
 	tPerson := rf.TypeFromReflect(`My::Person`, nil, rtPerson)
 	tExtPerson := rf.TypeFromReflect(`My::ExtendedPerson`, tPerson, rtExtPerson)
 	c.AddTypes(tAddress, tPerson, tExtPerson)

@@ -289,14 +289,17 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 }
 
 func (r *reflector) TypeFromReflect(typeName string, parent eval.Type, rf reflect.Type) eval.ObjectType {
-	return r.TypeFromTagged(typeName, parent, eval.NewTaggedType(rf, nil))
+	return r.TypeFromTagged(typeName, parent, eval.NewTaggedType(rf, nil), nil)
 }
 
-func (r *reflector) TypeFromTagged(typeName string, parent eval.Type, tg eval.AnnotatedType) eval.ObjectType {
+func (r *reflector) TypeFromTagged(typeName string, parent eval.Type, tg eval.AnnotatedType, rcFunc eval.Doer) eval.ObjectType {
 	return NewObjectType3(typeName, parent, func(obj eval.ObjectType) eval.OrderedMap {
 		obj.(*objectType).goType = tg
 
 		r.c.ImplementationRegistry().RegisterType(r.c, obj, tg.Type())
+		if rcFunc != nil {
+			rcFunc()
+		}
 		return r.InitializerFromTagged(typeName, parent, tg)
 	})
 }
