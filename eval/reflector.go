@@ -101,7 +101,7 @@ type Reflector interface {
 	// TypeFromTagged creates an Object type based on the given reflected type.
 	// The new type is automatically added to the ImplementationRegistry registered to
 	// the Context from where the Reflector was obtained.
-	TypeFromTagged(typeName string, parent Type, rType AnnotatedType) ObjectType
+	TypeFromTagged(typeName string, parent Type, rType AnnotatedType, rcFunc Doer) ObjectType
 
 	// TypeSetFromReflect creates a TypeSet based on the given reflected types The new types are automatically
 	// added to the ImplementationRegistry registered to the Context from where the Reflector was obtained.
