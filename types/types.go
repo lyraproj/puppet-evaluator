@@ -213,6 +213,11 @@ func basicTypeToString(t eval.Type, b io.Writer, s eval.FormatContext, g eval.RD
 	if pt, ok := t.(eval.ParameterizedType); ok {
 		params := pt.Parameters()
 		if len(params) > 0 {
+			si := s.Indentation()
+			if si.Breaks() {
+				// Never break between the type and the start array marker
+				s = newFormatContext2(newIndentation(si.IsIndenting(), si.Level()), s.FormatMap(), s.Properties())
+			}
 			WrapValues(params).ToString(b, s, g)
 		}
 	}
