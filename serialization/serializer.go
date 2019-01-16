@@ -89,6 +89,11 @@ func (sc *context) pathToString() string {
 }
 
 func (sc *context) toData(level int, value eval.Value) {
+	if value == nil {
+		sc.addData(eval.UNDEF)
+		return
+	}
+
 	switch value.(type) {
 	case *types.UndefValue, *types.IntegerValue, *types.FloatValue, *types.BooleanValue:
 		// Never dedup
