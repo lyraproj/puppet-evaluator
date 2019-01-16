@@ -757,18 +757,15 @@ func ExampleReflect_TypeFromReflect_optionalInt() {
 	//       'value' => undef
 	//     },
 	//     'c' => {
-	//       'type' => Optional[Integer
-	//         [0, 255]],
+	//       'type' => Optional[Integer[0, 255]],
 	//       'value' => undef
 	//     },
 	//     'd' => {
-	//       'type' => Optional[Integer
-	//         [-32768, 32767]],
+	//       'type' => Optional[Integer[-32768, 32767]],
 	//       'value' => undef
 	//     },
 	//     'e' => {
-	//       'type' => Optional[Integer
-	//         [0, 4294967295]],
+	//       'type' => Optional[Integer[0, 4294967295]],
 	//       'value' => undef
 	//     }
 	//   }
@@ -892,8 +889,7 @@ func ExampleReflect_TypeFromReflect_optionalFloat() {
 	//       'value' => undef
 	//     },
 	//     'c' => {
-	//       'type' => Optional[Float
-	//         [-3.4028234663852886e+38, 3.4028234663852886e+38]],
+	//       'type' => Optional[Float[-3.4028234663852886e+38, 3.4028234663852886e+38]],
 	//       'value' => undef
 	//     }
 	//   }
@@ -999,13 +995,11 @@ func ExampleReflect_TypeFromReflect_optionalIntSlice() {
 	//   attributes => {
 	//     'a' => Array[Integer],
 	//     'b' => {
-	//       'type' => Optional[Array
-	//         [Integer]],
+	//       'type' => Optional[Array[Integer]],
 	//       'value' => undef
 	//     },
 	//     'c' => {
-	//       'type' => Optional[Hash
-	//         [String, Integer[-2147483648, 2147483647]]],
+	//       'type' => Optional[Hash[String, Integer[-2147483648, 2147483647]]],
 	//       'value' => undef
 	//     }
 	//   }
@@ -1084,13 +1078,11 @@ func ExampleReflect_TypeFromReflect_structSlice() {
 	//   attributes => {
 	//     'a' => Array[X],
 	//     'b' => {
-	//       'type' => Optional[Array
-	//         [X]],
+	//       'type' => Optional[Array[X]],
 	//       'value' => undef
 	//     },
 	//     'c' => {
-	//       'type' => Optional[Array
-	//         [X]],
+	//       'type' => Optional[Array[X]],
 	//       'value' => undef
 	//     }
 	//   }
