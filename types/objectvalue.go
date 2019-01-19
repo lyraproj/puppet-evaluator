@@ -161,10 +161,10 @@ func (o *attributeSlice) InitHash() eval.OrderedMap {
 // Turn a positional argument list into a hash. The hash will exclude all values
 // that are equal to the default value of the corresponding attribute
 func makeValueHash(pi eval.AttributesInfo, values []eval.Value) *HashValue {
-	posToName := pi.PosToName()
-	entries := make([]*HashEntry, 0, len(posToName))
+	at := pi.Attributes()
+	entries := make([]*HashEntry, 0, len(at))
 	for i, v := range values {
-		attr := pi.Attributes()[i]
+		attr := at[i]
 		if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
 			entries = append(entries, WrapHashEntry2(attr.Name(), v))
 		}
@@ -267,7 +267,8 @@ func (o *reflectedObject) Initialize(c eval.Context, values []eval.Value) {
 		return
 	}
 	pi := o.typ.AttributesInfo()
-	if len(pi.PosToName()) > 0 {
+	attrs := pi.Attributes()
+	if len(attrs) > 0 {
 		attrs := pi.Attributes()
 		fillValueSlice(values, attrs)
 		o.setValues(c, values)
@@ -340,13 +341,14 @@ func (o *reflectedObject) ToString(b io.Writer, s eval.FormatContext, g eval.RDe
 
 func (o *reflectedObject) InitHash() eval.OrderedMap {
 	pi := o.typ.AttributesInfo()
-	nc := len(pi.PosToName())
+	at := pi.Attributes()
+	nc := len(at)
 	if nc == 0 {
 		return eval.EMPTY_MAP
 	}
 
 	if nc == 1 {
-		attr := pi.Attributes()[0]
+		attr := at[0]
 		if attr.GoName() == KEY_VALUE {
 			pv, _ := WrapPrimitive(o.value)
 			return SingletonHash2(`value`, pv)

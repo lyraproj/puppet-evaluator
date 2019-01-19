@@ -4,7 +4,6 @@ import "github.com/lyraproj/puppet-evaluator/eval"
 
 type attributesInfo struct {
 	nameToPos                map[string]int
-	posToName                map[int]string
 	attributes               []eval.Attribute
 	equalityAttributeIndexes []int
 	requiredCount            int
@@ -23,15 +22,11 @@ func newAttributesInfo(attributes []eval.Attribute, requiredCount int, equality 
 		ei[ix] = nameToPos[e]
 	}
 
-	return &attributesInfo{attributes: attributes, nameToPos: nameToPos, posToName: posToName, equalityAttributeIndexes: ei, requiredCount: requiredCount}
+	return &attributesInfo{attributes: attributes, nameToPos: nameToPos, equalityAttributeIndexes: ei, requiredCount: requiredCount}
 }
 
 func (ai *attributesInfo) NameToPos() map[string]int {
 	return ai.nameToPos
-}
-
-func (ai *attributesInfo) PosToName() map[int]string {
-	return ai.posToName
 }
 
 func (pi *attributesInfo) Attributes() []eval.Attribute {

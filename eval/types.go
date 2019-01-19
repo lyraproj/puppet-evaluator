@@ -156,8 +156,6 @@ type (
 	AttributesInfo interface {
 		NameToPos() map[string]int
 
-		PosToName() map[int]string
-
 		Attributes() []Attribute
 
 		EqualityAttributeIndex() []int
