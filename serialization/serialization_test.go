@@ -203,7 +203,9 @@ func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
 func ExampleRichDataSerializer_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		ver, _ := semver.NewVersion(1, 0, 0)
-		fmt.Println(NewToDataConverter(types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver)))
+		cl := NewCollector()
+		NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver), cl)
+		fmt.Println(cl.Value())
 	})
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}
 }
