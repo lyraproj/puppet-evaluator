@@ -3,7 +3,6 @@ package serialization
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/lyraproj/issue/issue"
@@ -33,7 +32,7 @@ type rdSerializer struct {
 
 type context struct {
 	config     *rdSerializer
-	values     map[uintptr]int
+	values     map[eval.Value]int
 	strings    map[string]int
 	path       []eval.Value
 	refIndex   int
@@ -64,7 +63,7 @@ var sensitiveType = types.WrapString(PcoreTypeSensitive)
 var hashKey = types.WrapString(PcoreTypeHash)
 
 func (t *rdSerializer) Convert(value eval.Value, consumer ValueConsumer) {
-	c := context{config: t, values: make(map[uintptr]int, 63), strings: make(map[string]int, 63), refIndex: 0, consumer: consumer, path: make([]eval.Value, 0, 16), dedupLevel: t.dedupLevel}
+	c := context{config: t, values: make(map[eval.Value]int, 63), strings: make(map[string]int, 63), refIndex: 0, consumer: consumer, path: make([]eval.Value, 0, 16), dedupLevel: t.dedupLevel}
 	if c.dedupLevel >= MaxDedup && !consumer.CanDoComplexKeys() {
 		c.dedupLevel = NoKeyDedup
 	}
@@ -218,11 +217,10 @@ func (sc *context) process(value eval.Value, doer eval.Doer) {
 		return
 	}
 
-	key := reflect.ValueOf(value).Pointer()
-	if ref, ok := sc.values[key]; ok {
+	if ref, ok := sc.values[value]; ok {
 		sc.consumer.AddRef(ref)
 	} else {
-		sc.values[key] = sc.refIndex
+		sc.values[value] = sc.refIndex
 		doer()
 	}
 }

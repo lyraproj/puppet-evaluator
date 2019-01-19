@@ -4,7 +4,6 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"reflect"
 )
 
 type dsContext struct {
@@ -13,8 +12,7 @@ type dsContext struct {
 	context         eval.Context
 	newTypes        []eval.Type
 	value           eval.Value
-	ntUnique        map[uintptr]bool
-	converted       map[uintptr]eval.Value
+	converted       map[eval.Value]eval.Value
 }
 
 // NewDeserializer creates a new Collector that consumes input and creates a RichData Value
@@ -22,8 +20,7 @@ func NewDeserializer(ctx eval.Context, options eval.OrderedMap) Collector {
 	ds := &dsContext{
 		context:         ctx,
 		newTypes:        make([]eval.Type, 0, 11),
-		ntUnique:        make(map[uintptr]bool, 11),
-		converted:       make(map[uintptr]eval.Value, 11),
+		converted:       make(map[eval.Value]eval.Value, 11),
 		allowUnresolved: options.Get5(`allow_unresolved`, types.Boolean_FALSE).(*types.BooleanValue).Bool()}
 	ds.Init()
 	return ds
@@ -38,8 +35,7 @@ func (ds *dsContext) Value() eval.Value {
 }
 
 func (ds *dsContext) convert(value eval.Value) eval.Value {
-	key := reflect.ValueOf(value).Pointer()
-	if cv, ok := ds.converted[key]; ok {
+	if cv, ok := ds.converted[value]; ok {
 		return cv
 	}
 
@@ -48,19 +44,19 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 			if pcoreType, ok := hash.Get4(PcoreTypeKey); ok {
 				switch pcoreType.String() {
 				case PcoreTypeHash:
-					return ds.convertHash(hash, key)
+					return ds.convertHash(hash, value)
 				case PcoreTypeSensitive:
-					return ds.convertSensitive(hash, key)
+					return ds.convertSensitive(hash, value)
 				case PcoreTypeDefault:
 					return types.WrapDefault()
 				default:
-					v := ds.convertOther(hash, key, pcoreType)
+					v := ds.convertOther(hash, value, pcoreType)
 					switch v.(type) {
 					case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
 						// Ensure that type is made known to current loader
 						rt := v.(eval.ResolvableType)
 						tn := eval.NewTypedName(eval.NsType, rt.Name())
-						if lt, ok := eval.Load(ds.context, tn); ok && lt != rt {
+						if lt, ok := eval.Load(ds.context, tn); ok {
 							t := rt.Resolve(ds.context)
 							if t.Equals(lt, nil) {
 								return lt.(eval.Value)
@@ -75,7 +71,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 		}
 
 		return types.BuildHash(hash.Len(), func(h *types.HashValue, entries []*types.HashEntry) []*types.HashEntry {
-			ds.converted[key] = h
+			ds.converted[value] = h
 			hash.EachPair(func(k, v eval.Value) {
 				entries = append(entries, types.WrapHashEntry(ds.convert(k), ds.convert(v)))
 			})
@@ -85,7 +81,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 
 	if array, ok := value.(*types.ArrayValue); ok {
 		return types.BuildArray(array.Len(), func(a *types.ArrayValue, elements []eval.Value) []eval.Value {
-			ds.converted[key] = a
+			ds.converted[value] = a
 			array.Each(func(v eval.Value) { elements = append(elements, ds.convert(v)) })
 			return elements
 		})
@@ -93,7 +89,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 	return value
 }
 
-func (ds *dsContext) convertHash(hash eval.OrderedMap, key uintptr) eval.Value {
+func (ds *dsContext) convertHash(hash eval.OrderedMap, key eval.Value) eval.Value {
 	value := hash.Get5(PcoreValueKey, eval.EMPTY_ARRAY).(eval.List)
 	return types.BuildHash(value.Len(), func(hash *types.HashValue, entries []*types.HashEntry) []*types.HashEntry {
 		ds.converted[key] = hash
@@ -104,13 +100,13 @@ func (ds *dsContext) convertHash(hash eval.OrderedMap, key uintptr) eval.Value {
 	})
 }
 
-func (ds *dsContext) convertSensitive(hash eval.OrderedMap, key uintptr) eval.Value {
+func (ds *dsContext) convertSensitive(hash eval.OrderedMap, key eval.Value) eval.Value {
 	cv := types.WrapSensitive(ds.convert(hash.Get5(PcoreValueKey, eval.UNDEF)))
 	ds.converted[key] = cv
 	return cv
 }
 
-func (ds *dsContext) convertOther(hash eval.OrderedMap, key uintptr, typeValue eval.Value) eval.Value {
+func (ds *dsContext) convertOther(hash eval.OrderedMap, key eval.Value, typeValue eval.Value) eval.Value {
 	value := hash.Get6(PcoreValueKey, func() eval.Value {
 		return hash.RejectPairs(func(k, v eval.Value) bool {
 			if s, ok := k.(*types.StringValue); ok {
@@ -139,7 +135,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, key uintptr, typeValue e
 	return ds.pcoreTypeHashToValue(typ.(eval.Type), key, value)
 }
 
-func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key uintptr, value eval.Value) eval.Value {
+func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key, value eval.Value) eval.Value {
 	var ov eval.Value
 
 	if hash, ok := value.(*types.HashValue); ok {
