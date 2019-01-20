@@ -43,7 +43,7 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 
 func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
-	case stringValue, integerValue, *FloatValue, *BooleanValue, *TimespanValue, *TimestampValue, *SemVerValue, *RegexpValue:
+	case stringValue, integerValue, floatValue, *BooleanValue, *TimespanValue, *TimestampValue, *SemVerValue, *RegexpValue:
 		return true
 	}
 	return false

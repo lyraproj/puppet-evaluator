@@ -195,6 +195,11 @@ type (
 		Abs() int64
 	}
 
+	FloatValue interface {
+		NumericValue
+		Abs() float64
+	}
+
 	StringValue interface {
 		List
 		Split(pattern *regexp.Regexp) List

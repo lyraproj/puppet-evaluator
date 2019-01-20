@@ -45,8 +45,8 @@ func init() {
 						return Boolean_FALSE
 					}
 					return Boolean_TRUE
-				case *FloatValue:
-					if arg.(*FloatValue).Float() == 0.0 {
+				case floatValue:
+					if arg.(floatValue) == 0.0 {
 						return Boolean_FALSE
 					}
 					return Boolean_TRUE
@@ -274,7 +274,7 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 'd', 'x', 'X', 'o', 'b', 'B':
 		integerValue(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		floatValue(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':
 		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), false)
 	default:

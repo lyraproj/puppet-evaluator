@@ -109,8 +109,8 @@ func intFromConvertible(from eval.Value, radix int) int64 {
 	switch from.(type) {
 	case integerValue:
 		return from.(integerValue).Int()
-	case *FloatValue:
-		return from.(*FloatValue).Int()
+	case floatValue:
+		return from.(floatValue).Int()
 	case *TimestampValue:
 		return from.(*TimestampValue).Int()
 	case *TimespanValue:
@@ -476,7 +476,7 @@ func (iv integerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 			_, err = io.WriteString(b, intString)
 		}
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(iv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		floatValue(iv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 'c':
 		bld := bytes.NewBufferString(``)
 		bld.WriteRune(rune(int64(iv)))

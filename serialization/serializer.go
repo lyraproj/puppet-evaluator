@@ -94,7 +94,7 @@ func (sc *context) toData(level int, value eval.Value) {
 	}
 
 	switch value.(type) {
-	case *types.UndefValue, eval.IntegerValue, *types.FloatValue, *types.BooleanValue:
+	case *types.UndefValue, eval.IntegerValue, eval.FloatValue, *types.BooleanValue:
 		// Never dedup
 		sc.addData(value)
 	case eval.StringValue:

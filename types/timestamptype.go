@@ -89,7 +89,7 @@ func init() {
 				if i, ok := arg.(integerValue); ok {
 					return WrapTimestamp(time.Unix(int64(i), 0))
 				}
-				s, f := math.Modf(arg.(*FloatValue).Float())
+				s, f := math.Modf(float64(arg.(floatValue)))
 				return WrapTimestamp(time.Unix(int64(s), int64(f*1000000000.0)))
 			})
 		},
@@ -163,8 +163,8 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 			t, ok = TimeFromString(arg.String()), true
 		case integerValue:
 			t, ok = time.Unix(int64(arg.(integerValue)), 0), true
-		case *FloatValue:
-			s, f := math.Modf(arg.(*FloatValue).Float())
+		case floatValue:
+			s, f := math.Modf(float64(arg.(floatValue)))
 			t, ok = time.Unix(int64(s), int64(f*1000000000.0)), true
 		case *DefaultValue:
 			if argNo == 0 {

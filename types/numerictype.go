@@ -50,7 +50,7 @@ func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue 
 		if i, ok := n.(integerValue); ok {
 			n = integerValue(i.Abs())
 		} else {
-			n = n.(*FloatValue).Abs()
+			n = floatValue(n.(floatValue).Abs())
 		}
 	}
 	return n
@@ -64,7 +64,7 @@ func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 		if i, ok := n.(integerValue); ok {
 			n = integerValue(i.Abs())
 		} else {
-			n = n.(*FloatValue).Abs()
+			n = floatValue(n.(floatValue).Abs())
 		}
 	}
 	return n
@@ -140,16 +140,16 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		if allowInt {
 			return iv
 		}
-		return WrapFloat(iv.Float())
+		return floatValue(iv.Float())
 	case *TimestampValue:
-		return WrapFloat(c.(*TimestampValue).Float())
+		return floatValue(c.(*TimestampValue).Float())
 	case *TimespanValue:
-		return WrapFloat(c.(*TimespanValue).Float())
+		return floatValue(c.(*TimespanValue).Float())
 	case *BooleanValue:
 		if allowInt {
 			return integerValue(c.(*BooleanValue).Int())
 		}
-		return WrapFloat(c.(*BooleanValue).Float())
+		return floatValue(c.(*BooleanValue).Float())
 	case eval.NumericValue:
 		return c.(eval.NumericValue)
 	case stringValue:
@@ -160,7 +160,7 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 			}
 		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
-			return WrapFloat(f)
+			return floatValue(f)
 		}
 		if allowInt {
 			if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {

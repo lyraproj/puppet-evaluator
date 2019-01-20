@@ -556,7 +556,7 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	case int:
 		pv = integerValue(int64(v.(int)))
 	case float64:
-		pv = WrapFloat(v.(float64))
+		pv = floatValue(v.(float64))
 	case bool:
 		pv = WrapBoolean(v.(bool))
 	case *regexp.Regexp:
@@ -594,7 +594,7 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 			pv = integerValue(i)
 		} else {
 			f, _ := v.(json.Number).Float64()
-			pv = WrapFloat(f)
+			pv = floatValue(f)
 		}
 	case reflect.Value:
 		pv = wrapReflected(c, v.(reflect.Value))
@@ -697,7 +697,7 @@ func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
 	case reflect.Bool:
 		pv = WrapBoolean(vr.Bool())
 	case reflect.Float64, reflect.Float32:
-		pv = WrapFloat(vr.Float())
+		pv = floatValue(vr.Float())
 	case reflect.Ptr:
 		return WrapPrimitive(vr.Elem())
 	default:
@@ -717,7 +717,8 @@ var wellknowns = map[reflect.Type]eval.Type{
 	reflect.TypeOf(&ArrayValue{}):                    DefaultArrayType(),
 	reflect.TypeOf((*eval.List)(nil)).Elem():         DefaultArrayType(),
 	reflect.TypeOf(&BinaryValue{}):                   DefaultBinaryType(),
-	reflect.TypeOf(&FloatValue{}):                    DefaultFloatType(),
+	reflect.TypeOf(floatValue(0.0)):                  DefaultFloatType(),
+	reflect.TypeOf((*eval.FloatValue)(nil)).Elem():   DefaultFloatType(),
 	reflect.TypeOf(&HashValue{}):                     DefaultHashType(),
 	reflect.TypeOf((*eval.OrderedMap)(nil)).Elem():   DefaultHashType(),
 	reflect.TypeOf(integerValue(0)):                  DefaultIntegerType(),
@@ -790,7 +791,7 @@ var primitivePTypes = map[reflect.Kind]eval.Type{
 	reflect.Uint16:  integerTypeU16,
 	reflect.Uint32:  integerTypeU32,
 	reflect.Uint64:  integerTypeU64,
-	reflect.Float32: floatType_32,
+	reflect.Float32: floatType32,
 	reflect.Float64: DefaultFloatType(),
 	reflect.Bool:    DefaultBooleanType(),
 }

@@ -92,7 +92,7 @@ func init() {
 				if i, ok := arg.(integerValue); ok {
 					return WrapTimespan(time.Duration(i * NSECS_PER_SEC))
 				}
-				return WrapTimespan(time.Duration(arg.(*FloatValue).Float() * NSECS_PER_SEC))
+				return WrapTimespan(time.Duration(arg.(floatValue) * NSECS_PER_SEC))
 			})
 		},
 
@@ -193,8 +193,8 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 			t, ok = parseDuration(arg.String(), DEFAULT_TIMESPAN_FORMATS)
 		case integerValue:
 			t, ok = time.Duration(arg.(integerValue)*1000000000), true
-		case *FloatValue:
-			t, ok = time.Duration(arg.(*FloatValue).Float()*1000000000.0), true
+		case floatValue:
+			t, ok = time.Duration(arg.(floatValue)*1000000000.0), true
 		case *DefaultValue:
 			if argNo == 0 {
 				t, ok = TIMESPAN_MIN, true

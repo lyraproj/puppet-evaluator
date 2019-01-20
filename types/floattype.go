@@ -19,17 +19,17 @@ type (
 		max float64
 	}
 
-	// FloatValue represents FloatType as a value
-	FloatValue FloatType
+	// floatValue represents float64 as a eval.Value
+	floatValue float64
 )
 
-var floatType_DEFAULT = &FloatType{-math.MaxFloat64, math.MaxFloat64}
-var floatType_32 = &FloatType{-math.MaxFloat32, math.MaxFloat32}
+var floatTypeDefault = &FloatType{-math.MaxFloat64, math.MaxFloat64}
+var floatType32 = &FloatType{-math.MaxFloat32, math.MaxFloat32}
 
-var Float_Type eval.ObjectType
+var FloatMetaType eval.ObjectType
 
 func init() {
-	Float_Type = newObjectType(`Pcore::FloatType`,
+	FloatMetaType = newObjectType(`Pcore::FloatType`,
 		`Pcore::NumericType {
   attributes => {
     from => { type => Optional[Float], value => undef },
@@ -63,7 +63,7 @@ func init() {
 }
 
 func DefaultFloatType() *FloatType {
-	return floatType_DEFAULT
+	return floatTypeDefault
 }
 
 func NewFloatType(min float64, max float64) *FloatType {
@@ -79,7 +79,7 @@ func NewFloatType(min float64, max float64) *FloatType {
 func NewFloatType2(limits ...eval.Value) *FloatType {
 	argc := len(limits)
 	if argc == 0 {
-		return floatType_DEFAULT
+		return floatTypeDefault
 	}
 	min, ok := toFloat(limits[0])
 	if !ok {
@@ -111,7 +111,7 @@ func (t *FloatType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *FloatType) Default() eval.Type {
-	return floatType_DEFAULT
+	return floatTypeDefault
 }
 
 func (t *FloatType) Equals(o interface{}, g eval.Guard) bool {
@@ -122,7 +122,7 @@ func (t *FloatType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *FloatType) Generic() eval.Type {
-	return floatType_DEFAULT
+	return floatTypeDefault
 }
 
 func (t *FloatType) Get(key string) (eval.Value, bool) {
@@ -130,13 +130,13 @@ func (t *FloatType) Get(key string) (eval.Value, bool) {
 	case `from`:
 		v := eval.UNDEF
 		if t.min != -math.MaxFloat64 {
-			v = WrapFloat(t.min)
+			v = floatValue(t.min)
 		}
 		return v, true
 	case `to`:
 		v := eval.UNDEF
 		if t.max != math.MaxFloat64 {
-			v = WrapFloat(t.max)
+			v = floatValue(t.max)
 		}
 		return v, true
 	default:
@@ -159,7 +159,7 @@ func (t *FloatType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *FloatType) MetaType() eval.ObjectType {
-	return Float_Type
+	return FloatMetaType
 }
 
 func (t *FloatType) Min() float64 {
@@ -179,12 +179,12 @@ func (t *FloatType) Parameters() []eval.Value {
 		if t.max == math.MaxFloat64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.Value{WrapDefault(), WrapFloat(t.max)}
+		return []eval.Value{WrapDefault(), floatValue(t.max)}
 	}
 	if t.max == math.MaxFloat64 {
-		return []eval.Value{WrapFloat(t.min)}
+		return []eval.Value{floatValue(t.min)}
 	}
-	return []eval.Value{WrapFloat(t.min), WrapFloat(t.max)}
+	return []eval.Value{floatValue(t.min), floatValue(t.max)}
 }
 
 func (t *FloatType) ReflectType(c eval.Context) (reflect.Type, bool) {
@@ -215,51 +215,53 @@ func (t *FloatType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func WrapFloat(val float64) *FloatValue {
-	return (*FloatValue)(NewFloatType(val, val))
+func WrapFloat(val float64) eval.FloatValue {
+	return floatValue(val)
 }
 
-func (fv *FloatValue) Abs() eval.NumericValue {
-	if fv.Float() < 0 {
-		return WrapFloat(-fv.Float())
+func (fv floatValue) Abs() float64 {
+	f := float64(fv)
+	if f < 0 {
+		return -f
 	}
-	return fv
+	return f
 }
 
-func (fv *FloatValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*FloatValue); ok {
-		return fv.Float() == ov.Float()
+func (fv floatValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(floatValue); ok {
+		return fv == ov
 	}
 	return false
 }
 
-func (fv *FloatValue) Float() float64 {
-	return fv.min
+func (fv floatValue) Float() float64 {
+	return float64(fv)
 }
 
-func (fv *FloatValue) Int() int64 {
+func (fv floatValue) Int() int64 {
 	return int64(fv.Float())
 }
 
-func (fv *FloatValue) Reflect(c eval.Context) reflect.Value {
+func (fv floatValue) Reflect(c eval.Context) reflect.Value {
 	return reflect.ValueOf(fv.Float())
 }
 
-func (fv *FloatValue) ReflectTo(c eval.Context, value reflect.Value) {
+func (fv floatValue) ReflectTo(c eval.Context, value reflect.Value) {
 	switch value.Kind() {
 	case reflect.Float64, reflect.Float32:
-		value.SetFloat(fv.Float())
+		value.SetFloat(float64(fv))
 		return
 	case reflect.Interface:
-		value.Set(reflect.ValueOf(fv.Float()))
+		value.Set(reflect.ValueOf(float64(fv)))
 		return
 	case reflect.Ptr:
 		switch value.Type().Elem().Kind() {
 		case reflect.Float64:
-			value.Set(reflect.ValueOf(&(*FloatType)(fv).min))
+			f := float64(fv)
+			value.Set(reflect.ValueOf(&f))
 			return
 		case reflect.Float32:
-			f32 := float32((*FloatType)(fv).min)
+			f32 := float32(fv)
 			value.Set(reflect.ValueOf(&f32))
 			return
 		}
@@ -267,12 +269,12 @@ func (fv *FloatValue) ReflectTo(c eval.Context, value reflect.Value) {
 	panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
 }
 
-func (fv *FloatValue) String() string {
+func (fv floatValue) String() string {
 	return fmt.Sprintf(`%v`, fv.Float())
 }
 
-func (fv *FloatValue) ToKey(b *bytes.Buffer) {
-	n := math.Float64bits(fv.Float())
+func (fv floatValue) ToKey(b *bytes.Buffer) {
+	n := math.Float64bits(float64(fv))
 	b.WriteByte(1)
 	b.WriteByte(HK_FLOAT)
 	b.WriteByte(byte(n >> 56))
@@ -285,22 +287,28 @@ func (fv *FloatValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(byte(n))
 }
 
-var DEFAULT_P_FORMAT = newFormat(`%g`)
-var DEFAULT_S_FORMAT = newFormat(`%#g`)
+var defaultFormatP = newFormat(`%g`)
+var defaultFormatS = newFormat(`%#g`)
 
-func (fv *FloatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (fv floatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), fv.PType())
 	switch f.FormatChar() {
 	case 'd', 'x', 'X', 'o', 'b', 'B':
 		integerValue(fv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'p':
-		f.ApplyStringFlags(b, floatGFormat(DEFAULT_P_FORMAT, fv.Float()), false)
+		f.ApplyStringFlags(b, floatGFormat(defaultFormatP, float64(fv)), false)
 	case 'e', 'E', 'f':
-		fmt.Fprintf(b, f.OrigFormat(), fv.Float())
+		_, err := fmt.Fprintf(b, f.OrigFormat(), float64(fv))
+		if err != nil {
+			panic(err)
+		}
 	case 'g', 'G':
-		io.WriteString(b, floatGFormat(f, fv.Float()))
+		_, err := io.WriteString(b, floatGFormat(f, float64(fv)))
+		if err != nil {
+			panic(err)
+		}
 	case 's':
-		f.ApplyStringFlags(b, floatGFormat(DEFAULT_S_FORMAT, fv.Float()), f.IsAlt())
+		f.ApplyStringFlags(b, floatGFormat(defaultFormatS, float64(fv)), f.IsAlt())
 	case 'a', 'A':
 		// TODO: Implement this or list as limitation?
 		panic(s.UnsupportedFormat(fv.PType(), `dxXobBeEfgGaAsp`, f))
@@ -379,6 +387,7 @@ func floatGFormat(f eval.Format, value float64) string {
 	return b.String()
 }
 
-func (fv *FloatValue) PType() eval.Type {
-	return (*FloatType)(fv)
+func (fv floatValue) PType() eval.Type {
+	f := float64(fv)
+	return &FloatType{f, f}
 }

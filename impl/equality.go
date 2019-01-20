@@ -23,8 +23,8 @@ func init() {
 				return float64(lhs) == b.(eval.NumericValue).Float()
 			}
 			return false
-		case *types.FloatValue:
-			lhs := a.(*types.FloatValue).Float()
+		case eval.FloatValue:
+			lhs := a.(eval.FloatValue).Float()
 			if rhv, ok := b.(eval.NumericValue); ok {
 				return lhs == rhv.Float()
 			}
