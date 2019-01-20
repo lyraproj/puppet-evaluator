@@ -17,19 +17,45 @@ func commonType(a eval.Type, b eval.Type) eval.Type {
 		return a
 	}
 
-	// Deal with mergable types of different type
+	// Deal with mergable string types
 	switch a.(type) {
 	case *EnumType:
 		switch b.(type) {
-		case *StringType:
-			str := b.(*StringType).value
-			if str != `` {
-				ea := a.(*EnumType)
-				return NewEnumType(utils.Unique(append(ea.values, str)), ea.caseInsensitive)
-			}
+		case *vcStringType:
+			str := b.(*vcStringType).value
+			ea := a.(*EnumType)
+			return NewEnumType(utils.Unique(append(ea.values, str)), ea.caseInsensitive)
+
+		case eval.StringType:
+			return DefaultStringType()
+
+		case *EnumType:
+			ea := a.(*EnumType)
+			eb := b.(*EnumType)
+			return NewEnumType(utils.Unique(append(ea.values, eb.values...)), ea.caseInsensitive || eb.caseInsensitive)
 		}
-	case *StringType:
+
+	case *scStringType:
 		switch b.(type) {
+		case *scStringType:
+			as := a.(*scStringType)
+			bs := b.(*scStringType)
+			return NewStringType(commonType(as.Size(), bs.Size()).(*IntegerType), ``)
+
+		case eval.StringType, *EnumType:
+			return DefaultStringType()
+		}
+
+	case *vcStringType:
+		switch b.(type) {
+		case *vcStringType:
+			as := a.(*vcStringType)
+			bs := b.(*vcStringType)
+			return NewEnumType([]string{as.value, bs.value}, false)
+
+		case eval.StringType:
+			return DefaultStringType()
+
 		case *EnumType:
 			return commonType(b, a)
 		}
@@ -42,11 +68,6 @@ func commonType(a eval.Type, b eval.Type) eval.Type {
 			aa := a.(*ArrayType)
 			ba := b.(*ArrayType)
 			return NewArrayType(commonType(aa.typ, ba.typ), commonType(aa.size, ba.size).(*IntegerType))
-
-		case *EnumType:
-			ea := a.(*EnumType)
-			eb := b.(*EnumType)
-			return NewEnumType(utils.Unique(append(ea.values, eb.values...)), ea.caseInsensitive || eb.caseInsensitive)
 
 		case *FloatType:
 			af := a.(*FloatType)
@@ -93,14 +114,6 @@ func commonType(a eval.Type, b eval.Type) eval.Type {
 				return NewRuntimeType(ar.runtime, ``, nil)
 			}
 			return DefaultRuntimeType()
-
-		case *StringType:
-			as := a.(*StringType)
-			bs := b.(*StringType)
-			if as.value == `` || bs.value == `` {
-				return NewStringType(commonType(as.size, bs.size).(*IntegerType), ``)
-			}
-			return NewEnumType([]string{as.value, bs.value}, false)
 
 		case *TupleType:
 			at := a.(*TupleType)

@@ -7,10 +7,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -189,8 +189,8 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 			t, ok = arg.(*TimespanValue).Duration(), true
 		case *HashValue:
 			t, ok = fromHash(arg.(*HashValue))
-		case *StringValue:
-			t, ok = parseDuration(arg.(*StringValue).value, DEFAULT_TIMESPAN_FORMATS)
+		case stringValue:
+			t, ok = parseDuration(arg.String(), DEFAULT_TIMESPAN_FORMATS)
 		case *IntegerValue:
 			t, ok = time.Duration(arg.(*IntegerValue).Int()*1000000000), true
 		case *FloatValue:
@@ -261,26 +261,25 @@ func (t *TimespanType) Parameters() []eval.Value {
 		if t.min == math.MinInt64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.Value{WrapString(t.min.String())}
+		return []eval.Value{stringValue(t.min.String())}
 	}
 	if t.min == math.MinInt64 {
-		return []eval.Value{WrapDefault(), WrapString(t.max.String())}
+		return []eval.Value{WrapDefault(), stringValue(t.max.String())}
 	}
-	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
+	return []eval.Value{stringValue(t.min.String()), stringValue(t.max.String())}
 }
 
 func (t *TimespanType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Duration(0)), true
 }
 
-func (t *TimespanType)  CanSerializeAsString() bool {
-  return true
+func (t *TimespanType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *TimespanType)  SerializationString() string {
+func (t *TimespanType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *TimespanType) String() string {
 	return eval.ToString2(t, NONE)
@@ -370,8 +369,8 @@ func fromStringHash(hash *HashValue) (time.Duration, bool) {
 	if fmtStrings == nil {
 		formats = DEFAULT_TIMESPAN_FORMATS
 	} else {
-		if fs, ok := fmtStrings.(*StringValue); ok {
-			formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(fs.String())}
+		if fs, ok := fmtStrings.(stringValue); ok {
+			formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(string(fs))}
 		} else {
 			if fsa, ok := fmtStrings.(*ArrayValue); ok {
 				formats = make([]*TimespanFormat, fsa.Len())
@@ -469,14 +468,13 @@ func (tv *TimespanValue) Milliseconds() int64 {
 	return tv.totalMilliseconds() % 1000
 }
 
-func (tv *TimespanValue)  CanSerializeAsString() bool {
-  return true
+func (tv *TimespanValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (tv *TimespanValue)  SerializationString() string {
+func (tv *TimespanValue) SerializationString() string {
 	return tv.String()
 }
-
 
 func (tv *TimespanValue) String() string {
 	return fmt.Sprintf(`%d`, tv.Int())
@@ -1111,7 +1109,7 @@ func toTimespanFormats(fmt eval.Value) []*TimespanFormat {
 		fa.EachWithIndex(func(f eval.Value, i int) {
 			formats[i] = DefaultTimespanFormatParser.ParseFormat(f.String())
 		})
-	case *StringValue:
+	case stringValue:
 		formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(fmt.String())}
 	}
 	return formats

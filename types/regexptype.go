@@ -80,8 +80,8 @@ func NewRegexpType2(args ...eval.Value) *RegexpType {
 		return regexpType_DEFAULT
 	case 1:
 		rx := args[0]
-		if str, ok := rx.(*StringValue); ok {
-			return NewRegexpType(str.String())
+		if str, ok := rx.(stringValue); ok {
+			return NewRegexpType(string(str))
 		}
 		if rt, ok := rx.(*RegexpValue); ok {
 			return rt.PType().(*RegexpType)
@@ -111,7 +111,7 @@ func (t *RegexpType) Get(key string) (value eval.Value, ok bool) {
 		if t.patternString == `` {
 			return _UNDEF, true
 		}
-		return WrapString(t.patternString), true
+		return stringValue(t.patternString), true
 	}
 	return nil, false
 }

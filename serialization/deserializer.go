@@ -109,7 +109,7 @@ func (ds *dsContext) convertSensitive(hash eval.OrderedMap, key eval.Value) eval
 func (ds *dsContext) convertOther(hash eval.OrderedMap, key eval.Value, typeValue eval.Value) eval.Value {
 	value := hash.Get6(PcoreValueKey, func() eval.Value {
 		return hash.RejectPairs(func(k, v eval.Value) bool {
-			if s, ok := k.(*types.StringValue); ok {
+			if s, ok := k.(eval.StringValue); ok {
 				return s.String() == PcoreTypeKey
 			}
 			return false
@@ -156,7 +156,7 @@ func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key, value eval.Value) 
 			ov = eval.New(ds.context, typ, hash)
 		}
 	} else {
-		if str, ok := value.(*types.StringValue); ok {
+		if str, ok := value.(eval.StringValue); ok {
 			ov = eval.New(ds.context, typ, str)
 		} else {
 			panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.PType().Name()}))

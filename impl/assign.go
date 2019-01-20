@@ -1,9 +1,9 @@
 package impl
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
@@ -12,7 +12,7 @@ func evalAssignmentExpression(e eval.Evaluator, expr *parser.AssignmentExpressio
 }
 
 func assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.Value, rv eval.Value) eval.Value {
-	if sv, ok := lv.(*types.StringValue); ok {
+	if sv, ok := lv.(eval.StringValue); ok {
 		if !scope.Set(sv.String(), rv) {
 			panic(evalError(eval.EVAL_ILLEGAL_REASSIGNMENT, expr, issue.H{`var`: sv.String()}))
 		}

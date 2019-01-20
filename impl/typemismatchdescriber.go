@@ -548,7 +548,7 @@ func (m *patternMismatch) text() string {
 
 func (m *patternMismatch) actualString() string {
 	a := m.actualType
-	if as, ok := a.(*types.StringType); ok && as.Value() != `` {
+	if as, ok := a.(eval.StringType); ok && as.Value() != `` {
 		return fmt.Sprintf(`'%s'`, as.Value())
 	}
 	return shortName(a)

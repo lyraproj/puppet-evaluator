@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 )
 
@@ -79,7 +79,7 @@ func errorFromReported(c eval.Context, err issue.Reported) eval.ErrorObject {
 	ev.kind = `PUPPET_ERROR`
 	ev.issueCode = string(err.Code())
 	if loc := err.Location(); loc != nil {
-		ev.details = SingletonHash2(`location`, WrapString(issue.LocationString(loc)))
+		ev.details = SingletonHash2(`location`, stringValue(issue.LocationString(loc)))
 	}
 	ev.initType(c)
 	return ev
@@ -140,11 +140,11 @@ func (e *errorObj) PType() eval.Type {
 func (e *errorObj) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `message`:
-		return WrapString(e.message), true
+		return stringValue(e.message), true
 	case `kind`:
-		return WrapString(e.kind), true
+		return stringValue(e.kind), true
 	case `issue_code`:
-		return WrapString(e.issueCode), true
+		return stringValue(e.issueCode), true
 	case `partial_result`:
 		return e.partialResult, true
 	case `details`:
@@ -155,12 +155,12 @@ func (e *errorObj) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (e *errorObj) InitHash() eval.OrderedMap {
-	entries := []*HashEntry{WrapHashEntry2(`message`, WrapString(e.message))}
+	entries := []*HashEntry{WrapHashEntry2(`message`, stringValue(e.message))}
 	if e.kind != `` {
-		entries = append(entries, WrapHashEntry2(`kind`, WrapString(e.kind)))
+		entries = append(entries, WrapHashEntry2(`kind`, stringValue(e.kind)))
 	}
 	if e.issueCode != `` {
-		entries = append(entries, WrapHashEntry2(`issue_code`, WrapString(e.issueCode)))
+		entries = append(entries, WrapHashEntry2(`issue_code`, stringValue(e.issueCode)))
 	}
 	if !e.partialResult.Equals(eval.UNDEF, nil) {
 		entries = append(entries, WrapHashEntry2(`partial_result`, e.partialResult))
@@ -177,10 +177,10 @@ func (e *errorObj) initType(c eval.Context) {
 	} else {
 		params := make([]*HashEntry, 0)
 		if e.kind != `` {
-			params = append(params, WrapHashEntry2(`kind`, WrapString(e.kind)))
+			params = append(params, WrapHashEntry2(`kind`, stringValue(e.kind)))
 		}
 		if e.issueCode != `` {
-			params = append(params, WrapHashEntry2(`issue_code`, WrapString(e.issueCode)))
+			params = append(params, WrapHashEntry2(`issue_code`, stringValue(e.issueCode)))
 		}
 		e.typ = NewObjectTypeExtension(c, Error_Type, []eval.Value{WrapHash(params)})
 	}

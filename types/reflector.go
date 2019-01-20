@@ -219,7 +219,7 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	}
 	ds := make([]*HashEntry, ne)
 	ds[0] = WrapHashEntry2(KEY_TYPE, NewCallableType(pt, rt, nil))
-	ds[1] = WrapHashEntry2(KEY_GONAME, WrapString(name))
+	ds[1] = WrapHashEntry2(KEY_GONAME, stringValue(name))
 	if returnsError {
 		ds[2] = WrapHashEntry2(KEY_RETURNS_ERROR, Boolean_TRUE)
 	}
@@ -358,7 +358,7 @@ func (r *reflector) ReflectFieldTags(f *reflect.StructField, fh eval.OrderedMap)
 	}
 
 	as = append(as, WrapHashEntry2(KEY_TYPE, typ))
-	as = append(as, WrapHashEntry2(KEY_GONAME, WrapString(f.Name)))
+	as = append(as, WrapHashEntry2(KEY_GONAME, stringValue(f.Name)))
 	if name == `` {
 		name = issue.CamelToSnakeCase(f.Name)
 	}
@@ -385,7 +385,7 @@ func (r *reflector) TypeSetFromReflect(typeSetName string, version semver.Versio
 	}
 
 	es := make([]*HashEntry, 0)
-	es = append(es, WrapHashEntry2(eval.KEY_PCORE_URI, WrapString(string(eval.PCORE_URI))))
+	es = append(es, WrapHashEntry2(eval.KEY_PCORE_URI, stringValue(string(eval.PCORE_URI))))
 	es = append(es, WrapHashEntry2(eval.KEY_PCORE_VERSION, WrapSemVer(eval.PCORE_VERSION)))
 	es = append(es, WrapHashEntry2(KEY_VERSION, WrapSemVer(version)))
 	es = append(es, WrapHashEntry2(KEY_TYPES, WrapHash(types)))

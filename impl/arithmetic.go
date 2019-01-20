@@ -3,10 +3,10 @@ package impl
 import (
 	"strconv"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
@@ -32,15 +32,15 @@ func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) ev
 		return lhsFloatArithmetic(expr, a.(*types.FloatValue).Float(), b)
 	case *types.IntegerValue:
 		return lhsIntArithmetic(expr, a.(*types.IntegerValue).Int(), b)
-	case *types.StringValue:
-		sv := a.(*types.StringValue)
-		if iv, err := strconv.ParseInt(sv.String(), 0, 64); err == nil {
+	case eval.StringValue:
+		s := a.String()
+		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return lhsIntArithmetic(expr, iv, b)
 		}
-		if fv, err := strconv.ParseFloat(sv.String(), 64); err == nil {
+		if fv, err := strconv.ParseFloat(s, 64); err == nil {
 			return lhsFloatArithmetic(expr, fv, b)
 		}
-		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Lhs(), issue.H{`value`: sv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Lhs(), issue.H{`value`: s}))
 	}
 	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
 }
@@ -52,15 +52,15 @@ func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value)
 		return types.WrapInteger(intArithmetic(expr, ai, b.(*types.IntegerValue).Int()))
 	case *types.FloatValue:
 		return types.WrapFloat(floatArithmetic(expr, float64(ai), b.(*types.FloatValue).Float()))
-	case *types.StringValue:
-		bv := b.(*types.StringValue)
-		if iv, err := strconv.ParseInt(bv.String(), 0, 64); err == nil {
+	case eval.StringValue:
+		s := b.String()
+		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return types.WrapInteger(intArithmetic(expr, ai, iv))
 		}
-		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
+		if fv, err := strconv.ParseFloat(s, 64); err == nil {
 			return types.WrapFloat(floatArithmetic(expr, float64(ai), fv))
 		}
-		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: s}))
 	default:
 		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Integer`, `right`: b.PType()}))
 	}
@@ -73,15 +73,15 @@ func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Va
 		return types.WrapFloat(floatArithmetic(expr, af, b.(*types.FloatValue).Float()))
 	case *types.IntegerValue:
 		return types.WrapFloat(floatArithmetic(expr, af, float64(b.(*types.IntegerValue).Int())))
-	case *types.StringValue:
-		bv := b.(*types.StringValue)
-		if iv, err := strconv.ParseInt(bv.String(), 0, 64); err == nil {
+	case eval.StringValue:
+		s := b.String()
+		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return types.WrapFloat(floatArithmetic(expr, af, float64(iv)))
 		}
-		if fv, err := strconv.ParseFloat(bv.String(), 64); err == nil {
+		if fv, err := strconv.ParseFloat(s, 64); err == nil {
 			return types.WrapFloat(floatArithmetic(expr, af, fv))
 		}
-		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: bv.String()}))
+		panic(evalError(eval.EVAL_NOT_NUMERIC, expr.Rhs(), issue.H{`value`: s}))
 	default:
 		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: `Float`, `right`: b.PType()}))
 	}
@@ -156,7 +156,7 @@ func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) 
 		}
 	case *types.UriValue:
 		switch b.(type) {
-		case *types.StringValue:
+		case eval.StringValue:
 			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(types.ParseURI(b.String())))
 		case *types.UriValue:
 			return types.WrapURI(a.(*types.UriValue).URL().ResolveReference(b.(*types.UriValue).URL()))

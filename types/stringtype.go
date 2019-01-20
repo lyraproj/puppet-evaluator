@@ -15,22 +15,32 @@ import (
 )
 
 type (
-	StringType struct {
-		size  *IntegerType
+	// String that is unconstrained
+	stringType struct{}
+
+	// String constrained to content
+	vcStringType struct {
+		stringType
 		value string
 	}
 
-	// StringValue represents StringType as a value
-	StringValue StringType
+	// String constrained by length of string
+	scStringType struct {
+		stringType
+		size *IntegerType
+	}
+
+	// stringValue represents string as a eval.Value
+	stringValue string
 )
 
-var stringType_DEFAULT = &StringType{IntegerType_POSITIVE, ``}
-var stringType_NOT_EMPTY = &StringType{NewIntegerType(1, math.MaxInt64), ``}
+var stringTypeDefault = &stringType{}
+var stringTypeNotEmpty = &scStringType{size: NewIntegerType(1, math.MaxInt64)}
 
-var String_Type eval.ObjectType
+var StringMetaType eval.ObjectType
 
 func init() {
-	String_Type = newObjectType(`Pcore::StringType`,
+	StringMetaType = newObjectType(`Pcore::StringType`,
 		`Pcore::ScalarDataType {
 	attributes => {
 		size_type_or_value => {
@@ -59,10 +69,10 @@ func init() {
 			d.Param(`Any`)
 			d.OptionalParam(`Formats`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				fmt := NONE
+				f := NONE
 				if len(args) > 1 {
 					var err error
-					fmt, err = eval.NewFormatContext3(args[0], args[1])
+					f, err = eval.NewFormatContext3(args[0], args[1])
 					if err != nil {
 						panic(errors.NewIllegalArgument(`String`, 1, err.Error()))
 					}
@@ -77,37 +87,36 @@ func init() {
 						panic(r)
 					}
 				}()
-				return WrapString(eval.ToString2(args[0], fmt))
+				return stringValue(eval.ToString2(args[0], f))
 			})
 		},
 	)
 }
 
-func DefaultStringType() *StringType {
-	return stringType_DEFAULT
+func DefaultStringType() *stringType {
+	return stringTypeDefault
 }
 
-func NewStringType(rng *IntegerType, s string) *StringType {
+func NewStringType(rng *IntegerType, s string) eval.Type {
 	if s == `` {
 		if rng == nil || *rng == *IntegerType_POSITIVE {
 			return DefaultStringType()
 		}
-		return &StringType{rng, s}
+		return &scStringType{size: rng}
 	}
-	sz := int64(len(s))
-	return &StringType{NewIntegerType(sz, sz), s}
+	return &vcStringType{value: s}
 }
 
-func NewStringType2(args ...eval.Value) *StringType {
+func NewStringType2(args ...eval.Value) eval.Type {
 	var rng *IntegerType
 	var ok bool
 	switch len(args) {
 	case 0:
 		return DefaultStringType()
 	case 1:
-		var value *StringValue
-		if value, ok = args[0].(*StringValue); ok {
-			return NewStringType(nil, value.String())
+		var value stringValue
+		if value, ok = args[0].(stringValue); ok {
+			return NewStringType(nil, string(value))
 		}
 		rng, ok = args[0].(*IntegerType)
 		if !ok {
@@ -135,194 +144,263 @@ func NewStringType2(args ...eval.Value) *StringType {
 	return NewStringType(rng, ``)
 }
 
-func (t *StringType) Accept(v eval.Visitor, g eval.Guard) {
+func (t *stringType) Accept(v eval.Visitor, g eval.Guard) {
 	v(t)
 }
 
-func (t *StringType) Default() eval.Type {
-	return stringType_DEFAULT
+func (t *scStringType) Accept(v eval.Visitor, g eval.Guard) {
+	v(t)
+	t.size.Accept(v, g)
 }
 
-func (t *StringType) Equals(o interface{}, g eval.Guard) bool {
-	if ot, ok := o.(*StringType); ok {
-		return t.value == ot.value && t.size.Equals(ot.size, g)
+func (t *stringType) Default() eval.Type {
+	return stringTypeDefault
+}
+
+func (t *stringType) Equals(o interface{}, g eval.Guard) bool {
+	_, ok := o.(*stringType)
+	return ok
+}
+
+func (t *scStringType) Equals(o interface{}, g eval.Guard) bool {
+	if ot, ok := o.(*scStringType); ok {
+		return t.size.Equals(ot.size, g)
 	}
 	return false
 }
 
-func (t *StringType) Get(key string) (value eval.Value, ok bool) {
+func (t *vcStringType) Equals(o interface{}, g eval.Guard) bool {
+	if ot, ok := o.(*vcStringType); ok {
+		return t.value == ot.value
+	}
+	return false
+}
+
+func (t *stringType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `size_type_or_value`:
-		if t.value == `` {
-			return t.size, true
-		}
-		return WrapString(t.value), true
+		return IntegerType_POSITIVE, true
 	}
 	return nil, false
 }
 
-func (t *StringType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	if st, ok := o.(*StringType); ok {
-		if t.value == `` {
-			return t.size.IsAssignable(st.size, g)
-		}
-		return t.value == st.value
+func (t *scStringType) Get(key string) (value eval.Value, ok bool) {
+	switch key {
+	case `size_type_or_value`:
+		return t.size, true
 	}
+	return nil, false
+}
 
-	if et, ok := o.(*EnumType); ok {
-		if t.value == `` {
-			if *t.size == *IntegerType_POSITIVE {
-				return true
-			}
-			for _, str := range et.values {
-				if !t.size.IsInstance3(len(str)) {
-					return false
-				}
-			}
-			return true
-		}
+func (t *vcStringType) Get(key string) (value eval.Value, ok bool) {
+	switch key {
+	case `size_type_or_value`:
+		return stringValue(t.value), true
 	}
+	return nil, false
+}
 
-	if _, ok := o.(*PatternType); ok {
-		// Pattern is only assignable to the default string
-		return *t == *stringType_DEFAULT
+func (t *stringType) IsAssignable(o eval.Type, g eval.Guard) bool {
+	switch o.(type) {
+	case *stringType, *scStringType, *vcStringType, *EnumType, *PatternType:
+		return true
 	}
 	return false
 }
 
-func (t *StringType) IsInstance(o eval.Value, g eval.Guard) bool {
-	str, ok := o.(*StringValue)
-	return ok && t.size.IsInstance3(len(str.String())) && (t.value == `` || t.value == str.String())
+func (t *scStringType) IsAssignable(o eval.Type, g eval.Guard) bool {
+	switch o.(type) {
+	case *vcStringType:
+		t.size.IsInstance3(len(o.(*vcStringType).value))
+	case *scStringType:
+		t.size.IsAssignable(o.(*scStringType).size, g)
+	case *EnumType:
+		for _, str := range o.(*EnumType).values {
+			if !t.size.IsInstance3(len(string(str))) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
-func (t *StringType) MetaType() eval.ObjectType {
-	return String_Type
+func (t *vcStringType) IsAssignable(o eval.Type, g eval.Guard) bool {
+	if st, ok := o.(*vcStringType); ok {
+		return t.value == st.value
+	}
+	return false
 }
 
-func (t *StringType) Name() string {
+func (t *stringType) IsInstance(o eval.Value, g eval.Guard) bool {
+	_, ok := o.(stringValue)
+	return ok
+}
+
+func (t *scStringType) IsInstance(o eval.Value, g eval.Guard) bool {
+	str, ok := o.(stringValue)
+	return ok && t.size.IsInstance3(len(string(str)))
+}
+
+func (t *vcStringType) IsInstance(o eval.Value, g eval.Guard) bool {
+	str, ok := o.(stringValue)
+	return ok && t.value == string(str)
+}
+
+func (t *stringType) MetaType() eval.ObjectType {
+	return StringMetaType
+}
+
+func (t *stringType) Name() string {
 	return `String`
 }
 
-func (t *StringType) Parameters() []eval.Value {
-	if t.value != `` || *t.size == *IntegerType_POSITIVE {
-		return eval.EMPTY_VALUES
-	}
+func (t *stringType) Parameters() []eval.Value {
+	return eval.EMPTY_VALUES
+}
+
+func (t *scStringType) Parameters() []eval.Value {
 	return t.size.Parameters()
 }
 
-func (t *StringType) ReflectType(c eval.Context) (reflect.Type, bool) {
+func (t *stringType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
-func (t *StringType) CanSerializeAsString() bool {
+func (t *stringType) CanSerializeAsString() bool {
 	return true
 }
 
-func (t *StringType) SerializationString() string {
+func (t *stringType) SerializationString() string {
 	return t.String()
 }
 
-func (t *StringType) String() string {
+func (t *stringType) String() string {
 	return eval.ToString2(t, NONE)
 }
 
-func (t *StringType) Size() *IntegerType {
+func (t *scStringType) String() string {
+	return eval.ToString2(t, NONE)
+}
+
+func (t *vcStringType) String() string {
+	return eval.ToString2(t, NONE)
+}
+
+func (t *stringType) Size() eval.Type {
+	return IntegerType_POSITIVE
+}
+
+func (t *scStringType) Size() eval.Type {
 	return t.size
 }
 
-func (t *StringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (t *stringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)
 }
 
-func (t *StringType) PType() eval.Type {
+func (t *scStringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	TypeToString(t, b, s, g)
+}
+
+func (t *vcStringType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	TypeToString(t, b, s, g)
+}
+
+func (t *stringType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func (t *StringType) Value() string {
+func (t *stringType) Value() string {
+	return ``
+}
+
+func (t *vcStringType) Value() string {
 	return t.value
 }
 
-func WrapString(str string) *StringValue {
-	return (*StringValue)(NewStringType(nil, str))
+func WrapString(str string) eval.StringValue {
+	return stringValue(str)
 }
-func (sv *StringValue) Add(v eval.Value) eval.List {
-	if ov, ok := v.(*StringValue); ok {
-		return WrapString(sv.String() + ov.String())
+
+func (sv stringValue) Add(v eval.Value) eval.List {
+	if ov, ok := v.(stringValue); ok {
+		return stringValue(string(sv) + string(ov))
 	}
 	panic(fmt.Sprintf(`No auto conversion from %s to String`, v.PType().String()))
 }
 
-var ONE_CHAR_STRING_TYPE = NewStringType(NewIntegerType(1, 1), ``)
+var OneCharStringType = NewStringType(NewIntegerType(1, 1), ``)
 
-func (sv *StringValue) AddAll(tv eval.List) eval.List {
+func (sv stringValue) AddAll(tv eval.List) eval.List {
 	s := bytes.NewBufferString(sv.String())
 	tv.Each(func(e eval.Value) {
-		ev, ok := e.(*StringValue)
+		ev, ok := e.(stringValue)
 		if !ok {
 			panic(fmt.Sprintf(`No auto conversion from %s to String`, e.PType().String()))
 		}
-		io.WriteString(s, ev.String())
+		s.WriteString(string(ev))
 	})
-	return WrapString(s.String())
+	return stringValue(s.String())
 }
 
-func (sv *StringValue) All(predicate eval.Predicate) bool {
+func (sv stringValue) All(predicate eval.Predicate) bool {
 	for _, c := range sv.String() {
-		if !predicate(WrapString(string(c))) {
+		if !predicate(stringValue(string(c))) {
 			return false
 		}
 	}
 	return true
 }
 
-func (sv *StringValue) Any(predicate eval.Predicate) bool {
+func (sv stringValue) Any(predicate eval.Predicate) bool {
 	for _, c := range sv.String() {
-		if predicate(WrapString(string(c))) {
+		if predicate(stringValue(string(c))) {
 			return true
 		}
 	}
 	return false
 }
 
-func (sv *StringValue) AppendTo(slice []eval.Value) []eval.Value {
+func (sv stringValue) AppendTo(slice []eval.Value) []eval.Value {
 	for _, c := range sv.String() {
-		slice = append(slice, WrapString(string(c)))
+		slice = append(slice, stringValue(string(c)))
 	}
 	return slice
 }
 
-func (sv *StringValue) At(i int) eval.Value {
+func (sv stringValue) At(i int) eval.Value {
 	if i >= 0 && i < len(sv.String()) {
-		return WrapString(sv.String()[i : i+1])
+		return stringValue(sv.String()[i : i+1])
 	}
 	return _UNDEF
 }
 
-func (sv *StringValue) Delete(v eval.Value) eval.List {
+func (sv stringValue) Delete(v eval.Value) eval.List {
 	panic(`Operation not supported`)
 }
 
-func (sv *StringValue) DeleteAll(tv eval.List) eval.List {
+func (sv stringValue) DeleteAll(tv eval.List) eval.List {
 	panic(`Operation not supported`)
 }
 
-func (sv *StringValue) Elements() []eval.Value {
+func (sv stringValue) Elements() []eval.Value {
 	str := sv.String()
 	top := len(str)
 	el := make([]eval.Value, top)
 	for idx, c := range str {
-		el[idx] = WrapString(string(c))
+		el[idx] = stringValue(string(c))
 	}
 	return el
 }
 
-func (sv *StringValue) Each(consumer eval.Consumer) {
+func (sv stringValue) Each(consumer eval.Consumer) {
 	for _, c := range sv.String() {
-		consumer(WrapString(string(c)))
+		consumer(stringValue(string(c)))
 	}
 }
 
-func (sv *StringValue) EachSlice(n int, consumer eval.SliceConsumer) {
+func (sv stringValue) EachSlice(n int, consumer eval.SliceConsumer) {
 	s := sv.String()
 	top := len(s)
 	for i := 0; i < top; i += n {
@@ -330,30 +408,37 @@ func (sv *StringValue) EachSlice(n int, consumer eval.SliceConsumer) {
 		if e > top {
 			e = top
 		}
-		consumer(WrapString(s[i:e]))
+		consumer(stringValue(s[i:e]))
 	}
 }
 
-func (sv *StringValue) EachWithIndex(consumer eval.IndexedConsumer) {
+func (sv stringValue) EachWithIndex(consumer eval.IndexedConsumer) {
 	for i, c := range sv.String() {
-		consumer(WrapString(string(c)), i)
+		consumer(stringValue(string(c)), i)
 	}
 }
 
-func (sv *StringValue) ElementType() eval.Type {
-	return ONE_CHAR_STRING_TYPE
+func (sv stringValue) ElementType() eval.Type {
+	return OneCharStringType
 }
 
-func (sv *StringValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*StringValue); ok {
-		return sv.String() == ov.String()
+func (sv stringValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(stringValue); ok {
+		return string(sv) == string(ov)
 	}
 	return false
 }
 
-func (sv *StringValue) Find(predicate eval.Predicate) (eval.Value, bool) {
-	for _, c := range sv.String() {
-		e := WrapString(string(c))
+func (sv stringValue) EqualsIgnoreCase(o eval.Value) bool {
+	if os, ok := o.(stringValue); ok {
+		return strings.EqualFold(string(sv), string(os))
+	}
+	return false
+}
+
+func (sv stringValue) Find(predicate eval.Predicate) (eval.Value, bool) {
+	for _, c := range string(sv) {
+		e := stringValue(string(c))
 		if predicate(e) {
 			return e, true
 		}
@@ -361,36 +446,36 @@ func (sv *StringValue) Find(predicate eval.Predicate) (eval.Value, bool) {
 	return nil, false
 }
 
-func (sv *StringValue) Flatten() eval.List {
+func (sv stringValue) Flatten() eval.List {
 	return sv
 }
 
-func (sv *StringValue) IsEmpty() bool {
+func (sv stringValue) IsEmpty() bool {
 	return sv.Len() == 0
 }
 
-func (sv *StringValue) IsHashStyle() bool {
+func (sv stringValue) IsHashStyle() bool {
 	return false
 }
 
-func (sv *StringValue) Iterator() eval.Iterator {
-	return &indexedIterator{ONE_CHAR_STRING_TYPE, -1, sv}
+func (sv stringValue) Iterator() eval.Iterator {
+	return &indexedIterator{OneCharStringType, -1, sv}
 }
 
-func (sv *StringValue) Len() int {
-	return int((*StringType)(sv).Size().Min())
+func (sv stringValue) Len() int {
+	return len(sv)
 }
 
-func (sv *StringValue) Map(mapper eval.Mapper) eval.List {
+func (sv stringValue) Map(mapper eval.Mapper) eval.List {
 	s := sv.String()
 	mapped := make([]eval.Value, len(s))
 	for i, c := range s {
-		mapped[i] = mapper(WrapString(string(c)))
+		mapped[i] = mapper(stringValue(string(c)))
 	}
 	return WrapValues(mapped)
 }
 
-func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.Value {
+func (sv stringValue) Reduce(redactor eval.BiMapper) eval.Value {
 	s := sv.String()
 	if len(s) == 0 {
 		return _UNDEF
@@ -398,69 +483,72 @@ func (sv *StringValue) Reduce(redactor eval.BiMapper) eval.Value {
 	return reduceString(s[1:], sv.At(0), redactor)
 }
 
-func (sv *StringValue) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
+func (sv stringValue) Reduce2(initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	return reduceString(sv.String(), initialValue, redactor)
 }
 
-func (sv *StringValue) Reflect(c eval.Context) reflect.Value {
+func (sv stringValue) Reflect(c eval.Context) reflect.Value {
 	return reflect.ValueOf(sv.String())
 }
 
-func (sv *StringValue) ReflectTo(c eval.Context, value reflect.Value) {
+func (sv stringValue) ReflectTo(c eval.Context, value reflect.Value) {
 	switch value.Kind() {
 	case reflect.Interface:
 		value.Set(sv.Reflect(c))
 	case reflect.Ptr:
-		s := (*StringType)(sv).value
+		s := string(sv)
 		value.Set(reflect.ValueOf(&s))
 	default:
-		value.SetString(sv.String())
+		value.SetString(string(sv))
 	}
 }
 
-func (sv *StringValue) Reject(predicate eval.Predicate) eval.List {
+func (sv stringValue) Reject(predicate eval.Predicate) eval.List {
 	selected := bytes.NewBufferString(``)
 	for _, c := range sv.String() {
-		if !predicate(WrapString(string(c))) {
+		if !predicate(stringValue(string(c))) {
 			selected.WriteRune(c)
 		}
 	}
-	return WrapString(selected.String())
+	return stringValue(selected.String())
 }
 
-func (sv *StringValue) Select(predicate eval.Predicate) eval.List {
+func (sv stringValue) Select(predicate eval.Predicate) eval.List {
 	selected := bytes.NewBufferString(``)
 	for _, c := range sv.String() {
-		if predicate(WrapString(string(c))) {
+		if predicate(stringValue(string(c))) {
 			selected.WriteRune(c)
 		}
 	}
-	return WrapString(selected.String())
+	return stringValue(selected.String())
 }
 
-func (sv *StringValue) Slice(i int, j int) eval.List {
-	return WrapString(sv.String()[i:j])
+func (sv stringValue) Slice(i int, j int) eval.List {
+	return stringValue(sv.String()[i:j])
 }
 
-func (sv *StringValue) Split(pattern *regexp.Regexp) *ArrayValue {
-	strings := pattern.Split(sv.String(), -1)
-	result := make([]eval.Value, len(strings))
-	for i, s := range strings {
-		result[i] = WrapString(s)
+func (sv stringValue) Split(pattern *regexp.Regexp) eval.List {
+	parts := pattern.Split(sv.String(), -1)
+	result := make([]eval.Value, len(parts))
+	for i, s := range parts {
+		result[i] = stringValue(s)
 	}
 	return WrapValues(result)
 }
 
-func (sv *StringValue) String() string {
-	return (*StringType)(sv).Value()
+func (sv stringValue) String() string {
+	return string(sv)
 }
 
-func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (sv stringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), sv.PType())
-	val := sv.value
+	val := string(sv)
 	switch f.FormatChar() {
 	case 's':
-		fmt.Fprintf(b, f.OrigFormat(), val)
+		_, err := fmt.Fprintf(b, f.OrigFormat(), val)
+		if err != nil {
+			panic(err)
+		}
 	case 'p':
 		f.ApplyStringFlags(b, val, true)
 	case 'c':
@@ -483,15 +571,23 @@ func (sv *StringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	}
 }
 
-func (sv *StringValue) ToKey() eval.HashKey {
+func (sv stringValue) ToKey() eval.HashKey {
 	return eval.HashKey(sv.String())
 }
 
-func (sv *StringValue) PType() eval.Type {
-	return (*StringType)(sv)
+func (sv stringValue) ToLower() eval.StringValue {
+	return stringValue(strings.ToLower(string(sv)))
 }
 
-func (sv *StringValue) Unique() eval.List {
+func (sv stringValue) ToUpper() eval.StringValue {
+	return stringValue(strings.ToUpper(string(sv)))
+}
+
+func (sv stringValue) PType() eval.Type {
+	return &vcStringType{value: string(sv)}
+}
+
+func (sv stringValue) Unique() eval.List {
 	s := sv.String()
 	top := len(s)
 	if top < 2 {
@@ -509,13 +605,13 @@ func (sv *StringValue) Unique() eval.List {
 	if result.Len() == len(s) {
 		return sv
 	}
-	return WrapString(result.String())
+	return stringValue(result.String())
 }
 
 func reduceString(slice string, initialValue eval.Value, redactor eval.BiMapper) eval.Value {
 	memo := initialValue
 	for _, v := range slice {
-		memo = redactor(memo, WrapString(string(v)))
+		memo = redactor(memo, stringValue(string(v)))
 	}
 	return memo
 }

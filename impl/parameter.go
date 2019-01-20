@@ -7,9 +7,9 @@ import (
 )
 
 type parameter struct {
-	name  string
-	typ   eval.Type
-	value eval.Value
+	name     string
+	typ      eval.Type
+	value    eval.Value
 	captures bool
 }
 
@@ -97,7 +97,7 @@ func init() {
       'captures_rest' => { type => Boolean, value => false },
     }
   }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		n := args[0].(*types.StringValue).String()
+		n := args[0].String()
 		t := args[1].(eval.Type)
 		h := false
 		if len(args) > 2 {
@@ -117,7 +117,7 @@ func init() {
 		return NewParameter(n, t, v, c)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*types.HashValue)
-		n := h.Get5(`name`, eval.EMPTY_STRING).(*types.StringValue).String()
+		n := h.Get5(`name`, eval.EMPTY_STRING).String()
 		t := h.Get5(`type`, types.DefaultDataType()).(eval.Type)
 		var v eval.Value
 		if x, ok := h.Get4(`value`); ok {

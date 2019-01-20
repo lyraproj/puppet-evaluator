@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/semver/semver"
 )
@@ -64,8 +64,8 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 			}
 		}
 
-	case *types.StringValue:
-		if _, ok := b.(*types.StringValue); ok {
+	case eval.StringValue:
+		if _, ok := b.(eval.StringValue); ok {
 			sa := a.String()
 			sb := b.String()
 			if !caseSensitive {
@@ -134,9 +134,9 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 	case eval.Type:
 		result = eval.IsInstance(b.(eval.Type), a)
 
-	case *types.StringValue, *types.RegexpValue:
+	case eval.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp
-		if s, ok := b.(*types.StringValue); ok {
+		if s, ok := b.(eval.StringValue); ok {
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
@@ -146,7 +146,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 			rx = b.(*types.RegexpValue).Regexp()
 		}
 
-		sv, ok := a.(*types.StringValue)
+		sv, ok := a.(eval.StringValue)
 		if !ok {
 			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.PType()}))
 		}
@@ -162,7 +162,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 
 		if v, ok := a.(*types.SemVerValue); ok {
 			version = v.Version()
-		} else if s, ok := a.(*types.StringValue); ok {
+		} else if s, ok := a.(eval.StringValue); ok {
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {

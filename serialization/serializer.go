@@ -97,7 +97,7 @@ func (sc *context) toData(level int, value eval.Value) {
 	case *types.UndefValue, *types.IntegerValue, *types.FloatValue, *types.BooleanValue:
 		// Never dedup
 		sc.addData(value)
-	case *types.StringValue:
+	case eval.StringValue:
 		// Dedup only if length exceeds stringThreshold
 		key := value.String()
 		if sc.dedupLevel >= level && len(key) >= sc.consumer.StringDedupThreshold() {
@@ -232,7 +232,7 @@ func (sc *context) nonStringKeyedHashToData(hash eval.OrderedMap) {
 	}
 	sc.addHash(hash.Len(), func() {
 		hash.EachPair(func(key, elem eval.Value) {
-			if s, ok := key.(*types.StringValue); ok {
+			if s, ok := key.(eval.StringValue); ok {
 				sc.toData(2, s)
 			} else {
 				sc.unknownToStringWithWarning(2, key)

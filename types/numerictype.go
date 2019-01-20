@@ -105,14 +105,13 @@ func (t *NumericType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 
-func (t *NumericType)  CanSerializeAsString() bool {
-  return true
+func (t *NumericType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *NumericType)  SerializationString() string {
+func (t *NumericType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *NumericType) String() string {
 	return eval.ToString2(t, NONE)
@@ -145,7 +144,7 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		return WrapFloat(c.(*BooleanValue).Float())
 	case eval.NumericValue:
 		return c.(eval.NumericValue)
-	case *StringValue:
+	case stringValue:
 		s := c.String()
 		if allowInt {
 			if i, err := strconv.ParseInt(s, 0, 64); err == nil {

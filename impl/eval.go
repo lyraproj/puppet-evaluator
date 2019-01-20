@@ -258,7 +258,7 @@ func evalBlockExpression(e eval.Evaluator, expr *parser.BlockExpression) (result
 func evalConcatenatedString(e eval.Evaluator, expr *parser.ConcatenatedString) eval.Value {
 	bld := bytes.NewBufferString(``)
 	for _, s := range expr.Segments() {
-		bld.WriteString(e.Eval(s).(*types.StringValue).String())
+		bld.WriteString(e.Eval(s).String())
 	}
 	return types.WrapString(bld.String())
 }

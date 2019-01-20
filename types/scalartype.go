@@ -34,7 +34,7 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	case *ScalarType, *ScalarDataType:
 		return true
 	default:
-		return GuardedIsAssignable(stringType_DEFAULT, o, g) ||
+		return GuardedIsAssignable(stringTypeDefault, o, g) ||
 			GuardedIsAssignable(numericType_DEFAULT, o, g) ||
 			GuardedIsAssignable(booleanType_DEFAULT, o, g) ||
 			GuardedIsAssignable(regexpType_DEFAULT, o, g)
@@ -44,7 +44,7 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
 	// TODO: Add TimeSpanValue, TimestampValue, and VersionValue here
-	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue, *RegexpValue:
+	case *BooleanValue, *FloatValue, *IntegerValue, stringValue, *RegexpValue:
 		return true
 	}
 	return false
@@ -58,14 +58,13 @@ func (t *ScalarType) Name() string {
 	return `Scalar`
 }
 
-func (t *ScalarType)  CanSerializeAsString() bool {
-  return true
+func (t *ScalarType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *ScalarType)  SerializationString() string {
+func (t *ScalarType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *ScalarType) String() string {
 	return `Scalar`

@@ -29,6 +29,12 @@ type (
 		Size() Type
 	}
 
+	StringType interface {
+		SizedType
+
+		Value() string
+	}
+
 	Creatable interface {
 		Constructor(c Context) Function
 	}

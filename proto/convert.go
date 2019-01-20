@@ -54,7 +54,7 @@ func (pc *protoConsumer) AddHash(cap int, doer eval.Doer) {
 	pc.stack = pc.stack[0:top]
 
 	top = len(els)
-	vals := make([]*datapb.DataEntry, top / 2)
+	vals := make([]*datapb.DataEntry, top/2)
 	for i := 0; i < top; i += 2 {
 		vals[i/2] = &datapb.DataEntry{els[i], els[i+1]}
 	}
@@ -90,8 +90,8 @@ func ToPBData(v eval.Value) (value *datapb.Data) {
 		value = &datapb.Data{Kind: &datapb.Data_FloatValue{v.(*types.FloatValue).Float()}}
 	case *types.IntegerValue:
 		value = &datapb.Data{Kind: &datapb.Data_IntegerValue{v.(*types.IntegerValue).Int()}}
-	case *types.StringValue:
-		value = &datapb.Data{Kind: &datapb.Data_StringValue{v.(*types.StringValue).String()}}
+	case eval.StringValue:
+		value = &datapb.Data{Kind: &datapb.Data_StringValue{v.String()}}
 	case *types.UndefValue:
 		value = &datapb.Data{Kind: &datapb.Data_UndefValue{}}
 	case *types.ArrayValue:

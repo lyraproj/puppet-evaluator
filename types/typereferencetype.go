@@ -3,9 +3,9 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
 )
 
 type TypeReferenceType struct {
@@ -38,8 +38,8 @@ func NewTypeReferenceType2(args ...eval.Value) *TypeReferenceType {
 	case 0:
 		return DefaultTypeReferenceType()
 	case 1:
-		if str, ok := args[0].(*StringValue); ok {
-			return &TypeReferenceType{str.String()}
+		if str, ok := args[0].(stringValue); ok {
+			return &TypeReferenceType{string(str)}
 		}
 		panic(NewIllegalArgumentType2(`TypeReference[]`, 0, `String`, args[0]))
 	default:
@@ -65,7 +65,7 @@ func (t *TypeReferenceType) Equals(o interface{}, g eval.Guard) bool {
 func (t *TypeReferenceType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `type_string`:
-		return WrapString(t.typeString), true
+		return stringValue(t.typeString), true
 	default:
 		return nil, false
 	}
@@ -88,14 +88,13 @@ func (t *TypeReferenceType) Name() string {
 	return `TypeReference`
 }
 
-func (t *TypeReferenceType)  CanSerializeAsString() bool {
-  return true
+func (t *TypeReferenceType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *TypeReferenceType)  SerializationString() string {
+func (t *TypeReferenceType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *TypeReferenceType) String() string {
 	return eval.ToString2(t, NONE)
@@ -105,7 +104,7 @@ func (t *TypeReferenceType) Parameters() []eval.Value {
 	if *t == *typeReferenceType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.Value{WrapString(t.typeString)}
+	return []eval.Value{stringValue(t.typeString)}
 }
 
 func (t *TypeReferenceType) Resolve(c eval.Context) eval.Type {

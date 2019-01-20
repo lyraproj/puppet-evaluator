@@ -99,7 +99,7 @@ func (j *jsonStreamer) write(element eval.Value) {
 	var v []byte
 	var err error
 	switch element.(type) {
-	case *types.StringValue:
+	case eval.StringValue:
 		v, err = json.Marshal(element.String())
 	case *types.FloatValue:
 		v, err = json.Marshal(element.(*types.FloatValue).Float())

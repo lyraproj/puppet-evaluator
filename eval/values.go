@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 )
 
 type (
@@ -188,6 +189,14 @@ type (
 		Int() int64
 		Float() float64
 		Abs() NumericValue
+	}
+
+	StringValue interface {
+		List
+		Split(pattern *regexp.Regexp) List
+		ToLower() StringValue
+		ToUpper() StringValue
+		EqualsIgnoreCase(Value) bool
 	}
 )
 

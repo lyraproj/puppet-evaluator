@@ -352,7 +352,7 @@ func WrapInts(ints []int) *ArrayValue {
 func WrapStrings(strings []string) *ArrayValue {
 	els := make([]eval.Value, len(strings))
 	for i, e := range strings {
-		els[i] = WrapString(e)
+		els[i] = stringValue(e)
 	}
 	return &ArrayValue{elements: els}
 }

@@ -233,7 +233,7 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 }
 
 func (c *evalCtx) ParseType(typeString eval.Value) eval.Type {
-	if sv, ok := typeString.(*types.StringValue); ok {
+	if sv, ok := typeString.(eval.StringValue); ok {
 		return c.ParseType2(sv.String())
 	}
 	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))

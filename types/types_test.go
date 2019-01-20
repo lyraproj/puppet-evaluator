@@ -17,7 +17,7 @@ func ExampleUniqueValues() {
 	types.UniqueValues([]eval.Value{x, y})
 
 	z := types.WrapString(`hello`)
-	svec := []*types.StringValue{x, z}
+	svec := []eval.StringValue{x, z}
 	fmt.Println(types.UniqueValues([]eval.Value{svec[0], svec[1]}))
 	// Output: [hello]
 }

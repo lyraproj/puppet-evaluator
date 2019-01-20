@@ -246,7 +246,7 @@ func toTypes(types eval.List) ([]eval.Type, int) {
 	top := types.Len()
 	if top == 1 {
 		if a, ok := types.At(0).(eval.List); ok {
-			if _, ok = a.(*StringValue); !ok {
+			if _, ok = a.(stringValue); !ok {
 				ts, f := toTypes(a)
 				if f >= 0 {
 					return nil, 0
@@ -292,10 +292,10 @@ func CopyAppend(types []eval.Type, t eval.Type) []eval.Type {
 }
 
 var dataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`Data`}}
-var dataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, stringType_DEFAULT, &TypeReferenceType{`Data`}}
+var dataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, stringTypeDefault, &TypeReferenceType{`Data`}}
 var dataType_DEFAULT = &TypeAliasType{name: `Data`, resolvedType: &VariantType{[]eval.Type{scalarDataType_DEFAULT, undefType_DEFAULT, dataArrayType_DEFAULT, dataHashType_DEFAULT}}}
 
-var richKeyType_DEFAULT = &VariantType{[]eval.Type{stringType_DEFAULT, numericType_DEFAULT}}
+var richKeyType_DEFAULT = &VariantType{[]eval.Type{stringTypeDefault, numericType_DEFAULT}}
 var richDataArrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, &TypeReferenceType{`RichData`}}
 var richDataHashType_DEFAULT = &HashType{IntegerType_POSITIVE, richKeyType_DEFAULT, &TypeReferenceType{`RichData`}}
 var richDataType_DEFAULT = &TypeAliasType{`RichData`, nil, &VariantType{
@@ -407,7 +407,7 @@ func new(c eval.Context, receiver eval.Value, args ...eval.Value) eval.Value {
 		name = typ.Name()
 	} else {
 		// Type might be in string form
-		_, ok = receiver.(*StringValue)
+		_, ok = receiver.(stringValue)
 		if !ok {
 			// Only types or names of types can be used
 			panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: receiver.PType(), `message`: `new`}))
@@ -542,7 +542,7 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	case eval.Value:
 		pv = v.(eval.Value)
 	case string:
-		pv = WrapString(v.(string))
+		pv = stringValue(v.(string))
 	case int8:
 		pv = WrapInteger(int64(v.(int8)))
 	case int16:
@@ -689,7 +689,7 @@ func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
 	ok = true
 	switch vr.Kind() {
 	case reflect.String:
-		pv = WrapString(vr.String())
+		pv = stringValue(vr.String())
 	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 		pv = WrapInteger(vr.Int())
 	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
@@ -724,7 +724,8 @@ var wellknowns = map[reflect.Type]eval.Type{
 	reflect.TypeOf(&RegexpValue{}):                   DefaultRegexpType(),
 	reflect.TypeOf(&SemVerValue{}):                   DefaultSemVerType(),
 	reflect.TypeOf(&SensitiveValue{}):                DefaultSensitiveType(),
-	reflect.TypeOf(&StringValue{}):                   DefaultStringType(),
+	reflect.TypeOf(stringValue(``)):                  DefaultStringType(),
+	reflect.TypeOf((*eval.StringValue)(nil)).Elem():  DefaultStringType(),
 	reflect.TypeOf(&TimespanValue{}):                 DefaultTimespanType(),
 	reflect.TypeOf(&TimestampValue{}):                DefaultTimestampType(),
 	reflect.TypeOf(&TypeType{}):                      DefaultTypeType(),
@@ -978,8 +979,8 @@ func stringArg(hash eval.OrderedMap, key string, d string) string {
 	if v == nil {
 		return d
 	}
-	if t, ok := v.(*StringValue); ok {
-		return t.String()
+	if t, ok := v.(stringValue); ok {
+		return string(t)
 	}
 	panic(argError(DefaultStringType(), v))
 }
@@ -989,8 +990,8 @@ func uriArg(hash eval.OrderedMap, key string, d eval.URI) eval.URI {
 	if v == nil {
 		return d
 	}
-	if t, ok := v.(*StringValue); ok {
-		str := t.String()
+	if t, ok := v.(stringValue); ok {
+		str := string(t)
 		if _, err := ParseURI2(str, true); err != nil {
 			panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
 		}
@@ -1007,10 +1008,10 @@ func versionArg(hash eval.OrderedMap, key string, d semver.Version) semver.Versi
 	if v == nil {
 		return d
 	}
-	if s, ok := v.(*StringValue); ok {
-		sv, err := semver.ParseVersion(s.String())
+	if s, ok := v.(stringValue); ok {
+		sv, err := semver.ParseVersion(string(s))
 		if err != nil {
-			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: s.String(), `detail`: err.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_VERSION, issue.H{`str`: string(s), `detail`: err.Error()}))
 		}
 		return sv
 	}
@@ -1025,10 +1026,10 @@ func versionRangeArg(hash eval.OrderedMap, key string, d semver.VersionRange) se
 	if v == nil {
 		return d
 	}
-	if s, ok := v.(*StringValue); ok {
-		sr, err := semver.ParseVersionRange(s.String())
+	if s, ok := v.(stringValue); ok {
+		sr, err := semver.ParseVersionRange(string(s))
 		if err != nil {
-			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: s.String(), `detail`: err.Error()}))
+			panic(eval.Error(eval.EVAL_INVALID_VERSION_RANGE, issue.H{`str`: string(s), `detail`: err.Error()}))
 		}
 		return sr
 	}

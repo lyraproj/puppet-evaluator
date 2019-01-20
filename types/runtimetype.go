@@ -5,10 +5,10 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 )
 
 type (
@@ -71,7 +71,7 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 		return DefaultRuntimeType()
 	}
 
-	runtimeName, ok := args[0].(*StringValue)
+	runtimeName, ok := args[0].(stringValue)
 	if !ok {
 		panic(NewIllegalArgumentType2(`Runtime[]`, 0, `String`, args[0]))
 	}
@@ -81,8 +81,8 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 	if top == 1 {
 		name = eval.EMPTY_STRING
 	} else {
-		var rv *StringValue
-		rv, ok = args[1].(*StringValue)
+		var rv stringValue
+		rv, ok = args[1].(stringValue)
 		if !ok {
 			panic(NewIllegalArgumentType2(`Runtime[]`, 1, `String`, args[1]))
 		}
@@ -97,7 +97,7 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 			}
 		}
 	}
-	return NewRuntimeType(runtimeName.String(), name.String(), pattern)
+	return NewRuntimeType(string(runtimeName), name.String(), pattern)
 }
 
 // NewGoRuntimeType creates a Go runtime by extracting the element type of the given value.
@@ -140,13 +140,13 @@ func (t *RuntimeType) Get(key string) (eval.Value, bool) {
 		if t.runtime == `` {
 			return _UNDEF, true
 		}
-		return WrapString(t.runtime), true
+		return stringValue(t.runtime), true
 	case `name_or_pattern`:
 		if t.pattern != nil {
 			return t.pattern, true
 		}
 		if t.name != `` {
-			return WrapString(t.name), true
+			return stringValue(t.name), true
 		}
 		return _UNDEF, true
 	default:
@@ -211,9 +211,9 @@ func (t *RuntimeType) Parameters() []eval.Value {
 		return eval.EMPTY_VALUES
 	}
 	ps := make([]eval.Value, 0, 2)
-	ps = append(ps, WrapString(t.runtime))
+	ps = append(ps, stringValue(t.runtime))
 	if t.name != `` {
-		ps = append(ps, WrapString(t.name))
+		ps = append(ps, stringValue(t.name))
 	}
 	if t.pattern != nil {
 		ps = append(ps, t.pattern)
@@ -225,14 +225,13 @@ func (t *RuntimeType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return t.goType, t.goType != nil
 }
 
-func (t *RuntimeType)  CanSerializeAsString() bool {
-  return true
+func (t *RuntimeType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *RuntimeType)  SerializationString() string {
+func (t *RuntimeType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *RuntimeType) String() string {
 	return eval.ToString2(t, NONE)

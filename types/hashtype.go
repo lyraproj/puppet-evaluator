@@ -377,7 +377,7 @@ func WrapHashEntry(key eval.Value, value eval.Value) *HashEntry {
 }
 
 func WrapHashEntry2(key string, value eval.Value) *HashEntry {
-	return &HashEntry{WrapString(key), value}
+	return &HashEntry{stringValue(key), value}
 }
 
 func (he *HashEntry) Add(v eval.Value) eval.List {
@@ -587,7 +587,7 @@ func WrapStringToTypeMap(hash map[string]eval.Type) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry(WrapString(k), v)
+		hvEntries[i] = WrapHashEntry(stringValue(k), v)
 		i++
 	}
 	return sortedMap(hvEntries)
@@ -598,7 +598,7 @@ func WrapStringToValueMap(hash map[string]eval.Value) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry(WrapString(k), v)
+		hvEntries[i] = WrapHashEntry(stringValue(k), v)
 		i++
 	}
 	return sortedMap(hvEntries)
@@ -620,7 +620,7 @@ func WrapStringToStringMap(hash map[string]string) *HashValue {
 	hvEntries := make([]*HashEntry, len(hash))
 	i := 0
 	for k, v := range hash {
-		hvEntries[i] = WrapHashEntry2(k, WrapString(v))
+		hvEntries[i] = WrapHashEntry2(k, stringValue(v))
 		i++
 	}
 	return sortedMap(hvEntries)
@@ -733,7 +733,7 @@ func (hv *HashValue) AllPairs(predicate eval.BiPredicate) bool {
 
 func (hv *HashValue) AllKeysAreStrings() bool {
 	for _, e := range hv.entries {
-		if _, ok := e.key.(*StringValue); !ok {
+		if _, ok := e.key.(stringValue); !ok {
 			return false
 		}
 	}
@@ -1281,7 +1281,7 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 
 		structEntries := make([]*StructElement, top)
 		for idx, entry := range hv.entries {
-			if ks, ok := entry.key.(*StringValue); ok {
+			if ks, ok := entry.key.(stringValue); ok {
 				structEntries[idx] = NewStructElement(ks, DefaultAnyType())
 				continue
 			}
@@ -1293,7 +1293,7 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 		hv.detailedType = NewStructType(structEntries)
 
 		for _, entry := range hv.entries {
-			if sv, ok := entry.key.(*StringValue); !ok || len(sv.String()) == 0 {
+			if sv, ok := entry.key.(stringValue); !ok || len(string(sv)) == 0 {
 				firstEntry := hv.entries[0]
 				commonKeyType := eval.DetailedValueType(firstEntry.key)
 				commonValueType := eval.DetailedValueType(firstEntry.value)
