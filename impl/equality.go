@@ -14,11 +14,11 @@ func init() {
 		switch a.(type) {
 		case eval.StringValue:
 			return a.(eval.StringValue).EqualsIgnoreCase(b)
-		case *types.IntegerValue:
-			lhs := a.(*types.IntegerValue).Int()
+		case eval.IntegerValue:
+			lhs := a.(eval.IntegerValue).Int()
 			switch b.(type) {
-			case *types.IntegerValue:
-				return lhs == b.(*types.IntegerValue).Int()
+			case eval.IntegerValue:
+				return lhs == b.(eval.IntegerValue).Int()
 			case eval.NumericValue:
 				return float64(lhs) == b.(eval.NumericValue).Float()
 			}

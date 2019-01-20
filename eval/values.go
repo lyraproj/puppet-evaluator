@@ -188,7 +188,11 @@ type (
 		Value
 		Int() int64
 		Float() float64
-		Abs() NumericValue
+	}
+
+	IntegerValue interface {
+		NumericValue
+		Abs() int64
 	}
 
 	StringValue interface {

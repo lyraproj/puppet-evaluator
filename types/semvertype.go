@@ -64,9 +64,9 @@ func init() {
 			d.OptionalParam(`SemVerQualifier`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				argc := len(args)
-				major := args[0].(*IntegerValue).Int()
-				minor := args[1].(*IntegerValue).Int()
-				patch := args[2].(*IntegerValue).Int()
+				major := args[0].(integerValue).Int()
+				minor := args[1].(integerValue).Int()
+				patch := args[2].(integerValue).Int()
 				preRelease := ``
 				build := ``
 				if argc > 3 {
@@ -87,9 +87,9 @@ func init() {
 			d.Param(`SemVerHash`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
-				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
-				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
-				patch := hash.Get5(`patch`, ZERO).(*IntegerValue).Int()
+				major := hash.Get5(`major`, ZERO).(integerValue).Int()
+				minor := hash.Get5(`minor`, ZERO).(integerValue).Int()
+				patch := hash.Get5(`patch`, ZERO).(integerValue).Int()
 				preRelease := ``
 				build := ``
 				ev := hash.Get5(`prerelease`, nil)

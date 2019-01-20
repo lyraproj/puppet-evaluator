@@ -40,8 +40,8 @@ func init() {
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				switch arg.(type) {
-				case *IntegerValue:
-					if arg.(*IntegerValue).Int() == 0 {
+				case integerValue:
+					if arg.(integerValue) == 0 {
 						return Boolean_FALSE
 					}
 					return Boolean_TRUE
@@ -272,7 +272,7 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 'Y':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `Yes`, `No`), false)
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		integerValue(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
 		WrapFloat(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':

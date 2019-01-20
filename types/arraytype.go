@@ -82,12 +82,12 @@ func NewArrayType(element eval.Type, rng *IntegerType) *ArrayType {
 		element = anyType_DEFAULT
 	}
 	if rng == nil {
-		rng = IntegerType_POSITIVE
+		rng = IntegerTypePositive
 	}
-	if *rng == *IntegerType_POSITIVE && element == anyType_DEFAULT {
+	if *rng == *IntegerTypePositive && element == anyType_DEFAULT {
 		return DefaultArrayType()
 	}
-	if *rng == *IntegerType_ZERO && element == unitType_DEFAULT {
+	if *rng == *IntegerTypeZero && element == unitType_DEFAULT {
 		return EmptyArrayType()
 	}
 	return &ArrayType{rng, element}
@@ -110,7 +110,7 @@ func NewArrayType2(args ...eval.Value) *ArrayType {
 	var rng *IntegerType
 	switch argc - offset {
 	case 0:
-		rng = IntegerType_POSITIVE
+		rng = IntegerTypePositive
 	case 1:
 		sizeArg := args[offset]
 		if rng, ok = sizeArg.(*IntegerType); !ok {
@@ -259,7 +259,7 @@ func writeTypes(bld io.Writer, format eval.FormatContext, g eval.RDetect, types 
 }
 
 func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool) bool {
-	if skipDefault && *t == *IntegerType_POSITIVE {
+	if skipDefault && *t == *IntegerTypePositive {
 		return false
 	}
 	if needComma {
@@ -275,7 +275,7 @@ func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool)
 }
 
 func (t *ArrayType) Parameters() []eval.Value {
-	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *IntegerType_ZERO {
+	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *IntegerTypeZero {
 		return t.size.SizeParameters()
 	}
 
@@ -283,7 +283,7 @@ func (t *ArrayType) Parameters() []eval.Value {
 	if !t.typ.Equals(DefaultAnyType(), nil) {
 		params = append(params, t.typ)
 	}
-	if *t.size != *IntegerType_POSITIVE {
+	if *t.size != *IntegerTypePositive {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
@@ -308,8 +308,8 @@ func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-var arrayType_DEFAULT = &ArrayType{IntegerType_POSITIVE, anyType_DEFAULT}
-var arrayType_EMPTY = &ArrayType{IntegerType_ZERO, unitType_DEFAULT}
+var arrayType_DEFAULT = &ArrayType{IntegerTypePositive, anyType_DEFAULT}
+var arrayType_EMPTY = &ArrayType{IntegerTypeZero, unitType_DEFAULT}
 
 func BuildArray(len int, bld func(*ArrayValue, []eval.Value) []eval.Value) *ArrayValue {
 	ar := &ArrayValue{elements: make([]eval.Value, 0, len)}
@@ -344,7 +344,7 @@ func WrapInterfaces(c eval.Context, elements []interface{}) *ArrayValue {
 func WrapInts(ints []int) *ArrayValue {
 	els := make([]eval.Value, len(ints))
 	for i, e := range ints {
-		els[i] = WrapInteger(int64(e))
+		els[i] = integerValue(int64(e))
 	}
 	return &ArrayValue{elements: els}
 }

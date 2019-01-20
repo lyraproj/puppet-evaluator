@@ -88,8 +88,8 @@ func ToPBData(v eval.Value) (value *datapb.Data) {
 		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{v.(*types.BooleanValue).Bool()}}
 	case *types.FloatValue:
 		value = &datapb.Data{Kind: &datapb.Data_FloatValue{v.(*types.FloatValue).Float()}}
-	case *types.IntegerValue:
-		value = &datapb.Data{Kind: &datapb.Data_IntegerValue{v.(*types.IntegerValue).Int()}}
+	case eval.IntegerValue:
+		value = &datapb.Data{Kind: &datapb.Data_IntegerValue{v.(eval.IntegerValue).Int()}}
 	case eval.StringValue:
 		value = &datapb.Data{Kind: &datapb.Data_StringValue{v.String()}}
 	case *types.UndefValue:

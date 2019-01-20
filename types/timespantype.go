@@ -89,8 +89,8 @@ func init() {
 			d.Param(`Variant[Integer,Float]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
-				if i, ok := arg.(*IntegerValue); ok {
-					return WrapTimespan(time.Duration(i.Int() * NSECS_PER_SEC))
+				if i, ok := arg.(integerValue); ok {
+					return WrapTimespan(time.Duration(i * NSECS_PER_SEC))
 				}
 				return WrapTimespan(time.Duration(arg.(*FloatValue).Float() * NSECS_PER_SEC))
 			})
@@ -118,18 +118,18 @@ func init() {
 			d.OptionalParam(`Integer`)
 			d.OptionalParam(`Integer`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				days := args[0].(*IntegerValue).Int()
-				hours := args[1].(*IntegerValue).Int()
-				minutes := args[2].(*IntegerValue).Int()
-				seconds := args[3].(*IntegerValue).Int()
+				days := args[0].(integerValue).Int()
+				hours := args[1].(integerValue).Int()
+				minutes := args[2].(integerValue).Int()
+				seconds := args[3].(integerValue).Int()
 				argc := len(args)
 				var milliseconds, microseconds, nanoseconds int64
 				if argc > 4 {
-					milliseconds = args[4].(*IntegerValue).Int()
+					milliseconds = args[4].(integerValue).Int()
 					if argc > 5 {
-						microseconds = args[5].(*IntegerValue).Int()
+						microseconds = args[5].(integerValue).Int()
 						if argc > 6 {
-							nanoseconds = args[6].(*IntegerValue).Int()
+							nanoseconds = args[6].(integerValue).Int()
 						}
 					}
 				}
@@ -191,8 +191,8 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 			t, ok = fromHash(arg.(*HashValue))
 		case stringValue:
 			t, ok = parseDuration(arg.String(), DEFAULT_TIMESPAN_FORMATS)
-		case *IntegerValue:
-			t, ok = time.Duration(arg.(*IntegerValue).Int()*1000000000), true
+		case integerValue:
+			t, ok = time.Duration(arg.(integerValue)*1000000000), true
 		case *FloatValue:
 			t, ok = time.Duration(arg.(*FloatValue).Float()*1000000000.0), true
 		case *DefaultValue:
@@ -337,8 +337,8 @@ func fromFields(negative bool, days, hours, minutes, seconds, milliseconds, micr
 func fromFieldsHash(hash *HashValue) time.Duration {
 	intArg := func(key string) int64 {
 		if v, ok := hash.Get4(key); ok {
-			if i, ok := v.(*IntegerValue); ok {
-				return i.Int()
+			if i, ok := v.(integerValue); ok {
+				return int64(i)
 			}
 		}
 		return 0

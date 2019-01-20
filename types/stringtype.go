@@ -99,7 +99,7 @@ func DefaultStringType() *stringType {
 
 func NewStringType(rng *IntegerType, s string) eval.Type {
 	if s == `` {
-		if rng == nil || *rng == *IntegerType_POSITIVE {
+		if rng == nil || *rng == *IntegerTypePositive {
 			return DefaultStringType()
 		}
 		return &scStringType{size: rng}
@@ -179,7 +179,7 @@ func (t *vcStringType) Equals(o interface{}, g eval.Guard) bool {
 func (t *stringType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `size_type_or_value`:
-		return IntegerType_POSITIVE, true
+		return IntegerTypePositive, true
 	}
 	return nil, false
 }
@@ -288,7 +288,7 @@ func (t *vcStringType) String() string {
 }
 
 func (t *stringType) Size() eval.Type {
-	return IntegerType_POSITIVE
+	return IntegerTypePositive
 }
 
 func (t *scStringType) Size() eval.Type {

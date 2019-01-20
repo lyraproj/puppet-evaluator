@@ -47,7 +47,11 @@ func init() {
 func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	n := fromConvertible(args[0], tryInt)
 	if len(args) > 1 && args[1].(*BooleanValue).Bool() {
-		n = n.Abs()
+		if i, ok := n.(integerValue); ok {
+			n = integerValue(i.Abs())
+		} else {
+			n = n.(*FloatValue).Abs()
+		}
 	}
 	return n
 }
@@ -57,7 +61,11 @@ func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
 	a := h.Get5(`abs`, nil)
 	if a != nil && a.(*BooleanValue).Bool() {
-		n = n.Abs()
+		if i, ok := n.(integerValue); ok {
+			n = integerValue(i.Abs())
+		} else {
+			n = n.(*FloatValue).Abs()
+		}
 	}
 	return n
 }
@@ -127,8 +135,8 @@ func (t *NumericType) PType() eval.Type {
 
 func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 	switch c.(type) {
-	case *IntegerValue:
-		iv := c.(*IntegerValue)
+	case integerValue:
+		iv := c.(integerValue)
 		if allowInt {
 			return iv
 		}
@@ -139,7 +147,7 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		return WrapFloat(c.(*TimespanValue).Float())
 	case *BooleanValue:
 		if allowInt {
-			return WrapInteger(c.(*BooleanValue).Int())
+			return integerValue(c.(*BooleanValue).Int())
 		}
 		return WrapFloat(c.(*BooleanValue).Float())
 	case eval.NumericValue:
@@ -148,7 +156,7 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		s := c.String()
 		if allowInt {
 			if i, err := strconv.ParseInt(s, 0, 64); err == nil {
-				return WrapInteger(i)
+				return integerValue(i)
 			}
 		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
@@ -157,7 +165,7 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		if allowInt {
 			if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {
 				if i, err := strconv.ParseInt(s[2:], 2, 64); err == nil {
-					return WrapInteger(i)
+					return integerValue(i)
 				}
 			}
 		}

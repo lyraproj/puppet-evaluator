@@ -43,8 +43,7 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 
 func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
-	// TODO: Add TimeSpanValue, TimestampValue, and VersionValue here
-	case *BooleanValue, *FloatValue, *IntegerValue, stringValue, *RegexpValue:
+	case stringValue, integerValue, *FloatValue, *BooleanValue, *TimespanValue, *TimestampValue, *SemVerValue, *RegexpValue:
 		return true
 	}
 	return false

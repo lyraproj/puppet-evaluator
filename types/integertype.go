@@ -19,35 +19,29 @@ type (
 		max int64
 	}
 
-	// IntegerValue represents IntegerType as a value
-	IntegerValue IntegerType
+	// integerValue represents int64 as a value
+	integerValue int64
 )
 
-var IntegerType_POSITIVE = &IntegerType{0, math.MaxInt64}
-var IntegerType_ZERO = &IntegerType{0, 0}
-var IntegerType_ONE = &IntegerType{1, 1}
-var IntegerType_TWO = &IntegerType{2, 2}
+var IntegerTypePositive = &IntegerType{0, math.MaxInt64}
+var IntegerTypeZero = &IntegerType{0, 0}
+var IntegerTypeOne = &IntegerType{1, 1}
 
-var Integer_ZERO = &IntegerValue{0, 0}
-var Integer_ONE = &IntegerValue{1, 1}
-var Integer_TWO = &IntegerValue{2, 2}
+var ZERO = integerValue(0)
 
-var integerType_DEFAULT = &IntegerType{math.MinInt64, math.MaxInt64}
-var integerType_8 = &IntegerType{math.MinInt8, math.MaxInt8}
-var integerType_16 = &IntegerType{math.MinInt16, math.MaxInt16}
-var integerType_32 = &IntegerType{math.MinInt32, math.MaxInt32}
-var integerType_u8 = &IntegerType{0, math.MaxUint8}
-var integerType_u16 = &IntegerType{0, math.MaxUint16}
-var integerType_u32 = &IntegerType{0, math.MaxUint32}
-var integerType_u64 = IntegerType_POSITIVE // MaxUInt64 isn't supported at this time
-var ZERO = (*IntegerValue)(IntegerType_ZERO)
-var MIN_INT = WrapInteger(math.MinInt64)
-var MAX_INT = WrapInteger(math.MaxInt64)
+var integerTypeDefault = &IntegerType{math.MinInt64, math.MaxInt64}
+var integerType8 = &IntegerType{math.MinInt8, math.MaxInt8}
+var integerType16 = &IntegerType{math.MinInt16, math.MaxInt16}
+var integerType32 = &IntegerType{math.MinInt32, math.MaxInt32}
+var integerTypeU8 = &IntegerType{0, math.MaxUint8}
+var integerTypeU16 = &IntegerType{0, math.MaxUint16}
+var integerTypeU32 = &IntegerType{0, math.MaxUint32}
+var integerTypeU64 = IntegerTypePositive // MaxUInt64 isn't supported at this time
 
-var Integer_Type eval.ObjectType
+var IntegerMetaType eval.ObjectType
 
 func init() {
-	Integer_Type = newObjectType(`Pcore::IntegerType`,
+	IntegerMetaType = newObjectType(`Pcore::IntegerType`,
 		`Pcore::NumericType {
   attributes => {
     from => { type => Optional[Integer], value => undef },
@@ -72,18 +66,18 @@ func init() {
 				r := 10
 				abs := false
 				if len(args) > 1 {
-					if radix, ok := args[1].(*IntegerValue); ok {
-						r = int(radix.Int())
+					if radix, ok := args[1].(integerValue); ok {
+						r = int(radix)
 					}
 					if len(args) > 2 {
 						abs = args[2].(*BooleanValue).Bool()
 					}
 				}
-				n := intFromConvertible(c, args[0], r)
+				n := intFromConvertible(args[0], r)
 				if abs && n < 0 {
 					n = -n
 				}
-				return WrapInteger(n)
+				return integerValue(n)
 			})
 		},
 
@@ -94,27 +88,27 @@ func init() {
 				r := 10
 				abs := false
 				if rx, ok := h.Get4(`radix`); ok {
-					if radix, ok := rx.(*IntegerValue); ok {
-						r = int(radix.Int())
+					if radix, ok := rx.(integerValue); ok {
+						r = int(radix)
 					}
 				}
 				if ab, ok := h.Get4(`abs`); ok {
 					abs = ab.(*BooleanValue).Bool()
 				}
-				n := intFromConvertible(c, h.Get5(`from`, _UNDEF), r)
+				n := intFromConvertible(h.Get5(`from`, _UNDEF), r)
 				if abs && n < 0 {
 					n = -n
 				}
-				return WrapInteger(n)
+				return integerValue(n)
 			})
 		},
 	)
 }
 
-func intFromConvertible(c eval.Context, from eval.Value, radix int) int64 {
+func intFromConvertible(from eval.Value, radix int) int64 {
 	switch from.(type) {
-	case *IntegerValue:
-		return from.(*IntegerValue).Int()
+	case integerValue:
+		return from.(integerValue).Int()
 	case *FloatValue:
 		return from.(*FloatValue).Int()
 	case *TimestampValue:
@@ -133,11 +127,11 @@ func intFromConvertible(c eval.Context, from eval.Value, radix int) int64 {
 }
 
 func DefaultIntegerType() *IntegerType {
-	return integerType_DEFAULT
+	return integerTypeDefault
 }
 
 func PositiveIntegerType() *IntegerType {
-	return IntegerType_POSITIVE
+	return IntegerTypePositive
 }
 
 func NewIntegerType(min int64, max int64) *IntegerType {
@@ -149,10 +143,10 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 		if max == math.MaxInt64 {
 			return PositiveIntegerType()
 		} else if max == 0 {
-			return IntegerType_ZERO
+			return IntegerTypeZero
 		}
 	} else if min == 1 && max == 1 {
-		return IntegerType_ONE
+		return IntegerTypeOne
 	}
 	if min > max {
 		panic(errors.NewArgumentsError(`Integer[]`, `min is not allowed to be greater than max`))
@@ -163,7 +157,7 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 func NewIntegerType2(limits ...eval.Value) *IntegerType {
 	argc := len(limits)
 	if argc == 0 {
-		return integerType_DEFAULT
+		return integerTypeDefault
 	}
 	min, ok := toInt(limits[0])
 	if !ok {
@@ -192,7 +186,7 @@ func NewIntegerType2(limits ...eval.Value) *IntegerType {
 }
 
 func (t *IntegerType) Default() eval.Type {
-	return integerType_DEFAULT
+	return integerTypeDefault
 }
 
 func (t *IntegerType) Accept(v eval.Visitor, g eval.Guard) {
@@ -207,7 +201,7 @@ func (t *IntegerType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *IntegerType) Generic() eval.Type {
-	return integerType_DEFAULT
+	return integerTypeDefault
 }
 
 func (t *IntegerType) Get(key string) (eval.Value, bool) {
@@ -215,13 +209,13 @@ func (t *IntegerType) Get(key string) (eval.Value, bool) {
 	case `from`:
 		v := eval.UNDEF
 		if t.min != math.MinInt64 {
-			v = WrapInteger(t.min)
+			v = integerValue(t.min)
 		}
 		return v, true
 	case `to`:
 		v := eval.UNDEF
 		if t.max != math.MaxInt64 {
-			v = WrapInteger(t.max)
+			v = integerValue(t.max)
 		}
 		return v, true
 	default:
@@ -264,7 +258,7 @@ func (t *IntegerType) Max() int64 {
 }
 
 func (t *IntegerType) MetaType() eval.ObjectType {
-	return Integer_Type
+	return IntegerMetaType
 }
 
 func (t *IntegerType) Name() string {
@@ -276,12 +270,12 @@ func (t *IntegerType) Parameters() []eval.Value {
 		if t.max == math.MaxInt64 {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.Value{WrapDefault(), WrapInteger(t.max)}
+		return []eval.Value{WrapDefault(), integerValue(t.max)}
 	}
 	if t.max == math.MaxInt64 {
-		return []eval.Value{WrapInteger(t.min)}
+		return []eval.Value{integerValue(t.min)}
 	}
-	return []eval.Value{WrapInteger(t.min), WrapInteger(t.max)}
+	return []eval.Value{integerValue(t.min), integerValue(t.max)}
 }
 
 func (t *IntegerType) ReflectType(c eval.Context) (reflect.Type, bool) {
@@ -290,11 +284,11 @@ func (t *IntegerType) ReflectType(c eval.Context) (reflect.Type, bool) {
 
 func (t *IntegerType) SizeParameters() []eval.Value {
 	params := make([]eval.Value, 2)
-	params[0] = WrapInteger(t.min)
+	params[0] = integerValue(t.min)
 	if t.max == math.MaxInt64 {
 		params[1] = WrapDefault()
 	} else {
-		params[1] = WrapInteger(t.max)
+		params[1] = integerValue(t.max)
 	}
 	return params
 }
@@ -319,80 +313,80 @@ func (t *IntegerType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func WrapInteger(val int64) *IntegerValue {
-	return (*IntegerValue)(NewIntegerType(val, val))
+func WrapInteger(val int64) eval.IntegerValue {
+	return integerValue(val)
 }
 
-func (iv *IntegerValue) Abs() eval.NumericValue {
-	if iv.Int() < 0 {
-		return WrapInteger(-iv.Int())
+func (iv integerValue) Abs() int64 {
+	if iv < 0 {
+		return -int64(iv)
 	}
-	return iv
+	return int64(iv)
 }
 
-func (iv *IntegerValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*IntegerValue); ok {
-		return iv.Int() == ov.Int()
+func (iv integerValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(integerValue); ok {
+		return iv == ov
 	}
 	return false
 }
 
-func (iv *IntegerValue) Float() float64 {
-	return float64(iv.Int())
+func (iv integerValue) Float() float64 {
+	return float64(iv)
 }
 
-func (iv *IntegerValue) Int() int64 {
-	return iv.min
+func (iv integerValue) Int() int64 {
+	return int64(iv)
 }
 
-func (iv *IntegerValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(iv.Int())
+func (iv integerValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(int64(iv))
 }
 
-func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
+func (iv integerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
 	}
 	ok := true
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		value.SetInt(iv.Int())
+		value.SetInt(int64(iv))
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		value.SetUint(uint64(iv.Int()))
+		value.SetUint(uint64(iv))
 	case reflect.Interface:
-		value.Set(reflect.ValueOf(iv.Int()))
+		value.Set(reflect.ValueOf(int64(iv)))
 	case reflect.Ptr:
-		mv := iv.Int()
 		switch value.Type().Elem().Kind() {
 		case reflect.Int64:
-			value.Set(reflect.ValueOf(&mv))
+			v := int64(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Int:
-			iv := int(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := int(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Int8:
-			iv := int8(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := int8(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Int16:
-			iv := int16(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := int16(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Int32:
-			iv := int32(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := int32(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Uint:
-			iv := uint(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := uint(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Uint8:
-			iv := uint8(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := uint8(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Uint16:
-			iv := uint16(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := uint16(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Uint32:
-			iv := uint32(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := uint32(iv)
+			value.Set(reflect.ValueOf(&v))
 		case reflect.Uint64:
-			iv := uint64(mv)
-			value.Set(reflect.ValueOf(&iv))
+			v := uint64(iv)
+			value.Set(reflect.ValueOf(&v))
 		default:
 			ok = false
 		}
@@ -404,12 +398,12 @@ func (iv *IntegerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	}
 }
 
-func (iv *IntegerValue) String() string {
-	return fmt.Sprintf(`%d`, iv.Int())
+func (iv integerValue) String() string {
+	return fmt.Sprintf(`%d`, int64(iv))
 }
 
-func (iv *IntegerValue) ToKey(b *bytes.Buffer) {
-	n := iv.Int()
+func (iv integerValue) ToKey(b *bytes.Buffer) {
+	n := int64(iv)
 	b.WriteByte(1)
 	b.WriteByte(HK_INTEGER)
 	b.WriteByte(byte(n >> 56))
@@ -422,13 +416,14 @@ func (iv *IntegerValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(byte(n))
 }
 
-func (iv *IntegerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (iv integerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), iv.PType())
+	var err error
 	switch f.FormatChar() {
 	case 'x', 'X', 'o', 'd':
-		fmt.Fprintf(b, f.OrigFormat(), iv.Int())
+		_, err = fmt.Fprintf(b, f.OrigFormat(), int64(iv))
 	case 'p', 'b', 'B':
-		longVal := iv.Int()
+		longVal := int64(iv)
 		intString := strconv.FormatInt(longVal, integerRadix(f.FormatChar()))
 		totWidth := 0
 		if f.Width() > 0 {
@@ -452,30 +447,47 @@ func (iv *IntegerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 		computedFieldWidth := len(pfx) + intMax(numWidth, len(intString))
 
 		for spacePad := totWidth - computedFieldWidth; spacePad > 0; spacePad-- {
-			b.Write([]byte{' '})
+			_, err = b.Write([]byte{' '})
+			if err != nil {
+				break
+			}
+		}
+		if err != nil {
+			break
 		}
 
-		io.WriteString(b, pfx)
+		_, err = io.WriteString(b, pfx)
+		if err != nil {
+			break
+		}
 		if zeroPad > 0 {
 			padChar := []byte{'0'}
 			if f.FormatChar() == 'p' {
 				padChar = []byte{' '}
 			}
 			for ; zeroPad > 0; zeroPad-- {
-				b.Write(padChar)
+				_, err = b.Write(padChar)
+				if err != nil {
+					break
+				}
 			}
 		}
-		io.WriteString(b, intString)
+		if err == nil {
+			_, err = io.WriteString(b, intString)
+		}
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
 		WrapFloat(iv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 'c':
 		bld := bytes.NewBufferString(``)
-		bld.WriteRune(rune(iv.Int()))
+		bld.WriteRune(rune(int64(iv)))
 		f.ApplyStringFlags(b, bld.String(), f.IsAlt())
 	case 's':
-		f.ApplyStringFlags(b, strconv.Itoa(int(iv.Int())), f.IsAlt())
+		f.ApplyStringFlags(b, strconv.Itoa(int(int64(iv))), f.IsAlt())
 	default:
 		panic(s.UnsupportedFormat(iv.PType(), `dxXobBeEfgGaAspc`, f))
+	}
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -516,6 +528,7 @@ func integerPrefixRadix(c byte) string {
 	}
 }
 
-func (iv *IntegerValue) PType() eval.Type {
-	return (*IntegerType)(iv)
+func (iv integerValue) PType() eval.Type {
+	v := int64(iv)
+	return &IntegerType{v, v}
 }

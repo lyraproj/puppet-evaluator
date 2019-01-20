@@ -507,7 +507,7 @@ type valueStruct struct {
 	O eval.Object
 }
 
-func (v *valueStruct) Get(key *types.IntegerValue, dflt eval.Value) eval.StringValue {
+func (v *valueStruct) Get(key eval.IntegerValue, dflt eval.Value) eval.StringValue {
 	return v.X.Get2(key, eval.UNDEF).(eval.StringValue)
 }
 

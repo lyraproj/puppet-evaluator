@@ -45,7 +45,7 @@ var members = map[string]uriMemberFunc{
 		port := uri.Port()
 		if port != `` {
 			if pn, err := strconv.Atoi(port); err == nil {
-				return WrapInteger(int64(pn))
+				return integerValue(int64(pn))
 			}
 		}
 		return _UNDEF
@@ -216,7 +216,7 @@ func URIFromHash(hash *HashValue) *url.URL {
 		uri.Host = host.String()
 	}
 	if port, ok := hash.Get4(`port`); ok {
-		uri.Host = fmt.Sprintf(`%s:%d`, uri.Host, port.(*IntegerValue).Int())
+		uri.Host = fmt.Sprintf(`%s:%d`, uri.Host, port.(integerValue).Int())
 	}
 	if path, ok := hash.Get4(`path`); ok {
 		uri.Path = path.String()
@@ -383,7 +383,7 @@ func urlToHash(uri *url.URL) *HashValue {
 		if colon >= 0 {
 			entries = append(entries, WrapHashEntry2(`host`, stringValue(strings.ToLower(h[:colon]))))
 			if p, err := strconv.Atoi(uri.Port()); err == nil {
-				entries = append(entries, WrapHashEntry2(`port`, WrapInteger(int64(p))))
+				entries = append(entries, WrapHashEntry2(`port`, integerValue(int64(p))))
 			}
 		} else {
 			entries = append(entries, WrapHashEntry2(`host`, stringValue(strings.ToLower(h))))

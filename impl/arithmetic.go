@@ -30,8 +30,8 @@ func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) ev
 		}
 	case *types.FloatValue:
 		return lhsFloatArithmetic(expr, a.(*types.FloatValue).Float(), b)
-	case *types.IntegerValue:
-		return lhsIntArithmetic(expr, a.(*types.IntegerValue).Int(), b)
+	case eval.IntegerValue:
+		return lhsIntArithmetic(expr, a.(eval.IntegerValue).Int(), b)
 	case eval.StringValue:
 		s := a.String()
 		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
@@ -48,8 +48,8 @@ func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) ev
 func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
 	op := expr.Operator()
 	switch b.(type) {
-	case *types.IntegerValue:
-		return types.WrapInteger(intArithmetic(expr, ai, b.(*types.IntegerValue).Int()))
+	case eval.IntegerValue:
+		return types.WrapInteger(intArithmetic(expr, ai, b.(eval.IntegerValue).Int()))
 	case *types.FloatValue:
 		return types.WrapFloat(floatArithmetic(expr, float64(ai), b.(*types.FloatValue).Float()))
 	case eval.StringValue:
@@ -71,8 +71,8 @@ func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Va
 	switch b.(type) {
 	case *types.FloatValue:
 		return types.WrapFloat(floatArithmetic(expr, af, b.(*types.FloatValue).Float()))
-	case *types.IntegerValue:
-		return types.WrapFloat(floatArithmetic(expr, af, float64(b.(*types.IntegerValue).Int())))
+	case eval.IntegerValue:
+		return types.WrapFloat(floatArithmetic(expr, af, float64(b.(eval.IntegerValue).Int())))
 	case eval.StringValue:
 		s := b.String()
 		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {

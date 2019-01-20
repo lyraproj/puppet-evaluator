@@ -86,8 +86,8 @@ func init() {
 			d.Param(`Variant[Integer,Float]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
-				if i, ok := arg.(*IntegerValue); ok {
-					return WrapTimestamp(time.Unix(i.Int(), 0))
+				if i, ok := arg.(integerValue); ok {
+					return WrapTimestamp(time.Unix(int64(i), 0))
 				}
 				s, f := math.Modf(arg.(*FloatValue).Float())
 				return WrapTimestamp(time.Unix(int64(s), int64(f*1000000000.0)))
@@ -161,8 +161,8 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 			t, ok = TimeFromHash(arg.(*HashValue))
 		case stringValue:
 			t, ok = TimeFromString(arg.String()), true
-		case *IntegerValue:
-			t, ok = time.Unix(arg.(*IntegerValue).Int(), 0), true
+		case integerValue:
+			t, ok = time.Unix(int64(arg.(integerValue)), 0), true
 		case *FloatValue:
 			s, f := math.Modf(arg.(*FloatValue).Float())
 			t, ok = time.Unix(int64(s), int64(f*1000000000.0)), true

@@ -51,10 +51,10 @@ func NewTupleType(types []eval.Type, size *IntegerType) *TupleType {
 		givenOrActualSize = NewIntegerType(sz, sz)
 	} else {
 		if sz == 0 {
-			if *size == *IntegerType_POSITIVE {
+			if *size == *IntegerTypePositive {
 				return DefaultTupleType()
 			}
-			if *size == *IntegerType_ZERO {
+			if *size == *IntegerTypeZero {
 				return EmptyTupleType()
 			}
 		}
@@ -108,13 +108,13 @@ func tupleFromArgs(callable bool, args eval.List) *TupleType {
 	}
 
 	if argc == 0 {
-		if *rng == *IntegerType_ZERO {
+		if *rng == *IntegerTypeZero {
 			return tupleType_EMPTY
 		}
 		if callable {
 			return &TupleType{rng, rng, []eval.Type{DefaultUnitType()}}
 		}
-		if *rng == *IntegerType_POSITIVE {
+		if *rng == *IntegerTypePositive {
 			return tupleType_DEFAULT
 		}
 		return &TupleType{rng, rng, []eval.Type{}}
@@ -215,7 +215,7 @@ func (t *TupleType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	switch o.(type) {
 	case *ArrayType:
 		at := o.(*ArrayType)
-		if !GuardedIsInstance(t.givenOrActualSize, WrapInteger(at.size.Min()), g) {
+		if !GuardedIsInstance(t.givenOrActualSize, integerValue(at.size.Min()), g) {
 			return false
 		}
 		top := len(t.types)
@@ -232,7 +232,7 @@ func (t *TupleType) IsAssignable(o eval.Type, g eval.Guard) bool {
 
 	case *TupleType:
 		tt := o.(*TupleType)
-		if !(t.size == nil || GuardedIsInstance(t.size, WrapInteger(tt.givenOrActualSize.Min()), g)) {
+		if !(t.size == nil || GuardedIsInstance(t.size, integerValue(tt.givenOrActualSize.Min()), g)) {
 			return false
 		}
 
@@ -357,7 +357,7 @@ func (t *TupleType) Parameters() []eval.Value {
 	for _, c := range t.types {
 		params = append(params, c)
 	}
-	if !(t.size == nil || top == 0 && *t.size == *IntegerType_POSITIVE) {
+	if !(t.size == nil || top == 0 && *t.size == *IntegerTypePositive) {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
@@ -375,5 +375,5 @@ func (t *TupleType) Types() []eval.Type {
 	return t.types
 }
 
-var tupleType_DEFAULT = &TupleType{IntegerType_POSITIVE, IntegerType_POSITIVE, []eval.Type{}}
-var tupleType_EMPTY = &TupleType{IntegerType_ZERO, IntegerType_ZERO, []eval.Type{}}
+var tupleType_DEFAULT = &TupleType{IntegerTypePositive, IntegerTypePositive, []eval.Type{}}
+var tupleType_EMPTY = &TupleType{IntegerTypeZero, IntegerTypeZero, []eval.Type{}}

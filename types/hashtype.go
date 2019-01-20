@@ -35,8 +35,8 @@ type (
 	}
 )
 
-var hashType_EMPTY = &HashType{IntegerType_ZERO, unitType_DEFAULT, unitType_DEFAULT}
-var hashType_DEFAULT = &HashType{IntegerType_POSITIVE, anyType_DEFAULT, anyType_DEFAULT}
+var hashType_EMPTY = &HashType{IntegerTypeZero, unitType_DEFAULT, unitType_DEFAULT}
+var hashType_DEFAULT = &HashType{IntegerTypePositive, anyType_DEFAULT, anyType_DEFAULT}
 
 var Hash_Type eval.ObjectType
 
@@ -106,8 +106,8 @@ func init() {
 								})
 							}
 							if av, ok := memo.(eval.List); ok {
-								if ix, ok := idx.(*IntegerValue); ok {
-									return av.At(int(ix.Int()))
+								if ix, ok := idx.(integerValue); ok {
+									return av.At(int(ix))
 								}
 							}
 							return _UNDEF
@@ -160,7 +160,7 @@ func EmptyHashType() *HashType {
 
 func NewHashType(keyType eval.Type, valueType eval.Type, rng *IntegerType) *HashType {
 	if rng == nil {
-		rng = IntegerType_POSITIVE
+		rng = IntegerTypePositive
 	}
 	if keyType == nil {
 		keyType = anyType_DEFAULT
@@ -168,7 +168,7 @@ func NewHashType(keyType eval.Type, valueType eval.Type, rng *IntegerType) *Hash
 	if valueType == nil {
 		valueType = anyType_DEFAULT
 	}
-	if keyType == anyType_DEFAULT && valueType == anyType_DEFAULT && rng == IntegerType_POSITIVE {
+	if keyType == anyType_DEFAULT && valueType == anyType_DEFAULT && rng == IntegerTypePositive {
 		return DefaultHashType()
 	}
 	return &HashType{rng, keyType, valueType}
@@ -201,7 +201,7 @@ func NewHashType2(args ...eval.Value) *HashType {
 	var rng *IntegerType
 	switch argc - offset {
 	case 0:
-		rng = IntegerType_POSITIVE
+		rng = IntegerTypePositive
 	case 1:
 		sizeArg := args[offset]
 		if rng, ok = sizeArg.(*IntegerType); !ok {
@@ -323,7 +323,7 @@ func (t *HashType) Parameters() []eval.Value {
 	params := make([]eval.Value, 0, 4)
 	params = append(params, t.keyType)
 	params = append(params, t.valueType)
-	if *t.size != *IntegerType_POSITIVE {
+	if *t.size != *IntegerTypePositive {
 		params = append(params, t.size.SizeParameters()...)
 	}
 	return params
@@ -677,7 +677,7 @@ func IndexedFromArray(a *ArrayValue) *HashValue {
 	top := a.Len()
 	entries := make([]*HashEntry, top)
 	a.EachWithIndex(func(v eval.Value, idx int) {
-		entries[idx] = WrapHashEntry(WrapInteger(int64(idx)), v)
+		entries[idx] = WrapHashEntry(integerValue(int64(idx)), v)
 	})
 	return WrapHash(entries)
 }

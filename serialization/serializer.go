@@ -50,7 +50,7 @@ func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
 		// local_reference explicitly set to false
 		t.dedupLevel = NoDedup
 	} else {
-		t.dedupLevel = int(options.Get5(`dedup_level`, types.WrapInteger(MaxDedup)).(*types.IntegerValue).Int())
+		t.dedupLevel = int(options.Get5(`dedup_level`, types.WrapInteger(MaxDedup)).(eval.IntegerValue).Int())
 	}
 	return t
 }
@@ -94,7 +94,7 @@ func (sc *context) toData(level int, value eval.Value) {
 	}
 
 	switch value.(type) {
-	case *types.UndefValue, *types.IntegerValue, *types.FloatValue, *types.BooleanValue:
+	case *types.UndefValue, eval.IntegerValue, *types.FloatValue, *types.BooleanValue:
 		// Never dedup
 		sc.addData(value)
 	case eval.StringValue:

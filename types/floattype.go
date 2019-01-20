@@ -292,7 +292,7 @@ func (fv *FloatValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	f := eval.GetFormat(s.FormatMap(), fv.PType())
 	switch f.FormatChar() {
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(fv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		integerValue(fv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'p':
 		f.ApplyStringFlags(b, floatGFormat(DEFAULT_P_FORMAT, fv.Float()), false)
 	case 'e', 'E', 'f':

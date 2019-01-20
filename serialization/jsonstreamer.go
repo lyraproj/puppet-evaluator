@@ -103,8 +103,8 @@ func (j *jsonStreamer) write(element eval.Value) {
 		v, err = json.Marshal(element.String())
 	case *types.FloatValue:
 		v, err = json.Marshal(element.(*types.FloatValue).Float())
-	case *types.IntegerValue:
-		v, err = json.Marshal(element.(*types.IntegerValue).Int())
+	case eval.IntegerValue:
+		v, err = json.Marshal(element.(eval.IntegerValue).Int())
 	case *types.BooleanValue:
 		v, err = json.Marshal(element.(*types.BooleanValue).Bool())
 	default:

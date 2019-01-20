@@ -1,9 +1,9 @@
 package functions
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 )
 
 func init() {
@@ -25,7 +25,7 @@ func init() {
 						return d.(*types.HashValue).Get2(k, eval.UNDEF)
 					case *types.ArrayValue:
 						walkedPath = append(walkedPath, k)
-						if idx, ok := k.(*types.IntegerValue); ok {
+						if idx, ok := k.(eval.IntegerValue); ok {
 							return d.(*types.ArrayValue).At(int(idx.Int()))
 						}
 						return eval.UNDEF
