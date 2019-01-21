@@ -369,8 +369,8 @@ func init() {
 		switch tv.(type) {
 		case *UndefValue:
 			return false
-		case *BooleanValue:
-			return tv.(*BooleanValue).Bool()
+		case booleanValue:
+			return tv.(booleanValue).Bool()
 		default:
 			return true
 		}
@@ -558,7 +558,7 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	case float64:
 		pv = floatValue(v.(float64))
 	case bool:
-		pv = WrapBoolean(v.(bool))
+		pv = booleanValue(v.(bool))
 	case *regexp.Regexp:
 		pv = WrapRegexp2(v.(*regexp.Regexp))
 	case []byte:
@@ -695,7 +695,7 @@ func WrapPrimitive(vr reflect.Value) (pv eval.Value, ok bool) {
 	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
 		pv = integerValue(int64(vr.Uint())) // Possible loss for very large numbers
 	case reflect.Bool:
-		pv = WrapBoolean(vr.Bool())
+		pv = booleanValue(vr.Bool())
 	case reflect.Float64, reflect.Float32:
 		pv = floatValue(vr.Float())
 	case reflect.Ptr:
@@ -956,7 +956,7 @@ func boolArg(hash eval.OrderedMap, key string, d bool) bool {
 	if v == nil {
 		return d
 	}
-	if t, ok := v.(*BooleanValue); ok {
+	if t, ok := v.(booleanValue); ok {
 		return t.Bool()
 	}
 	panic(argError(DefaultBooleanType(), v))

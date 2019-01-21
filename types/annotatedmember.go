@@ -64,10 +64,10 @@ func (a *annotatedMember) initHash() *hash.StringHash {
 	h := a.annotatable.initHash()
 	h.Put(KEY_TYPE, a.typ)
 	if a.final {
-		h.Put(KEY_FINAL, WrapBoolean(true))
+		h.Put(KEY_FINAL, BooleanTrue)
 	}
 	if a.override {
-		h.Put(KEY_OVERRIDE, WrapBoolean(true))
+		h.Put(KEY_OVERRIDE, BooleanTrue)
 	}
 	return h
 }

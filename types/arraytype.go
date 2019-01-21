@@ -52,7 +52,7 @@ func init() {
 				arg := args[0]
 				switch arg.(type) {
 				case *ArrayValue:
-					if len(args) > 1 && args[1].(*BooleanValue).Bool() {
+					if len(args) > 1 && args[1].(booleanValue).Bool() {
 						// Wrapped
 						return WrapValues(args[:1])
 					}

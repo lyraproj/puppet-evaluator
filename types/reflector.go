@@ -221,7 +221,7 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	ds[0] = WrapHashEntry2(KEY_TYPE, NewCallableType(pt, rt, nil))
 	ds[1] = WrapHashEntry2(KEY_GONAME, stringValue(name))
 	if returnsError {
-		ds[2] = WrapHashEntry2(KEY_RETURNS_ERROR, Boolean_TRUE)
+		ds[2] = WrapHashEntry2(KEY_RETURNS_ERROR, BooleanTrue)
 	}
 	return WrapHash(ds)
 }

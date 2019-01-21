@@ -190,6 +190,11 @@ type (
 		Float() float64
 	}
 
+	BooleanValue interface {
+		Value
+		Bool() bool
+	}
+
 	IntegerValue interface {
 		NumericValue
 		Abs() int64

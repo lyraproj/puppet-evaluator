@@ -331,7 +331,7 @@ func evalInExpression(e eval.Evaluator, expr *parser.InExpression) eval.Value {
 			return doCompare(expr, `==`, a, b)
 		}))
 	}
-	return types.Boolean_FALSE
+	return types.BooleanFalse
 }
 
 func evalUnlessExpression(e eval.Evaluator, expr *parser.UnlessExpression) eval.Value {

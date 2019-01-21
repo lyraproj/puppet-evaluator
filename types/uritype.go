@@ -109,7 +109,7 @@ func init() {
 				strict := false
 				str := args[0].String()
 				if len(args) > 1 {
-					strict = args[1].(*BooleanValue).Bool()
+					strict = args[1].(booleanValue).Bool()
 				}
 				u, err := ParseURI2(str, strict)
 				if err != nil {

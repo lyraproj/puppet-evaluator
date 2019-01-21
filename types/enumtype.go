@@ -76,7 +76,7 @@ func NewEnumType3(args eval.List) *EnumType {
 		args.EachWithIndex(func(arg eval.Value, idx int) {
 			str, ok := arg.(stringValue)
 			if !ok {
-				if ci, ok := arg.(*BooleanValue); ok && idx == top-1 {
+				if ci, ok := arg.(booleanValue); ok && idx == top-1 {
 					caseInsensitive = ci.Bool()
 					return
 				}
@@ -112,7 +112,7 @@ func (t *EnumType) Get(key string) (eval.Value, bool) {
 	case `values`:
 		return WrapValues(t.pvalues()), true
 	case `case_insensitive`:
-		return WrapBoolean(t.caseInsensitive), true
+		return booleanValue(t.caseInsensitive), true
 	default:
 		return nil, false
 	}
@@ -182,7 +182,7 @@ func (t *EnumType) String() string {
 func (t *EnumType) Parameters() []eval.Value {
 	result := t.pvalues()
 	if t.caseInsensitive {
-		result = append(result, Boolean_TRUE)
+		result = append(result, BooleanTrue)
 	}
 	return result
 }

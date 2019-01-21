@@ -46,7 +46,7 @@ func init() {
 
 func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	n := fromConvertible(args[0], tryInt)
-	if len(args) > 1 && args[1].(*BooleanValue).Bool() {
+	if len(args) > 1 && args[1].(booleanValue).Bool() {
 		if i, ok := n.(integerValue); ok {
 			n = integerValue(i.Abs())
 		} else {
@@ -60,7 +60,7 @@ func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	h := args[0].(*HashValue)
 	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
 	a := h.Get5(`abs`, nil)
-	if a != nil && a.(*BooleanValue).Bool() {
+	if a != nil && a.(booleanValue).Bool() {
 		if i, ok := n.(integerValue); ok {
 			n = integerValue(i.Abs())
 		} else {
@@ -145,11 +145,11 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		return floatValue(c.(*TimestampValue).Float())
 	case *TimespanValue:
 		return floatValue(c.(*TimespanValue).Float())
-	case *BooleanValue:
+	case booleanValue:
 		if allowInt {
-			return integerValue(c.(*BooleanValue).Int())
+			return integerValue(c.(booleanValue).Int())
 		}
-		return floatValue(c.(*BooleanValue).Float())
+		return floatValue(c.(booleanValue).Float())
 	case eval.NumericValue:
 		return c.(eval.NumericValue)
 	case stringValue:

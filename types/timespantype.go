@@ -345,7 +345,7 @@ func fromFieldsHash(hash *HashValue) time.Duration {
 	}
 	boolArg := func(key string) bool {
 		if v, ok := hash.Get4(key); ok {
-			if b, ok := v.(*BooleanValue); ok {
+			if b, ok := v.(booleanValue); ok {
 				return b.Bool()
 			}
 		}

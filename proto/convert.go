@@ -84,8 +84,8 @@ func (pc *protoConsumer) add(value *datapb.Data) {
 
 func ToPBData(v eval.Value) (value *datapb.Data) {
 	switch v.(type) {
-	case *types.BooleanValue:
-		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{v.(*types.BooleanValue).Bool()}}
+	case eval.BooleanValue:
+		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{v.(eval.BooleanValue).Bool()}}
 	case eval.FloatValue:
 		value = &datapb.Data{Kind: &datapb.Data_FloatValue{v.(eval.FloatValue).Float()}}
 	case eval.IntegerValue:

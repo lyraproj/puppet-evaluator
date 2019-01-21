@@ -39,7 +39,7 @@ func (f *function) initialize(c eval.Context, name string, container *objectType
 		f.goName = gn.String()
 	}
 	if re, ok := initHash.Get4(KEY_RETURNS_ERROR); ok {
-		f.returnsError = re.(*BooleanValue).Bool()
+		f.returnsError = re.(booleanValue).Bool()
 	}
 }
 

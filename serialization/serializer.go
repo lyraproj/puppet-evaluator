@@ -43,10 +43,10 @@ type context struct {
 // NewSerializer returns a new Serializer
 func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
 	t := &rdSerializer{context: ctx}
-	t.symbolAsString = options.Get5(`symbol_as_string`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
-	t.richData = options.Get5(`rich_data`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
+	t.symbolAsString = options.Get5(`symbol_as_string`, types.BooleanFalse).(eval.BooleanValue).Bool()
+	t.richData = options.Get5(`rich_data`, types.BooleanTrue).(eval.BooleanValue).Bool()
 	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
-	if !options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool() {
+	if !options.Get5(`local_reference`, types.BooleanTrue).(eval.BooleanValue).Bool() {
 		// local_reference explicitly set to false
 		t.dedupLevel = NoDedup
 	} else {
@@ -94,7 +94,7 @@ func (sc *context) toData(level int, value eval.Value) {
 	}
 
 	switch value.(type) {
-	case *types.UndefValue, eval.IntegerValue, eval.FloatValue, *types.BooleanValue:
+	case *types.UndefValue, eval.IntegerValue, eval.FloatValue, eval.BooleanValue:
 		// Never dedup
 		sc.addData(value)
 	case eval.StringValue:

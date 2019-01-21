@@ -61,10 +61,10 @@ func (p *parameter) InitHash() eval.OrderedMap {
 		es = append(es, types.WrapHashEntry2(`value`, p.value))
 	}
 	if p.value == eval.UNDEF {
-		es = append(es, types.WrapHashEntry2(`has_value`, types.Boolean_TRUE))
+		es = append(es, types.WrapHashEntry2(`has_value`, types.BooleanTrue))
 	}
 	if p.captures {
-		es = append(es, types.WrapHashEntry2(`captures_rest`, types.Boolean_TRUE))
+		es = append(es, types.WrapHashEntry2(`captures_rest`, types.BooleanTrue))
 	}
 	return types.WrapHash(es)
 }
@@ -101,7 +101,7 @@ func init() {
 		t := args[1].(eval.Type)
 		h := false
 		if len(args) > 2 {
-			h = args[2].(*types.BooleanValue).Bool()
+			h = args[2].(eval.BooleanValue).Bool()
 		}
 		var v eval.Value
 		if len(args) > 3 {
@@ -109,7 +109,7 @@ func init() {
 		}
 		c := false
 		if len(args) > 4 {
-			c = args[4].(*types.BooleanValue).Bool()
+			c = args[4].(eval.BooleanValue).Bool()
 		}
 		if h && v == nil {
 			v = eval.UNDEF
@@ -125,11 +125,11 @@ func init() {
 		}
 		hv := false
 		if x, ok := h.Get4(`has_value`); ok {
-			hv = x.(*types.BooleanValue).Bool()
+			hv = x.(eval.BooleanValue).Bool()
 		}
 		c := false
 		if x, ok := h.Get4(`captures_rest`); ok {
-			c = x.(*types.BooleanValue).Bool()
+			c = x.(eval.BooleanValue).Bool()
 		}
 		if hv && v == nil {
 			v = eval.UNDEF

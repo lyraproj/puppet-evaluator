@@ -36,14 +36,14 @@ func (t *ScalarDataType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	default:
 		return GuardedIsAssignable(stringTypeDefault, o, g) ||
 			GuardedIsAssignable(integerTypeDefault, o, g) ||
-			GuardedIsAssignable(booleanType_DEFAULT, o, g) ||
+			GuardedIsAssignable(booleanTypeDefault, o, g) ||
 			GuardedIsAssignable(floatTypeDefault, o, g)
 	}
 }
 
 func (t *ScalarDataType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
-	case *BooleanValue, floatValue, integerValue, stringValue:
+	case booleanValue, floatValue, integerValue, stringValue:
 		return true
 	}
 	return false

@@ -26,7 +26,7 @@ type jsonStreamer struct {
 // NewJsonStreamer
 func DataToJson(value eval.Value, out io.Writer) {
 	he := make([]*types.HashEntry, 0, 2)
-	he = append(he, types.WrapHashEntry2(`rich_data`, types.Boolean_FALSE))
+	he = append(he, types.WrapHashEntry2(`rich_data`, types.BooleanFalse))
 	NewSerializer(eval.Puppet.RootContext(), types.WrapHash(he)).Convert(value, NewJsonStreamer(out))
 	assertOk(out.Write([]byte("\n")))
 }
@@ -105,8 +105,8 @@ func (j *jsonStreamer) write(element eval.Value) {
 		v, err = json.Marshal(element.(eval.FloatValue).Float())
 	case eval.IntegerValue:
 		v, err = json.Marshal(element.(eval.IntegerValue).Int())
-	case *types.BooleanValue:
-		v, err = json.Marshal(element.(*types.BooleanValue).Bool())
+	case eval.BooleanValue:
+		v, err = json.Marshal(element.(eval.BooleanValue).Bool())
 	default:
 		v = []byte(`null`)
 	}

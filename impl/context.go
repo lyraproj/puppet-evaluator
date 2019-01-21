@@ -204,10 +204,10 @@ func (c *evalCtx) Logger() eval.Logger {
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
-	if eval.GetSetting(`workflow`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+	if eval.GetSetting(`workflow`, types.BooleanFalse).(eval.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
 	}
-	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+	if eval.GetSetting(`tasks`, types.BooleanFalse).(eval.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
 	}
 	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)

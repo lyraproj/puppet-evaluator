@@ -21,7 +21,7 @@ func NewDeserializer(ctx eval.Context, options eval.OrderedMap) Collector {
 		context:         ctx,
 		newTypes:        make([]eval.Type, 0, 11),
 		converted:       make(map[eval.Value]eval.Value, 11),
-		allowUnresolved: options.Get5(`allow_unresolved`, types.Boolean_FALSE).(*types.BooleanValue).Bool()}
+		allowUnresolved: options.Get5(`allow_unresolved`, types.BooleanFalse).(eval.BooleanValue).Bool()}
 	ds.Init()
 	return ds
 }

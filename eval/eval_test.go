@@ -26,7 +26,7 @@ func ExampleWrap() {
 	// Output:
 	// 'hello' is a String
 	// '23' is a Integer[23, 23]
-	// 'true' is a Boolean
+	// 'true' is a Boolean[true]
 	// 'undef' is a Undef
 }
 
@@ -88,7 +88,6 @@ func ExamplePcore_parseTypeError() {
 	}
 	// Output: expected one of ',' or ']', got 'EOF' (line: 1, column: 9)
 }
-
 
 func ExampleObjectType_fromReflectedValue() {
 	type TestStruct struct {

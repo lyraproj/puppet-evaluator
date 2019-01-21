@@ -1197,7 +1197,7 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 	}
 
 	if !t.equalityIncludeType {
-		h.Put(KEY_EQUALITY_INCLUDE_TYPE, Boolean_FALSE)
+		h.Put(KEY_EQUALITY_INCLUDE_TYPE, BooleanFalse)
 	}
 
 	if t.serialization != nil {

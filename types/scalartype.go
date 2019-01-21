@@ -36,14 +36,14 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	default:
 		return GuardedIsAssignable(stringTypeDefault, o, g) ||
 			GuardedIsAssignable(numericType_DEFAULT, o, g) ||
-			GuardedIsAssignable(booleanType_DEFAULT, o, g) ||
+			GuardedIsAssignable(booleanTypeDefault, o, g) ||
 			GuardedIsAssignable(regexpType_DEFAULT, o, g)
 	}
 }
 
 func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
-	case stringValue, integerValue, floatValue, *BooleanValue, *TimespanValue, *TimestampValue, *SemVerValue, *RegexpValue:
+	case stringValue, integerValue, floatValue, booleanValue, *TimespanValue, *TimestampValue, *SemVerValue, *RegexpValue:
 		return true
 	}
 	return false

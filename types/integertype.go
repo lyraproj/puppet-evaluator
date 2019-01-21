@@ -19,7 +19,7 @@ type (
 		max int64
 	}
 
-	// integerValue represents int64 as a value
+	// integerValue represents int64 as a eval.Value
 	integerValue int64
 )
 
@@ -70,7 +70,7 @@ func init() {
 						r = int(radix)
 					}
 					if len(args) > 2 {
-						abs = args[2].(*BooleanValue).Bool()
+						abs = args[2].(booleanValue).Bool()
 					}
 				}
 				n := intFromConvertible(args[0], r)
@@ -93,7 +93,7 @@ func init() {
 					}
 				}
 				if ab, ok := h.Get4(`abs`); ok {
-					abs = ab.(*BooleanValue).Bool()
+					abs = ab.(booleanValue).Bool()
 				}
 				n := intFromConvertible(h.Get5(`from`, _UNDEF), r)
 				if abs && n < 0 {
@@ -115,8 +115,8 @@ func intFromConvertible(from eval.Value, radix int) int64 {
 		return from.(*TimestampValue).Int()
 	case *TimespanValue:
 		return from.(*TimespanValue).Int()
-	case *BooleanValue:
-		return from.(*BooleanValue).Int()
+	case booleanValue:
+		return from.(booleanValue).Int()
 	default:
 		i, err := strconv.ParseInt(from.String(), radix, 64)
 		if err == nil {

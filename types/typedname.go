@@ -62,7 +62,7 @@ func (t *typedName) PType() eval.Type {
 func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
 	switch method.Name() {
 	case `is_parent`:
-		return WrapBoolean(t.IsParent(args[0].(eval.TypedName))), true
+		return booleanValue(t.IsParent(args[0].(eval.TypedName))), true
 	case `relative_to`:
 		if r, ok := t.RelativeTo(args[0].(eval.TypedName)); ok {
 			return r, true
@@ -86,7 +86,7 @@ func (t *typedName) Get(key string) (value eval.Value, ok bool) {
 	case `parts`:
 		return t.PartsList(), true
 	case `is_qualified`:
-		return WrapBoolean(t.IsQualified()), true
+		return booleanValue(t.IsQualified()), true
 	case `parent`:
 		p := t.Parent()
 		if p == nil {
