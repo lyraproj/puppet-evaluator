@@ -40,7 +40,7 @@ func init() {
 	newGoConstructor2(`SemVer`,
 		func(t eval.LocalTypes) {
 			t.Type(`PositiveInteger`, `Integer[0,default]`)
-			t.Type(`SemVerQualifier`, `Pattern[/\A(?<part>[0-9A-Za-z-]+)(?:\.\g<part>)*\Z/]`)
+			t.Type(`SemVerQualifier`, `Pattern[/\A[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*\z/]`)
 			t.Type(`SemVerString`, `String[1]`)
 			t.Type(`SemVerHash`, `Struct[major=>PositiveInteger,minor=>PositiveInteger,patch=>PositiveInteger,Optional[prerelease]=>SemVerQualifier,Optional[build]=>SemVerQualifier]`)
 		},

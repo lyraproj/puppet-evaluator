@@ -2,34 +2,30 @@ package types
 
 import (
 	"bytes"
-	"io"
-	"regexp"
-	"sync"
-
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
+	"io"
 	"reflect"
+	"regexp"
 )
 
 type (
 	RegexpType struct {
-		lock          sync.Mutex
-		pattern       *regexp.Regexp
-		patternString string
+		pattern *regexp.Regexp
 	}
 
 	// RegexpValue represents RegexpType as a value
 	RegexpValue RegexpType
 )
 
-var regexpType_DEFAULT = &RegexpType{pattern: regexp.MustCompile(``), patternString: ``}
+var regexpTypeDefault = &RegexpType{pattern: regexp.MustCompile(``)}
 
-var Regexp_Type eval.ObjectType
+var RegexpMetaType eval.ObjectType
 
 func init() {
-	Regexp_Type = newObjectType(`Pcore::RegexpType`,
+	RegexpMetaType = newObjectType(`Pcore::RegexpType`,
 		`Pcore::ScalarType {
 	attributes => {
 		pattern => {
@@ -56,28 +52,31 @@ func init() {
 }
 
 func DefaultRegexpType() *RegexpType {
-	return regexpType_DEFAULT
+	return regexpTypeDefault
 }
 
 func NewRegexpType(patternString string) *RegexpType {
 	if patternString == `` {
 		return DefaultRegexpType()
 	}
-	return &RegexpType{patternString: patternString}
+	pattern, err := regexp.Compile(patternString)
+	if err != nil {
+		panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: patternString, `detail`: err.Error()}))
+	}
+	return &RegexpType{pattern: pattern}
 }
 
 func NewRegexpTypeR(pattern *regexp.Regexp) *RegexpType {
-	patternString := pattern.String()
-	if patternString == `` {
+	if pattern.String() == `` {
 		return DefaultRegexpType()
 	}
-	return &RegexpType{pattern: pattern, patternString: patternString}
+	return &RegexpType{pattern: pattern}
 }
 
 func NewRegexpType2(args ...eval.Value) *RegexpType {
 	switch len(args) {
 	case 0:
-		return regexpType_DEFAULT
+		return regexpTypeDefault
 	case 1:
 		rx := args[0]
 		if str, ok := rx.(stringValue); ok {
@@ -97,37 +96,37 @@ func (t *RegexpType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *RegexpType) Default() eval.Type {
-	return regexpType_DEFAULT
+	return regexpTypeDefault
 }
 
 func (t *RegexpType) Equals(o interface{}, g eval.Guard) bool {
 	ot, ok := o.(*RegexpType)
-	return ok && t.patternString == ot.patternString
+	return ok && t.pattern.String() == ot.pattern.String()
 }
 
 func (t *RegexpType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `pattern`:
-		if t.patternString == `` {
+		if t.String() == `` {
 			return _UNDEF, true
 		}
-		return stringValue(t.patternString), true
+		return stringValue(t.pattern.String()), true
 	}
 	return nil, false
 }
 
 func (t *RegexpType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	rx, ok := o.(*RegexpType)
-	return ok && (t.patternString == `` || t.patternString == rx.patternString)
+	return ok && (t.pattern.String() == `` || t.pattern.String() == rx.PatternString())
 }
 
 func (t *RegexpType) IsInstance(o eval.Value, g eval.Guard) bool {
 	rx, ok := o.(*RegexpValue)
-	return ok && (t.patternString == `` || t.patternString == rx.PatternString())
+	return ok && (t.pattern.String() == `` || t.pattern.String() == rx.PatternString())
 }
 
 func (t *RegexpType) MetaType() eval.ObjectType {
-	return Regexp_Type
+	return RegexpMetaType
 }
 
 func (t *RegexpType) Name() string {
@@ -135,31 +134,21 @@ func (t *RegexpType) Name() string {
 }
 
 func (t *RegexpType) Parameters() []eval.Value {
-	if t.patternString == `` {
+	if t.pattern.String() == `` {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.Value{WrapRegexp(t.patternString)}
+	return []eval.Value{WrapRegexp2(t.pattern)}
 }
 
 func (t *RegexpType) ReflectType(c eval.Context) (reflect.Type, bool) {
-	return reflect.TypeOf(regexpType_DEFAULT.pattern), true
+	return reflect.TypeOf(regexpTypeDefault.pattern), true
 }
 
 func (t *RegexpType) PatternString() string {
-	return t.patternString
+	return t.pattern.String()
 }
 
 func (t *RegexpType) Regexp() *regexp.Regexp {
-	t.lock.Lock()
-	if t.pattern == nil {
-		pattern, err := regexp.Compile(t.patternString)
-		if err != nil {
-			t.lock.Unlock()
-			panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: t.patternString, `detail`: err.Error()}))
-		}
-		t.pattern = pattern
-	}
-	t.lock.Unlock()
 	return t.pattern
 }
 
@@ -201,7 +190,7 @@ func UniqueRegexps(regexpTypes []*RegexpType) []*RegexpType {
 	result := make([]*RegexpType, 0, top)
 	exists := make(map[string]bool, top)
 	for _, regexpType := range regexpTypes {
-		key := regexpType.patternString
+		key := regexpType.String()
 		if !exists[key] {
 			exists[key] = true
 			result = append(result, regexpType)
@@ -211,30 +200,34 @@ func UniqueRegexps(regexpTypes []*RegexpType) []*RegexpType {
 }
 
 func WrapRegexp(str string) *RegexpValue {
-	return (*RegexpValue)(NewRegexpType(str))
+	pattern, err := regexp.Compile(str)
+	if err != nil {
+		panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: str, `detail`: err.Error()}))
+	}
+	return &RegexpValue{pattern}
 }
 
 func WrapRegexp2(pattern *regexp.Regexp) *RegexpValue {
-	return (*RegexpValue)(NewRegexpTypeR(pattern))
+	return &RegexpValue{pattern}
 }
 
 func (r *RegexpValue) Equals(o interface{}, g eval.Guard) bool {
 	if ov, ok := o.(*RegexpValue); ok {
-		return r.String() == ov.String()
+		return r.pattern.String() == ov.pattern.String()
 	}
 	return false
 }
 
 func (r *RegexpValue) Match(s string) []string {
-	return (*RegexpType)(r).Regexp().FindStringSubmatch(s)
+	return r.pattern.FindStringSubmatch(s)
 }
 
 func (r *RegexpValue) Regexp() *regexp.Regexp {
-	return (*RegexpType)(r).Regexp()
+	return r.pattern
 }
 
 func (r *RegexpValue) PatternString() string {
-	return r.patternString
+	return r.pattern.String()
 }
 
 func (r *RegexpValue) Reflect(c eval.Context) reflect.Value {
@@ -256,13 +249,14 @@ func (r *RegexpValue) String() string {
 func (r *RegexpValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
 	b.WriteByte(HK_REGEXP)
-	b.Write([]byte(r.patternString))
+	b.Write([]byte(r.pattern.String()))
 }
 
 func (r *RegexpValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	utils.RegexpQuote(b, r.patternString)
+	utils.RegexpQuote(b, r.pattern.String())
 }
 
 func (r *RegexpValue) PType() eval.Type {
-	return (*RegexpType)(r)
+	rt := RegexpType(*r)
+	return &rt
 }

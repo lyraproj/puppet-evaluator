@@ -96,7 +96,7 @@ func init() {
 	eval.TopEvaluate = topEvaluate
 
 	eval.Error = func(issueCode issue.Code, args issue.H) issue.Reported {
-		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.CurrentContext().StackTop())
+		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.StackTop())
 	}
 
 	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {

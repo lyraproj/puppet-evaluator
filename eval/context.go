@@ -148,3 +148,5 @@ func Evaluate(c Context, expr parser.Expression) Value {
 }
 
 var CurrentContext func() Context
+
+var StackTop func() issue.Location

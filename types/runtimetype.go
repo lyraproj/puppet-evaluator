@@ -169,7 +169,7 @@ func (t *RuntimeType) IsAssignable(o eval.Type, g eval.Guard) bool {
 			return true
 		}
 		if t.pattern != nil {
-			return t.name == rt.name && rt.pattern != nil && t.pattern.patternString == rt.pattern.patternString
+			return t.name == rt.name && rt.pattern != nil && t.pattern.pattern.String() == rt.pattern.pattern.String()
 		}
 		if t.name == rt.name {
 			return true

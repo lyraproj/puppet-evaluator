@@ -137,7 +137,7 @@ func (t *PatternType) Parameters() []eval.Value {
 	}
 	rxs := make([]eval.Value, top)
 	for idx, rx := range t.regexps {
-		rxs[idx] = WrapRegexp(rx.patternString)
+		rxs[idx] = WrapRegexp2(rx.pattern)
 	}
 	return rxs
 }

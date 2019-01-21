@@ -37,7 +37,7 @@ func (t *ScalarType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		return GuardedIsAssignable(stringTypeDefault, o, g) ||
 			GuardedIsAssignable(numericType_DEFAULT, o, g) ||
 			GuardedIsAssignable(booleanTypeDefault, o, g) ||
-			GuardedIsAssignable(regexpType_DEFAULT, o, g)
+			GuardedIsAssignable(regexpTypeDefault, o, g)
 	}
 }
 

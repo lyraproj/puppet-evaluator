@@ -49,6 +49,14 @@ func init() {
 		panic(issue.NewReported(eval.EVAL_NO_CURRENT_CONTEXT, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
 	}
 
+	eval.StackTop = func() issue.Location {
+		if ctx, ok := threadlocal.Get(eval.PuppetContextKey); ok {
+			return ctx.(eval.Context).StackTop()
+		}
+		_, file, line, _ := runtime.Caller(2)
+		return issue.NewLocation(file, line, 0)
+	}
+
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
 		resolvableFunctionsLock.Lock()
 		resolvableFunctions = append(resolvableFunctions, function)
