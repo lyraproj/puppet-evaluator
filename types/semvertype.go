@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/semver/semver"
 	"reflect"
-	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 type (
@@ -40,7 +40,7 @@ func init() {
 	newGoConstructor2(`SemVer`,
 		func(t eval.LocalTypes) {
 			t.Type(`PositiveInteger`, `Integer[0,default]`)
-			t.Type(`SemVerQualifier`, `Pattern[/\A(?<part>[0-9A-Za-z-]+)(?:\.\g<part>)*\Z/]`)
+			t.Type(`SemVerQualifier`, `Pattern[/\A[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*\z/]`)
 			t.Type(`SemVerString`, `String[1]`)
 			t.Type(`SemVerHash`, `Struct[major=>PositiveInteger,minor=>PositiveInteger,patch=>PositiveInteger,Optional[prerelease]=>SemVerQualifier,Optional[build]=>SemVerQualifier]`)
 		},
@@ -64,9 +64,9 @@ func init() {
 			d.OptionalParam(`SemVerQualifier`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				argc := len(args)
-				major := args[0].(*IntegerValue).Int()
-				minor := args[1].(*IntegerValue).Int()
-				patch := args[2].(*IntegerValue).Int()
+				major := args[0].(integerValue).Int()
+				minor := args[1].(integerValue).Int()
+				patch := args[2].(integerValue).Int()
 				preRelease := ``
 				build := ``
 				if argc > 3 {
@@ -87,9 +87,9 @@ func init() {
 			d.Param(`SemVerHash`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
-				major := hash.Get5(`major`, ZERO).(*IntegerValue).Int()
-				minor := hash.Get5(`minor`, ZERO).(*IntegerValue).Int()
-				patch := hash.Get5(`patch`, ZERO).(*IntegerValue).Int()
+				major := hash.Get5(`major`, ZERO).(integerValue).Int()
+				minor := hash.Get5(`minor`, ZERO).(integerValue).Int()
+				patch := hash.Get5(`patch`, ZERO).(integerValue).Int()
 				preRelease := ``
 				build := ``
 				ev := hash.Get5(`prerelease`, nil)
@@ -140,10 +140,10 @@ func NewSemVerType3(limits eval.List) *SemVerType {
 	var finalRange semver.VersionRange
 	limits.EachWithIndex(func(arg eval.Value, idx int) {
 		var rng semver.VersionRange
-		str, ok := arg.(*StringValue)
+		str, ok := arg.(stringValue)
 		if ok {
 			var err error
-			rng, err = semver.ParseVersionRange(str.String())
+			rng, err = semver.ParseVersionRange(string(str))
 			if err != nil {
 				panic(errors.NewIllegalArgument(`SemVer[]`, idx, err.Error()))
 			}
@@ -197,14 +197,13 @@ func (t *SemVerType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(semver.Max), true
 }
 
-func (t *SemVerType)  CanSerializeAsString() bool {
-  return true
+func (t *SemVerType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *SemVerType)  SerializationString() string {
+func (t *SemVerType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *SemVerType) String() string {
 	return eval.ToString2(t, NONE)
@@ -228,7 +227,7 @@ func (t *SemVerType) Parameters() []eval.Value {
 	if t.vRange.Equals(semver.MatchAll) {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.Value{WrapString(t.vRange.String())}
+	return []eval.Value{stringValue(t.vRange.String())}
 }
 
 func (t *SemVerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -266,14 +265,13 @@ func (v *SemVerValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	dest.Set(rv)
 }
 
-func (v *SemVerValue)  CanSerializeAsString() bool {
-  return true
+func (v *SemVerValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (v *SemVerValue)  SerializationString() string {
+func (v *SemVerValue) SerializationString() string {
 	return v.String()
 }
-
 
 func (v *SemVerValue) String() string {
 	return v.Version().String()

@@ -46,19 +46,19 @@ func NewTypeAliasType2(args ...eval.Value) *TypeAliasType {
 	case 0:
 		return DefaultTypeAliasType()
 	case 2:
-		name, ok := args[0].(*StringValue)
+		name, ok := args[0].(stringValue)
 		if !ok {
 			panic(NewIllegalArgumentType2(`TypeAlias`, 0, `String`, args[0]))
 		}
 		var pt eval.Type
 		if pt, ok = args[1].(eval.Type); ok {
-			return NewTypeAliasType(name.String(), nil, pt)
+			return NewTypeAliasType(string(name), nil, pt)
 		}
 		var rt *RuntimeValue
 		if rt, ok = args[1].(*RuntimeValue); ok {
 			var ex parser.Expression
 			if ex, ok = rt.Interface().(parser.Expression); ok {
-				return NewTypeAliasType(name.String(), ex, nil)
+				return NewTypeAliasType(string(name), ex, nil)
 			}
 		}
 		panic(NewIllegalArgumentType2(`TypeAlias[]`, 1, `Type or Expression`, args[1]))
@@ -100,7 +100,7 @@ func (t *TypeAliasType) Equals(o interface{}, g eval.Guard) bool {
 func (t *TypeAliasType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `name`:
-		return WrapString(t.name), true
+		return stringValue(t.name), true
 	case `resolved_type`:
 		return t.resolvedType, true
 	default:

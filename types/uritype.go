@@ -3,10 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"io"
 	"net/url"
 	"strconv"
@@ -20,13 +20,13 @@ var URI_Type eval.ObjectType
 var members = map[string]uriMemberFunc{
 	`scheme`: func(uri *url.URL) eval.Value {
 		if uri.Scheme != `` {
-			return WrapString(strings.ToLower(uri.Scheme))
+			return stringValue(strings.ToLower(uri.Scheme))
 		}
 		return _UNDEF
 	},
 	`userinfo`: func(uri *url.URL) eval.Value {
 		if uri.User != nil {
-			return WrapString(uri.User.String())
+			return stringValue(uri.User.String())
 		}
 		return _UNDEF
 	},
@@ -37,7 +37,7 @@ var members = map[string]uriMemberFunc{
 			if colon >= 0 {
 				h = h[:colon]
 			}
-			return WrapString(strings.ToLower(h))
+			return stringValue(strings.ToLower(h))
 		}
 		return _UNDEF
 	},
@@ -45,32 +45,32 @@ var members = map[string]uriMemberFunc{
 		port := uri.Port()
 		if port != `` {
 			if pn, err := strconv.Atoi(port); err == nil {
-				return WrapInteger(int64(pn))
+				return integerValue(int64(pn))
 			}
 		}
 		return _UNDEF
 	},
 	`path`: func(uri *url.URL) eval.Value {
 		if uri.Path != `` {
-			return WrapString(uri.Path)
+			return stringValue(uri.Path)
 		}
 		return _UNDEF
 	},
 	`query`: func(uri *url.URL) eval.Value {
 		if uri.RawQuery != `` {
-			return WrapString(uri.RawQuery)
+			return stringValue(uri.RawQuery)
 		}
 		return _UNDEF
 	},
 	`fragment`: func(uri *url.URL) eval.Value {
 		if uri.Fragment != `` {
-			return WrapString(uri.Fragment)
+			return stringValue(uri.Fragment)
 		}
 		return _UNDEF
 	},
 	`opaque`: func(uri *url.URL) eval.Value {
 		if uri.Opaque != `` {
-			return WrapString(uri.Opaque)
+			return stringValue(uri.Opaque)
 		}
 		return _UNDEF
 	},
@@ -109,7 +109,7 @@ func init() {
 				strict := false
 				str := args[0].String()
 				if len(args) > 1 {
-					strict = args[1].(*BooleanValue).Bool()
+					strict = args[1].(booleanValue).Bool()
 				}
 				u, err := ParseURI2(str, strict)
 				if err != nil {
@@ -167,8 +167,8 @@ func NewUriType2(args ...eval.Value) *UriType {
 	case 0:
 		return DefaultUriType()
 	case 1:
-		if str, ok := args[0].(*StringValue); ok {
-			return NewUriType(ParseURI(str.String()))
+		if str, ok := args[0].(stringValue); ok {
+			return NewUriType(ParseURI(string(str)))
 		}
 		if uri, ok := args[0].(*UriValue); ok {
 			return NewUriType(uri.URL())
@@ -216,7 +216,7 @@ func URIFromHash(hash *HashValue) *url.URL {
 		uri.Host = host.String()
 	}
 	if port, ok := hash.Get4(`port`); ok {
-		uri.Host = fmt.Sprintf(`%s:%d`, uri.Host, port.(*IntegerValue).Int())
+		uri.Host = fmt.Sprintf(`%s:%d`, uri.Host, port.(integerValue).Int())
 	}
 	if path, ok := hash.Get4(`path`); ok {
 		uri.Path = path.String()
@@ -338,14 +338,13 @@ func (t *UriType) Parameters() []eval.Value {
 	}
 }
 
-func (t *UriType)  CanSerializeAsString() bool {
-  return true
+func (t *UriType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *UriType)  SerializationString() string {
+func (t *UriType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *UriType) String() string {
 	return eval.ToString2(t, NONE)
@@ -373,34 +372,34 @@ func (t *UriType) paramsAsHash() *HashValue {
 func urlToHash(uri *url.URL) *HashValue {
 	entries := make([]*HashEntry, 0, 8)
 	if uri.Scheme != `` {
-		entries = append(entries, WrapHashEntry2(`scheme`, WrapString(strings.ToLower(uri.Scheme))))
+		entries = append(entries, WrapHashEntry2(`scheme`, stringValue(strings.ToLower(uri.Scheme))))
 	}
 	if uri.User != nil {
-		entries = append(entries, WrapHashEntry2(`userinfo`, WrapString(uri.User.String())))
+		entries = append(entries, WrapHashEntry2(`userinfo`, stringValue(uri.User.String())))
 	}
 	if uri.Host != `` {
 		h := uri.Host
 		colon := strings.IndexByte(h, ':')
 		if colon >= 0 {
-			entries = append(entries, WrapHashEntry2(`host`, WrapString(strings.ToLower(h[:colon]))))
+			entries = append(entries, WrapHashEntry2(`host`, stringValue(strings.ToLower(h[:colon]))))
 			if p, err := strconv.Atoi(uri.Port()); err == nil {
-				entries = append(entries, WrapHashEntry2(`port`, WrapInteger(int64(p))))
+				entries = append(entries, WrapHashEntry2(`port`, integerValue(int64(p))))
 			}
 		} else {
-			entries = append(entries, WrapHashEntry2(`host`, WrapString(strings.ToLower(h))))
+			entries = append(entries, WrapHashEntry2(`host`, stringValue(strings.ToLower(h))))
 		}
 	}
 	if uri.Path != `` {
-		entries = append(entries, WrapHashEntry2(`path`, WrapString(uri.Path)))
+		entries = append(entries, WrapHashEntry2(`path`, stringValue(uri.Path)))
 	}
 	if uri.RawQuery != `` {
-		entries = append(entries, WrapHashEntry2(`query`, WrapString(uri.RawQuery)))
+		entries = append(entries, WrapHashEntry2(`query`, stringValue(uri.RawQuery)))
 	}
 	if uri.Fragment != `` {
-		entries = append(entries, WrapHashEntry2(`fragment`, WrapString(uri.Fragment)))
+		entries = append(entries, WrapHashEntry2(`fragment`, stringValue(uri.Fragment)))
 	}
 	if uri.Opaque != `` {
-		entries = append(entries, WrapHashEntry2(`opaque`, WrapString(uri.Opaque)))
+		entries = append(entries, WrapHashEntry2(`opaque`, stringValue(uri.Opaque)))
 	}
 	return WrapHash(entries)
 }
@@ -434,14 +433,13 @@ func (u *UriValue) Get(key string) (eval.Value, bool) {
 	return _UNDEF, false
 }
 
-func (u *UriValue)  CanSerializeAsString() bool {
-  return true
+func (u *UriValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (u *UriValue)  SerializationString() string {
+func (u *UriValue) SerializationString() string {
 	return u.String()
 }
-
 
 func (u *UriValue) String() string {
 	return eval.ToString(u)

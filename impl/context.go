@@ -49,6 +49,14 @@ func init() {
 		panic(issue.NewReported(eval.EVAL_NO_CURRENT_CONTEXT, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
 	}
 
+	eval.StackTop = func() issue.Location {
+		if ctx, ok := threadlocal.Get(eval.PuppetContextKey); ok {
+			return ctx.(eval.Context).StackTop()
+		}
+		_, file, line, _ := runtime.Caller(2)
+		return issue.NewLocation(file, line, 0)
+	}
+
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
 		resolvableFunctionsLock.Lock()
 		resolvableFunctions = append(resolvableFunctions, function)
@@ -204,10 +212,10 @@ func (c *evalCtx) Logger() eval.Logger {
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
-	if eval.GetSetting(`workflow`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+	if eval.GetSetting(`workflow`, types.BooleanFalse).(eval.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
 	}
-	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+	if eval.GetSetting(`tasks`, types.BooleanFalse).(eval.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
 	}
 	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
@@ -233,7 +241,7 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 }
 
 func (c *evalCtx) ParseType(typeString eval.Value) eval.Type {
-	if sv, ok := typeString.(*types.StringValue); ok {
+	if sv, ok := typeString.(eval.StringValue); ok {
 		return c.ParseType2(sv.String())
 	}
 	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))

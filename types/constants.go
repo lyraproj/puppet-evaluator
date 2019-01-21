@@ -6,7 +6,7 @@ import (
 
 var _EMPTY_ARRAY = WrapValues([]eval.Value{})
 var _EMPTY_MAP = WrapHash([]*HashEntry{})
-var _EMPTY_STRING = WrapString(``)
+var _EMPTY_STRING = stringValue(``)
 var _UNDEF = WrapUndef()
 
 func init() {

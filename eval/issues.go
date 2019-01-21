@@ -213,7 +213,7 @@ func init() {
 
 	issue.Hard(EVAL_INVALID_CHARACTERS_IN_NAME, `Name '%{name} contains invalid characters. Must start with letter and only contain letters, digits, and underscore'`)
 
-	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '${pattern}': %{detail}`)
+	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '%{pattern}': %{detail}`)
 
 	issue.Hard2(EVAL_INVALID_SOURCE_FOR_GET, `Cannot create a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
 

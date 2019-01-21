@@ -1,10 +1,10 @@
 package types
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 	"io"
 )
@@ -38,7 +38,7 @@ type Deferred interface {
 
 type deferred struct {
 	name      string
-  arguments *ArrayValue
+	arguments *ArrayValue
 }
 
 func NewDeferred(name string, arguments ...eval.Value) *deferred {
@@ -54,12 +54,12 @@ func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
 	if argc < 1 || argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`deferred[]`, `1 - 2`, argc))
 	}
-	if name, ok := args[0].(*StringValue); ok {
-    if argc == 1 {
-			return newDeferred(name.String(), _EMPTY_ARRAY)
+	if name, ok := args[0].(stringValue); ok {
+		if argc == 1 {
+			return newDeferred(string(name), _EMPTY_ARRAY)
 		}
 		if as, ok := args[1].(*ArrayValue); ok {
-			return newDeferred(name.String(), as)
+			return newDeferred(string(name), as)
 		}
 		panic(NewIllegalArgumentType2(`deferred[]`, 1, `Array`, args[1]))
 	}
@@ -103,7 +103,7 @@ func (e *deferred) PType() eval.Type {
 func (e *deferred) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `name`:
-		return WrapString(e.name), true
+		return stringValue(e.name), true
 	case `arguments`:
 		return e.arguments, true
 	}
@@ -111,7 +111,7 @@ func (e *deferred) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (e *deferred) InitHash() eval.OrderedMap {
-	return WrapHash([]*HashEntry{WrapHashEntry2(`name`, WrapString(e.name)), WrapHashEntry2(`arguments`, e.arguments)})
+	return WrapHash([]*HashEntry{WrapHashEntry2(`name`, stringValue(e.name)), WrapHashEntry2(`arguments`, e.arguments)})
 }
 
 func (e *deferred) Resolve(c eval.Context) eval.Value {
@@ -129,7 +129,7 @@ func (e *deferred) Resolve(c eval.Context) eval.Value {
 			return vv
 		}
 		fn = `dig`
-		args = append(make([]eval.Value, 0, 1 + e.arguments.Len()), vv)
+		args = append(make([]eval.Value, 0, 1+e.arguments.Len()), vv)
 	} else {
 		args = make([]eval.Value, 0, e.arguments.Len())
 	}

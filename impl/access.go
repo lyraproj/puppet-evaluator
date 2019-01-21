@@ -138,7 +138,7 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 			start = 0
 		}
 		if start == lhs.Len() || count == 0 {
-			if _, ok := lhs.(*types.StringValue); ok {
+			if _, ok := lhs.(eval.StringValue); ok {
 				return eval.EMPTY_STRING
 			}
 			return eval.EMPTY_ARRAY

@@ -56,7 +56,7 @@ func NewPatternType3(regexps eval.List) *PatternType {
 			rs[idx] = arg.(*RegexpType)
 		case *RegexpValue:
 			rs[idx] = arg.(*RegexpValue).PType().(*RegexpType)
-		case *StringValue:
+		case stringValue:
 			rs[idx] = NewRegexpType2(arg)
 		default:
 			panic(NewIllegalArgumentType2(`Pattern[]`, idx, `Type[Regexp], Regexp, or String`, arg))
@@ -96,12 +96,15 @@ func (t *PatternType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		return len(t.regexps) == 0
 	}
 
-	if st, ok := o.(*StringType); ok {
+	if _, ok := o.(*stringType); ok {
 		if len(t.regexps) == 0 {
 			return true
 		}
-		str := st.value
-		return str != `` && utils.MatchesString(MapToRegexps(t.regexps), str)
+		if vc, ok := o.(*vcStringType); ok {
+			str := vc.value
+			return utils.MatchesString(MapToRegexps(t.regexps), str)
+		}
+		return false
 	}
 
 	if et, ok := o.(*EnumType); ok {
@@ -115,8 +118,8 @@ func (t *PatternType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *PatternType) IsInstance(o eval.Value, g eval.Guard) bool {
-	str, ok := o.(*StringValue)
-	return ok && (len(t.regexps) == 0 || utils.MatchesString(MapToRegexps(t.regexps), str.String()))
+	str, ok := o.(stringValue)
+	return ok && (len(t.regexps) == 0 || utils.MatchesString(MapToRegexps(t.regexps), string(str)))
 }
 
 func (t *PatternType) MetaType() eval.ObjectType {
@@ -134,7 +137,7 @@ func (t *PatternType) Parameters() []eval.Value {
 	}
 	rxs := make([]eval.Value, top)
 	for idx, rx := range t.regexps {
-		rxs[idx] = WrapRegexp(rx.patternString)
+		rxs[idx] = WrapRegexp2(rx.pattern)
 	}
 	return rxs
 }
@@ -151,14 +154,13 @@ func (t *PatternType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(`x`), true
 }
 
-func (t *PatternType)  CanSerializeAsString() bool {
-  return true
+func (t *PatternType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *PatternType)  SerializationString() string {
+func (t *PatternType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *PatternType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, s, g)

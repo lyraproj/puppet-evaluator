@@ -224,8 +224,8 @@ func (p *pcoreImpl) NewEvaluator(c eval.Context) eval.Evaluator {
 func (p *pcoreImpl) NewParser() validator.ParserValidator {
 	lo := make([]parser.Option, 0)
 	var v validator.Validator
-	wf := eval.GetSetting(`workflow`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
-	if eval.GetSetting(`tasks`, types.Boolean_FALSE).(*types.BooleanValue).Bool() {
+	wf := eval.GetSetting(`workflow`, types.BooleanFalse).(eval.BooleanValue).Bool()
+	if eval.GetSetting(`tasks`, types.BooleanFalse).(eval.BooleanValue).Bool() {
 		// Keyword 'plan' enabled. No resource expressions allowed in validation
 		lo = append(lo, parser.PARSER_TASKS_ENABLED)
 		if wf {

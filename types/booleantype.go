@@ -9,24 +9,24 @@ import (
 	"reflect"
 )
 
-var Boolean_FALSE = &BooleanValue{0}
-var Boolean_TRUE = &BooleanValue{1}
+var BooleanFalse = booleanValue(false)
+var BooleanTrue = booleanValue(true)
 
 type (
 	BooleanType struct {
 		value int // -1 == unset, 0 == false, 1 == true
 	}
 
-	// BooleanValue keeps only the value because the type is known and not parameterized
-	BooleanValue BooleanType
+	// booleanValue represents bool as a eval.Value
+	booleanValue bool
 )
 
-var booleanType_DEFAULT = &BooleanType{-1}
+var booleanTypeDefault = &BooleanType{-1}
 
-var Boolean_Type eval.ObjectType
+var BooleanMetaType eval.ObjectType
 
 func init() {
-	Boolean_Type = newObjectType(`Pcore::BooleanType`, `Pcore::ScalarDataType {
+	BooleanMetaType = newObjectType(`Pcore::BooleanType`, `Pcore::ScalarDataType {
   attributes => {
     value => { type => Optional[Boolean], value => undef }
   }
@@ -40,26 +40,25 @@ func init() {
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				switch arg.(type) {
-				case *IntegerValue:
-					if arg.(*IntegerValue).Int() == 0 {
-						return Boolean_FALSE
+				case integerValue:
+					if arg.(integerValue) == 0 {
+						return BooleanFalse
 					}
-					return Boolean_TRUE
-				case *FloatValue:
-					if arg.(*FloatValue).Float() == 0.0 {
-						return Boolean_FALSE
+					return BooleanTrue
+				case floatValue:
+					if arg.(floatValue) == 0.0 {
+						return BooleanFalse
 					}
-					return Boolean_TRUE
-				case *BooleanValue:
+					return BooleanTrue
+				case booleanValue:
 					return arg
 				default:
 					switch strings.ToLower(arg.String()) {
 					case `false`, `no`, `n`:
-						return Boolean_FALSE
+						return BooleanFalse
 					default:
-						return Boolean_TRUE
+						return BooleanTrue
 					}
-					return arg.(eval.IterableValue).Iterator().AsArray()
 				}
 			})
 		},
@@ -67,7 +66,7 @@ func init() {
 }
 
 func DefaultBooleanType() *BooleanType {
-	return booleanType_DEFAULT
+	return booleanTypeDefault
 }
 
 func NewBooleanType(value bool) *BooleanType {
@@ -83,8 +82,8 @@ func NewBooleanType2(args ...eval.Value) *BooleanType {
 	case 0:
 		return DefaultBooleanType()
 	case 1:
-		if bv, ok := args[0].(*BooleanValue); ok {
-			return NewBooleanType(bv.Bool())
+		if bv, ok := args[0].(booleanValue); ok {
+			return NewBooleanType(bool(bv))
 		}
 		panic(NewIllegalArgumentType2(`Boolean[]`, 0, `Boolean`, args[0]))
 	default:
@@ -97,11 +96,11 @@ func (t *BooleanType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *BooleanType) Default() eval.Type {
-	return booleanType_DEFAULT
+	return booleanTypeDefault
 }
 
 func (t *BooleanType) Generic() eval.Type {
-	return booleanType_DEFAULT
+	return booleanTypeDefault
 }
 
 func (t *BooleanType) Equals(o interface{}, g eval.Guard) bool {
@@ -116,9 +115,9 @@ func (t *BooleanType) Get(key string) (eval.Value, bool) {
 	case `value`:
 		switch t.value {
 		case 0:
-			return Boolean_FALSE, true
+			return BooleanFalse, true
 		case 1:
-			return Boolean_TRUE, true
+			return BooleanTrue, true
 		default:
 			return eval.UNDEF, true
 		}
@@ -128,7 +127,7 @@ func (t *BooleanType) Get(key string) (eval.Value, bool) {
 }
 
 func (t *BooleanType) MetaType() eval.ObjectType {
-	return Boolean_Type
+	return BooleanMetaType
 }
 
 func (t *BooleanType) Name() string {
@@ -154,8 +153,8 @@ func (t *BooleanType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *BooleanType) IsInstance(o eval.Value, g eval.Guard) bool {
-	if bo, ok := o.(*BooleanValue); ok {
-		return t.value == -1 || t.value == bo.value
+	if bo, ok := o.(booleanValue); ok {
+		return t.value == -1 || bool(bo) == (t.value == 1)
 	}
 	return false
 }
@@ -164,7 +163,7 @@ func (t *BooleanType) Parameters() []eval.Value {
 	if t.value == -1 {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.Value{&BooleanValue{t.value}}
+	return []eval.Value{booleanValue(t.value == 1)}
 }
 
 func (t *BooleanType) ReflectType(c eval.Context) (reflect.Type, bool) {
@@ -187,34 +186,40 @@ func (t *BooleanType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func WrapBoolean(val bool) *BooleanValue {
+func WrapBoolean(val bool) eval.BooleanValue {
 	if val {
-		return Boolean_TRUE
+		return BooleanTrue
 	}
-	return Boolean_FALSE
+	return BooleanFalse
 }
 
-func (bv *BooleanValue) Bool() bool {
-	return bv.value == 1
+func (bv booleanValue) Bool() bool {
+	return bool(bv)
 }
 
-func (bv *BooleanValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*BooleanValue); ok {
-		return bv.value == ov.value
+func (bv booleanValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(booleanValue); ok {
+		return bv == ov
 	}
 	return false
 }
 
-func (bv *BooleanValue) Float() float64 {
-	return float64(bv.value)
+func (bv booleanValue) Float() float64 {
+	if bv {
+		return float64(1.0)
+	}
+	return float64(0.0)
 }
 
-func (bv *BooleanValue) Int() int64 {
-	return int64(bv.value)
+func (bv booleanValue) Int() int64 {
+	if bv {
+		return int64(1)
+	}
+	return int64(0)
 }
 
-func (bv *BooleanValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(bv.value == 1)
+func (bv booleanValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(bool(bv))
 }
 
 var theTrue = true
@@ -227,40 +232,40 @@ var reflectFalse = reflect.ValueOf(theFalse)
 var reflectTruePtr = reflect.ValueOf(theTruePtr)
 var reflectFalsePtr = reflect.ValueOf(theFalsePtr)
 
-func (bv *BooleanValue) ReflectTo(c eval.Context, value reflect.Value) {
+func (bv booleanValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if value.Kind() == reflect.Interface {
-		if bv.value == 1 {
+		if bv {
 			value.Set(reflectTrue)
 		} else {
 			value.Set(reflectFalse)
 		}
 	} else if value.Kind() == reflect.Ptr {
-		if bv.value == 1 {
+		if bv {
 			value.Set(reflectTruePtr)
 		} else {
 			value.Set(reflectFalsePtr)
 		}
 	} else {
-		value.SetBool(bv.value == 1)
+		value.SetBool(bool(bv))
 	}
 }
 
-func (t *BooleanValue) CanSerializeAsString() bool {
+func (bv booleanValue) CanSerializeAsString() bool {
 	return true
 }
 
-func (t *BooleanValue) SerializationString() string {
-	return t.String()
+func (bv booleanValue) SerializationString() string {
+	return bv.String()
 }
 
-func (bv *BooleanValue) String() string {
-	if bv.value == 1 {
+func (bv booleanValue) String() string {
+	if bv {
 		return `true`
 	}
 	return `false`
 }
 
-func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (bv booleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), bv.PType())
 	switch f.FormatChar() {
 	case 't':
@@ -272,9 +277,9 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	case 'Y':
 		f.ApplyStringFlags(b, bv.stringVal(f.IsAlt(), `Yes`, `No`), false)
 	case 'd', 'x', 'X', 'o', 'b', 'B':
-		WrapInteger(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
+		integerValue(bv.Int()).ToString(b, eval.NewFormatContext(DefaultIntegerType(), f, s.Indentation()), g)
 	case 'e', 'E', 'f', 'g', 'G', 'a', 'A':
-		WrapFloat(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
+		floatValue(bv.Float()).ToString(b, eval.NewFormatContext(DefaultFloatType(), f, s.Indentation()), g)
 	case 's', 'p':
 		f.ApplyStringFlags(b, bv.stringVal(false, `true`, `false`), false)
 	default:
@@ -282,9 +287,9 @@ func (bv *BooleanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 	}
 }
 
-func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
+func (bv booleanValue) stringVal(alt bool, yes string, no string) string {
 	str := no
-	if bv.value == 1 {
+	if bv {
 		str = yes
 	}
 	if alt {
@@ -293,13 +298,19 @@ func (bv *BooleanValue) stringVal(alt bool, yes string, no string) string {
 	return str
 }
 
-func (bv *BooleanValue) ToKey() eval.HashKey {
-	if bv.value == 1 {
-		return eval.HashKey([]byte{1, HK_BOOLEAN, 1})
+var hkTrue = eval.HashKey([]byte{1, HK_BOOLEAN, 1})
+var hkFalse = eval.HashKey([]byte{1, HK_BOOLEAN, 0})
+
+func (bv booleanValue) ToKey() eval.HashKey {
+	if bv {
+		return hkTrue
 	}
-	return eval.HashKey([]byte{1, HK_BOOLEAN, 0})
+	return hkFalse
 }
 
-func (bv *BooleanValue) PType() eval.Type {
-	return DefaultBooleanType()
+func (bv booleanValue) PType() eval.Type {
+	if bv {
+		return &BooleanType{1}
+	}
+	return &BooleanType{0}
 }

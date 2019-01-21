@@ -43,14 +43,14 @@ type context struct {
 // NewSerializer returns a new Serializer
 func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
 	t := &rdSerializer{context: ctx}
-	t.symbolAsString = options.Get5(`symbol_as_string`, types.Boolean_FALSE).(*types.BooleanValue).Bool()
-	t.richData = options.Get5(`rich_data`, types.Boolean_TRUE).(*types.BooleanValue).Bool()
+	t.symbolAsString = options.Get5(`symbol_as_string`, types.BooleanFalse).(eval.BooleanValue).Bool()
+	t.richData = options.Get5(`rich_data`, types.BooleanTrue).(eval.BooleanValue).Bool()
 	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
-	if !options.Get5(`local_reference`, types.Boolean_TRUE).(*types.BooleanValue).Bool() {
+	if !options.Get5(`local_reference`, types.BooleanTrue).(eval.BooleanValue).Bool() {
 		// local_reference explicitly set to false
 		t.dedupLevel = NoDedup
 	} else {
-		t.dedupLevel = int(options.Get5(`dedup_level`, types.WrapInteger(MaxDedup)).(*types.IntegerValue).Int())
+		t.dedupLevel = int(options.Get5(`dedup_level`, types.WrapInteger(MaxDedup)).(eval.IntegerValue).Int())
 	}
 	return t
 }
@@ -94,10 +94,10 @@ func (sc *context) toData(level int, value eval.Value) {
 	}
 
 	switch value.(type) {
-	case *types.UndefValue, *types.IntegerValue, *types.FloatValue, *types.BooleanValue:
+	case *types.UndefValue, eval.IntegerValue, eval.FloatValue, eval.BooleanValue:
 		// Never dedup
 		sc.addData(value)
-	case *types.StringValue:
+	case eval.StringValue:
 		// Dedup only if length exceeds stringThreshold
 		key := value.String()
 		if sc.dedupLevel >= level && len(key) >= sc.consumer.StringDedupThreshold() {
@@ -232,7 +232,7 @@ func (sc *context) nonStringKeyedHashToData(hash eval.OrderedMap) {
 	}
 	sc.addHash(hash.Len(), func() {
 		hash.EachPair(func(key, elem eval.Value) {
-			if s, ok := key.(*types.StringValue); ok {
+			if s, ok := key.(eval.StringValue); ok {
 				sc.toData(2, s)
 			} else {
 				sc.unknownToStringWithWarning(2, key)

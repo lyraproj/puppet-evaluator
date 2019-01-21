@@ -90,8 +90,8 @@ func (t *IterableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		et = NewIntegerType(0, 255)
 	case *HashType:
 		et = o.(*HashType).EntryType()
-	case *StringType:
-		et = ONE_CHAR_STRING_TYPE
+	case *stringType:
+		et = OneCharStringType
 	case *TupleType:
 		return allAssignableTo(o.(*TupleType).types, t.typ, g)
 	default:

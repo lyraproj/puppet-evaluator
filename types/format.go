@@ -9,10 +9,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 )
 
 type (
@@ -86,7 +86,6 @@ var PRETTY_HASH_FORMAT = basicAltFormat('h', ` => `, '{', PRETTY_CONTAINER_FORMA
 var PRETTY_OBJECT_FORMAT = basicAltFormat('p', ` => `, '(', PRETTY_CONTAINER_FORMATS)
 
 var PRETTY_INDENTATION = newIndentation(true, 0)
-
 
 func init() {
 	DEFAULT_ARRAY_FORMAT.(*format).containerFormats = DEFAULT_CONTAINER_FORMATS
@@ -196,7 +195,7 @@ func newFormatContext3(value eval.Value, format eval.Value) (context eval.Format
 	}()
 
 	switch format.(type) {
-	case *StringValue:
+	case stringValue:
 		context = eval.NewFormatContext(value.PType(), newFormat(format.String()), DEFAULT_INDENTATION)
 	case *DefaultValue:
 		context = eval.DEFAULT_FORMAT_CONTEXT
@@ -294,7 +293,7 @@ func typeRank(pt eval.Type) int {
 	switch pt.(type) {
 	case *NumericType, *IntegerType, *FloatType:
 		return 13
-	case *StringType:
+	case *stringType:
 		return 12
 	case *EnumType:
 		return 11
@@ -321,7 +320,7 @@ func NewFormatMap(h *HashValue) eval.FormatMap {
 		entry := elem.(*HashEntry)
 		pt := entry.Key().(eval.Type)
 		v := entry.Value()
-		if s, ok := v.(*StringValue); ok {
+		if s, ok := v.(stringValue); ok {
 			result[idx] = WrapHashEntry(pt, newFormat(s.String()))
 		} else {
 			result[idx] = WrapHashEntry(pt, FormatFromHash(v.(*HashValue)))
@@ -347,7 +346,7 @@ func FormatFromHash(h *HashValue) eval.Format {
 	stringArg := func(key string, required bool) string {
 		v := h.Get5(key, _UNDEF)
 		switch v.(type) {
-		case *StringValue:
+		case stringValue:
 			return v.String()
 		default:
 			return NO_STRING
@@ -384,7 +383,7 @@ func (c *formatContext) Properties() map[string]string {
 
 func (c *formatContext) SetProperty(key, value string) {
 	if c.properties == nil {
-		c.properties = map[string]string{ key: value }
+		c.properties = map[string]string{key: value}
 	} else {
 		c.properties[key] = value
 	}
@@ -396,7 +395,7 @@ func (c *formatContext) UnsupportedFormat(t eval.Type, supportedFormats string, 
 
 func (c *formatContext) WithProperties(properties map[string]string) eval.FormatContext {
 	if c.properties != nil {
-		merged := make(map[string]string, len(c.properties) + len(properties))
+		merged := make(map[string]string, len(c.properties)+len(properties))
 		for k, v := range c.properties {
 			merged[k] = v
 		}
@@ -744,7 +743,7 @@ func fprintf(buf io.Writer, callerName string, s string, args ...eval.Value) {
 			}
 			c, ok = rdr.Next()
 		}
-		ctx, err := eval.NewFormatContext3(v, WrapString(f.String()))
+		ctx, err := eval.NewFormatContext3(v, stringValue(f.String()))
 		if err != nil {
 			panic(errors.NewIllegalArgument(callerName, 1, err.Error()))
 		}
@@ -815,7 +814,7 @@ nextChar:
 			if c == e {
 				keyEnd := rdr.i - 1 // Safe since '}' is below RuneSelf
 				key := s[keyStart:keyEnd]
-				if value, keyFound := hashArg.Get(WrapString(key)); keyFound {
+				if value, keyFound := hashArg.Get(stringValue(key)); keyFound {
 					c, ok = rdr.Next()
 					if b == '{' {
 						eval.ToString4(value, NONE, buf)

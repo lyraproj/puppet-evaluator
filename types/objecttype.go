@@ -362,7 +362,7 @@ func (t *objectType) HasHashConstructor() bool {
 	return t.creators == nil || len(t.creators) == 2
 }
 
-func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver string, typeString *StringValue) eval.Type {
+func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver string, typeString eval.StringValue) eval.Type {
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
@@ -394,8 +394,8 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	if t.parent == nil {
 		if pt, ok := initHash.Get4(KEY_PARENT); ok {
 			switch pt.(type) {
-			case *StringValue:
-				t.parent = t.parseAttributeType(c, ``, `parent`, pt.(*StringValue))
+			case stringValue:
+				t.parent = t.parseAttributeType(c, ``, `parent`, pt.(eval.StringValue))
 			case eval.ResolvableType:
 				t.parent = pt.(eval.ResolvableType).Resolve(c)
 			default:
@@ -429,7 +429,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
 				paramValue = ph.Get5(KEY_VALUE, nil)
 			} else {
-				if tn, ok := v.(*StringValue); ok {
+				if tn, ok := v.(stringValue); ok {
 					// Type name. Load the type.
 					paramType = t.parseAttributeType(c, `type_parameter`, key, tn)
 				} else {
@@ -482,7 +482,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			attrSpec, ok := value.(*HashValue)
 			if !ok {
 				var attrType eval.Type
-				if tn, ok := value.(*StringValue); ok {
+				if tn, ok := value.(stringValue); ok {
 					// Type name. Load the type.
 					attrType = t.parseAttributeType(c, `attribute`, key, tn)
 				} else {
@@ -513,7 +513,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			// reflectable to/from the the go type
 			attrs := make([]*HashEntry, 2)
 			attrs[0] = WrapHashEntry2(KEY_TYPE, pt)
-			attrs[1] = WrapHashEntry2(KEY_GONAME, WrapString(KEY_VALUE))
+			attrs[1] = WrapHashEntry2(KEY_GONAME, stringValue(KEY_VALUE))
 			ah := hash.NewStringHash(1)
 			ah.Put(KEY_VALUE, newAttribute(c, KEY_VALUE, t, WrapHash(attrs)))
 			ah.Freeze()
@@ -535,7 +535,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			funcSpec, ok := value.(*HashValue)
 			if !ok {
 				var funcType eval.Type
-				if tn, ok := value.(*StringValue); ok {
+				if tn, ok := value.(stringValue); ok {
 					// Type name. Load the type.
 					funcType = t.parseAttributeType(c, `function`, key.String(), tn)
 				} else {
@@ -556,8 +556,8 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 
 	var equality []string
 	eq := initHash.Get5(KEY_EQUALITY, nil)
-	if es, ok := eq.(*StringValue); ok {
-		equality = []string{es.String()}
+	if es, ok := eq.(stringValue); ok {
+		equality = []string{string(es)}
 	} else if ea, ok := eq.(*ArrayValue); ok {
 		equality = make([]string, ea.Len())
 	} else {
@@ -1158,7 +1158,7 @@ func (t *objectType) findEqualityDefiner(attrName string) *objectType {
 func (t *objectType) initHash(includeName bool) *hash.StringHash {
 	h := t.annotatable.initHash()
 	if includeName && t.name != `` && t.name != `Object` {
-		h.Put(KEY_NAME, WrapString(t.name))
+		h.Put(KEY_NAME, stringValue(t.name))
 	}
 	if t.parent != nil {
 		h.Put(KEY_PARENT, t.parent)
@@ -1191,19 +1191,19 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 	if t.equality != nil {
 		ev := make([]eval.Value, len(t.equality))
 		for i, e := range t.equality {
-			ev[i] = WrapString(e)
+			ev[i] = stringValue(e)
 		}
 		h.Put(KEY_EQUALITY, WrapValues(ev))
 	}
 
 	if !t.equalityIncludeType {
-		h.Put(KEY_EQUALITY_INCLUDE_TYPE, Boolean_FALSE)
+		h.Put(KEY_EQUALITY_INCLUDE_TYPE, BooleanFalse)
 	}
 
 	if t.serialization != nil {
 		sv := make([]eval.Value, len(t.serialization))
 		for i, s := range t.serialization {
-			sv[i] = WrapString(s)
+			sv[i] = stringValue(s)
 		}
 		h.Put(KEY_SERIALIZATION, WrapValues(sv))
 	}

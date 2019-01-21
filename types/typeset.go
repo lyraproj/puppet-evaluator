@@ -27,14 +27,14 @@ const (
 
 var TypeSet_Type eval.ObjectType
 
-var TYPE_STRING_OR_VERSION = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerType())
+var TYPE_STRING_OR_VERSION = NewVariantType(stringTypeNotEmpty, DefaultSemVerType())
 
 var TYPE_SIMPLE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z]\w*\z`)})
 var TYPE_QUALIFIED_REFERENCE = NewPatternType([]*RegexpType{NewRegexpType(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)})
 
-var TYPE_STRING_OR_RANGE = NewVariantType(stringType_NOT_EMPTY, DefaultSemVerRangeType())
+var TYPE_STRING_OR_RANGE = NewVariantType(stringTypeNotEmpty, DefaultSemVerRangeType())
 
-var TYPE_STRING_OR_URI = NewVariantType(stringType_NOT_EMPTY, DefaultUriType())
+var TYPE_STRING_OR_URI = NewVariantType(stringTypeNotEmpty, DefaultUriType())
 
 var TYPE_TYPE_REFERENCE_INIT = NewStructType([]*StructElement{
 	NewStructElement2(KEY_NAME, TYPE_QUALIFIED_REFERENCE),
@@ -110,9 +110,9 @@ func newTypeSetReference(t *typeSet, ref *HashValue) *typeSetReference {
 func (r *typeSetReference) initHash() *hash.StringHash {
 	h := r.annotatable.initHash()
 	if r.nameAuthority != r.owner.nameAuthority {
-		h.Put(KEY_NAME_AUTHORITY, WrapString(string(r.nameAuthority)))
+		h.Put(KEY_NAME_AUTHORITY, stringValue(string(r.nameAuthority)))
 	}
-	h.Put(KEY_NAME, WrapString(r.name))
+	h.Put(KEY_NAME, stringValue(r.name))
 	h.Put(KEY_VERSION_RANGE, WrapSemVerRange(r.versionRange))
 	return h
 }
@@ -310,7 +310,7 @@ func (t *typeSet) Get(key string) (value eval.Value, ok bool) {
 		}
 		return WrapURI2(string(t.nameAuthority)), true
 	case KEY_NAME:
-		return WrapString(t.name), true
+		return stringValue(t.name), true
 	case KEY_VERSION:
 		if t.version == nil {
 			return _UNDEF, true
@@ -582,7 +582,7 @@ func (t *typeSet) initHash() *hash.StringHash {
 	if t.nameAuthority != `` {
 		h.Put(KEY_NAME_AUTHORITY, WrapURI2(string(t.nameAuthority)))
 	}
-	h.Put(KEY_NAME, WrapString(t.name))
+	h.Put(KEY_NAME, stringValue(t.name))
 	if t.version != nil {
 		h.Put(KEY_VERSION, WrapSemVer(t.version))
 	}

@@ -5,15 +5,15 @@ import (
 )
 
 func toFloat(v eval.Value) (float64, bool) {
-	if iv, ok := v.(*FloatValue); ok {
-		return iv.Float(), true
+	if iv, ok := v.(floatValue); ok {
+		return float64(iv), true
 	}
 	return 0.0, false
 }
 
 func toInt(v eval.Value) (int64, bool) {
-	if iv, ok := v.(*IntegerValue); ok {
-		return iv.Int(), true
+	if iv, ok := v.(integerValue); ok {
+		return int64(iv), true
 	}
 	return 0, false
 }

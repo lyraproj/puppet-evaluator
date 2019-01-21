@@ -12,7 +12,7 @@ func init() {
 			d.Param(`String`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				types.WrapRegexp(args[1].String()).Regexp()
-				return args[0].(*types.StringValue).Split(types.WrapRegexp(args[1].String()).Regexp())
+				return args[0].(eval.StringValue).Split(types.WrapRegexp(args[1].String()).Regexp())
 			})
 		},
 
@@ -20,7 +20,7 @@ func init() {
 			d.Param(`String`)
 			d.Param(`Regexp`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return args[0].(*types.StringValue).Split(args[1].(*types.RegexpValue).Regexp())
+				return args[0].(eval.StringValue).Split(args[1].(*types.RegexpValue).Regexp())
 			})
 		},
 
@@ -28,7 +28,7 @@ func init() {
 			d.Param(`String`)
 			d.Param(`Type[Regexp]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return args[0].(*types.StringValue).Split(args[1].(*types.RegexpType).Regexp())
+				return args[0].(eval.StringValue).Split(args[1].(*types.RegexpType).Regexp())
 			})
 		},
 	)

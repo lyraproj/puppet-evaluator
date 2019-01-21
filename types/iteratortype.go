@@ -248,7 +248,7 @@ func eachWithIndex(iter eval.Iterator, consumer eval.BiConsumer) {
 		if !ok {
 			break
 		}
-		consumer(WrapInteger(idx), v)
+		consumer(integerValue(idx), v)
 	}
 }
 

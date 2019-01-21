@@ -1,9 +1,9 @@
 package types
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
-	"github.com/lyraproj/issue/issue"
 )
 
 type annotatedMember struct {
@@ -20,7 +20,7 @@ func (a *annotatedMember) initialize(c eval.Context, memberType, name string, co
 	a.name = name
 	a.container = container
 	typ := initHash.Get5(KEY_TYPE, nil)
-	if tn, ok := typ.(*StringValue); ok {
+	if tn, ok := typ.(stringValue); ok {
 		a.typ = container.parseAttributeType(c, memberType, name, tn)
 	} else {
 		// Unchecked because type is guaranteed by earlier type assersion on the hash
@@ -64,10 +64,10 @@ func (a *annotatedMember) initHash() *hash.StringHash {
 	h := a.annotatable.initHash()
 	h.Put(KEY_TYPE, a.typ)
 	if a.final {
-		h.Put(KEY_FINAL, WrapBoolean(true))
+		h.Put(KEY_FINAL, BooleanTrue)
 	}
 	if a.override {
-		h.Put(KEY_OVERRIDE, WrapBoolean(true))
+		h.Put(KEY_OVERRIDE, BooleanTrue)
 	}
 	return h
 }

@@ -6,9 +6,9 @@ import (
 	"math"
 	"time"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/issue/issue"
 	"reflect"
 	"sync"
 )
@@ -86,10 +86,10 @@ func init() {
 			d.Param(`Variant[Integer,Float]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
-				if i, ok := arg.(*IntegerValue); ok {
-					return WrapTimestamp(time.Unix(i.Int(), 0))
+				if i, ok := arg.(integerValue); ok {
+					return WrapTimestamp(time.Unix(int64(i), 0))
 				}
-				s, f := math.Modf(arg.(*FloatValue).Float())
+				s, f := math.Modf(float64(arg.(floatValue)))
 				return WrapTimestamp(time.Unix(int64(s), int64(f*1000000000.0)))
 			})
 		},
@@ -159,12 +159,12 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 			t, ok = arg.(*TimestampValue).Time(), true
 		case *HashValue:
 			t, ok = TimeFromHash(arg.(*HashValue))
-		case *StringValue:
-			t, ok = TimeFromString(arg.(*StringValue).value), true
-		case *IntegerValue:
-			t, ok = time.Unix(arg.(*IntegerValue).Int(), 0), true
-		case *FloatValue:
-			s, f := math.Modf(arg.(*FloatValue).Float())
+		case stringValue:
+			t, ok = TimeFromString(arg.String()), true
+		case integerValue:
+			t, ok = time.Unix(int64(arg.(integerValue)), 0), true
+		case floatValue:
+			s, f := math.Modf(float64(arg.(floatValue)))
 			t, ok = time.Unix(int64(s), int64(f*1000000000.0)), true
 		case *DefaultValue:
 			if argNo == 0 {
@@ -243,26 +243,25 @@ func (t *TimestampType) Parameters() []eval.Value {
 		if t.min.Equal(MIN_TIME) {
 			return eval.EMPTY_VALUES
 		}
-		return []eval.Value{WrapString(t.min.String())}
+		return []eval.Value{stringValue(t.min.String())}
 	}
 	if t.min.Equal(MIN_TIME) {
-		return []eval.Value{WrapDefault(), WrapString(t.max.String())}
+		return []eval.Value{WrapDefault(), stringValue(t.max.String())}
 	}
-	return []eval.Value{WrapString(t.min.String()), WrapString(t.max.String())}
+	return []eval.Value{stringValue(t.min.String()), stringValue(t.max.String())}
 }
 
 func (t *TimestampType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(time.Time{}), true
 }
 
-func (t *TimestampType)  CanSerializeAsString() bool {
-  return true
+func (t *TimestampType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *TimestampType)  SerializationString() string {
+func (t *TimestampType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *TimestampType) String() string {
 	return eval.ToString2(t, NONE)
@@ -381,14 +380,13 @@ func (tv *TimestampValue) Int() int64 {
 	return tv.min.Unix()
 }
 
-func (tv *TimestampValue)  CanSerializeAsString() bool {
-  return true
+func (tv *TimestampValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (tv *TimestampValue)  SerializationString() string {
+func (tv *TimestampValue) SerializationString() string {
 	return tv.String()
 }
-
 
 func (tv *TimestampValue) String() string {
 	return eval.ToString2(tv, NONE)
@@ -755,7 +753,7 @@ func toTimestampFormats(fmt eval.Value) []*TimestampFormat {
 		fa.EachWithIndex(func(f eval.Value, i int) {
 			formats[i] = DefaultTimestampFormatParser.ParseFormat(f.String())
 		})
-	case *StringValue:
+	case stringValue:
 		formats = []*TimestampFormat{DefaultTimestampFormatParser.ParseFormat(fmt.String())}
 	}
 	return formats

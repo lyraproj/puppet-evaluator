@@ -96,7 +96,7 @@ func init() {
 	eval.TopEvaluate = topEvaluate
 
 	eval.Error = func(issueCode issue.Code, args issue.H) issue.Reported {
-		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.CurrentContext().StackTop())
+		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.StackTop())
 	}
 
 	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
@@ -258,7 +258,7 @@ func evalBlockExpression(e eval.Evaluator, expr *parser.BlockExpression) (result
 func evalConcatenatedString(e eval.Evaluator, expr *parser.ConcatenatedString) eval.Value {
 	bld := bytes.NewBufferString(``)
 	for _, s := range expr.Segments() {
-		bld.WriteString(e.Eval(s).(*types.StringValue).String())
+		bld.WriteString(e.Eval(s).String())
 	}
 	return types.WrapString(bld.String())
 }
@@ -331,7 +331,7 @@ func evalInExpression(e eval.Evaluator, expr *parser.InExpression) eval.Value {
 			return doCompare(expr, `==`, a, b)
 		}))
 	}
-	return types.Boolean_FALSE
+	return types.BooleanFalse
 }
 
 func evalUnlessExpression(e eval.Evaluator, expr *parser.UnlessExpression) eval.Value {

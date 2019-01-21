@@ -47,8 +47,8 @@ func NewNotUndefType2(args ...eval.Value) *NotUndefType {
 		if containedType, ok := args[0].(eval.Type); ok {
 			return NewNotUndefType(containedType)
 		}
-		if containedType, ok := args[0].(*StringValue); ok {
-			return NewNotUndefType3(containedType.String())
+		if containedType, ok := args[0].(stringValue); ok {
+			return NewNotUndefType3(string(containedType))
 		}
 		panic(NewIllegalArgumentType2(`NotUndef[]`, 0, `Variant[Type,String]`, args[0]))
 	default:
@@ -112,8 +112,8 @@ func (t *NotUndefType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
 		return eval.EMPTY_VALUES
 	}
-	if str, ok := t.typ.(*StringType); ok && str.value != `` {
-		return []eval.Value{WrapString(str.value)}
+	if str, ok := t.typ.(*vcStringType); ok && str.value != `` {
+		return []eval.Value{stringValue(str.value)}
 	}
 	return []eval.Value{t.typ}
 }

@@ -46,8 +46,12 @@ func init() {
 
 func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	n := fromConvertible(args[0], tryInt)
-	if len(args) > 1 && args[1].(*BooleanValue).Bool() {
-		n = n.Abs()
+	if len(args) > 1 && args[1].(booleanValue).Bool() {
+		if i, ok := n.(integerValue); ok {
+			n = integerValue(i.Abs())
+		} else {
+			n = floatValue(n.(floatValue).Abs())
+		}
 	}
 	return n
 }
@@ -56,8 +60,12 @@ func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	h := args[0].(*HashValue)
 	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
 	a := h.Get5(`abs`, nil)
-	if a != nil && a.(*BooleanValue).Bool() {
-		n = n.Abs()
+	if a != nil && a.(booleanValue).Bool() {
+		if i, ok := n.(integerValue); ok {
+			n = integerValue(i.Abs())
+		} else {
+			n = floatValue(n.(floatValue).Abs())
+		}
 	}
 	return n
 }
@@ -105,14 +113,13 @@ func (t *NumericType) ReflectType(c eval.Context) (reflect.Type, bool) {
 	return reflect.TypeOf(float64(0.0)), true
 }
 
-func (t *NumericType)  CanSerializeAsString() bool {
-  return true
+func (t *NumericType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *NumericType)  SerializationString() string {
+func (t *NumericType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *NumericType) String() string {
 	return eval.ToString2(t, NONE)
@@ -128,37 +135,37 @@ func (t *NumericType) PType() eval.Type {
 
 func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 	switch c.(type) {
-	case *IntegerValue:
-		iv := c.(*IntegerValue)
+	case integerValue:
+		iv := c.(integerValue)
 		if allowInt {
 			return iv
 		}
-		return WrapFloat(iv.Float())
+		return floatValue(iv.Float())
 	case *TimestampValue:
-		return WrapFloat(c.(*TimestampValue).Float())
+		return floatValue(c.(*TimestampValue).Float())
 	case *TimespanValue:
-		return WrapFloat(c.(*TimespanValue).Float())
-	case *BooleanValue:
+		return floatValue(c.(*TimespanValue).Float())
+	case booleanValue:
 		if allowInt {
-			return WrapInteger(c.(*BooleanValue).Int())
+			return integerValue(c.(booleanValue).Int())
 		}
-		return WrapFloat(c.(*BooleanValue).Float())
+		return floatValue(c.(booleanValue).Float())
 	case eval.NumericValue:
 		return c.(eval.NumericValue)
-	case *StringValue:
+	case stringValue:
 		s := c.String()
 		if allowInt {
 			if i, err := strconv.ParseInt(s, 0, 64); err == nil {
-				return WrapInteger(i)
+				return integerValue(i)
 			}
 		}
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
-			return WrapFloat(f)
+			return floatValue(f)
 		}
 		if allowInt {
 			if len(s) > 2 && s[0] == '0' && (s[1] == 'b' || s[1] == 'B') {
 				if i, err := strconv.ParseInt(s[2:], 2, 64); err == nil {
-					return WrapInteger(i)
+					return integerValue(i)
 				}
 			}
 		}

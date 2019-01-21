@@ -104,7 +104,7 @@ func (a *attribute) HasValue() bool {
 func (a *attribute) initHash() *hash.StringHash {
 	hash := a.annotatedMember.initHash()
 	if a.kind != DEFAULT_KIND {
-		hash.Put(KEY_KIND, WrapString(string(a.kind)))
+		hash.Put(KEY_KIND, stringValue(string(a.kind)))
 	}
 	if a.value != nil {
 		hash.Put(KEY_VALUE, a.value)

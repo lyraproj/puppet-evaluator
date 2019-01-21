@@ -44,8 +44,8 @@ func NewLikeType2(args ...eval.Value) *LikeType {
 		return DefaultLikeType()
 	case 2:
 		if tp, ok := args[0].(eval.Type); ok {
-			if an, ok := args[1].(*StringValue); ok {
-				return NewLikeType(tp, an.String())
+			if an, ok := args[1].(stringValue); ok {
+				return NewLikeType(tp, string(an))
 			} else {
 				panic(NewIllegalArgumentType2(`Like[]`, 1, `String`, args[1]))
 			}
@@ -78,7 +78,7 @@ func (t *LikeType) Get(key string) (eval.Value, bool) {
 	case `base_type`:
 		return t.baseType, true
 	case `navigation`:
-		return WrapString(t.navigation), true
+		return stringValue(t.navigation), true
 	default:
 		return nil, false
 	}
@@ -108,7 +108,7 @@ func (t *LikeType) Parameters() []eval.Value {
 	if *t == *typeOfType_DEFAULT {
 		return eval.EMPTY_VALUES
 	}
-	return []eval.Value{t.baseType, WrapString(t.navigation)}
+	return []eval.Value{t.baseType, stringValue(t.navigation)}
 }
 
 func (t *LikeType) Resolve(c eval.Context) eval.Type {

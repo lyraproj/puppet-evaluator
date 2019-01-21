@@ -18,7 +18,7 @@ func ExampleRichDataSerializer_roundtrip() {
 		v := types.WrapSemVer(ver)
 		fmt.Printf("%T '%s'\n", v, v)
 
-		dc := NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE))
+		dc := NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue))
 		buf := bytes.NewBufferString(``)
 		dc.Convert(v, NewJsonStreamer(buf))
 
@@ -204,7 +204,7 @@ func ExampleRichDataSerializer_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		ver, _ := semver.NewVersion(1, 0, 0)
 		cl := NewCollector()
-		NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.Boolean_TRUE)).Convert(types.WrapSemVer(ver), cl)
+		NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue)).Convert(types.WrapSemVer(ver), cl)
 		fmt.Println(cl.Value())
 	})
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}

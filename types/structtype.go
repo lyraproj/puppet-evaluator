@@ -57,20 +57,20 @@ func NewStructElement(key eval.Value, value eval.Type) *StructElement {
 	)
 
 	switch key.(type) {
-	case *StringValue:
-		v := key.(*StringValue)
+	case stringValue:
+		v := key.(stringValue)
 		keyType = v.PType()
 		if isAssignable(value, DefaultUndefType()) {
 			keyType = NewOptionalType(keyType)
 		}
-		name = v.String()
-	case *StringType:
-		strType := key.(*StringType)
+		name = string(v)
+	case *vcStringType:
+		strType := key.(*vcStringType)
 		name = strType.value
 		keyType = strType
 	case *OptionalType:
 		optType := key.(*OptionalType)
-		if strType, ok := optType.typ.(*StringType); ok {
+		if strType, ok := optType.typ.(*vcStringType); ok {
 			name = strType.value
 			keyType = optType
 		}
@@ -83,7 +83,7 @@ func NewStructElement(key eval.Value, value eval.Type) *StructElement {
 }
 
 func NewStructElement2(key string, value eval.Type) *StructElement {
-	return NewStructElement(WrapString(key), value)
+	return NewStructElement(stringValue(key), value)
 }
 
 func DefaultStructType() *StructType {
@@ -285,7 +285,7 @@ func (t *StructType) IsAssignable(o eval.Type, g eval.Guard) bool {
 				required++
 			}
 		}
-		if required > 0 && !GuardedIsAssignable(stringType_DEFAULT, ht.keyType, g) {
+		if required > 0 && !GuardedIsAssignable(stringTypeDefault, ht.keyType, g) {
 			return false
 		}
 		return GuardedIsAssignable(NewIntegerType(int64(required), int64(len(t.elements))), ht.size, g)
@@ -302,7 +302,7 @@ func (t *StructType) IsInstance(o eval.Value, g eval.Guard) bool {
 	matched := 0
 	for _, element := range t.elements {
 		key := element.name
-		v, ok := ov.Get(WrapString(key))
+		v, ok := ov.Get(stringValue(key))
 		if !ok {
 			if !GuardedIsAssignable(element.key, undefType_DEFAULT, g) {
 				return false
@@ -336,7 +336,7 @@ func (t *StructType) Parameters() []eval.Value {
 		var key eval.Value
 		if _, ok := s.key.(*OptionalType); ok {
 			if optionalValue {
-				key = WrapString(s.name)
+				key = stringValue(s.name)
 			} else {
 				key = s.key
 			}
@@ -344,7 +344,7 @@ func (t *StructType) Parameters() []eval.Value {
 			if optionalValue {
 				key = NewNotUndefType(s.key)
 			} else {
-				key = WrapString(s.name)
+				key = stringValue(s.name)
 			}
 		}
 		entries[idx] = WrapHashEntry(key, s.value)

@@ -34,16 +34,16 @@ func (t *ScalarDataType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	case *ScalarDataType:
 		return true
 	default:
-		return GuardedIsAssignable(stringType_DEFAULT, o, g) ||
-			GuardedIsAssignable(integerType_DEFAULT, o, g) ||
-			GuardedIsAssignable(booleanType_DEFAULT, o, g) ||
-			GuardedIsAssignable(floatType_DEFAULT, o, g)
+		return GuardedIsAssignable(stringTypeDefault, o, g) ||
+			GuardedIsAssignable(integerTypeDefault, o, g) ||
+			GuardedIsAssignable(booleanTypeDefault, o, g) ||
+			GuardedIsAssignable(floatTypeDefault, o, g)
 	}
 }
 
 func (t *ScalarDataType) IsInstance(o eval.Value, g eval.Guard) bool {
 	switch o.(type) {
-	case *BooleanValue, *FloatValue, *IntegerValue, *StringValue:
+	case booleanValue, floatValue, integerValue, stringValue:
 		return true
 	}
 	return false
@@ -57,14 +57,13 @@ func (t *ScalarDataType) Name() string {
 	return `ScalarData`
 }
 
-func (t *ScalarDataType)  CanSerializeAsString() bool {
-  return true
+func (t *ScalarDataType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *ScalarDataType)  SerializationString() string {
+func (t *ScalarDataType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *ScalarDataType) String() string {
 	return `ScalarData`

@@ -1,8 +1,6 @@
 package impl
 
 import (
-	"strings"
-
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
 )
@@ -14,20 +12,19 @@ import (
 func init() {
 	eval.PuppetEquals = func(a eval.Value, b eval.Value) bool {
 		switch a.(type) {
-		case *types.StringValue:
-			bs, ok := b.(*types.StringValue)
-			return ok && strings.ToLower(a.(*types.StringValue).String()) == strings.ToLower(bs.String())
-		case *types.IntegerValue:
-			lhs := a.(*types.IntegerValue).Int()
+		case eval.StringValue:
+			return a.(eval.StringValue).EqualsIgnoreCase(b)
+		case eval.IntegerValue:
+			lhs := a.(eval.IntegerValue).Int()
 			switch b.(type) {
-			case *types.IntegerValue:
-				return lhs == b.(*types.IntegerValue).Int()
+			case eval.IntegerValue:
+				return lhs == b.(eval.IntegerValue).Int()
 			case eval.NumericValue:
 				return float64(lhs) == b.(eval.NumericValue).Float()
 			}
 			return false
-		case *types.FloatValue:
-			lhs := a.(*types.FloatValue).Float()
+		case eval.FloatValue:
+			lhs := a.(eval.FloatValue).Float()
 			if rhv, ok := b.(eval.NumericValue); ok {
 				return lhs == rhv.Float()
 			}

@@ -64,7 +64,7 @@ func NewEnumType3(args eval.List) *EnumType {
 	if top == 1 {
 		first := args.At(0)
 		switch first.(type) {
-		case *StringValue:
+		case stringValue:
 			enums = []string{first.String()}
 		case *ArrayValue:
 			return NewEnumType3(first.(*ArrayValue))
@@ -74,15 +74,15 @@ func NewEnumType3(args eval.List) *EnumType {
 	} else {
 		enums = make([]string, top)
 		args.EachWithIndex(func(arg eval.Value, idx int) {
-			str, ok := arg.(*StringValue)
+			str, ok := arg.(stringValue)
 			if !ok {
-				if ci, ok := arg.(*BooleanValue); ok && idx == top-1 {
+				if ci, ok := arg.(booleanValue); ok && idx == top-1 {
 					caseInsensitive = ci.Bool()
 					return
 				}
 				panic(NewIllegalArgumentType2(`Enum[]`, idx, `String`, arg))
 			}
-			enums[idx] = str.String()
+			enums[idx] = string(str)
 		})
 	}
 	return NewEnumType(enums, caseInsensitive)
@@ -112,7 +112,7 @@ func (t *EnumType) Get(key string) (eval.Value, bool) {
 	case `values`:
 		return WrapValues(t.pvalues()), true
 	case `case_insensitive`:
-		return WrapBoolean(t.caseInsensitive), true
+		return booleanValue(t.caseInsensitive), true
 	default:
 		return nil, false
 	}
@@ -121,21 +121,21 @@ func (t *EnumType) Get(key string) (eval.Value, bool) {
 func (t *EnumType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if len(t.values) == 0 {
 		switch o.(type) {
-		case *StringType, *EnumType, *PatternType:
+		case *stringType, *EnumType, *PatternType:
 			return true
 		}
 		return false
 	}
 
-	if st, ok := o.(*StringType); ok {
-		return eval.IsInstance(t, WrapString(st.value))
+	if st, ok := o.(*vcStringType); ok {
+		return eval.IsInstance(t, stringValue(st.value))
 	}
 
 	if en, ok := o.(*EnumType); ok {
 		oEnums := en.values
 		if len(oEnums) > 0 && (t.caseInsensitive || !en.caseInsensitive) {
 			for _, v := range en.values {
-				if !eval.IsInstance(t, WrapString(v)) {
+				if !eval.IsInstance(t, stringValue(v)) {
 					return false
 				}
 			}
@@ -146,11 +146,11 @@ func (t *EnumType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *EnumType) IsInstance(o eval.Value, g eval.Guard) bool {
-	if str, ok := o.(*StringValue); ok {
+	if str, ok := o.(stringValue); ok {
 		if len(t.values) == 0 {
 			return true
 		}
-		s := str.String()
+		s := string(str)
 		if t.caseInsensitive {
 			s = strings.ToLower(s)
 		}
@@ -182,19 +182,18 @@ func (t *EnumType) String() string {
 func (t *EnumType) Parameters() []eval.Value {
 	result := t.pvalues()
 	if t.caseInsensitive {
-		result = append(result, Boolean_TRUE)
+		result = append(result, BooleanTrue)
 	}
 	return result
 }
 
-func (t *EnumType)  CanSerializeAsString() bool {
-  return true
+func (t *EnumType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *EnumType)  SerializationString() string {
+func (t *EnumType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *EnumType) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
 	TypeToString(t, b, f, g)
@@ -211,7 +210,7 @@ func (t *EnumType) pvalues() []eval.Value {
 	}
 	v := make([]eval.Value, top)
 	for idx, e := range t.values {
-		v[idx] = WrapString(e)
+		v[idx] = stringValue(e)
 	}
 	return v
 }

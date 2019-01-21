@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/semver/semver"
 	"reflect"
 )
@@ -65,7 +65,7 @@ func init() {
 				}
 				excludeEnd := false
 				if len(args) > 2 {
-					excludeEnd = args[2].(*BooleanValue).Bool()
+					excludeEnd = args[2].(booleanValue).Bool()
 				}
 				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
 			})
@@ -88,7 +88,7 @@ func init() {
 				excludeEnd := false
 				ev = hash.Get5(`excludeMax`, nil)
 				if ev != nil {
-					excludeEnd = ev.(*BooleanValue).Bool()
+					excludeEnd = ev.(booleanValue).Bool()
 				}
 				return WrapSemVerRange(semver.FromVersions(start, false, end, excludeEnd))
 			})
@@ -117,14 +117,13 @@ func (t *SemVerRangeType) Name() string {
 	return `SemVerRange`
 }
 
-func (t *SemVerRangeType)  CanSerializeAsString() bool {
-  return true
+func (t *SemVerRangeType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *SemVerRangeType)  SerializationString() string {
+func (t *SemVerRangeType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *SemVerRangeType) String() string {
 	return `SemVerRange`
@@ -179,14 +178,13 @@ func (bv *SemVerRangeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	dest.Set(rv)
 }
 
-func (bv *SemVerRangeValue)  CanSerializeAsString() bool {
-  return true
+func (bv *SemVerRangeValue) CanSerializeAsString() bool {
+	return true
 }
 
-func (bv *SemVerRangeValue)  SerializationString() string {
+func (bv *SemVerRangeValue) SerializationString() string {
 	return bv.String()
 }
-
 
 func (bv *SemVerRangeValue) String() string {
 	return eval.ToString2(bv, NONE)

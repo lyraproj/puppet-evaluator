@@ -1,11 +1,11 @@
 package types
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
-	"strings"
 	"regexp"
-	"github.com/lyraproj/issue/issue"
+	"strings"
 )
 
 type typedName struct {
@@ -34,16 +34,16 @@ func init() {
       'relative_to' => Callable[[TypedName],Optional[TypedName]]
     }
   }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		ns := eval.Namespace(args[0].(*StringValue).String())
-		n := args[1].(*StringValue).String()
+		ns := eval.Namespace(args[0].String())
+		n := args[1].String()
 		if len(args) > 2 {
 			return newTypedName2(ns, n, eval.URI(args[2].(*UriValue).String()))
 		}
 		return NewTypedName(ns, n)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*HashValue)
-		ns := eval.Namespace(h.Get5(`namespace`, eval.EMPTY_STRING).(*StringValue).String())
-		n := h.Get5(`name`, eval.EMPTY_STRING).(*StringValue).String()
+		ns := eval.Namespace(h.Get5(`namespace`, eval.EMPTY_STRING).String())
+		n := h.Get5(`name`, eval.EMPTY_STRING).String()
 		if x, ok := h.Get4(`authority`); ok {
 			return newTypedName2(ns, n, eval.URI(x.(*UriValue).String()))
 		}
@@ -62,7 +62,7 @@ func (t *typedName) PType() eval.Type {
 func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
 	switch method.Name() {
 	case `is_parent`:
-		return WrapBoolean(t.IsParent(args[0].(eval.TypedName))), true
+		return booleanValue(t.IsParent(args[0].(eval.TypedName))), true
 	case `relative_to`:
 		if r, ok := t.RelativeTo(args[0].(eval.TypedName)); ok {
 			return r, true
@@ -75,18 +75,18 @@ func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value,
 func (t *typedName) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `namespace`:
-		return WrapString(string(t.namespace)), true
+		return stringValue(string(t.namespace)), true
 	case `authority`:
 		if t.authority == eval.RUNTIME_NAME_AUTHORITY {
 			return eval.UNDEF, true
 		}
 		return WrapURI2(string(t.authority)), true
 	case `name`:
-		return WrapString(t.Name()), true
+		return stringValue(t.Name()), true
 	case `parts`:
 		return t.PartsList(), true
 	case `is_qualified`:
-		return WrapBoolean(t.IsQualified()), true
+		return booleanValue(t.IsQualified()), true
 	case `parent`:
 		p := t.Parent()
 		if p == nil {
@@ -105,8 +105,8 @@ func (t *typedName) Get(key string) (value eval.Value, ok bool) {
 
 func (t *typedName) InitHash() eval.OrderedMap {
 	es := make([]*HashEntry, 0, 3)
-	es = append(es, WrapHashEntry2(`namespace`, WrapString(string(t.Namespace()))))
-	es = append(es, WrapHashEntry2(`name`, WrapString(t.Name())))
+	es = append(es, WrapHashEntry2(`namespace`, stringValue(string(t.Namespace()))))
+	es = append(es, WrapHashEntry2(`name`, stringValue(t.Name())))
 	if t.authority != eval.RUNTIME_NAME_AUTHORITY {
 		es = append(es, WrapHashEntry2(`authority`, WrapURI2(string(t.authority))))
 	}
@@ -170,12 +170,12 @@ func (t *typedName) child(stripCount int) eval.TypedName {
 		if sx < 0 {
 			return nil
 		}
-		name = name[sx + 2:]
+		name = name[sx+2:]
 	}
 
-	pfxLen := len(t.authority)+len(t.namespace)+2
+	pfxLen := len(t.authority) + len(t.namespace) + 2
 	diff := len(t.name) - len(name)
-	canonical := t.canonical[:pfxLen] + t.canonical[pfxLen + diff:]
+	canonical := t.canonical[:pfxLen] + t.canonical[pfxLen+diff:]
 
 	return &typedName{
 		parts:     t.parts[stripCount:],
@@ -189,14 +189,14 @@ func (t *typedName) Parent() eval.TypedName {
 	if !t.IsQualified() {
 		return nil
 	}
-	pfxLen := len(t.authority)+len(t.namespace)+2
+	pfxLen := len(t.authority) + len(t.namespace) + 2
 	lx := strings.LastIndex(t.name, `::`)
 	return &typedName{
 		parts:     t.parts[:len(t.parts)-1],
 		namespace: t.namespace,
 		authority: t.authority,
 		name:      t.name[:lx],
-		canonical: t.canonical[:pfxLen + lx]}
+		canonical: t.canonical[:pfxLen+lx]}
 }
 
 func (t *typedName) Equals(other interface{}, g eval.Guard) bool {
@@ -247,7 +247,7 @@ func (t *typedName) Parts() []string {
 func (t *typedName) PartsList() eval.List {
 	elems := make([]eval.Value, len(t.parts))
 	for i, p := range t.parts {
-		elems[i] = WrapString(p)
+		elems[i] = stringValue(p)
 	}
 	return WrapValues(elems)
 }

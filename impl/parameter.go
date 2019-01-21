@@ -7,9 +7,9 @@ import (
 )
 
 type parameter struct {
-	name  string
-	typ   eval.Type
-	value eval.Value
+	name     string
+	typ      eval.Type
+	value    eval.Value
 	captures bool
 }
 
@@ -61,10 +61,10 @@ func (p *parameter) InitHash() eval.OrderedMap {
 		es = append(es, types.WrapHashEntry2(`value`, p.value))
 	}
 	if p.value == eval.UNDEF {
-		es = append(es, types.WrapHashEntry2(`has_value`, types.Boolean_TRUE))
+		es = append(es, types.WrapHashEntry2(`has_value`, types.BooleanTrue))
 	}
 	if p.captures {
-		es = append(es, types.WrapHashEntry2(`captures_rest`, types.Boolean_TRUE))
+		es = append(es, types.WrapHashEntry2(`captures_rest`, types.BooleanTrue))
 	}
 	return types.WrapHash(es)
 }
@@ -97,11 +97,11 @@ func init() {
       'captures_rest' => { type => Boolean, value => false },
     }
   }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		n := args[0].(*types.StringValue).String()
+		n := args[0].String()
 		t := args[1].(eval.Type)
 		h := false
 		if len(args) > 2 {
-			h = args[2].(*types.BooleanValue).Bool()
+			h = args[2].(eval.BooleanValue).Bool()
 		}
 		var v eval.Value
 		if len(args) > 3 {
@@ -109,7 +109,7 @@ func init() {
 		}
 		c := false
 		if len(args) > 4 {
-			c = args[4].(*types.BooleanValue).Bool()
+			c = args[4].(eval.BooleanValue).Bool()
 		}
 		if h && v == nil {
 			v = eval.UNDEF
@@ -117,7 +117,7 @@ func init() {
 		return NewParameter(n, t, v, c)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*types.HashValue)
-		n := h.Get5(`name`, eval.EMPTY_STRING).(*types.StringValue).String()
+		n := h.Get5(`name`, eval.EMPTY_STRING).String()
 		t := h.Get5(`type`, types.DefaultDataType()).(eval.Type)
 		var v eval.Value
 		if x, ok := h.Get4(`value`); ok {
@@ -125,11 +125,11 @@ func init() {
 		}
 		hv := false
 		if x, ok := h.Get4(`has_value`); ok {
-			hv = x.(*types.BooleanValue).Bool()
+			hv = x.(eval.BooleanValue).Bool()
 		}
 		c := false
 		if x, ok := h.Get4(`captures_rest`); ok {
-			c = x.(*types.BooleanValue).Bool()
+			c = x.(eval.BooleanValue).Bool()
 		}
 		if hv && v == nil {
 			v = eval.UNDEF

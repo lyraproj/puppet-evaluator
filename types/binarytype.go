@@ -217,7 +217,7 @@ func BinaryFromArray(array eval.List) *BinaryValue {
 func (bv *BinaryValue) AsArray() eval.List {
 	vs := make([]eval.Value, len(bv.bytes))
 	for i, b := range bv.bytes {
-		vs[i] = WrapInteger(int64(b))
+		vs[i] = integerValue(int64(b))
 	}
 	return WrapValues(vs)
 }
