@@ -143,6 +143,7 @@ func topEvaluate(ctx eval.Context, expr parser.Expression) (result eval.Value, e
 	ctx.StackPush(expr)
 	ctx.ResolveDefinitions()
 	result = ctx.GetEvaluator().Eval(expr)
+	ctx.StackPop()
 	return
 }
 
