@@ -11,7 +11,7 @@ func init() {
 			d.Param(`Timespan`)
 			d.Param(`String`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return types.WrapString(args[0].(*types.TimespanValue).Format(args[1].String()))
+				return types.WrapString(args[0].(types.TimespanValue).Format(args[1].String()))
 			})
 		},
 

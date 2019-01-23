@@ -113,8 +113,8 @@ func intFromConvertible(from eval.Value, radix int) int64 {
 		return from.(floatValue).Int()
 	case *TimestampValue:
 		return from.(*TimestampValue).Int()
-	case *TimespanValue:
-		return from.(*TimespanValue).Int()
+	case TimespanValue:
+		return from.(TimespanValue).Int()
 	case booleanValue:
 		return from.(booleanValue).Int()
 	default:

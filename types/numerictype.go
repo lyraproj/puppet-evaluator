@@ -143,8 +143,8 @@ func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
 		return floatValue(iv.Float())
 	case *TimestampValue:
 		return floatValue(c.(*TimestampValue).Float())
-	case *TimespanValue:
-		return floatValue(c.(*TimespanValue).Float())
+	case TimespanValue:
+		return floatValue(c.(TimespanValue).Float())
 	case booleanValue:
 		if allowInt {
 			return integerValue(c.(booleanValue).Int())
