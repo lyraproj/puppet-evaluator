@@ -18,13 +18,13 @@ import (
 	"github.com/lyraproj/puppet-parser/validator"
 )
 
-var Object_Type eval.ObjectType
+var ObjectMetaType eval.ObjectType
 
 func init() {
 	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewObjectType2(ctx, args...)
 	}
-	Object_Type = newObjectType2(`Pcore::ObjectType`, Any_Type,
+	ObjectMetaType = newObjectType2(`Pcore::ObjectType`, Any_Type,
 		WrapStringToValueMap(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
 		oneArgCtor, oneArgCtor)
@@ -735,7 +735,7 @@ func (t *objectType) Member(name string) (eval.CallableMember, bool) {
 }
 
 func (t *objectType) MetaType() eval.ObjectType {
-	return Object_Type
+	return ObjectMetaType
 }
 
 func (t *objectType) Name() string {
@@ -1318,6 +1318,12 @@ func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eva
 		return ot
 	}
 	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}), fileName, fileLine))
+}
+
+func newGoObjectType(name string, rType reflect.Type, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
+	t := newObjectType(name, typeDecl, creators...)
+	registerMapping(t, rType)
+	return t
 }
 
 func newObjectType2(name string, parent eval.Type, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {

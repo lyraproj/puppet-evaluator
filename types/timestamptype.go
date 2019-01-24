@@ -20,7 +20,7 @@ type (
 	}
 
 	// TimestampValue represents TimestampType as a value
-	TimestampValue TimestampType
+	TimestampValue time.Time
 )
 
 // MAX_UNIX_SECS is an offset of 62135596800 seconds to sec that
@@ -137,7 +137,7 @@ func TimeFromHash(value *HashValue) (time.Time, bool) {
 }
 
 func TimeFromString(value string) time.Time {
-	return ParseTimestamp(value, DEFAULT_TIMESTAMP_FORMATS, ``).Time()
+	return time.Time(*ParseTimestamp(value, DEFAULT_TIMESTAMP_FORMATS, ``))
 }
 
 func NewTimestampType2(args ...eval.Value) *TimestampType {
@@ -156,7 +156,7 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 		)
 		switch arg.(type) {
 		case *TimestampValue:
-			t, ok = arg.(*TimestampValue).Time(), true
+			t, ok = time.Time(*(arg.(*TimestampValue))), true
 		case *HashValue:
 			t, ok = TimeFromHash(arg.(*HashValue))
 		case stringValue:
@@ -280,7 +280,7 @@ func (t *TimestampType) Name() string {
 }
 
 func WrapTimestamp(time time.Time) *TimestampValue {
-	return (*TimestampValue)(NewTimestampType(time, time))
+	return (*TimestampValue)(&time)
 }
 
 func ParseTimestamp(str string, formats []*TimestampFormat, tz string) *TimestampValue {
@@ -341,14 +341,15 @@ func (tv *TimestampValue) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (tv *TimestampValue) Float() float64 {
-	y := tv.min.Year()
+	t := (*time.Time)(tv)
+	y := t.Year()
 	// Timestamps that represent a date before the year 1678 or after 2262 can
 	// be represented as nanoseconds in an int64.
 	if 1678 < y && y < 2262 {
-		return float64(float64(tv.min.UnixNano()) / 1000000000.0)
+		return float64(float64(t.UnixNano()) / 1000000000.0)
 	}
 	// Fall back to microsecond precision
-	us := tv.min.Unix()*1000000 + int64(tv.min.Nanosecond())/1000
+	us := t.Unix()*1000000 + int64(t.Nanosecond())/1000
 	return float64(us) / 1000000.0
 }
 
@@ -361,7 +362,7 @@ func (tv *TimestampValue) Format2(format, tz string) string {
 }
 
 func (tv *TimestampValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(tv.Time())
+	return reflect.ValueOf((time.Time)(*tv))
 }
 
 func (tv *TimestampValue) ReflectTo(c eval.Context, dest reflect.Value) {
@@ -373,11 +374,11 @@ func (tv *TimestampValue) ReflectTo(c eval.Context, dest reflect.Value) {
 }
 
 func (tv *TimestampValue) Time() time.Time {
-	return tv.min
+	return time.Time(*tv)
 }
 
 func (tv *TimestampValue) Int() int64 {
-	return tv.min.Unix()
+	return (*time.Time)(tv).Unix()
 }
 
 func (tv *TimestampValue) CanSerializeAsString() bool {
@@ -393,9 +394,10 @@ func (tv *TimestampValue) String() string {
 }
 
 func (tv *TimestampValue) ToKey(b *bytes.Buffer) {
+	t := (*time.Time)(tv)
 	b.WriteByte(1)
 	b.WriteByte(HK_TIMESTAMP)
-	n := tv.min.Unix()
+	n := t.Unix()
 	b.WriteByte(byte(n >> 56))
 	b.WriteByte(byte(n >> 48))
 	b.WriteByte(byte(n >> 40))
@@ -404,7 +406,7 @@ func (tv *TimestampValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(byte(n >> 16))
 	b.WriteByte(byte(n >> 8))
 	b.WriteByte(byte(n))
-	n = int64(tv.min.Nanosecond())
+	n = int64(t.Nanosecond())
 	b.WriteByte(byte(n >> 56))
 	b.WriteByte(byte(n >> 48))
 	b.WriteByte(byte(n >> 40))
@@ -416,11 +418,15 @@ func (tv *TimestampValue) ToKey(b *bytes.Buffer) {
 }
 
 func (tv *TimestampValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, tv.min.Format(DEFAULT_TIMESTAMP_FORMATS[0].layout))
+	_, err := io.WriteString(b, (*time.Time)(tv).Format(DEFAULT_TIMESTAMP_FORMATS[0].layout))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (tv *TimestampValue) PType() eval.Type {
-	return (*TimestampType)(tv)
+	t := time.Time(*tv)
+	return &TimestampType{t, t}
 }
 
 const (
@@ -492,15 +498,15 @@ func (p *TimestampFormatParser) ParseFormat(format string) *TimestampFormat {
 }
 
 func (f *TimestampFormat) Format(t *TimestampValue) string {
-	return t.min.Format(f.layout)
+	return (*time.Time)(t).Format(f.layout)
 }
 
 func (f *TimestampFormat) Format2(t *TimestampValue, tz string) string {
-	return t.min.In(loadLocation(tz)).Format(f.layout)
+	return (*time.Time)(t).In(loadLocation(tz)).Format(f.layout)
 }
 
 func strftimeToLayout(bld *bytes.Buffer, str string) {
-	state := STATE_LITERAL
+	state := stateLiteral
 	colons := 0
 	padchar := '0'
 	width := -1
@@ -508,9 +514,9 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 	upper := false
 
 	for pos, c := range str {
-		if state == STATE_LITERAL {
+		if state == stateLiteral {
 			if c == '%' {
-				state = STATE_PAD
+				state = statePad
 				fstart = pos
 				padchar = '0'
 				width = -1
@@ -524,28 +530,28 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 
 		switch c {
 		case '-':
-			if state != STATE_PAD {
+			if state != statePad {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
 			padchar = 0
-			state = STATE_WIDTH
+			state = stateWidth
 		case '^':
-			if state != STATE_PAD {
+			if state != statePad {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
 			upper = true
 		case '_':
-			if state != STATE_PAD {
+			if state != statePad {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
 			padchar = ' '
-			state = STATE_WIDTH
+			state = stateWidth
 		case 'Y':
 			bld.WriteString(loLongYear)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'y':
 			bld.WriteString(loYear)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'C':
 			panic(notSupportedByGoTimeLayout(str, fstart, pos, `century`))
 		case 'm':
@@ -557,19 +563,19 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			case ' ':
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `space padded month`))
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'B':
 			if upper {
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `upper cased month`))
 			}
 			bld.WriteString(loLongMonth)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'b', 'h':
 			if upper {
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `upper cased short month`))
 			}
 			bld.WriteString(loMonth)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'd':
 			switch padchar {
 			case 0:
@@ -579,10 +585,10 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			case ' ':
 				bld.WriteString(loUnderDay)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'e':
 			bld.WriteString(loUnderDay)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'j':
 			panic(notSupportedByGoTimeLayout(str, fstart, pos, `year of the day`))
 		case 'H':
@@ -594,21 +600,21 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			default:
 				bld.WriteString(loHour)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'k':
 			panic(notSupportedByGoTimeLayout(str, fstart, pos, `blank padded 24 hour`))
 		case 'I':
 			bld.WriteString(loZeroHour12)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'l':
 			bld.WriteString(loHour12)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'P':
 			bld.WriteString(lopm)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'p':
 			bld.WriteString(loPM)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'M':
 			switch padchar {
 			case ' ':
@@ -618,7 +624,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			default:
 				bld.WriteString(loZeroMinute)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'S':
 			switch padchar {
 			case ' ':
@@ -628,7 +634,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			default:
 				bld.WriteString(loZeroSecond)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'L':
 			if fstart == 0 || str[fstart-1] != '.' {
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `fraction not preceded by dot in format`))
@@ -638,7 +644,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			} else {
 				bld.WriteString(`999`)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'N':
 			if fstart == 0 || str[fstart-1] != '.' {
 				panic(notSupportedByGoTimeLayout(str, fstart, pos, `fraction not preceded by dot in format`))
@@ -654,7 +660,7 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			for i := 0; i < w; i++ {
 				bld.WriteByte(digit)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'z':
 			switch colons {
 			case 0:
@@ -667,16 +673,16 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 				// Not entirely correct since loosely defined num TZ not supported in Go
 				bld.WriteString(loNumShortTZ)
 			}
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'Z':
 			bld.WriteString(loTZ)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'A':
 			bld.WriteString(loLongWeekDay)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'a':
 			bld.WriteString(loWeekDay)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'u', 'w':
 			panic(notSupportedByGoTimeLayout(str, fstart, pos, `numeric week day`))
 		case 'G', 'g':
@@ -689,39 +695,39 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			panic(notSupportedByGoTimeLayout(str, fstart, pos, `milliseconds since epoch`))
 		case 't':
 			bld.WriteString("\t")
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'n':
 			bld.WriteString("\n")
-			state = STATE_LITERAL
+			state = stateLiteral
 		case '%':
 			bld.WriteByte('%')
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'c':
 			strftimeToLayout(bld, `%a %b %-d %T %Y`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'D', 'x':
 			strftimeToLayout(bld, `%m/%d/%y`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'F':
 			strftimeToLayout(bld, `%Y-%m-%d`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'r':
 			strftimeToLayout(bld, `%I:%M:%S %p`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'R':
 			strftimeToLayout(bld, `%H:%M`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'X', 'T':
 			strftimeToLayout(bld, `%H:%M:%S`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case '+':
 			strftimeToLayout(bld, `%a %b %-d %H:%M:%S %Z %Y`)
-			state = STATE_LITERAL
+			state = stateLiteral
 		default:
 			if c < '0' || c > '9' {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
-			if state == STATE_PAD && c == '0' {
+			if state == statePad && c == '0' {
 				padchar = '0'
 			} else {
 				n := int(c) - 0x30
@@ -731,11 +737,11 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 					width = width*10 + n
 				}
 			}
-			state = STATE_WIDTH
+			state = stateWidth
 		}
 	}
 
-	if state != STATE_LITERAL {
+	if state != stateLiteral {
 		panic(badFormatSpecifier(str, fstart, len(str)))
 	}
 }

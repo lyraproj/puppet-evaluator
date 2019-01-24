@@ -283,6 +283,11 @@ func (c *evalCtx) ResolveResolvables() {
 	for _, rt := range ts {
 		l.SetEntry(eval.NewTypedName(eval.NsType, rt.Name()), eval.NewLoaderEntry(rt, nil))
 	}
+
+	for _, mp := range types.PopDeclaredMappings() {
+		c.ImplementationRegistry().RegisterType(c, mp.T, mp.R)
+	}
+
 	c.resolveTypes(ts...)
 
 	ctors := types.PopDeclaredConstructors()

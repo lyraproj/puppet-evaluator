@@ -24,41 +24,41 @@ type (
 		max time.Duration
 	}
 
-	// TimespanValue represents TimespanType as a value
-	TimespanValue TimespanType
+	// TimespanValue represents time.Duration as an eval.Value
+	TimespanValue time.Duration
 )
 
 const (
-	NSECS_PER_USEC = 1000
-	NSECS_PER_MSEC = NSECS_PER_USEC * 1000
-	NSECS_PER_SEC  = NSECS_PER_MSEC * 1000
-	NSECS_PER_MIN  = NSECS_PER_SEC * 60
-	NSECS_PER_HOUR = NSECS_PER_MIN * 60
-	NSECS_PER_DAY  = NSECS_PER_HOUR * 24
+	NsecsPerUsec = 1000
+	NsecsPerMsec = NsecsPerUsec * 1000
+	NsecsPerSec  = NsecsPerMsec * 1000
+	NsecsPerMin  = NsecsPerSec * 60
+	NsecsPerHour = NsecsPerMin * 60
+	NsecsPerDay  = NsecsPerHour * 24
 
-	KEY_STRING       = `string`
-	KEY_FORMAT       = `format`
-	KEY_NEGATIVE     = `negative`
-	KEY_DAYS         = `days`
-	KEY_HOURS        = `hours`
-	KEY_MINUTES      = `minutes`
-	KEY_SECONDS      = `seconds`
-	KEY_MILLISECONDS = `milliseconds`
-	KEY_MICROSECONDS = `microseconds`
-	KEY_NANOSECONDS  = `nanoseconds`
+	KeyString       = `string`
+	KeyFormat       = `format`
+	KeyNegative     = `negative`
+	KeyDays         = `days`
+	KeyHours        = `hours`
+	KeyMinutes      = `minutes`
+	KeySeconds      = `seconds`
+	KeyMilliseconds = `milliseconds`
+	KeyMicroseconds = `microseconds`
+	KeyNanoseconds  = `nanoseconds`
 )
 
-var TIMESPAN_MIN = time.Duration(math.MinInt64)
-var TIMESPAN_MAX = time.Duration(math.MaxInt64)
+var TimespanMin = time.Duration(math.MinInt64)
+var TimespanMax = time.Duration(math.MaxInt64)
 
-var timespanType_DEFAULT = &TimespanType{TIMESPAN_MIN, TIMESPAN_MAX}
+var timespanTypeDefault = &TimespanType{TimespanMin, TimespanMax}
 
-var Timespan_Type eval.ObjectType
+var TimespanMetaType eval.ObjectType
 var DefaultTimespanFormatParser *TimespanFormatParser
 
 func init() {
 	tp := NewTimespanFormatParser()
-	DEFAULT_TIMESPAN_FORMATS = []*TimespanFormat{
+	DefaultTimespanFormats = []*TimespanFormat{
 		tp.ParseFormat(`%D-%H:%M:%S.%-N`),
 		tp.ParseFormat(`%H:%M:%S.%-N`),
 		tp.ParseFormat(`%M:%S.%-N`),
@@ -70,7 +70,7 @@ func init() {
 	}
 	DefaultTimespanFormatParser = tp
 
-	Timespan_Type = newObjectType(`Pcore::TimespanType`,
+	TimespanMetaType = newObjectType(`Pcore::TimespanType`,
 		`Pcore::ScalarType{
 	attributes => {
 		from => { type => Optional[Timespan], value => undef },
@@ -90,9 +90,9 @@ func init() {
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				arg := args[0]
 				if i, ok := arg.(integerValue); ok {
-					return WrapTimespan(time.Duration(i * NSECS_PER_SEC))
+					return WrapTimespan(time.Duration(i * NsecsPerSec))
 				}
-				return WrapTimespan(time.Duration(arg.(floatValue) * NSECS_PER_SEC))
+				return WrapTimespan(time.Duration(arg.(floatValue) * NsecsPerSec))
 			})
 		},
 
@@ -100,7 +100,7 @@ func init() {
 			d.Param(`String[1]`)
 			d.OptionalParam(`Formats`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				formats := DEFAULT_TIMESPAN_FORMATS
+				formats := DefaultTimespanFormats
 				if len(args) > 1 {
 					formats = toTimespanFormats(args[1])
 				}
@@ -163,7 +163,7 @@ func init() {
 }
 
 func DefaultTimespanType() *TimespanType {
-	return timespanType_DEFAULT
+	return timespanTypeDefault
 }
 
 func NewTimespanType(min time.Duration, max time.Duration) *TimespanType {
@@ -176,7 +176,7 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 		panic(errors.NewIllegalArgumentCount(`Timespan[]`, `0 or 2`, argc))
 	}
 	if argc == 0 {
-		return timespanType_DEFAULT
+		return timespanTypeDefault
 	}
 	convertArg := func(args []eval.Value, argNo int) time.Duration {
 		arg := args[argNo]
@@ -186,20 +186,20 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 		)
 		switch arg.(type) {
 		case *TimestampValue:
-			t, ok = arg.(*TimespanValue).Duration(), true
+			t, ok = arg.(TimespanValue).Duration(), true
 		case *HashValue:
 			t, ok = fromHash(arg.(*HashValue))
 		case stringValue:
-			t, ok = parseDuration(arg.String(), DEFAULT_TIMESPAN_FORMATS)
+			t, ok = parseDuration(arg.String(), DefaultTimespanFormats)
 		case integerValue:
 			t, ok = time.Duration(arg.(integerValue)*1000000000), true
 		case floatValue:
 			t, ok = time.Duration(arg.(floatValue)*1000000000.0), true
 		case *DefaultValue:
 			if argNo == 0 {
-				t, ok = TIMESPAN_MIN, true
+				t, ok = TimespanMin, true
 			} else {
-				t, ok = TIMESPAN_MAX, true
+				t, ok = TimespanMax, true
 			}
 		default:
 			t, ok = time.Duration(0), false
@@ -214,7 +214,7 @@ func NewTimespanType2(args ...eval.Value) *TimespanType {
 	if argc == 2 {
 		return &TimespanType{min, convertArg(args, 1)}
 	} else {
-		return &TimespanType{min, TIMESPAN_MAX}
+		return &TimespanType{min, TimespanMax}
 	}
 }
 
@@ -223,7 +223,7 @@ func (t *TimespanType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *TimespanType) Default() eval.Type {
-	return timespanType_DEFAULT
+	return timespanTypeDefault
 }
 
 func (t *TimespanType) Equals(other interface{}, guard eval.Guard) bool {
@@ -237,13 +237,13 @@ func (t *TimespanType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
 		v := eval.UNDEF
-		if t.min != TIMESPAN_MIN {
+		if t.min != TimespanMin {
 			v = WrapTimespan(t.min)
 		}
 		return v, true
 	case `to`:
 		v := eval.UNDEF
-		if t.max != TIMESPAN_MAX {
+		if t.max != TimespanMax {
 			v = WrapTimespan(t.max)
 		}
 		return v, true
@@ -253,7 +253,7 @@ func (t *TimespanType) Get(key string) (eval.Value, bool) {
 }
 
 func (t *TimespanType) MetaType() eval.ObjectType {
-	return Timespan_Type
+	return TimespanMetaType
 }
 
 func (t *TimespanType) Parameters() []eval.Value {
@@ -308,11 +308,11 @@ func (t *TimespanType) Name() string {
 	return `Timespan`
 }
 
-func WrapTimespan(val time.Duration) *TimespanValue {
-	return (*TimespanValue)(NewTimespanType(val, val))
+func WrapTimespan(val time.Duration) TimespanValue {
+	return TimespanValue(val)
 }
 
-func ParseTimespan(str string, formats []*TimespanFormat) *TimespanValue {
+func ParseTimespan(str string, formats []*TimespanFormat) TimespanValue {
 	if d, ok := parseDuration(str, formats); ok {
 		return WrapTimespan(d)
 	}
@@ -352,22 +352,22 @@ func fromFieldsHash(hash *HashValue) time.Duration {
 		return false
 	}
 	return fromFields(
-		boolArg(KEY_NEGATIVE),
-		intArg(KEY_DAYS),
-		intArg(KEY_HOURS),
-		intArg(KEY_MINUTES),
-		intArg(KEY_SECONDS),
-		intArg(KEY_MILLISECONDS),
-		intArg(KEY_MICROSECONDS),
-		intArg(KEY_NANOSECONDS))
+		boolArg(KeyNegative),
+		intArg(KeyDays),
+		intArg(KeyHours),
+		intArg(KeyMinutes),
+		intArg(KeySeconds),
+		intArg(KeyMilliseconds),
+		intArg(KeyMicroseconds),
+		intArg(KeyNanoseconds))
 }
 
 func fromStringHash(hash *HashValue) (time.Duration, bool) {
-	str := hash.Get5(KEY_STRING, _EMPTY_STRING)
-	fmtStrings := hash.Get5(KEY_FORMAT, nil)
+	str := hash.Get5(KeyString, _EMPTY_STRING)
+	fmtStrings := hash.Get5(KeyFormat, nil)
 	var formats []*TimespanFormat
 	if fmtStrings == nil {
-		formats = DEFAULT_TIMESPAN_FORMATS
+		formats = DefaultTimespanFormats
 	} else {
 		if fs, ok := fmtStrings.(stringValue); ok {
 			formats = []*TimespanFormat{DefaultTimespanFormatParser.ParseFormat(string(fs))}
@@ -384,7 +384,7 @@ func fromStringHash(hash *HashValue) (time.Duration, bool) {
 }
 
 func fromHash(hash *HashValue) (time.Duration, bool) {
-	if hash.IncludesKey2(KEY_STRING) {
+	if hash.IncludesKey2(KeyString) {
 		return fromStringHash(hash)
 	}
 	return fromFieldsHash(hash), true
@@ -399,58 +399,58 @@ func parseDuration(str string, formats []*TimespanFormat) (time.Duration, bool) 
 	return 0, false
 }
 
-func (tv *TimespanValue) Abs() eval.NumericValue {
-	if tv.min < 0 {
-		return WrapTimespan(-tv.min)
+func (tv TimespanValue) Abs() eval.NumericValue {
+	if tv < 0 {
+		return TimespanValue(-tv)
 	}
 	return tv
 }
 
 // Hours returns a positive integer denoting the number of days
-func (tv *TimespanValue) Days() int64 {
+func (tv TimespanValue) Days() int64 {
 	return tv.totalDays()
 }
 
-func (tv *TimespanValue) Duration() time.Duration {
-	return tv.min
+func (tv TimespanValue) Duration() time.Duration {
+	return time.Duration(tv)
 }
 
 // Hours returns a positive integer, 0 - 23 denoting hours of day
-func (tv *TimespanValue) Hours() int64 {
+func (tv TimespanValue) Hours() int64 {
 	return tv.totalHours() % 24
 }
 
-func (tv *TimespanValue) Equals(o interface{}, g eval.Guard) bool {
-	if ov, ok := o.(*TimespanValue); ok {
+func (tv TimespanValue) Equals(o interface{}, g eval.Guard) bool {
+	if ov, ok := o.(TimespanValue); ok {
 		return tv.Int() == ov.Int()
 	}
 	return false
 }
 
 // Float returns the number of seconds with fraction
-func (tv *TimespanValue) Float() float64 {
-	return float64(tv.totalNanoseconds()) / float64(NSECS_PER_SEC)
+func (tv TimespanValue) Float() float64 {
+	return float64(tv.totalNanoseconds()) / float64(NsecsPerSec)
 }
 
-func (tv *TimespanValue) Format(format string) string {
+func (tv TimespanValue) Format(format string) string {
 	return DefaultTimespanFormatParser.ParseFormat(format).format(tv)
 }
 
 // Int returns the total number of seconds
-func (tv *TimespanValue) Int() int64 {
+func (tv TimespanValue) Int() int64 {
 	return tv.totalSeconds()
 }
 
 // Minutes returns a positive integer, 0 - 59 denoting minutes of hour
-func (tv *TimespanValue) Minutes() int64 {
+func (tv TimespanValue) Minutes() int64 {
 	return tv.totalMinutes() % 60
 }
 
-func (tv *TimespanValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(tv.Duration())
+func (tv TimespanValue) Reflect(c eval.Context) reflect.Value {
+	return reflect.ValueOf(time.Duration(tv))
 }
 
-func (tv *TimespanValue) ReflectTo(c eval.Context, dest reflect.Value) {
+func (tv TimespanValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := tv.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
 		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
@@ -459,28 +459,28 @@ func (tv *TimespanValue) ReflectTo(c eval.Context, dest reflect.Value) {
 }
 
 // Seconds returns a positive integer, 0 - 59 denoting seconds of minute
-func (tv *TimespanValue) Seconds() int64 {
+func (tv TimespanValue) Seconds() int64 {
 	return tv.totalSeconds() % 60
 }
 
 // Seconds returns a positive integer, 0 - 999 denoting milliseconds of second
-func (tv *TimespanValue) Milliseconds() int64 {
+func (tv TimespanValue) Milliseconds() int64 {
 	return tv.totalMilliseconds() % 1000
 }
 
-func (tv *TimespanValue) CanSerializeAsString() bool {
+func (tv TimespanValue) CanSerializeAsString() bool {
 	return true
 }
 
-func (tv *TimespanValue) SerializationString() string {
+func (tv TimespanValue) SerializationString() string {
 	return tv.String()
 }
 
-func (tv *TimespanValue) String() string {
+func (tv TimespanValue) String() string {
 	return fmt.Sprintf(`%d`, tv.Int())
 }
 
-func (tv *TimespanValue) ToKey(b *bytes.Buffer) {
+func (tv TimespanValue) ToKey(b *bytes.Buffer) {
 	n := tv.Int()
 	b.WriteByte(1)
 	b.WriteByte(HK_TIMESPAN)
@@ -494,40 +494,41 @@ func (tv *TimespanValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(byte(n))
 }
 
-func (tv *TimespanValue) totalDays() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_DAY
+func (tv TimespanValue) totalDays() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerDay
 }
 
-func (tv *TimespanValue) totalHours() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_HOUR
+func (tv TimespanValue) totalHours() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerHour
 }
 
-func (tv *TimespanValue) totalMinutes() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_MIN
+func (tv TimespanValue) totalMinutes() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerMin
 }
 
-func (tv *TimespanValue) totalSeconds() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_SEC
+func (tv TimespanValue) totalSeconds() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerSec
 }
 
-func (tv *TimespanValue) totalMilliseconds() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_MSEC
+func (tv TimespanValue) totalMilliseconds() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerMsec
 }
 
-func (tv *TimespanValue) totalMicroseconds() int64 {
-	return tv.min.Nanoseconds() / NSECS_PER_USEC
+func (tv TimespanValue) totalMicroseconds() int64 {
+	return time.Duration(tv).Nanoseconds() / NsecsPerUsec
 }
 
-func (tv *TimespanValue) totalNanoseconds() int64 {
-	return tv.min.Nanoseconds()
+func (tv TimespanValue) totalNanoseconds() int64 {
+	return time.Duration(tv).Nanoseconds()
 }
 
-func (tv *TimespanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	DEFAULT_TIMESPAN_FORMATS[0].format2(b, tv)
+func (tv TimespanValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+	DefaultTimespanFormats[0].format2(b, tv)
 }
 
-func (tv *TimespanValue) PType() eval.Type {
-	return (*TimespanType)(tv)
+func (tv TimespanValue) PType() eval.Type {
+	t := time.Duration(tv)
+	return &TimespanType{t, t}
 }
 
 type (
@@ -545,7 +546,7 @@ type (
 	segment interface {
 		appendRegexp(buffer *bytes.Buffer)
 
-		appendTo(buffer io.Writer, ts *TimespanValue)
+		appendTo(buffer io.Writer, ts TimespanValue)
 
 		multiplier() int
 
@@ -598,23 +599,23 @@ type (
 )
 
 const (
-	NSEC_MAX = 0
-	MSEC_MAX = 1
-	SEC_MAX  = 2
-	MIN_MAX  = 3
-	HOUR_MAX = 4
-	DAY_MAX  = 5
+	nsecMax = 0
+	msecMax = 1
+	secMax  = 2
+	minMax  = 3
+	hourMax = 4
+	dayMax  = 5
 
 	// States used by the #internal_parser function
 
-	STATE_LITERAL = 0 // expects literal or '%'
-	STATE_PAD     = 1 // expects pad, width, or format character
-	STATE_WIDTH   = 2 // expects width, or format character
+	stateLiteral = 0 // expects literal or '%'
+	statePad     = 1 // expects pad, width, or format character
+	stateWidth   = 2 // expects width, or format character
 )
 
 var trimTrailingZeroes = regexp.MustCompile(`\A([0-9]+?)0*\z`)
 var digitsOnly = regexp.MustCompile(`\A[0-9]+\z`)
-var DEFAULT_TIMESPAN_FORMATS []*TimespanFormat
+var DefaultTimespanFormats []*TimespanFormat
 
 func NewTimespanFormatParser() *TimespanFormatParser {
 	return &TimespanFormatParser{formats: make(map[string]*TimespanFormat, 17)}
@@ -624,26 +625,26 @@ func (p *TimespanFormatParser) ParseFormat(format string) *TimespanFormat {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if fmt, ok := p.formats[format]; ok {
-		return fmt
+	if f, ok := p.formats[format]; ok {
+		return f
 	}
-	fmt := p.parse(format)
-	p.formats[format] = fmt
-	return fmt
+	f := p.parse(format)
+	p.formats[format] = f
+	return f
 }
 
 func (p *TimespanFormatParser) parse(str string) *TimespanFormat {
 	bld := make([]segment, 0, 7)
 	highest := -1
-	state := STATE_LITERAL
+	state := stateLiteral
 	padchar := '0'
 	width := -1
 	fstart := 0
 
 	for pos, c := range str {
-		if state == STATE_LITERAL {
+		if state == stateLiteral {
 			if c == '%' {
-				state = STATE_PAD
+				state = statePad
 				fstart = pos
 				padchar = '0'
 				width = -1
@@ -656,58 +657,58 @@ func (p *TimespanFormatParser) parse(str string) *TimespanFormat {
 		switch c {
 		case '%':
 			bld = appendLiteral(bld, c)
-			state = STATE_LITERAL
+			state = stateLiteral
 		case '-':
-			if state != STATE_PAD {
+			if state != statePad {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
 			padchar = 0
-			state = STATE_WIDTH
+			state = stateWidth
 		case '_':
-			if state != STATE_PAD {
+			if state != statePad {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
 			padchar = ' '
-			state = STATE_WIDTH
+			state = stateWidth
 		case 'D':
-			highest = DAY_MAX
+			highest = dayMax
 			bld = append(bld, newDaySegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'H':
-			if highest < HOUR_MAX {
-				highest = HOUR_MAX
+			if highest < hourMax {
+				highest = hourMax
 			}
 			bld = append(bld, newHourSegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'M':
-			if highest < MIN_MAX {
-				highest = MIN_MAX
+			if highest < minMax {
+				highest = minMax
 			}
 			bld = append(bld, newMinuteSegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'S':
-			if highest < SEC_MAX {
-				highest = SEC_MAX
+			if highest < secMax {
+				highest = secMax
 			}
 			bld = append(bld, newSecondSegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'L':
-			if highest < MSEC_MAX {
-				highest = MSEC_MAX
+			if highest < msecMax {
+				highest = msecMax
 			}
 			bld = append(bld, newMillisecondSegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		case 'N':
-			if highest < NSEC_MAX {
-				highest = NSEC_MAX
+			if highest < nsecMax {
+				highest = nsecMax
 			}
 			bld = append(bld, newNanosecondSegment(padchar, width))
-			state = STATE_LITERAL
+			state = stateLiteral
 		default:
 			if c < '0' || c > '9' {
 				panic(badFormatSpecifier(str, fstart, pos))
 			}
-			if state == STATE_PAD && c == '0' {
+			if state == statePad && c == '0' {
 				padchar = '0'
 			} else {
 				n := int(c) - 0x30
@@ -717,11 +718,11 @@ func (p *TimespanFormatParser) parse(str string) *TimespanFormat {
 					width = width*10 + n
 				}
 			}
-			state = STATE_WIDTH
+			state = stateWidth
 		}
 	}
 
-	if state != STATE_LITERAL {
+	if state != stateLiteral {
 		panic(badFormatSpecifier(str, fstart, len(str)))
 	}
 
@@ -755,13 +756,13 @@ func newTimespanFormat(format string, segments []segment) *TimespanFormat {
 	return &TimespanFormat{fmt: format, segments: segments}
 }
 
-func (f *TimespanFormat) format(ts *TimespanValue) string {
+func (f *TimespanFormat) format(ts TimespanValue) string {
 	b := bytes.NewBufferString(``)
 	f.format2(b, ts)
 	return b.String()
 }
 
-func (f *TimespanFormat) format2(b io.Writer, ts *TimespanValue) {
+func (f *TimespanFormat) format2(b io.Writer, ts TimespanValue) {
 	for _, s := range f.segments {
 		s.appendTo(b, ts)
 	}
@@ -822,8 +823,11 @@ func (s *literalSegment) appendRegexp(buffer *bytes.Buffer) {
 	buffer.WriteByte(')')
 }
 
-func (s *literalSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
-	io.WriteString(buffer, s.literal)
+func (s *literalSegment) appendTo(buffer io.Writer, ts TimespanValue) {
+	_, err := io.WriteString(buffer, s.literal)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *literalSegment) multiplier() int {
@@ -848,35 +852,42 @@ func (s *valueSegment) initialize(padchar rune, width int, defaultWidth int) {
 }
 
 func (s *valueSegment) appendRegexp(buffer *bytes.Buffer) {
+	var err error
 	if s.width < 0 {
 		switch s.padchar {
 		case 0, '0':
 			if s.useTotal {
 				buffer.WriteString(`([0-9]+)`)
 			} else {
-				fmt.Fprintf(buffer, `([0-9]{1,%d})`, s.defaultWidth)
+				_, err = fmt.Fprintf(buffer, `([0-9]{1,%d})`, s.defaultWidth)
 			}
 		default:
 			if s.useTotal {
 				buffer.WriteString(`\s*([0-9]+)`)
 			} else {
-				fmt.Fprintf(buffer, `([0-9\\s]{1,%d})`, s.defaultWidth)
+				_, err = fmt.Fprintf(buffer, `([0-9\\s]{1,%d})`, s.defaultWidth)
 			}
 		}
 	} else {
 		switch s.padchar {
 		case 0:
-			fmt.Fprintf(buffer, `([0-9]{1,%d})`, s.width)
+			_, err = fmt.Fprintf(buffer, `([0-9]{1,%d})`, s.width)
 		case '0':
-			fmt.Fprintf(buffer, `([0-9]{%d})`, s.width)
+			_, err = fmt.Fprintf(buffer, `([0-9]{%d})`, s.width)
 		default:
-			fmt.Fprintf(buffer, `([0-9\\s]{%d})`, s.width)
+			_, err = fmt.Fprintf(buffer, `([0-9\\s]{%d})`, s.width)
 		}
+	}
+	if err != nil {
+		panic(err)
 	}
 }
 
 func (s *valueSegment) appendValue(buffer io.Writer, n int64) {
-	fmt.Fprintf(buffer, s.format, n)
+	_, err := fmt.Fprintf(buffer, s.format, n)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *valueSegment) createFormat() string {
@@ -916,16 +927,16 @@ func newDaySegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *daySegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *daySegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	s.appendValue(buffer, ts.Days())
 }
 
 func (s *daySegment) multiplier() int {
-	return NSECS_PER_DAY
+	return NsecsPerDay
 }
 
 func (s *daySegment) ordinal() int {
-	return DAY_MAX
+	return dayMax
 }
 
 func newHourSegment(padchar rune, width int) segment {
@@ -935,7 +946,7 @@ func newHourSegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *hourSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *hourSegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	var v int64
 	if s.useTotal {
 		v = ts.totalHours()
@@ -946,11 +957,11 @@ func (s *hourSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 }
 
 func (s *hourSegment) multiplier() int {
-	return NSECS_PER_HOUR
+	return NsecsPerHour
 }
 
 func (s *hourSegment) ordinal() int {
-	return HOUR_MAX
+	return hourMax
 }
 
 func newMinuteSegment(padchar rune, width int) segment {
@@ -960,7 +971,7 @@ func newMinuteSegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *minuteSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *minuteSegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	var v int64
 	if s.useTotal {
 		v = ts.totalMinutes()
@@ -971,11 +982,11 @@ func (s *minuteSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 }
 
 func (s *minuteSegment) multiplier() int {
-	return NSECS_PER_MIN
+	return NsecsPerMin
 }
 
 func (s *minuteSegment) ordinal() int {
-	return MIN_MAX
+	return minMax
 }
 
 func newSecondSegment(padchar rune, width int) segment {
@@ -985,7 +996,7 @@ func newSecondSegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *secondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *secondSegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	var v int64
 	if s.useTotal {
 		v = ts.totalSeconds()
@@ -996,11 +1007,11 @@ func (s *secondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 }
 
 func (s *secondSegment) multiplier() int {
-	return NSECS_PER_SEC
+	return NsecsPerSec
 }
 
 func (s *secondSegment) ordinal() int {
-	return SEC_MAX
+	return secMax
 }
 
 func (s *fragmentSegment) appendValue(buffer io.Writer, n int64) {
@@ -1040,7 +1051,7 @@ func newMillisecondSegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *millisecondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *millisecondSegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	var v int64
 	if s.useTotal {
 		v = ts.totalMilliseconds()
@@ -1051,11 +1062,11 @@ func (s *millisecondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 }
 
 func (s *millisecondSegment) multiplier() int {
-	return NSECS_PER_MSEC
+	return NsecsPerMsec
 }
 
 func (s *millisecondSegment) ordinal() int {
-	return MSEC_MAX
+	return msecMax
 }
 
 func newNanosecondSegment(padchar rune, width int) segment {
@@ -1065,7 +1076,7 @@ func newNanosecondSegment(padchar rune, width int) segment {
 	return s
 }
 
-func (s *nanosecondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
+func (s *nanosecondSegment) appendTo(buffer io.Writer, ts TimespanValue) {
 	v := ts.totalNanoseconds()
 	w := s.width
 	if w < 0 {
@@ -1079,7 +1090,7 @@ func (s *nanosecondSegment) appendTo(buffer io.Writer, ts *TimespanValue) {
 		}
 	} else {
 		if !s.useTotal {
-			v %= NSECS_PER_SEC
+			v %= NsecsPerSec
 		}
 	}
 	s.appendValue(buffer, v)
@@ -1097,11 +1108,11 @@ func (s *nanosecondSegment) multiplier() int {
 }
 
 func (s *nanosecondSegment) ordinal() int {
-	return NSEC_MAX
+	return nsecMax
 }
 
 func toTimespanFormats(fmt eval.Value) []*TimespanFormat {
-	formats := DEFAULT_TIMESPAN_FORMATS
+	formats := DefaultTimespanFormats
 	switch fmt.(type) {
 	case *ArrayValue:
 		fa := fmt.(*ArrayValue)
