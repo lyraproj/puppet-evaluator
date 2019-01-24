@@ -158,6 +158,7 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withReceiver bool) eval.OrderedMap {
 	returnsError := false
 	var rt eval.Type
+	var err error
 	oc := mt.NumOut()
 	switch oc {
 	case 0:
@@ -167,15 +168,23 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 		if ot.AssignableTo(errorType) {
 			returnsError = true
 		} else {
-			rt = wrapReflectedType(r.c, mt.Out(0))
+			rt, err = wrapReflectedType(r.c, mt.Out(0))
+			if err != nil {
+				panic(err)
+			}
 		}
 	case 2:
-		rt = wrapReflectedType(r.c, mt.Out(0))
+		rt, err = wrapReflectedType(r.c, mt.Out(0))
 		ot := mt.Out(1)
 		if ot.AssignableTo(errorType) {
 			returnsError = true
 		} else {
-			rt = NewTupleType([]eval.Type{rt, wrapReflectedType(r.c, mt.Out(1))}, nil)
+			var rt2 eval.Type
+			rt2, err = wrapReflectedType(r.c, mt.Out(1))
+			if err != nil {
+				panic(err)
+			}
+			rt = NewTupleType([]eval.Type{rt, rt2}, nil)
 		}
 	default:
 		ot := mt.Out(oc - 1)
@@ -185,7 +194,10 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 		}
 		ts := make([]eval.Type, oc)
 		for i := 0; i < oc; i++ {
-			ts[i] = wrapReflectedType(r.c, mt.Out(i))
+			ts[i], err = wrapReflectedType(r.c, mt.Out(i))
+			if err != nil {
+				panic(err)
+			}
 		}
 		rt = NewTupleType(ts, nil)
 	}
@@ -203,7 +215,10 @@ func (r *reflector) FunctionDeclFromReflect(name string, mt reflect.Type, withRe
 	} else {
 		ps := make([]eval.Type, pc-ix)
 		for p := ix; p < pc; p++ {
-			ps[p-ix] = wrapReflectedType(r.c, mt.In(p))
+			ps[p-ix], err = wrapReflectedType(r.c, mt.In(p))
+			if err != nil {
+				panic(err)
+			}
 		}
 		var sz *IntegerType
 		if mt.IsVariadic() {
@@ -328,7 +343,10 @@ func (r *reflector) ReflectFieldTags(f *reflect.StructField, fh eval.OrderedMap)
 	}
 
 	if typ == nil {
-		typ = eval.WrapReflectedType(r.c, f.Type)
+		var err error
+		if typ, err = eval.WrapReflectedType(r.c, f.Type); err != nil {
+			panic(err)
+		}
 	}
 
 	optional := typ.IsInstance(eval.UNDEF, nil)

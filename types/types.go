@@ -622,7 +622,10 @@ func wrap(c eval.Context, v interface{}) (pv eval.Value) {
 	case reflect.Value:
 		pv = wrapReflected(c, v.(reflect.Value))
 	case reflect.Type:
-		pv = wrapReflectedType(c, v.(reflect.Type))
+		var err error
+		if pv, err = wrapReflectedType(c, v.(reflect.Type)); err != nil {
+			panic(err)
+		}
 	default:
 		// Can still be an alias, slice, or map in which case reflection conversion will work
 		pv = wrapReflected(c, reflect.ValueOf(v))
@@ -741,7 +744,7 @@ var evalTypeSetType = reflect.TypeOf((*eval.TypeSet)(nil)).Elem()
 
 var wellknowns map[reflect.Type]eval.Type
 
-func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
+func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type, err error) {
 	if c == nil {
 		c = eval.CurrentContext()
 	}
@@ -759,17 +762,27 @@ func wrapReflectedType(c eval.Context, vt reflect.Type) (pt eval.Type) {
 		return
 	}
 
+	var t eval.Type
 	switch kind {
 	case reflect.Slice, reflect.Array:
-		pt = NewArrayType(wrapReflectedType(c, vt.Elem()), nil)
+		if t, err = wrapReflectedType(c, vt.Elem()); err == nil {
+			pt = NewArrayType(t, nil)
+		}
 	case reflect.Map:
-		pt = NewHashType(wrapReflectedType(c, vt.Key()), wrapReflectedType(c, vt.Elem()), nil)
+		if t, err = wrapReflectedType(c, vt.Key()); err == nil {
+			var v eval.Type
+			if v, err = wrapReflectedType(c, vt.Elem()); err == nil {
+				pt = NewHashType(t, v, nil)
+			}
+		}
 	case reflect.Ptr:
-		pt = NewOptionalType(wrapReflectedType(c, vt.Elem()))
+		if t, err = wrapReflectedType(c, vt.Elem()); err == nil {
+			pt = NewOptionalType(t)
+		}
 	default:
 		pt, ok = primitivePTypes[vt.Kind()]
 		if !ok {
-			panic(eval.Error(eval.EVAL_UNREFLECTABLE_TYPE, issue.H{`type`: vt.String()}))
+			err = eval.Error(eval.EVAL_UNREFLECTABLE_TYPE, issue.H{`type`: vt.String()})
 		}
 	}
 	return

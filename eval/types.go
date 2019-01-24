@@ -471,7 +471,7 @@ var NewError func(c Context, message, kind, issueCode string, partialResult Valu
 
 var ErrorFromReported func(c Context, err issue.Reported) ErrorObject
 
-var WrapReflectedType func(c Context, rt reflect.Type) Type
+var WrapReflectedType func(c Context, rt reflect.Type) (Type, error)
 
 func getPrefix(pfx interface{}) string {
 	name := ``
