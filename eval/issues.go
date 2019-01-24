@@ -118,6 +118,7 @@ const (
 	EVAL_UNKNOWN_TASK                              = `EVAL_UNKNOWN_TASK`
 	EVAL_UNKNOWN_VARIABLE                          = `EVAL_UNKNOWN_VARIABLE`
 	EVAL_UNREFLECTABLE_RETURN                      = `EVAL_UNREFLECTABLE_RETURN`
+	EVAL_UNREFLECTABLE_TYPE                        = `EVAL_UNREFLECTABLE_TYPE`
 	EVAL_UNREFLECTABLE_VALUE                       = `EVAL_UNREFLECTABLE_VALUE`
 	EVAL_UNRESOLVED_TYPE                           = `EVAL_UNRESOLVED_TYPE`
 	EVAL_UNRESOLVED_TYPE_OF                        = `EVAL_UNRESOLVED_TYPE_OF`
@@ -361,6 +362,8 @@ func init() {
 	issue.Hard(EVAL_UNKNOWN_VARIABLE, `Unknown variable: '$%{name}'`)
 
 	issue.Hard(EVAL_UNREFLECTABLE_RETURN, `Unable to reflect return type of method %{type}.%{method}`)
+
+	issue.Hard(EVAL_UNREFLECTABLE_TYPE, `Unable to create a eval.Type from value of type '%{type}'`)
 
 	issue.Hard(EVAL_UNREFLECTABLE_VALUE, `Unable to create a reflect.Value from value of type '%{type}'`)
 

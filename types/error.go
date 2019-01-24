@@ -4,12 +4,13 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
+	"reflect"
 )
 
 var Error_Type eval.ObjectType
 
 func init() {
-	Error_Type = newObjectType(`Error`, `{
+	Error_Type = newGoObjectType(`Error`, reflect.TypeOf((*eval.ErrorObject)(nil)).Elem(), `{
 		type_parameters => {
 		  kind => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]],
 	  	issue_code => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]]

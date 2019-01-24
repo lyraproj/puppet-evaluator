@@ -463,6 +463,8 @@ var NewGoType func(name string, zeroValue interface{}) ObjectType
 
 var NewObjectType func(name, typeDecl string, creators ...DispatchFunction) ObjectType
 
+var NewGoObjectType func(name string, rType reflect.Type, typeDecl string, creators ...DispatchFunction) ObjectType
+
 var NewTypeSet func(name, typeDecl string) TypeSet
 
 var NewError func(c Context, message, kind, issueCode string, partialResult Value, details OrderedMap) ErrorObject

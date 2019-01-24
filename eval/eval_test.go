@@ -57,21 +57,19 @@ func ExampleWrap_hash() {
 }
 
 func ExamplePcore_parseType() {
-	eval.Puppet.Try(func(ctx eval.Context) error {
+	eval.Puppet.Do(func(ctx eval.Context) {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Printf("%s is an instance of %s\n", pcoreType, pcoreType.PType())
-		return nil
 	})
 	// Output:
 	// Enum['foo', 'fee', 'fum'] is an instance of Type[Enum['foo', 'fee', 'fum']]
 }
 
 func ExamplePcore_isInstance() {
-	eval.Puppet.Try(func(ctx eval.Context) error {
+	eval.Puppet.Do(func(ctx eval.Context) {
 		pcoreType := ctx.ParseType2("Enum[foo,fee,fum]")
 		fmt.Println(eval.IsInstance(pcoreType, eval.Wrap(ctx, "foo")))
 		fmt.Println(eval.IsInstance(pcoreType, eval.Wrap(ctx, "bar")))
-		return nil
 	})
 	// Output:
 	// true
@@ -135,8 +133,8 @@ func ExampleImplementationRegistry() {
 	c.ResolveDefinitions()
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(&TestAddress{}))
-	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(&TestPerson{}))
+	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
+	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap(c, ts)
@@ -175,8 +173,8 @@ func ExampleImplementationRegistry_tags() {
 	c.ResolveDefinitions()
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(&TestAddress{}))
-	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(&TestPerson{}))
+	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
+	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap(c, ts)
@@ -191,10 +189,10 @@ func TestReflectorAndImplRepo(t *testing.T) {
 	}
 	type Person struct {
 		Name    string
-		Address *ObscurelyNamedAddress
+		Address ObscurelyNamedAddress
 	}
 
-	eval.Puppet.Try(func(c eval.Context) error {
+	eval.Puppet.Do(func(c eval.Context) {
 		typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`), map[string]string{`ObscurelyNamedAddress`: `Address`},
 			reflect.TypeOf(&ObscurelyNamedAddress{}), reflect.TypeOf(&Person{}))
 		c.AddTypes(typeSet)
@@ -203,6 +201,5 @@ func TestReflectorAndImplRepo(t *testing.T) {
 		if tss != exp {
 			t.Errorf("Expected %s, got %s\n", exp, tss)
 		}
-		return nil
 	})
 }

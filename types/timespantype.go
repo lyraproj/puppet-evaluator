@@ -447,7 +447,7 @@ func (tv TimespanValue) Minutes() int64 {
 }
 
 func (tv TimespanValue) Reflect(c eval.Context) reflect.Value {
-	return reflect.ValueOf(tv.Duration())
+	return reflect.ValueOf(time.Duration(tv))
 }
 
 func (tv TimespanValue) ReflectTo(c eval.Context, dest reflect.Value) {

@@ -253,9 +253,9 @@ func ExampleReflector_typeFromReflect() {
 
 	// Output:
 	// Object[{name => 'My::Address', attributes => {'street' => String, 'zip_code' => String}}]
-	// Object[{name => 'My::Person', attributes => {'name' => String, 'address' => My::Address}}]
+	// Object[{name => 'My::Person', attributes => {'name' => String, 'address' => {'type' => Optional[My::Address], 'value' => undef}}}]
 	// Object[{name => 'My::ExtendedPerson', parent => My::Person, attributes => {'age' => {'type' => Optional[Integer], 'value' => undef}, 'enabled' => Boolean}}]
-	// My::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
+	// My::ExtendedPerson('name' => 'Bob Tester', 'enabled' => true, 'address' => My::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'age' => 34)
 }
 
 type A interface {
@@ -366,8 +366,9 @@ type Person struct {
 }
 type ExtendedPerson struct {
 	Person
-	Age    *int
-	Active bool `puppet:"name=>enabled"`
+	Birth          *time.Time
+	TimeSinceVisit *time.Duration
+	Active         bool `puppet:"name=>enabled"`
 }
 
 func (p *Person) Visit(v *Address) string {
@@ -389,8 +390,9 @@ func ExampleReflector_typeSetFromReflect() {
 
 		// Create an instance of something included in the TypeSet
 		ad := &Address{`Example Road 23`, `12345`}
-		age := 34
-		ep := &ExtendedPerson{Person{`Bob Tester`, ad}, &age, true}
+		birth, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		tsv, _ := time.ParseDuration("1h20m")
+		ep := &ExtendedPerson{Person{`Bob Tester`, ad}, &birth, &tsv, true}
 
 		// Wrap the instance as a Value and print it
 		v := eval.Wrap(c, ep)
@@ -418,18 +420,25 @@ func ExampleReflector_typeSetFromReflect() {
 	//     Person => {
 	//       attributes => {
 	//         'name' => String,
-	//         'address' => Address
+	//         'address' => {
+	//           'type' => Optional[Address],
+	//           'value' => undef
+	//         }
 	//       },
 	//       functions => {
 	//         'visit' => Callable[
-	//           [Address],
+	//           [Optional[Address]],
 	//           String]
 	//       }
 	//     },
 	//     ExtendedPerson => Person{
 	//       attributes => {
-	//         'age' => {
-	//           'type' => Optional[Integer],
+	//         'birth' => {
+	//           'type' => Optional[Timestamp],
+	//           'value' => undef
+	//         },
+	//         'time_since_visit' => {
+	//           'type' => Optional[Timespan],
 	//           'value' => undef
 	//         },
 	//         'enabled' => Boolean
@@ -437,7 +446,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//     }
 	//   }
 	// }]
-	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'enabled' => true, 'age' => 34)
+	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'enabled' => true, 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'birth' => 2006-01-02T15:04:05.000000000 UTC, 'time_since_visit' => 0-01:20:00.0)
 	// visited Example Road 23
 	// visited Example Road 23
 }
@@ -873,7 +882,7 @@ type optionalFloat struct {
 
 func ExampleReflect_TypeFromReflect_optionalFloat() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
@@ -898,7 +907,7 @@ func ExampleReflect_TypeFromReflect_optionalFloat() {
 
 func ExampleReflect_TypeFromReflect_optionalFloatReflect() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		w1 := float64(2)
 		w2 := float32(3)
@@ -915,7 +924,7 @@ func ExampleReflect_TypeFromReflect_optionalFloatReflect() {
 
 func ExampleReflect_TypeFromReflect_optionalFloatReflectZero() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		var w1 float64
 		var w2 float32
@@ -932,7 +941,7 @@ func ExampleReflect_TypeFromReflect_optionalFloatReflectZero() {
 
 func ExampleReflect_TypeFromReflect_optionalFloatCreate() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapFloat(1), types.WrapFloat(2), types.WrapFloat(3))))
 	})
@@ -947,7 +956,7 @@ func ExampleReflect_TypeFromReflect_optionalFloatCreate() {
 
 func ExampleReflect_TypeFromReflect_optionalFloatDefault() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		fmt.Println(eval.ToPrettyString(eval.New(c, xm, types.WrapFloat(1))))
 	})
@@ -960,7 +969,7 @@ func ExampleReflect_TypeFromReflect_optionalFloatDefault() {
 
 func ExampleReflect_TypeFromReflect_optionalFloatZero() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalFloat{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalFloat{}))
 		c.AddTypes(xm)
 		var w1 float64
 		var w2 float32
@@ -983,7 +992,7 @@ type optionalIntSlice struct {
 
 func ExampleReflect_TypeFromReflect_optionalIntSlice() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalIntSlice{}))
 		c.AddTypes(xm)
 		xm.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
@@ -1065,8 +1074,8 @@ type structSlice struct {
 
 func ExampleReflect_TypeFromReflect_structSlice() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
-		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(&structSlice{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalIntSlice{}))
+		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(structSlice{}))
 		c.AddTypes(xm, ym)
 		ym.ToString(os.Stdout, eval.PRETTY_EXPANDED, nil)
 		fmt.Println()
@@ -1082,7 +1091,7 @@ func ExampleReflect_TypeFromReflect_structSlice() {
 	//       'value' => undef
 	//     },
 	//     'c' => {
-	//       'type' => Optional[Array[X]],
+	//       'type' => Optional[Array[Optional[X]]],
 	//       'value' => undef
 	//     }
 	//   }
@@ -1091,8 +1100,8 @@ func ExampleReflect_TypeFromReflect_structSlice() {
 
 func ExampleReflect_TypeFromReflect_structSliceAssign() {
 	eval.Puppet.Do(func(c eval.Context) {
-		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(&optionalIntSlice{}))
-		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(&structSlice{}))
+		xm := c.Reflector().TypeFromReflect(`X`, nil, reflect.TypeOf(optionalIntSlice{}))
+		ym := c.Reflector().TypeFromReflect(`Y`, nil, reflect.TypeOf(structSlice{}))
 		c.AddTypes(xm, ym)
 		ss := eval.Wrap(c, structSlice{
 			A: []optionalIntSlice{{[]int64{1, 2, 3}, &[]int64{4, 5, 6}, &map[string]int32{`a`: 7, `b`: 8, `c`: 9}}},
