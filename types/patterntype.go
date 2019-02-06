@@ -100,11 +100,14 @@ func (t *PatternType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		if len(t.regexps) == 0 {
 			return true
 		}
-		if vc, ok := o.(*vcStringType); ok {
-			str := vc.value
-			return utils.MatchesString(MapToRegexps(t.regexps), str)
+	}
+
+	if vc, ok := o.(*vcStringType); ok {
+		if len(t.regexps) == 0 {
+			return true
 		}
-		return false
+		str := vc.value
+		return utils.MatchesString(MapToRegexps(t.regexps), str)
 	}
 
 	if et, ok := o.(*EnumType); ok {

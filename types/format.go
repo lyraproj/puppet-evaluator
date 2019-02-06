@@ -293,7 +293,7 @@ func typeRank(pt eval.Type) int {
 	switch pt.(type) {
 	case *NumericType, *IntegerType, *FloatType:
 		return 13
-	case *stringType:
+	case *stringType, *vcStringType, *scStringType:
 		return 12
 	case *EnumType:
 		return 11

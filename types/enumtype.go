@@ -121,7 +121,7 @@ func (t *EnumType) Get(key string) (eval.Value, bool) {
 func (t *EnumType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if len(t.values) == 0 {
 		switch o.(type) {
-		case *stringType, *EnumType, *PatternType:
+		case *stringType, *vcStringType, *scStringType, *EnumType, *PatternType:
 			return true
 		}
 		return false
