@@ -16,7 +16,7 @@ func init() {
 	deferredType = newObjectType(`Deferred`, `{
     attributes => {
       # Fully qualified name of the function
-      name  => { type => Pattern[/\A[$]?[a-z][a-z0-9_]*(?:::[a-z][a-z0-9_]*)*\z/] },
+      name  => { type => Pattern[/\A[$]?[a-z][0-9A-Za-z_]*(?:::[a-z][0-9A-Za-z_]*)*\z/] },
       arguments => { type => Optional[Array[Any]], value => undef},
     }}`,
 		func(ctx eval.Context, args []eval.Value) eval.Value {

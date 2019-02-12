@@ -33,7 +33,6 @@ type rdSerializer struct {
 type context struct {
 	config     *rdSerializer
 	values     map[eval.Value]int
-	strings    map[string]int
 	path       []eval.Value
 	refIndex   int
 	dedupLevel int
@@ -63,7 +62,7 @@ var sensitiveType = types.WrapString(PcoreTypeSensitive)
 var hashKey = types.WrapString(PcoreTypeHash)
 
 func (t *rdSerializer) Convert(value eval.Value, consumer ValueConsumer) {
-	c := context{config: t, values: make(map[eval.Value]int, 63), strings: make(map[string]int, 63), refIndex: 0, consumer: consumer, path: make([]eval.Value, 0, 16), dedupLevel: t.dedupLevel}
+	c := context{config: t, values: make(map[eval.Value]int, 63), refIndex: 0, consumer: consumer, path: make([]eval.Value, 0, 16), dedupLevel: t.dedupLevel}
 	if c.dedupLevel >= MaxDedup && !consumer.CanDoComplexKeys() {
 		c.dedupLevel = NoKeyDedup
 	}
@@ -101,12 +100,9 @@ func (sc *context) toData(level int, value eval.Value) {
 		// Dedup only if length exceeds stringThreshold
 		key := value.String()
 		if sc.dedupLevel >= level && len(key) >= sc.consumer.StringDedupThreshold() {
-			if ref, ok := sc.strings[key]; ok {
-				sc.consumer.AddRef(ref)
-			} else {
-				sc.strings[key] = sc.refIndex
+			sc.process(value, func() {
 				sc.addData(value)
-			}
+			})
 		} else {
 			sc.addData(value)
 		}
@@ -121,19 +117,19 @@ func (sc *context) toData(level int, value eval.Value) {
 			sc.toData(1, types.WrapString(`default`))
 		}
 	case *types.HashValue:
-		sc.process(value, func() {
-			h := value.(*types.HashValue)
-			if sc.consumer.CanDoComplexKeys() || h.AllKeysAreStrings() {
-				sc.addHash(1, func() {
+		h := value.(*types.HashValue)
+		if sc.consumer.CanDoComplexKeys() || h.AllKeysAreStrings() {
+			sc.process(value, func() {
+				sc.addHash(h.Len(), func() {
 					h.EachPair(func(key, elem eval.Value) {
 						sc.toData(2, key)
 						sc.withPath(key, func() { sc.toData(1, elem) })
 					})
 				})
-			} else {
-				sc.nonStringKeyedHashToData(h)
-			}
-		})
+			})
+		} else {
+			sc.nonStringKeyedHashToData(h)
+		}
 	case *types.ArrayValue:
 		sc.process(value, func() {
 			ar := value.(*types.ArrayValue)
@@ -230,14 +226,16 @@ func (sc *context) nonStringKeyedHashToData(hash eval.OrderedMap) {
 		sc.toKeyExtendedHash(hash)
 		return
 	}
-	sc.addHash(hash.Len(), func() {
-		hash.EachPair(func(key, elem eval.Value) {
-			if s, ok := key.(eval.StringValue); ok {
-				sc.toData(2, s)
-			} else {
-				sc.unknownToStringWithWarning(2, key)
-			}
-			sc.withPath(key, func() { sc.toData(1, elem) })
+	sc.process(hash, func() {
+		sc.addHash(hash.Len(), func() {
+			hash.EachPair(func(key, elem eval.Value) {
+				if s, ok := key.(eval.StringValue); ok {
+					sc.toData(2, s)
+				} else {
+					sc.unknownToStringWithWarning(2, key)
+				}
+				sc.withPath(key, func() { sc.toData(1, elem) })
+			})
 		})
 	})
 }
@@ -278,22 +276,26 @@ func (sc *context) valueToDataHash(value eval.Value) {
 	case *types.TypeAliasType:
 		tv := value.(*types.TypeAliasType)
 		if sc.isKnownType(tv.Name()) {
-			sc.addHash(2, func() {
-				sc.toData(2, typeKey)
-				sc.toData(2, types.WrapString(`Type`))
-				sc.toData(2, valueKey)
-				sc.toData(1, types.WrapString(tv.Name()))
+			sc.process(value, func() {
+				sc.addHash(2, func() {
+					sc.toData(2, typeKey)
+					sc.toData(2, types.WrapString(`Type`))
+					sc.toData(2, valueKey)
+					sc.toData(1, types.WrapString(tv.Name()))
+				})
 			})
 			return
 		}
 	case eval.ObjectType:
 		tv := value.(eval.ObjectType)
 		if sc.isKnownType(tv.Name()) {
-			sc.addHash(2, func() {
-				sc.toData(2, typeKey)
-				sc.toData(2, types.WrapString(`Type`))
-				sc.toData(2, valueKey)
-				sc.toData(1, types.WrapString(tv.String()))
+			sc.process(value, func() {
+				sc.addHash(2, func() {
+					sc.toData(2, typeKey)
+					sc.toData(2, types.WrapString(`Type`))
+					sc.toData(2, valueKey)
+					sc.toData(1, types.WrapString(tv.String()))
+				})
 			})
 			return
 		}
@@ -302,11 +304,13 @@ func (sc *context) valueToDataHash(value eval.Value) {
 	vt := value.PType()
 	if tx, ok := value.(eval.Type); ok {
 		if ss, ok := value.(eval.SerializeAsString); ok && ss.CanSerializeAsString() {
-			sc.addHash(2, func() {
-				sc.toData(2, typeKey)
-				sc.withPath(typeKey, func() { sc.pcoreTypeToData(vt) })
-				sc.toData(2, valueKey)
-				sc.toData(1, types.WrapString(ss.SerializationString()))
+			sc.process(value, func() {
+				sc.addHash(2, func() {
+					sc.toData(2, typeKey)
+					sc.withPath(typeKey, func() { sc.pcoreTypeToData(vt) })
+					sc.toData(2, valueKey)
+					sc.toData(1, types.WrapString(ss.SerializationString()))
+				})
 			})
 			return
 		}
@@ -314,11 +318,13 @@ func (sc *context) valueToDataHash(value eval.Value) {
 	}
 
 	if ss, ok := value.(eval.SerializeAsString); ok && ss.CanSerializeAsString() {
-		sc.addHash(2, func() {
-			sc.toData(2, typeKey)
-			sc.withPath(typeKey, func() { sc.pcoreTypeToData(vt) })
-			sc.toData(2, valueKey)
-			sc.toData(1, types.WrapString(ss.SerializationString()))
+		sc.process(value, func() {
+			sc.addHash(2, func() {
+				sc.toData(2, typeKey)
+				sc.withPath(typeKey, func() { sc.pcoreTypeToData(vt) })
+				sc.toData(2, valueKey)
+				sc.toData(1, types.WrapString(ss.SerializationString()))
+			})
 		})
 		return
 	}
@@ -385,14 +391,16 @@ func (sc *context) pcoreTypeToData(pcoreType eval.Type) {
 }
 
 func (sc *context) toKeyExtendedHash(hash eval.OrderedMap) {
-	sc.addHash(2, func() {
-		sc.toData(2, typeKey)
-		sc.toData(1, hashKey)
-		sc.toData(2, valueKey)
-		sc.addArray(hash.Len()*2, func() {
-			hash.EachPair(func(key, value eval.Value) {
-				sc.toData(1, key)
-				sc.withPath(key, func() { sc.toData(1, value) })
+	sc.process(hash, func() {
+		sc.addHash(2, func() {
+			sc.toData(2, typeKey)
+			sc.toData(1, hashKey)
+			sc.toData(2, valueKey)
+			sc.addArray(hash.Len()*2, func() {
+				hash.EachPair(func(key, value eval.Value) {
+					sc.toData(1, key)
+					sc.withPath(key, func() { sc.toData(1, value) })
+				})
 			})
 		})
 	})

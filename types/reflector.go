@@ -80,7 +80,7 @@ func (r *reflector) FieldName(f *reflect.StructField) string {
 			return nv.String()
 		}
 	}
-	return issue.CamelToSnakeCase(f.Name)
+	return issue.FirstToLower(f.Name)
 }
 
 func (r *reflector) Reflect(src eval.Value) reflect.Value {
@@ -291,7 +291,7 @@ func (r *reflector) InitializerFromTagged(typeName string, parent eval.Type, tg 
 						continue
 					}
 				}
-				es = append(es, WrapHashEntry2(issue.CamelToSnakeCase(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
+				es = append(es, WrapHashEntry2(issue.FirstToLower(m.Name), r.FunctionDeclFromReflect(m.Name, m.Type, rf.Kind() != reflect.Interface)))
 			}
 			ie = append(ie, WrapHashEntry2(KEY_FUNCTIONS, WrapHash(es)))
 		}
@@ -378,7 +378,7 @@ func (r *reflector) ReflectFieldTags(f *reflect.StructField, fh eval.OrderedMap)
 	as = append(as, WrapHashEntry2(KEY_TYPE, typ))
 	as = append(as, WrapHashEntry2(KEY_GONAME, stringValue(f.Name)))
 	if name == `` {
-		name = issue.CamelToSnakeCase(f.Name)
+		name = issue.FirstToLower(f.Name)
 	}
 	return name, WrapHash(as)
 }

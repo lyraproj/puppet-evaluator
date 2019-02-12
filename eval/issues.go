@@ -127,7 +127,7 @@ const (
 )
 
 func init() {
-	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: issue.A_an})
+	issue.Hard2(EVAL_ARGUMENTS_ERROR, `Error when evaluating %{expression}: %{message}`, issue.HF{`expression`: issue.AnOrA})
 
 	issue.Hard(EVAL_ATTEMPT_TO_REDEFINE, `attempt to redefine %{name}`)
 
@@ -137,7 +137,7 @@ func init() {
 
 	issue.Hard(EVAL_ATTRIBUTE_HAS_NO_VALUE, `%{label} has no value`)
 
-	issue.Hard2(EVAL_ATTRIBUTE_NOT_FOUND, `%{type} has no attribute named %{name}`, issue.HF{`type`: issue.A_anUc})
+	issue.Hard2(EVAL_ATTRIBUTE_NOT_FOUND, `%{type} has no attribute named %{name}`, issue.HF{`type`: issue.UcAnOrA})
 
 	issue.Hard(EVAL_BAD_JSON_PATH, `unable to resolve JSON path '${path}'`)
 
@@ -175,22 +175,22 @@ func init() {
 	issue.Hard(EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, `Attempt to create a Runtime['go', '%{name}'] without providing a Go type`)
 
 	issue.Hard2(EVAL_ILLEGAL_ARGUMENT,
-		`Error when evaluating %{expression}, argument %{number}:  %{message}`, issue.HF{`expression`: issue.A_an})
+		`Error when evaluating %{expression}, argument %{number}:  %{message}`, issue.HF{`expression`: issue.AnOrA})
 
 	issue.Hard2(EVAL_ILLEGAL_ARGUMENT_COUNT,
 		`Error when evaluating %{expression}: Expected %{expected} arguments, got %{actual}`,
-		issue.HF{`expression`: issue.A_an})
+		issue.HF{`expression`: issue.AnOrA})
 
 	issue.Hard2(EVAL_ILLEGAL_ARGUMENT_TYPE,
 		`Error when evaluating %{expression}: Expected argument %{number} to be %{expected}, got %{actual}`,
-		issue.HF{`expression`: issue.A_an})
+		issue.HF{`expression`: issue.AnOrA})
 
 	issue.Hard2(EVAL_ILLEGAL_ASSIGNMENT, `Illegal attempt to assign to %{value}. Not an assignable reference`,
-		issue.HF{`value`: issue.A_an})
+		issue.HF{`value`: issue.AnOrA})
 
 	issue.Hard(EVAL_ILLEGAL_BREAK, `break() from context where this is illegal`)
 
-	issue.Hard2(EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, `%{expression} is illegal within a type declaration`, issue.HF{`expression`: issue.A_anUc})
+	issue.Hard2(EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, `%{expression} is illegal within a type declaration`, issue.HF{`expression`: issue.UcAnOrA})
 
 	issue.Hard(EVAL_ILLEGAL_KIND_VALUE_COMBINATION, `%{label} of kind '%{kind}' cannot be combined with an attribute value`)
 
@@ -216,9 +216,9 @@ func init() {
 
 	issue.Hard(EVAL_INVALID_REGEXP, `Cannot compile regular expression '%{pattern}': %{detail}`)
 
-	issue.Hard2(EVAL_INVALID_SOURCE_FOR_GET, `Cannot create a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
+	issue.Hard2(EVAL_INVALID_SOURCE_FOR_GET, `Cannot create a reflect.Value from %{type}`, issue.HF{`type`: issue.AnOrA})
 
-	issue.Hard2(EVAL_INVALID_SOURCE_FOR_SET, `Cannot set a reflect.Value from %{type}`, issue.HF{`type`: issue.A_an})
+	issue.Hard2(EVAL_INVALID_SOURCE_FOR_SET, `Cannot set a reflect.Value from %{type}`, issue.HF{`type`: issue.AnOrA})
 
 	issue.Hard(EVAL_INVALID_STRING_FORMAT_SPEC, `The string format '%{format}' is not a valid format on the form '%%<flags><width>.<prec><format>'`)
 
@@ -238,7 +238,7 @@ func init() {
 
 	issue.Hard(EVAL_MATCH_NOT_REGEXP, `Can not convert right match operand to a regular expression. Caused by '%{detail}'`)
 
-	issue.Hard2(EVAL_MATCH_NOT_STRING, `"Left match operand must result in a String value. Got %{left}`, issue.HF{`left`: issue.A_an})
+	issue.Hard2(EVAL_MATCH_NOT_STRING, `"Left match operand must result in a String value. Got %{left}`, issue.HF{`left`: issue.AnOrA})
 
 	issue.Hard(EVAL_MEMBER_NAME_CONFLICT, `%{label} conflicts with attribute with the same name`)
 
@@ -269,18 +269,18 @@ func init() {
 	issue.Hard(EVAL_NOT_ONLY_DEFINITION, `The code loaded from %{source} must contain only the %{type} '%{name}`)
 
 	issue.Hard2(EVAL_NOT_PARAMETERIZED_TYPE, `%{type} is not a parameterized type`,
-		issue.HF{`type`: issue.A_anUc})
+		issue.HF{`type`: issue.UcAnOrA})
 
 	issue.Hard(EVAL_NOT_SEMVER, `The value cannot be converted to semantic version. Caused by '%{detail}'`)
 
 	issue.Hard(EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, `The format specifier '%{format_specifier}' "%{description}" can not be converted to a Go Time Layout`)
 
 	issue.Hard2(EVAL_OPERATOR_NOT_APPLICABLE, `Operator '%{operator}' is not applicable to %{left}`,
-		issue.HF{`left`: issue.A_an})
+		issue.HF{`left`: issue.AnOrA})
 
 	issue.Hard2(EVAL_OPERATOR_NOT_APPLICABLE_WHEN,
 		`Operator '%{operator}' is not applicable to %{left} when right side is %{right}`,
-		issue.HF{`left`: issue.A_an, `right`: issue.A_an})
+		issue.HF{`left`: issue.AnOrA, `right`: issue.AnOrA})
 
 	issue.Hard(EVAL_OVERRIDE_MEMBER_MISMATCH, `%{member} attempts to override %{label}`)
 
@@ -303,7 +303,7 @@ func init() {
 
 	issue.Hard(EVAL_SERIALIZATION_ENDLESS_RECURSION, `Endless recursion detected when attempting to serialize value of class %{type_name}'`)
 
-	issue.Hard2(EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, `%{path} contains %{klass} value. It will be converted to the String '%{value}'`, issue.HF{`klass`: issue.A_an})
+	issue.Hard2(EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, `%{path} contains %{klass} value. It will be converted to the String '%{value}'`, issue.HF{`klass`: issue.AnOrA})
 
 	issue.Hard(EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, `%{label} serialization is referencing required %{required} after optional %{optional}. Optional attributes must be last`)
 
@@ -345,7 +345,7 @@ func init() {
 
 	issue.Hard(EVAL_UNABLE_TO_DESERIALIZE_TYPE, `Unable to deserialize a data type from hash %{hash}`)
 
-	issue.Hard2(EVAL_UNABLE_TO_DESERIALIZE_VALUE, `Unable to deserialize an instance of %{type} from %{arg_type}`, issue.HF{`arg_type`: issue.A_an})
+	issue.Hard2(EVAL_UNABLE_TO_DESERIALIZE_VALUE, `Unable to deserialize an instance of %{type} from %{arg_type}`, issue.HF{`arg_type`: issue.AnOrA})
 
 	issue.Hard(EVAL_UNABLE_TO_READ_FILE, `Unable to read file '%{path}': %{detail}`)
 

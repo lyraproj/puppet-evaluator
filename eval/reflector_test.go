@@ -201,7 +201,7 @@ func ExampleReflector_ReflectToPuppetObject() {
 	type TestStruct struct {
 		Message   string
 		Kind      string
-		IssueCode string
+		IssueCode string `puppet:"name => issue_code"`
 	}
 
 	c := eval.Puppet.RootContext()
@@ -437,7 +437,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//           'type' => Optional[Timestamp],
 	//           'value' => undef
 	//         },
-	//         'time_since_visit' => {
+	//         'timeSinceVisit' => {
 	//           'type' => Optional[Timespan],
 	//           'value' => undef
 	//         },
@@ -446,7 +446,7 @@ func ExampleReflector_typeSetFromReflect() {
 	//     }
 	//   }
 	// }]
-	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'enabled' => true, 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'birth' => 2006-01-02T15:04:05.000000000 UTC, 'time_since_visit' => 0-01:20:00.0)
+	// My::Own::ExtendedPerson('name' => 'Bob Tester', 'enabled' => true, 'address' => My::Own::Address('street' => 'Example Road 23', 'zip_code' => '12345'), 'birth' => 2006-01-02T15:04:05.000000000 UTC, 'timeSinceVisit' => 0-01:20:00.0)
 	// visited Example Road 23
 	// visited Example Road 23
 }
@@ -472,7 +472,7 @@ func ExampleReflector_twoValueReturn() {
 		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
 		c.AddTypes(api)
 		v := eval.Wrap(c, gv)
-		r, _ := api.Member(`return_two`)
+		r, _ := api.Member(`returnTwo`)
 		fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
 	})
 	// Output:
@@ -485,8 +485,9 @@ func ExampleReflectortwoValueReturnErrorOk() {
 		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
 		c.AddTypes(api)
 		v := eval.Wrap(c, gv)
-		r, _ := api.Member(`return_two_and_error_ok`)
-		fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
+		if r, ok := api.Member(`returnTwoAndErrorOk`); ok {
+			fmt.Println(eval.ToPrettyString(r.Call(c, v, nil, eval.EMPTY_VALUES)))
+		}
 	})
 	// Output:
 	// ['number', 42]
@@ -498,8 +499,9 @@ func ExampleReflectortwoValueReturnErrorFail() {
 		api := c.Reflector().TypeFromReflect(`A::B`, nil, reflect.TypeOf(gv))
 		c.AddTypes(api)
 		v := eval.Wrap(c, gv)
-		r, _ := api.Member(`return_two_and_error_fail`)
-		r.Call(c, v, nil, eval.EMPTY_VALUES)
+		if r, ok := api.Member(`returnTwoAndErrorFail`); ok {
+			r.Call(c, v, nil, eval.EMPTY_VALUES)
+		}
 		return nil
 	})
 	if err != nil {

@@ -2,11 +2,10 @@ github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/lyraproj/data-protobuf v0.0.0-20181217135414-3d508204b820 h1:fmQMG2XAvAhT5gt9PxXhY3+2iHJPBM1Y073MuNTZShM=
 github.com/lyraproj/data-protobuf v0.0.0-20181217135414-3d508204b820/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
-github.com/lyraproj/issue v0.0.0-20181204205859-7ed1f9741f4a/go.mod h1:F3Zu9SjR6zROUIVdxgxuX0/Mi4npwgDRalQCNzCyzU0=
-github.com/lyraproj/issue v0.0.0-20190122215520-5efbea1d1edb h1:R3ukQUNWJTypfOAZwyJ5kcIyWjbm8KZnpxLaH29HWbw=
-github.com/lyraproj/issue v0.0.0-20190122215520-5efbea1d1edb/go.mod h1:F3Zu9SjR6zROUIVdxgxuX0/Mi4npwgDRalQCNzCyzU0=
-github.com/lyraproj/puppet-parser v0.0.0-20181212205830-31c3104fe78d h1:iDn6XlJAiA+BuwG6L8xsCapPpc7jz24SGj9z7NQA1sg=
-github.com/lyraproj/puppet-parser v0.0.0-20181212205830-31c3104fe78d/go.mod h1:8va5g/XEw+jP9jnwEXPmanUy/hD9+6iggnaioihPLP0=
+github.com/lyraproj/issue v0.0.0-20190212165014-dd5ddd3e3932 h1:b8I0P02NmC5ADB2rNoWM8hhd2Z7xCGELclNT8a/YaZQ=
+github.com/lyraproj/issue v0.0.0-20190212165014-dd5ddd3e3932/go.mod h1:F3Zu9SjR6zROUIVdxgxuX0/Mi4npwgDRalQCNzCyzU0=
+github.com/lyraproj/puppet-parser v0.0.0-20190212165346-fb4ec7df66ae h1:oGMwTz236ci1+BoJfnKfsbzb5I+EOs07rJR9fReXkz8=
+github.com/lyraproj/puppet-parser v0.0.0-20190212165346-fb4ec7df66ae/go.mod h1:mxdGNp3ut1dL01rfyJXsEYDBw0KPdL9rxfltcMMj45M=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2/go.mod h1:KOdZKnEBdDb2iGPUnHiKpk3M5cvv949xMyj8XPqaMF0=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

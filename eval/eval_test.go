@@ -91,7 +91,7 @@ func ExampleObjectType_fromReflectedValue() {
 	type TestStruct struct {
 		Message   string
 		Kind      string
-		IssueCode string
+		IssueCode string `puppet:"name => issue_code"`
 	}
 
 	c := eval.Puppet.RootContext()

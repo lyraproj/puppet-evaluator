@@ -44,18 +44,25 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 			if pcoreType, ok := hash.Get4(PcoreTypeKey); ok {
 				switch pcoreType.String() {
 				case PcoreTypeHash:
-					return ds.convertHash(hash, value)
+					return ds.convertHash(hash)
 				case PcoreTypeSensitive:
-					return ds.convertSensitive(hash, value)
+					return ds.convertSensitive(hash)
 				case PcoreTypeDefault:
 					return types.WrapDefault()
 				default:
-					v := ds.convertOther(hash, value, pcoreType)
+					v := ds.convertOther(hash, pcoreType)
 					switch v.(type) {
 					case eval.ObjectType, eval.TypeSet, *types.TypeAliasType:
 						// Ensure that type is made known to current loader
 						rt := v.(eval.ResolvableType)
-						tn := eval.NewTypedName(eval.NsType, rt.Name())
+						n := rt.Name()
+						// Duplicates can be found here if serialization was made with dedupLevel NoDedup
+						for _, nt := range ds.newTypes {
+							if n == nt.Name() {
+								return nt
+							}
+						}
+						tn := eval.NewTypedName(eval.NsType, n)
 						if lt, ok := eval.Load(ds.context, tn); ok {
 							t := rt.Resolve(ds.context)
 							if t.Equals(lt, nil) {
@@ -89,10 +96,10 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 	return value
 }
 
-func (ds *dsContext) convertHash(hash eval.OrderedMap, key eval.Value) eval.Value {
-	value := hash.Get5(PcoreValueKey, eval.EMPTY_ARRAY).(eval.List)
+func (ds *dsContext) convertHash(hv eval.OrderedMap) eval.Value {
+	value := hv.Get5(PcoreValueKey, eval.EMPTY_ARRAY).(eval.List)
 	return types.BuildHash(value.Len(), func(hash *types.HashValue, entries []*types.HashEntry) []*types.HashEntry {
-		ds.converted[key] = hash
+		ds.converted[hv] = hash
 		for idx := 0; idx < value.Len(); idx += 2 {
 			entries = append(entries, types.WrapHashEntry(ds.convert(value.At(idx)), ds.convert(value.At(idx+1))))
 		}
@@ -100,13 +107,13 @@ func (ds *dsContext) convertHash(hash eval.OrderedMap, key eval.Value) eval.Valu
 	})
 }
 
-func (ds *dsContext) convertSensitive(hash eval.OrderedMap, key eval.Value) eval.Value {
+func (ds *dsContext) convertSensitive(hash eval.OrderedMap) eval.Value {
 	cv := types.WrapSensitive(ds.convert(hash.Get5(PcoreValueKey, eval.UNDEF)))
-	ds.converted[key] = cv
+	ds.converted[hash] = cv
 	return cv
 }
 
-func (ds *dsContext) convertOther(hash eval.OrderedMap, key eval.Value, typeValue eval.Value) eval.Value {
+func (ds *dsContext) convertOther(hash eval.OrderedMap, typeValue eval.Value) eval.Value {
 	value := hash.Get6(PcoreValueKey, func() eval.Value {
 		return hash.RejectPairs(func(k, v eval.Value) bool {
 			if s, ok := k.(eval.StringValue); ok {
@@ -123,7 +130,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, key eval.Value, typeValu
 			}
 			return hash
 		}
-		return ds.pcoreTypeHashToValue(typ.(eval.Type), key, value)
+		return ds.pcoreTypeHashToValue(typ.(eval.Type), hash, value)
 	}
 	typ := ds.context.ParseType(typeValue)
 	if tr, ok := typ.(*types.TypeReferenceType); ok {
@@ -132,7 +139,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, key eval.Value, typeValu
 		}
 		return hash
 	}
-	return ds.pcoreTypeHashToValue(typ.(eval.Type), key, value)
+	return ds.pcoreTypeHashToValue(typ.(eval.Type), hash, value)
 }
 
 func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key, value eval.Value) eval.Value {

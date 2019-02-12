@@ -63,7 +63,7 @@ var NewAnnotatedType func(reflect.Type, map[string]string, OrderedMap) Annotated
 type Reflector interface {
 	// FieldName returns the puppet name for the given field. The puppet name is
 	// either picked from the 'puppet' tag of the field or the result of
-	// munging the field name through utils.CamelToSnakeCase
+	// munging the field name through utils.FirstToLower
 	FieldName(f *reflect.StructField) string
 
 	// FunctionDeclFromReflect creates a function declaration suitable for inclusion in an ObjectType initialization
