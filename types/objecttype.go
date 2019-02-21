@@ -1115,8 +1115,7 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			}}
 	}
 
-	creators := []eval.DispatchCreator{}
-	creators = append(creators, func(d eval.Dispatch) {
+	paCreator := func(d eval.Dispatch) {
 		for i, attr := range pi.Attributes() {
 			switch attr.Kind() {
 			case CONSTANT, DERIVED:
@@ -1131,13 +1130,17 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			}
 		}
 		d.Function(functions[0])
-	})
+	}
 
+	var creators []eval.DispatchCreator
 	if len(functions) > 1 {
-		creators = append(creators, func(d eval.Dispatch) {
+		// A named argument constructor exists. Place it first.
+		creators = []eval.DispatchCreator{func(d eval.Dispatch) {
 			d.Param2(t.createInitType())
 			d.Function(functions[1])
-		})
+		}, paCreator}
+	} else {
+		creators = []eval.DispatchCreator{paCreator}
 	}
 
 	t.ctor = eval.MakeGoConstructor(t.name, creators...).Resolve(c)
