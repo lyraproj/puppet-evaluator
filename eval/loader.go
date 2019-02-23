@@ -20,6 +20,15 @@ type (
 
 		// NameAuthority returns the name authority
 		NameAuthority() URI
+
+		// Discover iterates over all entries accessible to this loader and its parents
+		// and returns a slice of all entries for which the provided function returns
+		// true
+		Discover(c Context, predicate func(tn TypedName) bool) []TypedName
+
+		// HasEntry returns true if this loader has an entry that maps to the give name
+		// The status of the entry is determined without actually loading it.
+		HasEntry(name TypedName) bool
 	}
 
 	DefiningLoader interface {

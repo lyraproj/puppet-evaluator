@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/lyraproj/puppet-evaluator/errors"
@@ -277,6 +278,17 @@ func (l *fileBasedLoader) findExistingPath(name eval.TypedName) (origins []strin
 	return nil, nil
 }
 
+func (l *fileBasedLoader) ensureAllIndexed() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	for _, paths := range l.paths {
+		for _, sm := range paths {
+			l.ensureIndexed(sm)
+		}
+	}
+}
+
 func (l *fileBasedLoader) ensureIndexed(sp SmartPath) {
 	if !sp.Indexed() {
 		sp.SetIndexed()
@@ -289,12 +301,47 @@ func (l *fileBasedLoader) instantiate(c eval.Context, smartPath SmartPath, name 
 	return l.GetEntry(name)
 }
 
+func (l *fileBasedLoader) Discover(c eval.Context, predicate func(eval.TypedName) bool) []eval.TypedName {
+	l.ensureAllIndexed()
+	found := l.parent.Discover(c, predicate)
+	added := false
+	for k, _ := range l.index {
+		tn := eval.TypedNameFromMapKey(k)
+		if !l.parent.HasEntry(tn) {
+			if predicate(tn) {
+				found = append(found, tn)
+				added = true
+			}
+		}
+	}
+	if added {
+		sort.Slice(found, func(i, j int) bool { return found[i].MapKey() < found[j].MapKey() })
+	}
+	return found
+}
+
 func (l *fileBasedLoader) GetContent(c eval.Context, path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(eval.Error(eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))
 	}
 	return content
+}
+
+func (l *fileBasedLoader) HasEntry(name eval.TypedName) bool {
+	if l.parent.HasEntry(name) {
+		return true
+	}
+
+	if paths, ok := l.paths[name.Namespace()]; ok {
+		for _, sm := range paths {
+			l.ensureIndexed(sm)
+			if _, ok := l.index[name.MapKey()]; ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
@@ -305,7 +352,7 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 	noExtension := ext == ``
 
 	generic := smartPath.GenericPath()
-	filepath.Walk(generic, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(generic, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -326,4 +373,7 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 		}
 		return nil
 	})
+	if err != nil {
+		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
+	}
 }
