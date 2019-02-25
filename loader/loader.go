@@ -6,6 +6,7 @@ import (
 	"github.com/lyraproj/puppet-evaluator/impl"
 	"github.com/lyraproj/puppet-evaluator/types"
 	"reflect"
+	"sort"
 	"sync"
 )
 
@@ -84,6 +85,18 @@ func load(c eval.Context, name eval.TypedName) (interface{}, bool) {
 	return entry.Value(), true
 }
 
+func (l *basicLoader) Discover(c eval.Context, predicate func(tn eval.TypedName) bool) []eval.TypedName {
+	found := make([]eval.TypedName, 0)
+	for k, _ := range l.namedEntries {
+		tn := eval.TypedNameFromMapKey(k)
+		if predicate(tn) {
+			found = append(found, tn)
+		}
+	}
+	sort.Slice(found, func(i, j int) bool { return found[i].MapKey() < found[j].MapKey() })
+	return found
+}
+
 func (l *basicLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	return l.GetEntry(name)
 }
@@ -93,6 +106,13 @@ func (l *basicLoader) GetEntry(name eval.TypedName) eval.LoaderEntry {
 	v := l.namedEntries[name.MapKey()]
 	l.lock.RUnlock()
 	return v
+}
+
+func (l *basicLoader) HasEntry(name eval.TypedName) bool {
+	l.lock.RLock()
+	e, found := l.namedEntries[name.MapKey()]
+	l.lock.RUnlock()
+	return found && e.Value() != nil
 }
 
 func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval.LoaderEntry {
@@ -113,6 +133,28 @@ func (l *basicLoader) NameAuthority() eval.URI {
 	return eval.RUNTIME_NAME_AUTHORITY
 }
 
+func (l *parentedLoader) Discover(c eval.Context, predicate func(tn eval.TypedName) bool) []eval.TypedName {
+	found := l.parent.Discover(c, predicate)
+	added := false
+	for k, _ := range l.namedEntries {
+		tn := eval.TypedNameFromMapKey(k)
+		if !l.parent.HasEntry(tn) {
+			if predicate(tn) {
+				found = append(found, tn)
+				added = true
+			}
+		}
+	}
+	if added {
+		sort.Slice(found, func(i, j int) bool { return found[i].MapKey() < found[j].MapKey() })
+	}
+	return found
+}
+
+func (l *parentedLoader) HasEntry(name eval.TypedName) bool {
+	return l.parent.HasEntry(name) || l.basicLoader.HasEntry(name)
+}
+
 func (l *parentedLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	entry := l.parent.LoadEntry(c, name)
 	if entry == nil || entry.Value() == nil {
@@ -129,8 +171,35 @@ func (l *parentedLoader) Parent() eval.Loader {
 	return l.parent
 }
 
-func (l *typeSetLoader) TypeSet() eval.Type {
-	return l.typeSet
+func (l *typeSetLoader) Discover(c eval.Context, predicate func(tn eval.TypedName) bool) []eval.TypedName {
+	found := make([]eval.TypedName, 0)
+	ts := l.typeSet.Types()
+	ts.EachKey(func(v eval.Value) {
+		tn := v.(eval.TypedName)
+		if predicate(tn) {
+			found = append(found, tn)
+		}
+	})
+
+	pf := l.parentedLoader.Discover(c, func(tn eval.TypedName) bool { return !ts.IncludesKey(tn) && predicate(tn) })
+	if len(pf) > 0 {
+		found = append(found, pf...)
+		sort.Slice(found, func(i, j int) bool { return found[i].MapKey() < found[j].MapKey() })
+	}
+	return found
+}
+
+func (l *typeSetLoader) HasEntry(name eval.TypedName) bool {
+	if _, ok := l.typeSet.GetType(name); ok {
+		return true
+	}
+	if l.parentedLoader.HasEntry(name) {
+		return true
+	}
+	if child, ok := name.RelativeTo(l.typeSet.TypedName()); ok {
+		return l.HasEntry(child)
+	}
+	return false
 }
 
 func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.LoaderEntry {
@@ -150,4 +219,8 @@ func (l *typeSetLoader) LoadEntry(c eval.Context, name eval.TypedName) eval.Load
 
 func (l *typeSetLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval.LoaderEntry {
 	return l.parent.(eval.DefiningLoader).SetEntry(name, entry)
+}
+
+func (l *typeSetLoader) TypeSet() eval.Type {
+	return l.typeSet
 }
