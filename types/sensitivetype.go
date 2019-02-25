@@ -19,10 +19,10 @@ type (
 	}
 )
 
-var Sensitive_Type eval.ObjectType
+var SensitiveMetaType eval.ObjectType
 
 func init() {
-	Sensitive_Type = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	SensitiveMetaType = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultSensitiveType()
 	})
 
@@ -99,7 +99,7 @@ func (t *SensitiveType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *SensitiveType) MetaType() eval.ObjectType {
-	return Sensitive_Type
+	return SensitiveMetaType
 }
 
 func (t *SensitiveType) Name() string {

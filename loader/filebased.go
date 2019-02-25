@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/issue/issue"
 )
 
 type (
@@ -159,7 +159,7 @@ func (l *fileBasedLoader) isGlobal() bool {
 func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderEntry {
 	if name.IsQualified() {
 		// The name is in a name space.
-		if l.moduleName != name.Parts()[0] {
+		if l.moduleName != `` && l.moduleName != name.Parts()[0] {
 			// Then entity cannot possible be in this module unless the name starts with the module name.
 			// Note: If "module" represents a "global component", the module_name is empty and cannot match which is
 			// ok since such a "module" cannot have namespaced content).

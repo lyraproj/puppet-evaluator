@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/lyraproj/puppet-parser/literal"
-	"sort"
 
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
@@ -14,71 +13,12 @@ import (
 	"github.com/lyraproj/puppet-parser/validator"
 )
 
-var coreTypes = map[string]eval.Type{
-	`annotation`:    types.DefaultAnnotationType(),
-	`any`:           types.DefaultAnyType(),
-	`array`:         types.DefaultArrayType(),
-	`binary`:        types.DefaultBinaryType(),
-	`boolean`:       types.DefaultBooleanType(),
-	`callable`:      types.DefaultCallableType(),
-	`collection`:    types.DefaultCollectionType(),
-	`data`:          types.DefaultDataType(),
-	`default`:       types.DefaultDefaultType(),
-	`enum`:          types.DefaultEnumType(),
-	`float`:         types.DefaultFloatType(),
-	`hash`:          types.DefaultHashType(),
-	`init`:          types.DefaultInitType(),
-	`integer`:       types.DefaultIntegerType(),
-	`iterable`:      types.DefaultIterableType(),
-	`iterator`:      types.DefaultIteratorType(),
-	`like`:          types.DefaultLikeType(),
-	`notundef`:      types.DefaultNotUndefType(),
-	`numeric`:       types.DefaultNumericType(),
-	`optional`:      types.DefaultOptionalType(),
-	`object`:        types.DefaultObjectType(),
-	`pattern`:       types.DefaultPatternType(),
-	`regexp`:        types.DefaultRegexpType(),
-	`richdata`:      types.DefaultRichDataType(),
-	`runtime`:       types.DefaultRuntimeType(),
-	`scalardata`:    types.DefaultScalarDataType(),
-	`scalar`:        types.DefaultScalarType(),
-	`semver`:        types.DefaultSemVerType(),
-	`semverrange`:   types.DefaultSemVerRangeType(),
-	`sensitive`:     types.DefaultSensitiveType(),
-	`string`:        types.DefaultStringType(),
-	`struct`:        types.DefaultStructType(),
-	`timespan`:      types.DefaultTimespanType(),
-	`timestamp`:     types.DefaultTimestampType(),
-	`tuple`:         types.DefaultTupleType(),
-	`type`:          types.DefaultTypeType(),
-	`typealias`:     types.DefaultTypeAliasType(),
-	`typereference`: types.DefaultTypeReferenceType(),
-	`typeset`:       types.DefaultTypeSetType(),
-	`undef`:         types.DefaultUndefType(),
-	`unit`:          types.DefaultUnitType(),
-	`uri`:           types.DefaultUriType(),
-	`variant`:       types.DefaultVariantType(),
-}
-
 type (
 	evaluator struct {
 		eval.Context
 	}
 	systemLocation struct{}
 )
-
-func EachCoreType(fc func(t eval.Type)) {
-	keys := make([]string, len(coreTypes))
-	i := 0
-	for key := range coreTypes {
-		keys[i] = key
-		i++
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		fc(coreTypes[key])
-	}
-}
 
 func (systemLocation) File() string {
 	return ``
@@ -419,12 +359,7 @@ func evalQualifiedName(expr *parser.QualifiedName) eval.Value {
 }
 
 func evalQualifiedReference(e eval.Evaluator, expr *parser.QualifiedReference) eval.Value {
-	dcName := expr.DowncasedName()
-	pt := coreTypes[dcName]
-	if pt != nil {
-		return pt
-	}
-	return loadType(expr.Name(), e)
+	return types.Resolve(e, expr.Name())
 }
 
 func evalRegexpExpression(expr *parser.RegexpExpression) eval.Value {
@@ -632,15 +567,6 @@ func BasicEval(e eval.Evaluator, expr parser.Expression) eval.Value {
 	default:
 		panic(evalError(eval.EVAL_UNHANDLED_EXPRESSION, expr, issue.H{`expression`: expr}))
 	}
-}
-
-func loadType(name string, c eval.Context) eval.Type {
-	tn := eval.NewTypedName2(eval.NsType, name, c.Loader().NameAuthority())
-	found, ok := eval.Load(c, tn)
-	if ok {
-		return found.(eval.Type)
-	}
-	return types.NewTypeReferenceType(name)
 }
 
 func unfold(e eval.Evaluator, array []parser.Expression, initial ...eval.Value) []eval.Value {

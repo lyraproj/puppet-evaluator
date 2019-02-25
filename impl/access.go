@@ -159,91 +159,10 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 }
 
 func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression) (tp eval.Type) {
-	dcName := qr.DowncasedName()
 	defer func() {
 		if err := recover(); err != nil {
 			convertCallError(err, expr, expr.Keys())
 		}
 	}()
-
-	switch dcName {
-	case `array`:
-		tp = types.NewArrayType2(args...)
-	case `boolean`:
-		tp = types.NewBooleanType2(args...)
-	case `callable`:
-		tp = types.NewCallableType2(args...)
-	case `collection`:
-		tp = types.NewCollectionType2(args...)
-	case `enum`:
-		tp = types.NewEnumType2(args...)
-	case `float`:
-		tp = types.NewFloatType2(args...)
-	case `hash`:
-		tp = types.NewHashType2(args...)
-	case `init`:
-		tp = types.NewInitType2(args...)
-	case `integer`:
-		tp = types.NewIntegerType2(args...)
-	case `iterable`:
-		tp = types.NewIterableType2(args...)
-	case `iterator`:
-		tp = types.NewIteratorType2(args...)
-	case `like`:
-		tp = types.NewLikeType2(args...)
-	case `notundef`:
-		tp = types.NewNotUndefType2(args...)
-	case `object`:
-		tp = types.NewObjectType2(e, args...)
-	case `optional`:
-		tp = types.NewOptionalType2(args...)
-	case `pattern`:
-		tp = types.NewPatternType2(args...)
-	case `regexp`:
-		tp = types.NewRegexpType2(args...)
-	case `runtime`:
-		tp = types.NewRuntimeType2(args...)
-	case `semver`:
-		tp = types.NewSemVerType2(args...)
-	case `sensitive`:
-		tp = types.NewSensitiveType2(args...)
-	case `string`:
-		tp = types.NewStringType2(args...)
-	case `struct`:
-		tp = types.NewStructType2(args...)
-	case `timespan`:
-		tp = types.NewTimespanType2(args...)
-	case `timestamp`:
-		tp = types.NewTimestampType2(args...)
-	case `tuple`:
-		tp = types.NewTupleType2(args...)
-	case `type`:
-		tp = types.NewTypeType2(args...)
-	case `typereference`:
-		tp = types.NewTypeReferenceType2(args...)
-	case `uri`:
-		tp = types.NewUriType2(args...)
-	case `variant`:
-		tp = types.NewVariantType2(args...)
-	case `any`:
-	case `binary`:
-	case `catalogentry`:
-	case `data`:
-	case `default`:
-	case `numeric`:
-	case `scalar`:
-	case `semverrange`:
-	case `typealias`:
-	case `undef`:
-	case `unit`:
-		panic(evalError(eval.EVAL_NOT_PARAMETERIZED_TYPE, expr, issue.H{`type`: expr}))
-	default:
-		oe := e.Eval(qr)
-		if oo, ok := oe.(eval.ObjectType); ok && oo.IsParameterized() {
-			tp = types.NewObjectTypeExtension(e, oo, args)
-		} else {
-			tp = types.NewTypeReferenceType(expr.String())
-		}
-	}
-	return
+	return types.ResolveWithParams(e, qr.Name(), args)
 }

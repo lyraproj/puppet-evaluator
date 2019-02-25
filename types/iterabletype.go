@@ -11,10 +11,10 @@ type IterableType struct {
 	typ eval.Type
 }
 
-var Iterable_Type eval.ObjectType
+var IterableMetaType eval.ObjectType
 
 func init() {
-	Iterable_Type = newObjectType(`Pcore::IterableType`,
+	IterableMetaType = newObjectType(`Pcore::IterableType`,
 		`Pcore::AnyType {
 			attributes => {
 				type => {
@@ -108,7 +108,7 @@ func (t *IterableType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *IterableType) MetaType() eval.ObjectType {
-	return Iterable_Type
+	return IterableMetaType
 }
 
 func (t *IterableType) Name() string {

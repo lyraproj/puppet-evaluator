@@ -15,7 +15,7 @@ import (
 
 var uriType_Default = &UriType{_UNDEF}
 
-var URI_Type eval.ObjectType
+var URIMetaType eval.ObjectType
 
 var members = map[string]uriMemberFunc{
 	`scheme`: func(uri *url.URL) eval.Value {
@@ -80,7 +80,7 @@ func init() {
 	newTypeAlias(`Pcore::URIStringParam`, `Variant[String[1],Regexp,Type[Pattern],Type[Enum],Type[NotUndef],Type[Undef]]`)
 	newTypeAlias(`Pcore::URIIntParam`, `Variant[Integer[0],Type[NotUndef],Type[Undef]]`)
 
-	URI_Type = newObjectType(`Pcore::URIType`,
+	URIMetaType = newObjectType(`Pcore::URIType`,
 		`Pcore::AnyType{
   attributes => {
     parameters => {
@@ -320,7 +320,7 @@ func (t *UriType) Member(name string) (eval.CallableMember, bool) {
 }
 
 func (t *UriType) MetaType() eval.ObjectType {
-	return URI_Type
+	return URIMetaType
 }
 
 func (t *UriType) Name() string {

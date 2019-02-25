@@ -14,10 +14,10 @@ type objectTypeExtension struct {
 	parameters *hash.StringHash
 }
 
-var ObjectTypeExtension_Type eval.ObjectType
+var ObjectTypeExtensionMetaType eval.ObjectType
 
 func init() {
-	ObjectTypeExtension_Type = newObjectType(`Pcore::ObjectTypeExtensionType`,
+	ObjectTypeExtensionMetaType = newObjectType(`Pcore::ObjectTypeExtensionType`,
 		`Pcore::AnyType {
 			attributes => {
 				base_type => Type,
@@ -109,7 +109,7 @@ func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
 }
 
 func (t *objectTypeExtension) MetaType() eval.ObjectType {
-	return ObjectTypeExtension_Type
+	return ObjectTypeExtensionMetaType
 }
 
 func (te *objectTypeExtension) Name() string {

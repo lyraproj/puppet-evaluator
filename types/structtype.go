@@ -22,12 +22,12 @@ type (
 	}
 )
 
-var Struct_Element eval.Type
+var StructElementMeta eval.Type
 
-var Struct_Type eval.ObjectType
+var StructMetaType eval.ObjectType
 
 func init() {
-	Struct_Element = newObjectType(`Pcore::StructElement`,
+	StructElementMeta = newObjectType(`Pcore::StructElement`,
 		`{
 	attributes => {
 		key_type => Type,
@@ -37,13 +37,13 @@ func init() {
 			return NewStructElement(args[0], args[1].(eval.Type))
 		})
 
-	Struct_Type = newObjectType(`Pcore::StructType`,
+	StructMetaType = newObjectType(`Pcore::StructType`,
 		`Pcore::AnyType {
 	attributes => {
 		elements => Array[Pcore::StructElement]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewStructType2(args[0].(*ArrayValue).AppendTo([]eval.Value{})...)
+			return NewStructType2(args...)
 		})
 
 	// Go constructor for Struct instances is registered by HashType
@@ -102,9 +102,13 @@ func NewStructType2(args ...eval.Value) *StructType {
 	case 0:
 		return DefaultStructType()
 	case 1:
-		hash, ok := args[0].(eval.OrderedMap)
+		arg := args[0]
+		if ar, ok := arg.(*ArrayValue); ok {
+			return NewStructType2(ar.AppendTo(make([]eval.Value, 0, ar.Len()))...)
+		}
+		hash, ok := arg.(eval.OrderedMap)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Struct[]`, 0, `Hash[Variant[String[1], Optional[String[1]]], Type]`, args[0]))
+			panic(NewIllegalArgumentType2(`Struct[]`, 0, `Hash[Variant[String[1], Optional[String[1]]], Type]`, arg))
 		}
 		top := hash.Len()
 		elems := make([]*StructElement, top)
@@ -146,7 +150,7 @@ func (s *StructElement) String() string {
 }
 
 func (s *StructElement) PType() eval.Type {
-	return Struct_Element
+	return StructElementMeta
 }
 
 func (s *StructElement) Key() eval.Type {
@@ -318,7 +322,7 @@ func (t *StructType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *StructType) MetaType() eval.ObjectType {
-	return Struct_Type
+	return StructMetaType
 }
 
 func (t *StructType) Name() string {

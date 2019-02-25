@@ -37,10 +37,10 @@ type (
 
 var iteratorType_DEFAULT = &IteratorType{typ: DefaultAnyType()}
 
-var Iterator_Type eval.ObjectType
+var IteratorMetaType eval.ObjectType
 
 func init() {
-	Iterator_Type = newObjectType(`Pcore::IteratorType`,
+	IteratorMetaType = newObjectType(`Pcore::IteratorType`,
 		`Pcore::AnyType {
 			attributes => {
 				type => {
@@ -122,7 +122,7 @@ func (t *IteratorType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *IteratorType) MetaType() eval.ObjectType {
-	return Iterator_Type
+	return IteratorMetaType
 }
 
 func (t *IteratorType) Name() string {

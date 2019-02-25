@@ -16,10 +16,10 @@ type typedName struct {
 	parts     []string
 }
 
-var TypedName_Type eval.Type
+var TypedNameMetaType eval.Type
 
 func init() {
-	TypedName_Type = newObjectType(`TypedName`, `{
+	TypedNameMetaType = newObjectType(`TypedName`, `{
     attributes => {
       'namespace' => String,
       'name' => String,
@@ -56,7 +56,7 @@ func (t *typedName) ToString(bld io.Writer, format eval.FormatContext, g eval.RD
 }
 
 func (t *typedName) PType() eval.Type {
-	return TypedName_Type
+	return TypedNameMetaType
 }
 
 func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
@@ -121,22 +121,13 @@ var allowedCharacters = regexp.MustCompile(`\A[A-Za-z][0-9A-Z_a-z]*\z`)
 
 func newTypedName2(namespace eval.Namespace, name string, nameAuthority eval.URI) eval.TypedName {
 	tn := typedName{}
-
-	parts := strings.Split(strings.ToLower(name), `::`)
-	if len(parts) > 0 && parts[0] == `` && len(name) > 2 {
-		parts = parts[1:]
+	if strings.HasPrefix(name, `::`) {
 		name = name[2:]
 	}
-	for _, part := range parts {
-		if !allowedCharacters.MatchString(part) {
-			panic(eval.Error(eval.EVAL_INVALID_CHARACTERS_IN_NAME, issue.H{`name`: name}))
-		}
-	}
-	tn.parts = parts
+
 	tn.namespace = namespace
 	tn.authority = nameAuthority
 	tn.name = name
-	tn.canonical = strings.ToLower(string(nameAuthority) + `/` + string(namespace) + `/` + name)
 	return &tn
 }
 
@@ -159,10 +150,6 @@ func (t *typedName) Child() eval.TypedName {
 }
 
 func (t *typedName) child(stripCount int) eval.TypedName {
-	if !t.IsQualified() {
-		return nil
-	}
-
 	name := t.name
 	sx := 0
 	for i := 0; i < stripCount; i++ {
@@ -173,35 +160,45 @@ func (t *typedName) child(stripCount int) eval.TypedName {
 		name = name[sx+2:]
 	}
 
-	pfxLen := len(t.authority) + len(t.namespace) + 2
-	diff := len(t.name) - len(name)
-	canonical := t.canonical[:pfxLen] + t.canonical[pfxLen+diff:]
-
-	return &typedName{
-		parts:     t.parts[stripCount:],
+	tn := &typedName{
 		namespace: t.namespace,
 		authority: t.authority,
-		name:      name,
-		canonical: canonical}
+		name:      name}
+
+	if t.canonical != `` {
+		pfxLen := len(t.authority) + len(t.namespace) + 2
+		diff := len(t.name) - len(name)
+		tn.canonical = t.canonical[:pfxLen] + t.canonical[pfxLen+diff:]
+	}
+	if t.parts != nil {
+		tn.parts = t.parts[stripCount:]
+	}
+	return tn
 }
 
 func (t *typedName) Parent() eval.TypedName {
-	if !t.IsQualified() {
+	lx := strings.LastIndex(t.name, `::`)
+	if lx < 0 {
 		return nil
 	}
-	pfxLen := len(t.authority) + len(t.namespace) + 2
-	lx := strings.LastIndex(t.name, `::`)
-	return &typedName{
-		parts:     t.parts[:len(t.parts)-1],
+	tn := &typedName{
 		namespace: t.namespace,
 		authority: t.authority,
-		name:      t.name[:lx],
-		canonical: t.canonical[:pfxLen+lx]}
+		name:      t.name[:lx]}
+
+	if t.canonical != `` {
+		pfxLen := len(t.authority) + len(t.namespace) + 2
+		tn.canonical = t.canonical[:pfxLen+lx]
+	}
+	if t.parts != nil {
+		tn.parts = t.parts[:len(t.parts)-1]
+	}
+	return tn
 }
 
 func (t *typedName) Equals(other interface{}, g eval.Guard) bool {
 	if tn, ok := other.(eval.TypedName); ok {
-		return t.canonical == tn.MapKey()
+		return t.MapKey() == tn.MapKey()
 	}
 	return false
 }
@@ -211,7 +208,7 @@ func (t *typedName) Name() string {
 }
 
 func (t *typedName) IsParent(o eval.TypedName) bool {
-	tps := t.parts
+	tps := t.Parts()
 	ops := o.Parts()
 	top := len(tps)
 	if top < len(ops) {
@@ -233,20 +230,36 @@ func (t *typedName) RelativeTo(parent eval.TypedName) (eval.TypedName, bool) {
 }
 
 func (t *typedName) IsQualified() bool {
+	if t.parts == nil {
+		return strings.Contains(t.name, `::`)
+	}
 	return len(t.parts) > 1
 }
 
 func (t *typedName) MapKey() string {
+	if t.canonical == `` {
+		t.canonical = strings.ToLower(string(t.authority) + `/` + string(t.namespace) + `/` + t.name)
+	}
 	return t.canonical
 }
 
 func (t *typedName) Parts() []string {
+	if t.parts == nil {
+		parts := strings.Split(strings.ToLower(t.name), `::`)
+		for _, part := range parts {
+			if !allowedCharacters.MatchString(part) {
+				panic(eval.Error(eval.EVAL_INVALID_CHARACTERS_IN_NAME, issue.H{`name`: t.name}))
+			}
+		}
+		t.parts = parts
+	}
 	return t.parts
 }
 
 func (t *typedName) PartsList() eval.List {
-	elems := make([]eval.Value, len(t.parts))
-	for i, p := range t.parts {
+	parts := t.Parts()
+	elems := make([]eval.Value, len(parts))
+	for i, p := range parts {
 		elems[i] = stringValue(p)
 	}
 	return WrapValues(elems)

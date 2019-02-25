@@ -16,10 +16,10 @@ type LikeType struct {
 	navigation string
 }
 
-var Like_Type eval.ObjectType
+var LikeMetaType eval.ObjectType
 
 func init() {
-	Like_Type = newObjectType(`Pcore::Like`,
+	LikeMetaType = newObjectType(`Pcore::Like`,
 		`Pcore::AnyType {
 	attributes => {
     base_type => Type,
@@ -93,7 +93,7 @@ func (t *LikeType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *LikeType) MetaType() eval.ObjectType {
-	return Like_Type
+	return LikeMetaType
 }
 
 func (t *LikeType) Name() string {

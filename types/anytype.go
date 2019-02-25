@@ -8,14 +8,14 @@ import (
 
 type AnyType struct{}
 
-var Any_Type eval.ObjectType
+var AnyMetaType eval.ObjectType
 
 func init() {
 	eval.NewTypedName = NewTypedName
 	eval.NewTypedName2 = newTypedName2
 	eval.TypedNameFromMapKey = typedNameFromMapKey
 
-	Any_Type = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	AnyMetaType = newObjectType(`Pcore::AnyType`, `{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultAnyType()
 	})
 }
@@ -42,21 +42,20 @@ func (t *AnyType) IsInstance(v eval.Value, g eval.Guard) bool {
 }
 
 func (t *AnyType) MetaType() eval.ObjectType {
-	return Any_Type
+	return AnyMetaType
 }
 
 func (t *AnyType) Name() string {
 	return `Any`
 }
 
-func (t *AnyType)  CanSerializeAsString() bool {
-  return true
+func (t *AnyType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *AnyType)  SerializationString() string {
+func (t *AnyType) SerializationString() string {
 	return `Any`
 }
-
 
 func (t *AnyType) String() string {
 	return `Any`

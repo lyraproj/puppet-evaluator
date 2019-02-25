@@ -25,10 +25,10 @@ type (
 	}
 )
 
-var Array_Type eval.ObjectType
+var ArrayMetaType eval.ObjectType
 
 func init() {
-	Array_Type = newObjectType(`Pcore::ArrayType`,
+	ArrayMetaType = newObjectType(`Pcore::ArrayType`,
 		`Pcore::CollectionType {
   attributes => {
     'element_type' => { type => Type, value => Any }
@@ -221,7 +221,7 @@ func (t *ArrayType) IsInstance(v eval.Value, g eval.Guard) bool {
 }
 
 func (t *ArrayType) MetaType() eval.ObjectType {
-	return Array_Type
+	return ArrayMetaType
 }
 
 func (t *ArrayType) Name() string {

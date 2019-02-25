@@ -3,7 +3,6 @@ package loader
 import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/impl"
 	"github.com/lyraproj/puppet-evaluator/types"
 	"reflect"
 	"sort"
@@ -36,7 +35,7 @@ var staticLoader = &basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 
 
 func init() {
 	sh := staticLoader.namedEntries
-	impl.EachCoreType(func(t eval.Type) {
+	types.EachCoreType(func(t eval.Type) {
 		sh[types.NewTypedName(eval.NsType, t.Name()).MapKey()] = &loaderEntry{t, nil}
 	})
 

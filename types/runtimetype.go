@@ -28,10 +28,10 @@ type (
 
 var runtimeType_DEFAULT = &RuntimeType{``, ``, nil, nil}
 
-var Runtime_Type eval.ObjectType
+var RuntimeMetaType eval.ObjectType
 
 func init() {
-	Runtime_Type = newObjectType(`Pcore::RuntimeType`,
+	RuntimeMetaType = newObjectType(`Pcore::RuntimeType`,
 		`Pcore::AnyType {
 	attributes => {
 		runtime => {
@@ -199,7 +199,7 @@ func (t *RuntimeType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *RuntimeType) MetaType() eval.ObjectType {
-	return Runtime_Type
+	return RuntimeMetaType
 }
 
 func (t *RuntimeType) Name() string {

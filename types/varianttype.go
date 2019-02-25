@@ -10,15 +10,17 @@ type VariantType struct {
 	types []eval.Type
 }
 
-var Variant_Type eval.ObjectType
+var VariantMetaType eval.ObjectType
 
 func init() {
-	Variant_Type = newObjectType(`Pcore::VariantType`,
+	VariantMetaType = newObjectType(`Pcore::VariantType`,
 		`Pcore::AnyType {
 	attributes => {
 		types => Array[Type]
 	}
-}`)
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+			return NewVariantType2(args...)
+		})
 }
 
 func DefaultVariantType() *VariantType {
@@ -105,7 +107,7 @@ func (t *VariantType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *VariantType) MetaType() eval.ObjectType {
-	return Variant_Type
+	return VariantMetaType
 }
 
 func (t *VariantType) Name() string {

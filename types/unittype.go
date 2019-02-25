@@ -8,10 +8,10 @@ import (
 
 type UnitType struct{}
 
-var Unit_Type eval.ObjectType
+var UnitMetaType eval.ObjectType
 
 func init() {
-	Unit_Type = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	UnitMetaType = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultUnitType()
 	})
 
@@ -47,21 +47,20 @@ func (t *UnitType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *UnitType) MetaType() eval.ObjectType {
-	return Unit_Type
+	return UnitMetaType
 }
 
 func (t *UnitType) Name() string {
 	return `Unit`
 }
 
-func (t *UnitType)  CanSerializeAsString() bool {
-  return true
+func (t *UnitType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *UnitType)  SerializationString() string {
+func (t *UnitType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *UnitType) String() string {
 	return `Unit`

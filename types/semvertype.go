@@ -22,10 +22,10 @@ type (
 
 var semVerType_DEFAULT = &SemVerType{semver.MatchAll}
 
-var SemVer_Type eval.ObjectType
+var SemVerMetaType eval.ObjectType
 
 func init() {
-	SemVer_Type = newObjectType(`Pcore::SemVerType`,
+	SemVerMetaType = newObjectType(`Pcore::SemVerType`,
 		`Pcore::ScalarType {
 	attributes => {
 		ranges => {
@@ -186,7 +186,7 @@ func (t *SemVerType) Get(key string) (eval.Value, bool) {
 }
 
 func (t *SemVerType) MetaType() eval.ObjectType {
-	return SemVer_Type
+	return SemVerMetaType
 }
 
 func (t *SemVerType) Name() string {

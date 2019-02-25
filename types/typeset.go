@@ -59,7 +59,7 @@ func init() {
 	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewTypeSetType2(ctx, args[0].(*HashValue), ctx.Loader())
 	}
-	TypeSetMetaType = newObjectType2(`Pcore::TypeSet`, Any_Type,
+	TypeSetMetaType = newObjectType2(`Pcore::TypeSet`, AnyMetaType,
 		WrapStringToValueMap(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_TYPESET_INIT)}),
 		// Hash constructor is equal to the positional arguments constructor

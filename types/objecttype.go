@@ -24,7 +24,7 @@ func init() {
 	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
 		return NewObjectType2(ctx, args...)
 	}
-	ObjectMetaType = newObjectType2(`Pcore::ObjectType`, Any_Type,
+	ObjectMetaType = newObjectType2(`Pcore::ObjectType`, AnyMetaType,
 		WrapStringToValueMap(map[string]eval.Value{
 			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
 		oneArgCtor, oneArgCtor)
@@ -708,7 +708,7 @@ func (t *objectType) IsParameterized() bool {
 }
 
 func (t *objectType) IsMetaType() bool {
-	return eval.IsAssignable(Any_Type, t)
+	return eval.IsAssignable(AnyMetaType, t)
 }
 
 func (t *objectType) Label() string {
@@ -1086,7 +1086,12 @@ func (t *objectType) createInitType() *StructType {
 
 func (t *objectType) createNewFunction(c eval.Context) {
 	pi := t.AttributesInfo()
-	dl := t.loader.(eval.DefiningLoader)
+	var dl eval.DefiningLoader
+	if t.loader == nil {
+		dl = c.DefiningLoader()
+	} else {
+		dl = t.loader.(eval.DefiningLoader)
+	}
 
 	var functions []eval.DispatchFunction
 	if t.creators != nil {

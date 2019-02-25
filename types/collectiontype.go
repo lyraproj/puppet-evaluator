@@ -12,10 +12,10 @@ type CollectionType struct {
 	size *IntegerType
 }
 
-var Collection_Type eval.ObjectType
+var CollectionMetaType eval.ObjectType
 
 func init() {
-	Collection_Type = newObjectType(`Pcore::CollectionType`, `Pcore::AnyType {
+	CollectionMetaType = newObjectType(`Pcore::CollectionType`, `Pcore::AnyType {
   attributes => {
     'size_type' => { type => Type[Integer], value => Integer[0] }
   }
@@ -133,7 +133,7 @@ func (t *CollectionType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *CollectionType) MetaType() eval.ObjectType {
-	return Collection_Type
+	return CollectionMetaType
 }
 
 func (t *CollectionType) Name() string {

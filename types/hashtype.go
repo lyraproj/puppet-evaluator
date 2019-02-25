@@ -38,10 +38,10 @@ type (
 var hashType_EMPTY = &HashType{IntegerTypeZero, unitType_DEFAULT, unitType_DEFAULT}
 var hashType_DEFAULT = &HashType{IntegerTypePositive, anyType_DEFAULT, anyType_DEFAULT}
 
-var Hash_Type eval.ObjectType
+var HashMetaType eval.ObjectType
 
 func init() {
-	Hash_Type = newObjectType(`Pcore::HashType`,
+	HashMetaType = newObjectType(`Pcore::HashType`,
 		`Pcore::CollectionType {
 	attributes => {
 		key_type => {
@@ -306,7 +306,7 @@ func (t *HashType) KeyType() eval.Type {
 }
 
 func (t *HashType) MetaType() eval.ObjectType {
-	return Hash_Type
+	return HashMetaType
 }
 
 func (t *HashType) Name() string {

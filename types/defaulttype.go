@@ -16,10 +16,10 @@ type (
 
 var defaultType_DEFAULT = &DefaultType{}
 
-var Default_Type eval.ObjectType
+var DefaultMetaType eval.ObjectType
 
 func init() {
-	Default_Type = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	DefaultMetaType = newObjectType(`Pcore::DefaultType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultDefaultType()
 	})
 }
@@ -47,21 +47,20 @@ func (t *DefaultType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *DefaultType) MetaType() eval.ObjectType {
-	return Default_Type
+	return DefaultMetaType
 }
 
 func (t *DefaultType) Name() string {
 	return `Default`
 }
 
-func (t *DefaultType)  CanSerializeAsString() bool {
-  return true
+func (t *DefaultType) CanSerializeAsString() bool {
+	return true
 }
 
-func (t *DefaultType)  SerializationString() string {
+func (t *DefaultType) SerializationString() string {
 	return t.String()
 }
-
 
 func (t *DefaultType) String() string {
 	return eval.ToString2(t, NONE)

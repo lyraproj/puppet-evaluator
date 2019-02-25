@@ -32,27 +32,7 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			var paramsType eval.Type
-			var returnType eval.Type
-			var blockType eval.Type
-			switch len(args) {
-			case 0:
-			case 3:
-				if pt, ok := args[2].(eval.Type); ok {
-					blockType = pt
-				}
-				fallthrough
-			case 2:
-				if pt, ok := args[1].(eval.Type); ok {
-					returnType = pt
-				}
-				fallthrough
-			case 1:
-				if pt, ok := args[0].(eval.Type); ok {
-					paramsType = pt
-				}
-			}
-			return NewCallableType(paramsType, returnType, blockType)
+			return NewCallableType2(args...)
 		})
 }
 
@@ -74,6 +54,21 @@ func NewCallableType3(args eval.List) *CallableType {
 		return DefaultCallableType()
 	}
 
+	first := args.At(0)
+	if tv, ok := first.(*TupleType); ok {
+		var returnType eval.Type
+		var blockType eval.Type
+		if argc > 1 {
+			returnType, ok = args.At(1).(eval.Type)
+			if argc > 2 {
+				blockType, ok = args.At(2).(eval.Type)
+			}
+		}
+		if ok {
+			return &CallableType{tv, returnType, blockType}
+		}
+	}
+
 	var (
 		rt    eval.Type
 		block eval.Type
@@ -83,7 +78,7 @@ func NewCallableType3(args eval.List) *CallableType {
 	if argc == 1 || argc == 2 {
 		// check for [[params, block], return]
 		var iv eval.List
-		if iv, ok = args.At(0).(eval.List); ok {
+		if iv, ok = first.(eval.List); ok {
 			if argc == 2 {
 				if rt, ok = args.At(1).(eval.Type); !ok {
 					panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))

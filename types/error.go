@@ -7,10 +7,10 @@ import (
 	"reflect"
 )
 
-var Error_Type eval.ObjectType
+var ErrorMetaType eval.ObjectType
 
 func init() {
-	Error_Type = newGoObjectType(`Error`, reflect.TypeOf((*eval.ErrorObject)(nil)).Elem(), `{
+	ErrorMetaType = newGoObjectType(`Error`, reflect.TypeOf((*eval.ErrorObject)(nil)).Elem(), `{
 		type_parameters => {
 		  kind => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]],
 	  	issue_code => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]]
@@ -174,7 +174,7 @@ func (e *errorObj) InitHash() eval.OrderedMap {
 
 func (e *errorObj) initType(c eval.Context) {
 	if e.kind == `` && e.issueCode == `` {
-		e.typ = Error_Type
+		e.typ = ErrorMetaType
 	} else {
 		params := make([]*HashEntry, 0)
 		if e.kind != `` {
@@ -183,6 +183,6 @@ func (e *errorObj) initType(c eval.Context) {
 		if e.issueCode != `` {
 			params = append(params, WrapHashEntry2(`issue_code`, stringValue(e.issueCode)))
 		}
-		e.typ = NewObjectTypeExtension(c, Error_Type, []eval.Value{WrapHash(params)})
+		e.typ = NewObjectTypeExtension(c, ErrorMetaType, []eval.Value{WrapHash(params)})
 	}
 }

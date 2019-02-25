@@ -12,10 +12,10 @@ type TypeReferenceType struct {
 	typeString string
 }
 
-var TypeReference_Type eval.ObjectType
+var TypeReferenceMetaType eval.ObjectType
 
 func init() {
-	TypeReference_Type = newObjectType(`Pcore::TypeReference`,
+	TypeReferenceMetaType = newObjectType(`Pcore::TypeReference`,
 		`Pcore::AnyType {
 	attributes => {
 		type_string => String[1]
@@ -81,7 +81,7 @@ func (t *TypeReferenceType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *TypeReferenceType) MetaType() eval.ObjectType {
-	return TypeReference_Type
+	return TypeReferenceMetaType
 }
 
 func (t *TypeReferenceType) Name() string {

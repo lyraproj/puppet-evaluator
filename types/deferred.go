@@ -9,11 +9,11 @@ import (
 	"io"
 )
 
-var deferredType eval.ObjectType
+var DeferredMetaType eval.ObjectType
 var deferredExprType eval.ObjectType
 
 func init() {
-	deferredType = newObjectType(`Deferred`, `{
+	DeferredMetaType = newObjectType(`Deferred`, `{
     attributes => {
       # Fully qualified name of the function
       name  => { type => Pattern[/\A[$]?[a-z][0-9A-Za-z_]*(?:::[a-z][0-9A-Za-z_]*)*\z/] },
@@ -97,7 +97,7 @@ func (e *deferred) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 }
 
 func (e *deferred) PType() eval.Type {
-	return deferredType
+	return DeferredMetaType
 }
 
 func (e *deferred) Get(key string) (value eval.Value, ok bool) {

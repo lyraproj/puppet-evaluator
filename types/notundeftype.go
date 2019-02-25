@@ -12,10 +12,10 @@ type NotUndefType struct {
 	typ eval.Type
 }
 
-var NotUndef_Type eval.ObjectType
+var NotUndefMetaType eval.ObjectType
 
 func init() {
-	NotUndef_Type = newObjectType(`Pcore::NotUndefType`,
+	NotUndefMetaType = newObjectType(`Pcore::NotUndefType`,
 		`Pcore::AnyType {
 			attributes => {
 				type => {
@@ -101,7 +101,7 @@ func (t *NotUndefType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *NotUndefType) MetaType() eval.ObjectType {
-	return NotUndef_Type
+	return NotUndefMetaType
 }
 
 func (t *NotUndefType) Name() string {
