@@ -354,6 +354,10 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 	generic := smartPath.GenericPath()
 	err := filepath.Walk(generic, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			if strings.Contains(err.Error(), `no such file or directory`) {
+				// A missing path is OK
+				err = nil
+			}
 			return err
 		}
 		if !info.IsDir() {
@@ -373,6 +377,7 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 		}
 		return nil
 	})
+
 	if err != nil {
 		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
 	}
