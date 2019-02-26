@@ -8,10 +8,10 @@ import (
 
 type ScalarType struct{}
 
-var Scalar_Type eval.ObjectType
+var ScalarMetaType eval.ObjectType
 
 func init() {
-	Scalar_Type = newObjectType(`Pcore::ScalarType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	ScalarMetaType = newObjectType(`Pcore::ScalarType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultScalarType()
 	})
 }
@@ -50,7 +50,7 @@ func (t *ScalarType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *ScalarType) MetaType() eval.ObjectType {
-	return Scalar_Type
+	return ScalarMetaType
 }
 
 func (t *ScalarType) Name() string {

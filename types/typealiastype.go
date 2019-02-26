@@ -16,10 +16,10 @@ type TypeAliasType struct {
 	loader         eval.Loader
 }
 
-var TypeAlias_Type eval.ObjectType
+var TypeAliasMetaType eval.ObjectType
 
 func init() {
-	TypeAlias_Type = newObjectType(`Pcore::TypeAlias`,
+	TypeAliasMetaType = newObjectType(`Pcore::TypeAlias`,
 		`Pcore::AnyType {
 	attributes => {
 		name => String[1],
@@ -133,7 +133,7 @@ func (t *TypeAliasType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *TypeAliasType) MetaType() eval.ObjectType {
-	return TypeAlias_Type
+	return TypeAliasMetaType
 }
 
 func (t *TypeAliasType) Name() string {

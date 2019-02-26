@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 
@@ -87,6 +88,19 @@ func resolve(c eval.Context, t eval.Type) eval.Type {
 		return rt.Resolve(c)
 	}
 	return t
+}
+
+func EachCoreType(fc func(t eval.Type)) {
+	keys := make([]string, len(coreTypes))
+	i := 0
+	for key := range coreTypes {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		fc(coreTypes[key])
+	}
 }
 
 func GuardedIsInstance(a eval.Type, v eval.Value, g eval.Guard) bool {

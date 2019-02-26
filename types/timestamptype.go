@@ -33,14 +33,14 @@ var MIN_TIME = time.Time{}
 var MAX_TIME = time.Unix(MAX_UNIX_SECS, 999999999)
 var timestampType_DEFAULT = &TimestampType{MIN_TIME, MAX_TIME}
 
-var Timestamp_Type eval.ObjectType
+var TimestampMetaType eval.ObjectType
 
 var DEFAULT_TIMESTAMP_FORMATS_WO_TZ []*TimestampFormat
 var DEFAULT_TIMESTAMP_FORMATS []*TimestampFormat
 var DefaultTimestampFormatParser *TimestampFormatParser
 
 func init() {
-	Timestamp_Type = newObjectType(`Pcore::TimestampType`,
+	TimestampMetaType = newObjectType(`Pcore::TimestampType`,
 		`Pcore::ScalarType {
 	attributes => {
 		from => { type => Optional[Timestamp], value => undef },
@@ -235,7 +235,7 @@ func (t *TimestampType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *TimestampType) MetaType() eval.ObjectType {
-	return Timestamp_Type
+	return TimestampMetaType
 }
 
 func (t *TimestampType) Parameters() []eval.Value {

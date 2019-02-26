@@ -12,10 +12,10 @@ type OptionalType struct {
 	typ eval.Type
 }
 
-var Optional_Type eval.ObjectType
+var OptionalMetaType eval.ObjectType
 
 func init() {
-	Optional_Type = newObjectType(`Pcore::OptionalType`,
+	OptionalMetaType = newObjectType(`Pcore::OptionalType`,
 		`Pcore::AnyType {
 	attributes => {
 		type => {
@@ -101,7 +101,7 @@ func (t *OptionalType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *OptionalType) MetaType() eval.ObjectType {
-	return Optional_Type
+	return OptionalMetaType
 }
 
 func (t *OptionalType) Name() string {

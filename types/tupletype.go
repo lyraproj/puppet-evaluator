@@ -13,10 +13,10 @@ type TupleType struct {
 	types             []eval.Type
 }
 
-var Tuple_Type eval.ObjectType
+var TupleMetaType eval.ObjectType
 
 func init() {
-	Tuple_Type = newObjectType(`Pcore::TupleType`,
+	TupleMetaType = newObjectType(`Pcore::TupleType`,
 		`Pcore::AnyType {
 	attributes => {
 		types => Array[Type],
@@ -26,11 +26,7 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			tupleArgs := args[0].(*ArrayValue).AppendTo([]eval.Value{})
-			if len(args) > 1 {
-				tupleArgs = append(tupleArgs, args[1].(*IntegerType).Parameters()...)
-			}
-			return NewTupleType2(tupleArgs...)
+			return NewTupleType2(args...)
 		})
 
 	// Go constructor for Tuple instances is registered by ArrayType
@@ -75,6 +71,16 @@ func tupleFromArgs(callable bool, args eval.List) *TupleType {
 	argc := args.Len()
 	if argc == 0 {
 		return tupleType_DEFAULT
+	}
+
+	if argc == 1 || argc == 2 {
+		if ar, ok := args.At(0).(*ArrayValue); ok {
+			tupleArgs := ar.AppendTo(make([]eval.Value, 0, ar.Len()+argc-1))
+			if argc == 2 {
+				tupleArgs = append(tupleArgs, args.At(1).(*IntegerType).Parameters()...)
+			}
+			args = WrapValues(tupleArgs)
+		}
 	}
 
 	var rng, givenOrActualRng *IntegerType
@@ -314,7 +320,7 @@ func (t *TupleType) IsInstance3(vs []eval.Value, g eval.Guard) bool {
 }
 
 func (t *TupleType) MetaType() eval.ObjectType {
-	return Tuple_Type
+	return TupleMetaType
 }
 
 func (t *TupleType) Name() string {

@@ -13,10 +13,10 @@ type TypeType struct {
 
 var typeType_DEFAULT = &TypeType{typ: anyType_DEFAULT}
 
-var Type_Type eval.ObjectType
+var TypeMetaType eval.ObjectType
 
 func init() {
-	Type_Type = newObjectType(`Pcore::TypeType`,
+	TypeMetaType = newObjectType(`Pcore::TypeType`,
 		`Pcore::AnyType {
 	attributes => {
 		type => {
@@ -115,7 +115,7 @@ func (t *TypeType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *TypeType) MetaType() eval.ObjectType {
-	return Type_Type
+	return TypeMetaType
 }
 
 func (t *TypeType) Name() string {

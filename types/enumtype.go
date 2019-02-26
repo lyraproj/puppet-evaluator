@@ -14,10 +14,10 @@ type EnumType struct {
 	values          []string
 }
 
-var Enum_Type eval.ObjectType
+var EnumMetaType eval.ObjectType
 
 func init() {
-	Enum_Type = newObjectType(`Pcore::EnumType`,
+	EnumMetaType = newObjectType(`Pcore::EnumType`,
 		`Pcore::ScalarDataType {
 	attributes => {
 		values => Array[String[1]],
@@ -27,8 +27,7 @@ func init() {
 		}
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			enumArgs := args[0].(eval.List).AppendTo([]eval.Value{})
-			return NewEnumType2(append(enumArgs, args[1:]...)...)
+			return NewEnumType2(args...)
 		})
 }
 
@@ -61,8 +60,8 @@ func NewEnumType3(args eval.List) *EnumType {
 	var enums []string
 	top := args.Len()
 	caseInsensitive := false
+	first := args.At(0)
 	if top == 1 {
-		first := args.At(0)
 		switch first.(type) {
 		case stringValue:
 			enums = []string{first.String()}
@@ -72,6 +71,18 @@ func NewEnumType3(args eval.List) *EnumType {
 			panic(NewIllegalArgumentType2(`Enum[]`, 0, `String or Array[String]`, args.At(0)))
 		}
 	} else {
+		if ar, ok := first.(*ArrayValue); ok {
+			enumArgs := ar.AppendTo(make([]eval.Value, 0, ar.Len()+top-1))
+			for i := 1; i < top; i++ {
+				enumArgs = append(enumArgs, args.At(i))
+			}
+			if len(enumArgs) == 0 {
+				return DefaultEnumType()
+			}
+			args = WrapValues(enumArgs)
+			top = args.Len()
+		}
+
 		enums = make([]string, top)
 		args.EachWithIndex(func(arg eval.Value, idx int) {
 			str, ok := arg.(stringValue)
@@ -164,7 +175,7 @@ func (t *EnumType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *EnumType) MetaType() eval.ObjectType {
-	return Enum_Type
+	return EnumMetaType
 }
 
 func (t *EnumType) Name() string {

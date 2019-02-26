@@ -17,10 +17,10 @@ import (
 
 var binaryType_DEFAULT = &BinaryType{}
 
-var Binary_Type eval.ObjectType
+var BinaryMetaType eval.ObjectType
 
 func init() {
-	Binary_Type = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	BinaryMetaType = newObjectType(`Pcore::BinaryType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultBinaryType()
 	})
 
@@ -102,7 +102,7 @@ func (t *BinaryType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *BinaryType) MetaType() eval.ObjectType {
-	return Binary_Type
+	return BinaryMetaType
 }
 
 func (t *BinaryType) Name() string {

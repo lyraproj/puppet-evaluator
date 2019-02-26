@@ -14,10 +14,10 @@ type NumericType struct{}
 
 var numericType_DEFAULT = &NumericType{}
 
-var Numeric_Type eval.ObjectType
+var NumericMetaType eval.ObjectType
 
 func init() {
-	Numeric_Type = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	NumericMetaType = newObjectType(`Pcore::NumericType`, `Pcore::ScalarDataType {}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultNumericType()
 	})
 
@@ -102,7 +102,7 @@ func (t *NumericType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *NumericType) MetaType() eval.ObjectType {
-	return Numeric_Type
+	return NumericMetaType
 }
 
 func (t *NumericType) Name() string {

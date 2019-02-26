@@ -17,10 +17,10 @@ type (
 
 var undefType_DEFAULT = &UndefType{}
 
-var Undef_Type eval.ObjectType
+var UndefMetaType eval.ObjectType
 
 func init() {
-	Undef_Type = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+	UndefMetaType = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
 		return DefaultUndefType()
 	})
 }
@@ -48,7 +48,7 @@ func (t *UndefType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *UndefType) MetaType() eval.ObjectType {
-	return Undef_Type
+	return UndefMetaType
 }
 
 func (t *UndefType) Name() string {

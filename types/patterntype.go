@@ -12,10 +12,10 @@ type PatternType struct {
 	regexps []*RegexpType
 }
 
-var Pattern_Type eval.ObjectType
+var PatternMetaType eval.ObjectType
 
 func init() {
-	Pattern_Type = newObjectType(`Pcore::PatternType`,
+	PatternMetaType = newObjectType(`Pcore::PatternType`,
 		`Pcore::ScalarDataType {
 	attributes => {
 		patterns => Array[Regexp]
@@ -126,7 +126,7 @@ func (t *PatternType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *PatternType) MetaType() eval.ObjectType {
-	return Pattern_Type
+	return PatternMetaType
 }
 
 func (t *PatternType) Name() string {

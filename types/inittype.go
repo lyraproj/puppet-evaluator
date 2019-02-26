@@ -12,10 +12,10 @@ type InitType struct {
 	ctor     eval.Function
 }
 
-var Init_Type eval.ObjectType
+var InitMetaType eval.ObjectType
 
 func init() {
-	Init_Type = newObjectType(`Pcore::Init`, `Pcore::AnyType {
+	InitMetaType = newObjectType(`Pcore::Init`, `Pcore::AnyType {
 	attributes => {
     type => { type => Optional[Type], value => undef },
 		init_args => { type => Array, value => [] }
@@ -169,7 +169,7 @@ func (t *InitType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *InitType) MetaType() eval.ObjectType {
-	return Init_Type
+	return InitMetaType
 }
 
 func (t *InitType) Name() string {
