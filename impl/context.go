@@ -328,6 +328,10 @@ func (c *evalCtx) Set(key string, value interface{}) {
 	}
 }
 
+func (c *evalCtx) SetLoader(loader eval.Loader) {
+	c.loader = loader
+}
+
 func (c *evalCtx) Stack() []issue.Location {
 	return c.stack
 }
