@@ -1281,7 +1281,7 @@ func compressedMembersHash(mh *hash.StringHash) *HashValue {
 	return WrapHash(he)
 }
 
-func resolveTypeRefs(c eval.Context, v eval.Value) eval.Value {
+func resolveTypeRefs(c eval.Context, v interface{}) eval.Value {
 	switch v.(type) {
 	case *HashValue:
 		hv := v.(*HashValue)
@@ -1305,7 +1305,7 @@ func resolveTypeRefs(c eval.Context, v eval.Value) eval.Value {
 	case eval.ResolvableType:
 		return v.(eval.ResolvableType).Resolve(c)
 	default:
-		return v
+		return v.(eval.Value)
 	}
 }
 

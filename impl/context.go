@@ -95,10 +95,14 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 
 func (c *evalCtx) AddTypes(types ...eval.Type) {
 	l := c.DefiningLoader()
+	rts := make([]eval.ResolvableType, 0, len(types))
 	for _, t := range types {
 		l.SetEntry(eval.NewTypedName(eval.NsType, t.Name()), eval.NewLoaderEntry(t, nil))
+		if rt, ok := t.(eval.ResolvableType); ok {
+			rts = append(rts, rt)
+		}
 	}
-	c.resolveTypes(types...)
+	c.resolveTypes(rts...)
 }
 
 func (c *evalCtx) DefiningLoader() eval.DefiningLoader {
@@ -262,13 +266,13 @@ func (c *evalCtx) ResolveDefinitions() []interface{} {
 
 	defs := c.definitions
 	c.definitions = nil
-	ts := make([]eval.Type, 0, 8)
+	ts := make([]eval.ResolvableType, 0, 8)
 	for _, d := range defs {
 		switch d.(type) {
 		case eval.Resolvable:
 			d.(eval.Resolvable).Resolve(c)
 		case eval.ResolvableType:
-			ts = append(ts, d.(eval.Type))
+			ts = append(ts, d.(eval.ResolvableType))
 		}
 	}
 	if len(ts) > 0 {
@@ -392,22 +396,19 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	}
 }
 
-func (c *evalCtx) resolveTypes(types ...eval.Type) {
+func (c *evalCtx) resolveTypes(types ...eval.ResolvableType) {
 	l := c.DefiningLoader()
 	typeSets := make([]eval.TypeSet, 0)
 	allAnnotated := make([]eval.Annotatable, 0, len(types))
-	for _, t := range types {
-		if rt, ok := t.(eval.ResolvableType); ok {
-			rt.Resolve(c)
-			var ts eval.TypeSet
-			if ts, ok = rt.(eval.TypeSet); ok {
-				typeSets = append(typeSets, ts)
-			} else {
-				var ot eval.ObjectType
-				if ot, ok = rt.(eval.ObjectType); ok {
-					if ctor := ot.Constructor(c); ctor != nil {
-						l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
-					}
+	for _, rt := range types {
+		t := rt.Resolve(c)
+		if ts, ok := t.(eval.TypeSet); ok {
+			typeSets = append(typeSets, ts)
+		} else {
+			var ot eval.ObjectType
+			if ot, ok = t.(eval.ObjectType); ok {
+				if ctor := ot.Constructor(c); ctor != nil {
+					l.SetEntry(eval.NewTypedName(eval.NsConstructor, t.Name()), eval.NewLoaderEntry(ctor, nil))
 				}
 			}
 		}

@@ -48,7 +48,7 @@ type (
 	}
 
 	ResolvableType interface {
-		Type
+		Name() string
 
 		Resolve(c Context) Type
 	}

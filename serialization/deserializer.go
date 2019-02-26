@@ -70,7 +70,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 							}
 							panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
 						}
-						ds.newTypes = append(ds.newTypes, rt)
+						ds.newTypes = append(ds.newTypes, v.(eval.Type))
 					}
 					return v
 				}

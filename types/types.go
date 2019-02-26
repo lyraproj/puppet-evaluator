@@ -328,7 +328,7 @@ type Mapping struct {
 	R reflect.Type
 }
 
-var resolvableTypes = make([]eval.Type, 0, 16)
+var resolvableTypes = make([]eval.ResolvableType, 0, 16)
 var resolvableMappings = make([]Mapping, 0, 16)
 var resolvableTypesLock sync.Mutex
 
@@ -484,11 +484,11 @@ func newGoConstructor3(typeNames []string, localTypes eval.LocalTypesCreator, cr
 	}
 }
 
-func PopDeclaredTypes() (types []eval.Type) {
+func PopDeclaredTypes() (types []eval.ResolvableType) {
 	resolvableTypesLock.Lock()
 	types = resolvableTypes
 	if len(types) > 0 {
-		resolvableTypes = make([]eval.Type, 0, 16)
+		resolvableTypes = make([]eval.ResolvableType, 0, 16)
 	}
 	resolvableTypesLock.Unlock()
 	return
