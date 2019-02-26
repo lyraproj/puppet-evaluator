@@ -101,6 +101,9 @@ type Context interface {
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
 
+	// Permanently change the loader of this context
+	SetLoader(loader Loader)
+
 	// Scope returns the scope
 	Scope() Scope
 
