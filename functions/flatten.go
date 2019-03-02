@@ -9,10 +9,9 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := args[0]
-				switch arg.(type) {
+				switch arg := args[0].(type) {
 				case eval.List:
-					return arg.(eval.List).Flatten()
+					return arg.Flatten()
 				default:
 					return arg.(eval.IterableValue).Iterator().AsArray().Flatten()
 				}

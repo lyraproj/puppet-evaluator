@@ -2,7 +2,7 @@ package impl
 
 import (
 	"bytes"
-	"fmt"
+
 	"github.com/lyraproj/puppet-parser/literal"
 
 	"github.com/lyraproj/issue/issue"
@@ -15,7 +15,7 @@ import (
 
 type (
 	evaluator struct {
-		eval.Context
+		eval.EvaluationContext
 	}
 	systemLocation struct{}
 )
@@ -34,45 +34,30 @@ func (systemLocation) Pos() int {
 
 func init() {
 	eval.TopEvaluate = topEvaluate
-
-	eval.Error = func(issueCode issue.Code, args issue.H) issue.Reported {
-		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, eval.StackTop())
-	}
-
-	eval.Error2 = func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
-		return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
-	}
-
-	eval.Warning = func(issueCode issue.Code, args issue.H) issue.Reported {
-		c := eval.CurrentContext()
-		ri := issue.NewReported(issueCode, issue.SEVERITY_WARNING, args, c.StackTop())
-		c.Logger().LogIssue(ri)
-		return ri
-	}
 }
 
-func NewEvaluator(ctx eval.Context) eval.Evaluator {
+func NewEvaluator(ctx eval.EvaluationContext) eval.Evaluator {
 	return &evaluator{ctx}
 }
 
-func topEvaluate(ctx eval.Context, expr parser.Expression) (result eval.Value, err issue.Reported) {
+func topEvaluate(ctx eval.EvaluationContext, expr parser.Expression) (result eval.Value, err issue.Reported) {
 	defer func() {
 		if r := recover(); r != nil {
-			switch r.(type) {
+			switch r := r.(type) {
 			case issue.Reported:
-				result = eval.UNDEF
-				err = r.(issue.Reported)
+				result = eval.Undef
+				err = r
 			case *errors.StopIteration:
-				result = eval.UNDEF
-				err = evalError(eval.EVAL_ILLEGAL_BREAK, r.(*errors.StopIteration).Location(), issue.NO_ARGS)
+				result = eval.Undef
+				err = evalError(eval.IllegalBreak, r.Location(), issue.NO_ARGS)
 			case *errors.NextIteration:
-				result = eval.UNDEF
-				err = evalError(eval.EVAL_ILLEGAL_NEXT, r.(*errors.NextIteration).Location(), issue.NO_ARGS)
+				result = eval.Undef
+				err = evalError(eval.IllegalNext, r.Location(), issue.NO_ARGS)
 			case *errors.Return:
-				result = eval.UNDEF
-				err = evalError(eval.EVAL_ILLEGAL_RETURN, r.(*errors.Return).Location(), issue.NO_ARGS)
+				result = eval.Undef
+				err = evalError(eval.IllegalReturn, r.Location(), issue.NO_ARGS)
 			case *errors.ArgumentsError:
-				err = evalError(eval.EVAL_ARGUMENTS_ERROR, expr, issue.H{`expression`: expr, `message`: r.(*errors.ArgumentsError).Error()})
+				err = evalError(eval.ArgumentsError, expr, issue.H{`expression`: expr, `message`: r.Error()})
 			default:
 				panic(r)
 			}
@@ -81,7 +66,7 @@ func topEvaluate(ctx eval.Context, expr parser.Expression) (result eval.Value, e
 
 	err = nil
 	ctx.StackPush(expr)
-	ctx.ResolveDefinitions()
+	eval.ResolveDefinitions(ctx)
 	result = ctx.GetEvaluator().Eval(expr)
 	ctx.StackPop()
 	return
@@ -99,7 +84,7 @@ func call(e eval.Evaluator, funcType eval.Namespace, name string, args []eval.Va
 	tn := eval.NewTypedName2(funcType, name, e.Loader().NameAuthority())
 	f, ok := eval.Load(e, tn)
 	if !ok {
-		panic(evalError(eval.EVAL_UNKNOWN_FUNCTION, call, issue.H{`name`: tn.String()}))
+		panic(evalError(eval.UnknownFunction, call, issue.H{`name`: tn.String()}))
 	}
 
 	var blk eval.Lambda
@@ -121,20 +106,17 @@ func call(e eval.Evaluator, funcType eval.Namespace, name string, args []eval.Va
 }
 
 func convertCallError(err interface{}, expr parser.Expression, args []parser.Expression) {
-	switch err.(type) {
+	switch err := err.(type) {
 	case nil:
 	case *errors.ArgumentsError:
-		panic(evalError(eval.EVAL_ARGUMENTS_ERROR, expr, issue.H{`expression`: expr, `message`: err.(*errors.ArgumentsError).Error()}))
+		panic(evalError(eval.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
 	case *errors.IllegalArgument:
-		ia := err.(*errors.IllegalArgument)
-		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT, args[ia.Index()], issue.H{`expression`: expr, `number`: ia.Index(), `message`: ia.Error()}))
+		panic(evalError(eval.IllegalArgument, args[err.Index()], issue.H{`expression`: expr, `number`: err.Index(), `message`: err.Error()}))
 	case *errors.IllegalArgumentType:
-		ia := err.(*errors.IllegalArgumentType)
-		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, args[ia.Index()],
-			issue.H{`expression`: expr, `number`: ia.Index(), `expected`: ia.Expected(), `actual`: ia.Actual()}))
+		panic(evalError(eval.IllegalArgumentType, args[err.Index()],
+			issue.H{`expression`: expr, `number`: err.Index(), `expected`: err.Expected(), `actual`: err.Actual()}))
 	case *errors.IllegalArgumentCount:
-		iac := err.(*errors.IllegalArgumentCount)
-		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: expr, `expected`: iac.Expected(), `actual`: iac.Actual()}))
+		panic(evalError(eval.IllegalArgumentCount, expr, issue.H{`expression`: expr, `expected`: err.Expected(), `actual`: err.Actual()}))
 	default:
 		panic(err)
 	}
@@ -189,7 +171,7 @@ func evalParameter(e eval.Evaluator, expr *parser.Parameter) eval.Value {
 }
 
 func evalBlockExpression(e eval.Evaluator, expr *parser.BlockExpression) (result eval.Value) {
-	result = eval.UNDEF
+	result = eval.Undef
 	for _, statement := range expr.Statements() {
 		result = e.Eval(statement)
 	}
@@ -237,11 +219,11 @@ func evalCallMethodExpression(e eval.Evaluator, call *parser.CallMethodExpressio
 
 func evalCallNamedFunctionExpression(e eval.Evaluator, call *parser.CallNamedFunctionExpression) eval.Value {
 	fc := call.Functor()
-	switch fc.(type) {
+	switch fc := fc.(type) {
 	case *parser.QualifiedName:
-		return callFunction(e, fc.(*parser.QualifiedName).Name(), unfold(e, call.Arguments()), call)
+		return callFunction(e, fc.Name(), unfold(e, call.Arguments()), call)
 	case *parser.QualifiedReference:
-		return callFunction(e, `new`, unfold(e, call.Arguments(), types.WrapString(fc.(*parser.QualifiedReference).Name())), call)
+		return callFunction(e, `new`, unfold(e, call.Arguments(), types.WrapString(fc.Name())), call)
 	case *parser.AccessExpression:
 		receiver := unfold(e, []parser.Expression{fc})
 		return callFunction(e, `new`, unfold(e, call.Arguments(), receiver...), call)
@@ -262,13 +244,13 @@ func evalIfExpression(e eval.Evaluator, expr *parser.IfExpression) eval.Value {
 func evalInExpression(e eval.Evaluator, expr *parser.InExpression) eval.Value {
 	a := e.Eval(expr.Lhs())
 	x := e.Eval(expr.Rhs())
-	switch x.(type) {
+	switch x := x.(type) {
 	case *types.ArrayValue:
-		return types.WrapBoolean(x.(*types.ArrayValue).Any(func(b eval.Value) bool {
+		return types.WrapBoolean(x.Any(func(b eval.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
 	case *types.HashValue:
-		return types.WrapBoolean(x.(*types.HashValue).AnyPair(func(b, v eval.Value) bool {
+		return types.WrapBoolean(x.AnyPair(func(b, v eval.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
 	}
@@ -296,7 +278,7 @@ func evalLiteralHash(e eval.Evaluator, expr *parser.LiteralHash) eval.Value {
 	entries := expr.Entries()
 	top := len(entries)
 	if top == 0 {
-		return eval.EMPTY_MAP
+		return eval.EmptyMap
 	}
 	result := make([]*types.HashEntry, top)
 	for idx := 0; idx < top; idx++ {
@@ -306,14 +288,14 @@ func evalLiteralHash(e eval.Evaluator, expr *parser.LiteralHash) eval.Value {
 }
 
 func evalLiteralList(e eval.Evaluator, expr *parser.LiteralList) eval.Value {
-	elems := expr.Elements()
-	top := len(elems)
+	es := expr.Elements()
+	top := len(es)
 	if top == 0 {
-		return eval.EMPTY_ARRAY
+		return eval.EmptyArray
 	}
 	result := make([]eval.Value, top)
 	for idx := 0; idx < top; idx++ {
-		result[idx] = e.Eval(elems[idx])
+		result[idx] = e.Eval(es[idx])
 	}
 	return types.WrapValues(result)
 }
@@ -396,7 +378,7 @@ func evalCaseExpression(e eval.Evaluator, expr *parser.CaseExpression) eval.Valu
 			selected = theDefault
 		}
 		if selected == nil {
-			return eval.UNDEF
+			return eval.Undef
 		}
 		return e.Eval(selected.Then())
 	})
@@ -430,14 +412,14 @@ func evalSelectorExpression(e eval.Evaluator, expr *parser.SelectorExpression) e
 			selected = theDefault
 		}
 		if selected == nil {
-			return eval.UNDEF
+			return eval.Undef
 		}
 		return e.Eval(selected.Value())
 	})
 }
 
 func evalTextExpression(e eval.Evaluator, expr *parser.TextExpression) eval.Value {
-	return types.WrapString(fmt.Sprintf(`%s`, e.Eval(expr.Expr()).String()))
+	return types.WrapString(e.Eval(expr.Expr()).String())
 }
 
 func evalVariableExpression(e eval.Evaluator, expr *parser.VariableExpression) (value eval.Value) {
@@ -446,24 +428,24 @@ func evalVariableExpression(e eval.Evaluator, expr *parser.VariableExpression) (
 		if value, ok = e.Scope().Get(name); ok {
 			return value
 		}
-		panic(evalError(eval.EVAL_UNKNOWN_VARIABLE, expr, issue.H{`name`: name}))
+		panic(evalError(eval.UnknownVariable, expr, issue.H{`name`: name}))
 	}
 	idx, _ := expr.Index()
 	if value, ok = e.Scope().RxGet(int(idx)); ok {
 		return value
 	}
-	panic(evalError(eval.EVAL_UNKNOWN_VARIABLE, expr, issue.H{`name`: idx}))
+	panic(evalError(eval.UnknownVariable, expr, issue.H{`name`: idx}))
 }
 
 func evalUnfoldExpression(e eval.Evaluator, expr *parser.UnfoldExpression) eval.Value {
 	candidate := e.Eval(expr.Expr())
-	switch candidate.(type) {
+	switch candidate := candidate.(type) {
 	case *types.UndefValue:
-		return types.SingletonArray(eval.UNDEF)
+		return types.SingletonArray(eval.Undef)
 	case *types.ArrayValue:
 		return candidate
 	case *types.HashValue:
-		return types.WrapArray3(candidate.(*types.HashValue))
+		return types.WrapArray3(candidate)
 	case eval.IteratorValue:
 		return candidate.(eval.IteratorValue).AsArray()
 	default:
@@ -477,95 +459,95 @@ func evalError(code issue.Code, location issue.Location, args issue.H) issue.Rep
 
 // BasicEval is exported to enable the evaluator to be extended
 func BasicEval(e eval.Evaluator, expr parser.Expression) eval.Value {
-	switch expr.(type) {
+	switch ex := expr.(type) {
 	case *parser.AccessExpression:
-		return evalAccessExpression(e, expr.(*parser.AccessExpression))
+		return evalAccessExpression(e, ex)
 	case *parser.AndExpression:
-		return evalAndExpression(e, expr.(*parser.AndExpression))
+		return evalAndExpression(e, ex)
 	case *parser.ArithmeticExpression:
-		return evalArithmeticExpression(e, expr.(*parser.ArithmeticExpression))
+		return evalArithmeticExpression(e, ex)
 	case *parser.ComparisonExpression:
-		return evalComparisonExpression(e, expr.(*parser.ComparisonExpression))
+		return evalComparisonExpression(e, ex)
 	case *parser.HeredocExpression:
-		return evalHeredocExpression(e, expr.(*parser.HeredocExpression))
+		return evalHeredocExpression(e, ex)
 	case *parser.InExpression:
-		return evalInExpression(e, expr.(*parser.InExpression))
+		return evalInExpression(e, ex)
 	case *parser.KeyedEntry:
-		return evalKeyedEntry(e, expr.(*parser.KeyedEntry))
+		return evalKeyedEntry(e, ex)
 	case *parser.LiteralHash:
-		return evalLiteralHash(e, expr.(*parser.LiteralHash))
+		return evalLiteralHash(e, ex)
 	case *parser.LiteralList:
-		return evalLiteralList(e, expr.(*parser.LiteralList))
+		return evalLiteralList(e, ex)
 	case *parser.NotExpression:
-		return evalNotExpression(e, expr.(*parser.NotExpression))
+		return evalNotExpression(e, ex)
 	case *parser.OrExpression:
-		return evalOrExpression(e, expr.(*parser.OrExpression))
+		return evalOrExpression(e, ex)
 	case *parser.QualifiedName:
-		return evalQualifiedName(expr.(*parser.QualifiedName))
+		return evalQualifiedName(ex)
 	case *parser.QualifiedReference:
-		return evalQualifiedReference(e, expr.(*parser.QualifiedReference))
+		return evalQualifiedReference(e, ex)
 	case *parser.ParenthesizedExpression:
-		return evalParenthesizedExpression(e, expr.(*parser.ParenthesizedExpression))
+		return evalParenthesizedExpression(e, ex)
 	case *parser.RegexpExpression:
-		return evalRegexpExpression(expr.(*parser.RegexpExpression))
+		return evalRegexpExpression(ex)
 	case *parser.LiteralBoolean:
-		return evalLiteralBoolean(expr.(*parser.LiteralBoolean))
+		return evalLiteralBoolean(ex)
 	case *parser.LiteralDefault:
 		return evalLiteralDefault()
 	case *parser.LiteralFloat:
-		return evalLiteralFloat(expr.(*parser.LiteralFloat))
+		return evalLiteralFloat(ex)
 	case *parser.LiteralInteger:
-		return evalLiteralInteger(expr.(*parser.LiteralInteger))
+		return evalLiteralInteger(ex)
 	case *parser.LiteralString:
-		return evalLiteralString(expr.(*parser.LiteralString))
+		return evalLiteralString(ex)
 	case *parser.LiteralUndef, *parser.Nop:
-		return eval.UNDEF
+		return eval.Undef
 	case *parser.TextExpression:
-		return evalTextExpression(e, expr.(*parser.TextExpression))
+		return evalTextExpression(e, ex)
 	case eval.ParserExtension:
-		return expr.(eval.ParserExtension).Evaluate(e)
+		return ex.Evaluate(e)
 	}
 
 	if e.Static() {
-		panic(evalError(eval.EVAL_ILLEGAL_WHEN_STATIC_EXPRESSION, expr, issue.H{`expression`: expr}))
+		panic(evalError(eval.IllegalWhenStaticExpression, expr, issue.H{`expression`: expr}))
 	}
 
-	switch expr.(type) {
+	switch ex := expr.(type) {
 	case *parser.AssignmentExpression:
-		return evalAssignmentExpression(e, expr.(*parser.AssignmentExpression))
+		return evalAssignmentExpression(e, ex)
 	case *parser.BlockExpression:
-		return evalBlockExpression(e, expr.(*parser.BlockExpression))
+		return evalBlockExpression(e, ex)
 	case *parser.CallMethodExpression:
-		return evalCallMethodExpression(e, expr.(*parser.CallMethodExpression))
+		return evalCallMethodExpression(e, ex)
 	case *parser.CallNamedFunctionExpression:
-		return evalCallNamedFunctionExpression(e, expr.(*parser.CallNamedFunctionExpression))
+		return evalCallNamedFunctionExpression(e, ex)
 	case *parser.CaseExpression:
-		return evalCaseExpression(e, expr.(*parser.CaseExpression))
+		return evalCaseExpression(e, ex)
 	case *parser.ConcatenatedString:
-		return evalConcatenatedString(e, expr.(*parser.ConcatenatedString))
+		return evalConcatenatedString(e, ex)
 	case *parser.IfExpression:
-		return evalIfExpression(e, expr.(*parser.IfExpression))
+		return evalIfExpression(e, ex)
 	case *parser.LambdaExpression:
-		return evalLambdaExpression(e, expr.(*parser.LambdaExpression))
+		return evalLambdaExpression(e, ex)
 	case *parser.MatchExpression:
-		return evalMatchExpression(e, expr.(*parser.MatchExpression))
+		return evalMatchExpression(e, ex)
 	case *parser.Parameter:
-		return evalParameter(e, expr.(*parser.Parameter))
+		return evalParameter(e, ex)
 	case *parser.Program:
-		return evalProgram(e, expr.(*parser.Program))
+		return evalProgram(e, ex)
 	case *parser.SelectorExpression:
-		return evalSelectorExpression(e, expr.(*parser.SelectorExpression))
+		return evalSelectorExpression(e, ex)
 	case *parser.FunctionDefinition, *parser.PlanDefinition, *parser.ActivityExpression, *parser.TypeAlias, *parser.TypeMapping:
 		// All definitions must be processed at this time
-		return eval.UNDEF
+		return eval.Undef
 	case *parser.UnfoldExpression:
-		return evalUnfoldExpression(e, expr.(*parser.UnfoldExpression))
+		return evalUnfoldExpression(e, ex)
 	case *parser.UnlessExpression:
-		return evalUnlessExpression(e, expr.(*parser.UnlessExpression))
+		return evalUnlessExpression(e, ex)
 	case *parser.VariableExpression:
-		return evalVariableExpression(e, expr.(*parser.VariableExpression))
+		return evalVariableExpression(e, ex)
 	default:
-		panic(evalError(eval.EVAL_UNHANDLED_EXPRESSION, expr, issue.H{`expression`: expr}))
+		panic(evalError(eval.UnhandledExpression, expr, issue.H{`expression`: expr}))
 	}
 }
 
@@ -576,9 +558,9 @@ func unfold(e eval.Evaluator, array []parser.Expression, initial ...eval.Value) 
 		ex = unwindParenthesis(ex)
 		if u, ok := ex.(*parser.UnfoldExpression); ok {
 			ev := e.Eval(u.Expr())
-			switch ev.(type) {
+			switch ev := ev.(type) {
 			case *types.ArrayValue:
-				result = ev.(*types.ArrayValue).AppendTo(result)
+				result = ev.AppendTo(result)
 			default:
 				result = append(result, ev)
 			}

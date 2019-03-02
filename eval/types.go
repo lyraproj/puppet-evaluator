@@ -32,7 +32,7 @@ type (
 	StringType interface {
 		SizedType
 
-		Value() string
+		Value() *string
 	}
 
 	Creatable interface {
@@ -65,7 +65,7 @@ type (
 
 	SerializeAsString interface {
 		// CanSerializeAsString responds true if this instance and all its nested
-		// isntances can serialize as string
+		// instances can serialize as string
 		CanSerializeAsString() bool
 
 		// SerializationString returns the string that the type of the instance can use
@@ -130,7 +130,7 @@ type (
 		AnnotatedMember
 		Kind() AttributeKind
 
-		// Get returs this attributes value in the given instance
+		// Get returns this attributes value in the given instance
 		Get(instance Value) Value
 
 		// HasValue returns true if a value has been defined for this attribute.
@@ -197,7 +197,7 @@ type (
 
 		AttributesInfo() AttributesInfo
 
-		// FromReflectedValue creates a new instance of the reciever type
+		// FromReflectedValue creates a new instance of the receiver type
 		// and initializes that instance from the given src
 		FromReflectedValue(c Context, src reflect.Value) PuppetObject
 
@@ -233,7 +233,7 @@ type (
 		// TypedName returns the name of this type set as a TypedName
 		TypedName() TypedName
 
-		// Types returns a hash of all types contained in this set. The keyes
+		// Types returns a hash of all types contained in this set. The keys
 		// in this hash are relative to the receiver name
 		Types() OrderedMap
 
@@ -311,14 +311,14 @@ func Any2(array List, predicate Predicate) bool {
 
 func AssertType(pfx interface{}, expected, actual Type) Type {
 	if !IsAssignable(expected, actual) {
-		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
+		panic(Error(TypeMismatch, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, actual)}))
 	}
 	return actual
 }
 
 func AssertInstance(pfx interface{}, expected Type, value Value) Value {
 	if !IsInstance(expected, value) {
-		panic(Error(EVAL_TYPE_MISMATCH, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
+		panic(Error(TypeMismatch, issue.H{`detail`: DescribeMismatch(getPrefix(pfx), expected, DetailedValueType(value))}))
 	}
 	return value
 }

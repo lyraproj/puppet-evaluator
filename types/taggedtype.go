@@ -13,7 +13,7 @@ type taggedType struct {
 
 func init() {
 	eval.NewTaggedType = func(typ reflect.Type, puppetTags map[string]string) eval.AnnotatedType {
-		return &taggedType{typ, puppetTags, _EMPTY_MAP}
+		return &taggedType{typ, puppetTags, emptyMap}
 	}
 
 	eval.NewAnnotatedType = func(typ reflect.Type, puppetTags map[string]string, annotations eval.OrderedMap) eval.AnnotatedType {
@@ -29,7 +29,7 @@ func (tg *taggedType) Type() reflect.Type {
 	return tg.typ
 }
 
-func (tg *taggedType) Tags(c eval.Context) map[string]eval.OrderedMap {
+func (tg *taggedType) Tags() map[string]eval.OrderedMap {
 	fs := Fields(tg.typ)
 	nf := len(fs)
 	tags := make(map[string]eval.OrderedMap, 7)
@@ -43,14 +43,14 @@ func (tg *taggedType) Tags(c eval.Context) map[string]eval.OrderedMap {
 				// Unexported
 				continue
 			}
-			if ft, ok := TagHash(c, &f); ok {
+			if ft, ok := TagHash(&f); ok {
 				tags[f.Name] = ft
 			}
 		}
 	}
 	if tg.puppetTags != nil && len(tg.puppetTags) > 0 {
 		for k, v := range tg.puppetTags {
-			if h, ok := ParseTagHash(c, v); ok {
+			if h, ok := ParseTagHash(v); ok {
 				tags[k] = h
 			}
 		}

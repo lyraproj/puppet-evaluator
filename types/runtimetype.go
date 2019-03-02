@@ -26,7 +26,7 @@ type (
 	}
 )
 
-var runtimeType_DEFAULT = &RuntimeType{``, ``, nil, nil}
+var runtimeTypeDefault = &RuntimeType{``, ``, nil, nil}
 
 var RuntimeMetaType eval.ObjectType
 
@@ -44,12 +44,12 @@ func init() {
     }
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewRuntimeType2(args...)
+			return newRuntimeType2(args...)
 		})
 }
 
 func DefaultRuntimeType() *RuntimeType {
-	return runtimeType_DEFAULT
+	return runtimeTypeDefault
 }
 
 func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *RuntimeType {
@@ -57,12 +57,12 @@ func NewRuntimeType(runtimeName string, name string, pattern *RegexpType) *Runti
 		return DefaultRuntimeType()
 	}
 	if runtimeName == `go` && name != `` {
-		panic(eval.Error(eval.EVAL_GO_RUNTIME_TYPE_WITHOUT_GO_TYPE, issue.H{`name`: name}))
+		panic(eval.Error(eval.GoRuntimeTypeWithoutGoType, issue.H{`name`: name}))
 	}
 	return &RuntimeType{runtime: runtimeName, name: name, pattern: pattern}
 }
 
-func NewRuntimeType2(args ...eval.Value) *RuntimeType {
+func newRuntimeType2(args ...eval.Value) *RuntimeType {
 	top := len(args)
 	if top > 3 {
 		panic(errors.NewIllegalArgumentCount(`Runtime[]`, `0 - 3`, len(args)))
@@ -73,18 +73,18 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 
 	runtimeName, ok := args[0].(stringValue)
 	if !ok {
-		panic(NewIllegalArgumentType2(`Runtime[]`, 0, `String`, args[0]))
+		panic(NewIllegalArgumentType(`Runtime[]`, 0, `String`, args[0]))
 	}
 
 	var pattern *RegexpType
 	var name eval.Value
 	if top == 1 {
-		name = eval.EMPTY_STRING
+		name = eval.EmptyString
 	} else {
 		var rv stringValue
 		rv, ok = args[1].(stringValue)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Runtime[]`, 1, `String`, args[1]))
+			panic(NewIllegalArgumentType(`Runtime[]`, 1, `String`, args[1]))
 		}
 		name = rv
 
@@ -93,7 +93,7 @@ func NewRuntimeType2(args ...eval.Value) *RuntimeType {
 		} else {
 			pattern, ok = args[2].(*RegexpType)
 			if !ok {
-				panic(NewIllegalArgumentType2(`Runtime[]`, 2, `Type[Regexp]`, args[2]))
+				panic(NewIllegalArgumentType(`Runtime[]`, 2, `Type[Regexp]`, args[2]))
 			}
 		}
 	}
@@ -117,7 +117,7 @@ func (t *RuntimeType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *RuntimeType) Default() eval.Type {
-	return runtimeType_DEFAULT
+	return runtimeTypeDefault
 }
 
 func (t *RuntimeType) Equals(o interface{}, g eval.Guard) bool {
@@ -131,14 +131,14 @@ func (t *RuntimeType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *RuntimeType) Generic() eval.Type {
-	return runtimeType_DEFAULT
+	return runtimeTypeDefault
 }
 
 func (t *RuntimeType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `runtime`:
 		if t.runtime == `` {
-			return _UNDEF, true
+			return undef, true
 		}
 		return stringValue(t.runtime), true
 	case `name_or_pattern`:
@@ -148,7 +148,7 @@ func (t *RuntimeType) Get(key string) (eval.Value, bool) {
 		if t.name != `` {
 			return stringValue(t.name), true
 		}
-		return _UNDEF, true
+		return undef, true
 	default:
 		return nil, false
 	}
@@ -208,7 +208,7 @@ func (t *RuntimeType) Name() string {
 
 func (t *RuntimeType) Parameters() []eval.Value {
 	if t.runtime == `` {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	ps := make([]eval.Value, 0, 2)
 	ps = append(ps, stringValue(t.runtime))
@@ -234,7 +234,7 @@ func (t *RuntimeType) SerializationString() string {
 }
 
 func (t *RuntimeType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *RuntimeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -268,7 +268,7 @@ func (rv *RuntimeValue) Equals(o interface{}, g eval.Guard) bool {
 func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.PType().String()}))
+		panic(eval.Error(eval.InvalidSourceForGet, issue.H{`type`: rv.PType().String()}))
 	}
 	return reflect.ValueOf(rv.value)
 }
@@ -276,16 +276,16 @@ func (rv *RuntimeValue) Reflect(c eval.Context) reflect.Value {
 func (rv *RuntimeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	gt := rv.puppetType.goType
 	if gt == nil {
-		panic(eval.Error(eval.EVAL_INVALID_SOURCE_FOR_GET, issue.H{`type`: rv.PType().String()}))
+		panic(eval.Error(eval.InvalidSourceForGet, issue.H{`type`: rv.PType().String()}))
 	}
 	if !gt.AssignableTo(dest.Type()) {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: gt.String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(reflect.ValueOf(rv.value))
 }
 
 func (rv *RuntimeValue) String() string {
-	return eval.ToString2(rv, NONE)
+	return eval.ToString2(rv, None)
 }
 
 func (rv *RuntimeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {

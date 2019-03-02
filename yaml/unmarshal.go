@@ -4,24 +4,24 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"gopkg.in/yaml.v2"
+	ym "gopkg.in/yaml.v2"
 )
 
 func Unmarshal(c eval.Context, data []byte) eval.Value {
-	ms := make(yaml.MapSlice, 0)
-	err := yaml.Unmarshal([]byte(data), &ms)
+	ms := make(ym.MapSlice, 0)
+	err := ym.Unmarshal([]byte(data), &ms)
 	if err != nil {
 		var itm interface{}
-		err2 := yaml.Unmarshal([]byte(data), &itm)
+		err2 := ym.Unmarshal([]byte(data), &itm)
 		if err2 != nil {
-			panic(eval.Error(eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
+			panic(eval.Error(eval.ParseError, issue.H{`language`: `YAML`, `detail`: err.Error()}))
 		}
 		return wrapValue(c, itm)
 	}
 	return wrapSlice(c, ms)
 }
 
-func wrapSlice(c eval.Context, ms yaml.MapSlice) eval.Value {
+func wrapSlice(c eval.Context, ms ym.MapSlice) eval.Value {
 	es := make([]*types.HashEntry, len(ms))
 	for i, me := range ms {
 		es[i] = types.WrapHashEntry(wrapValue(c, me.Key), wrapValue(c, me.Value))
@@ -30,13 +30,12 @@ func wrapSlice(c eval.Context, ms yaml.MapSlice) eval.Value {
 }
 
 func wrapValue(c eval.Context, v interface{}) eval.Value {
-	switch v.(type) {
-	case yaml.MapSlice:
-		return wrapSlice(c, v.(yaml.MapSlice))
+	switch v := v.(type) {
+	case ym.MapSlice:
+		return wrapSlice(c, v)
 	case []interface{}:
-		ys := v.([]interface{})
-		vs := make([]eval.Value, len(ys))
-		for i, y := range ys {
+		vs := make([]eval.Value, len(v))
+		for i, y := range v {
 			vs[i] = wrapValue(c, y)
 		}
 		return types.WrapValues(vs)
@@ -44,4 +43,3 @@ func wrapValue(c eval.Context, v interface{}) eval.Value {
 		return eval.Wrap(c, v)
 	}
 }
-

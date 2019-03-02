@@ -1,29 +1,32 @@
-package serialization
+package serialization_test
 
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/serialization"
 	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/semver/semver"
 
-	_ "github.com/lyraproj/puppet-evaluator/pcore"
 	"reflect"
+
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
 )
 
-func ExampleRichDataSerializer_roundtrip() {
+func ExampleNewSerializer_richDataRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		ver, _ := semver.NewVersion(1, 0, 0)
 		v := types.WrapSemVer(ver)
 		fmt.Printf("%T '%s'\n", v, v)
 
-		dc := NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue))
+		dc := serialization.NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue))
 		buf := bytes.NewBufferString(``)
-		dc.Convert(v, NewJsonStreamer(buf))
+		dc.Convert(v, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		v2 := fc.Value()
 
 		fmt.Printf("%T '%s'\n", v2, v2)
@@ -33,19 +36,19 @@ func ExampleRichDataSerializer_roundtrip() {
 	// *types.SemVerValue '1.0.0'
 }
 
-func ExampleRichDataSerializer_ObjectRoundtrip() {
+func ExampleNewSerializer_objectRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		p := impl.NewParameter(`p1`, ctx.ParseType2(`Type[String]`), nil, false)
 		fmt.Println(p)
 
-		dc := NewSerializer(ctx, eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(ctx, eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(types.WrapValues([]eval.Value{p, p}), NewJsonStreamer(buf))
+		dc.Convert(types.WrapValues([]eval.Value{p, p}), serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
 		b := buf.String()
 		fmt.Println(b)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		p2 := fc.Value().(eval.List).At(0)
 
 		fmt.Println(p2)
@@ -56,18 +59,18 @@ func ExampleRichDataSerializer_ObjectRoundtrip() {
 	// Parameter('name' => 'p1', 'type' => Type[String])
 }
 
-func ExampleRichDataSerializer_StructInArrayRoundtrip() {
+func ExampleNewSerializer_structInArrayRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		p := types.WrapValues([]eval.Value{ctx.ParseType2(`Struct[a => String, b => Integer]`)})
 		fmt.Println(p)
-		dc := NewSerializer(ctx, eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(ctx, eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(p, NewJsonStreamer(buf))
+		dc.Convert(p, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
 		b := buf.String()
 		fmt.Println(b)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		p2 := fc.Value()
 
 		fmt.Println(p2)
@@ -78,7 +81,7 @@ func ExampleRichDataSerializer_StructInArrayRoundtrip() {
 	// [Struct[{'a' => String, 'b' => Integer}]]
 }
 
-func ExampleRichDataSerializer_TypeSetRoundtrip() {
+func ExampleNewSerializer_typeSetRoundtrip() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		p := ctx.ParseType2(`TypeSet[{
       name => 'Foo',
@@ -94,16 +97,16 @@ func ExampleRichDataSerializer_TypeSetRoundtrip() {
   }
         ]
       }}]`)
-		ctx.AddTypes(p)
+		eval.AddTypes(ctx, p)
 		fmt.Println(p)
-		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(eval.Puppet.RootContext(), eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(p, NewJsonStreamer(buf))
+		dc.Convert(p, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
 		b := buf.String()
 		fmt.Println(b)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		p2 := fc.Value()
 		fmt.Println(p2)
 	})
@@ -113,22 +116,22 @@ func ExampleRichDataSerializer_TypeSetRoundtrip() {
 	// TypeSet[{pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'Foo', version => '1.0.0', types => {Bar => {attributes => {'subnet_id' => {'type' => Optional[String], 'value' => 'FAKED_SUBNET_ID'}, 'vpc_id' => String, 'cidr_block' => String, 'map_public_ip_on_launch' => Boolean}}}}]
 }
 
-func ExampleRichDataSerializer_goValueRoundtrip() {
+func ExampleNewSerializer_goValueRoundtrip() {
 	type MyInt int
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := MyInt(32)
-		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyInt`, nil, reflect.TypeOf(mi)))
+		eval.AddTypes(ctx, ctx.Reflector().TypeFromReflect(`Test::MyInt`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(eval.Puppet.RootContext(), eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(v, NewJsonStreamer(buf))
+		dc.Convert(v, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		v2 := fc.Value()
 
 		fmt.Println(v2)
@@ -138,7 +141,7 @@ func ExampleRichDataSerializer_goValueRoundtrip() {
 	// Test::MyInt('value' => 32)
 }
 
-func ExampleRichDataSerializer_goStructRoundtrip() {
+func ExampleNewSerializer_goStructRoundtrip() {
 	type MyStruct struct {
 		X int
 		Y string
@@ -146,17 +149,17 @@ func ExampleRichDataSerializer_goStructRoundtrip() {
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := &MyStruct{32, "hello"}
-		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
+		eval.AddTypes(ctx, ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(eval.Puppet.RootContext(), eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(v, NewJsonStreamer(buf))
+		dc.Convert(v, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		v2 := fc.Value()
 
 		fmt.Println(v2)
@@ -166,10 +169,10 @@ func ExampleRichDataSerializer_goStructRoundtrip() {
 	// Output:
 	// Test::MyStruct('x' => 32, 'y' => 'hello')
 	// Test::MyStruct('x' => 32, 'y' => 'hello')
-	// serialization.MyStruct {32 hello}
+	// serialization_test.MyStruct {32 hello}
 }
 
-func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
+func ExampleNewSerializer_goStructWithDynamicRoundtrip() {
 	type MyStruct struct {
 		X eval.List
 		Y eval.OrderedMap
@@ -177,17 +180,17 @@ func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
 
 	eval.Puppet.Do(func(ctx eval.Context) {
 		mi := &MyStruct{eval.Wrap(ctx, []int{32}).(eval.List), eval.Wrap(ctx, map[string]string{"msg": "hello"}).(eval.OrderedMap)}
-		ctx.AddTypes(ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
+		eval.AddTypes(ctx, ctx.Reflector().TypeFromReflect(`Test::MyStruct`, nil, reflect.TypeOf(mi)))
 
 		v := eval.Wrap(ctx, mi)
 		fmt.Println(v)
 
-		dc := NewSerializer(eval.Puppet.RootContext(), eval.EMPTY_MAP)
+		dc := serialization.NewSerializer(eval.Puppet.RootContext(), eval.EmptyMap)
 		buf := bytes.NewBufferString(``)
-		dc.Convert(v, NewJsonStreamer(buf))
+		dc.Convert(v, serialization.NewJsonStreamer(buf))
 
-		fc := NewDeserializer(ctx, eval.EMPTY_MAP)
-		JsonToData(`/tmp/sample.json`, buf, fc)
+		fc := serialization.NewDeserializer(ctx, eval.EmptyMap)
+		serialization.JsonToData(`/tmp/sample.json`, buf, fc)
 		v2 := fc.Value()
 
 		fmt.Println(v2)
@@ -197,34 +200,34 @@ func ExampleRichDataSerializer_goStructWithDynamicRoundtrip() {
 	// Output:
 	// Test::MyStruct('x' => [32], 'y' => {'msg' => 'hello'})
 	// Test::MyStruct('x' => [32], 'y' => {'msg' => 'hello'})
-	// serialization.MyStruct {[32] {'msg' => 'hello'}}
+	// serialization_test.MyStruct {[32] {'msg' => 'hello'}}
 }
 
-func ExampleRichDataSerializer_Convert() {
+func ExampleSerializer_Convert() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		ver, _ := semver.NewVersion(1, 0, 0)
-		cl := NewCollector()
-		NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue)).Convert(types.WrapSemVer(ver), cl)
+		cl := eval.NewCollector()
+		serialization.NewSerializer(ctx, types.SingletonHash2(`rich_data`, types.BooleanTrue)).Convert(types.WrapSemVer(ver), cl)
 		fmt.Println(cl.Value())
 	})
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}
 }
 
-func ExampleRichDataSerializer_ToJson() {
+func ExampleNewJsonStreamer() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		buf := bytes.NewBufferString(``)
-		NewSerializer(ctx, eval.EMPTY_MAP).Convert(
-			types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), NewJsonStreamer(buf))
+		serialization.NewSerializer(ctx, eval.EmptyMap).Convert(
+			types.WrapStringToInterfaceMap(ctx, map[string]interface{}{`__ptype`: `SemVer`, `__pvalue`: `1.0.0`}), serialization.NewJsonStreamer(buf))
 		fmt.Println(buf)
 	})
 	// Output: {"__ptype":"SemVer","__pvalue":"1.0.0"}
 }
 
-func ExampleJsonToData_Collector() {
+func ExampleJsonToData() {
 	eval.Puppet.Do(func(ctx eval.Context) {
 		buf := bytes.NewBufferString(`{"__ptype":"SemVer","__pvalue":"1.0.0"}`)
-		fc := NewCollector()
-		JsonToData(`/tmp/ver.json`, buf, fc)
+		fc := eval.NewCollector()
+		serialization.JsonToData(`/tmp/ver.json`, buf, fc)
 		fmt.Println(fc.Value())
 	})
 	// Output: {'__ptype' => 'SemVer', '__pvalue' => '1.0.0'}

@@ -1,6 +1,4 @@
-package serialization
-
-import "github.com/lyraproj/puppet-evaluator/eval"
+package eval
 
 // A ValueConsumer is used by a Data streaming mechanism that maintains a reference index
 // which is increased by one for each value that it streams. The reference index
@@ -21,12 +19,12 @@ type ValueConsumer interface {
 	// AddArray starts a new array, calls the doer function, and then ends the Array.
 	//
 	// The callers reference index is increased by one.
-	AddArray(len int, doer eval.Doer)
+	AddArray(len int, doer Doer)
 
 	// AddHash starts a new hash., calls the doer function, and then ends the Hash.
 	//
 	// The callers reference index is increased by one.
-	AddHash(len int, doer eval.Doer)
+	AddHash(len int, doer Doer)
 
 	// Add adds the next value.
 	//
@@ -36,7 +34,7 @@ type ValueConsumer interface {
 	// repeats until End or StartArray is called.
 	//
 	// The callers reference index is increased by one.
-	Add(element eval.Value)
+	Add(element Value)
 
 	// Add a reference to a previously added afterElement, hash, or array.
 	AddRef(ref int)

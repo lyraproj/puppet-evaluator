@@ -1,10 +1,10 @@
 package impl
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
-	"reflect"
+	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
+	"reflect"
 )
 
 type implRegistry struct {
@@ -25,9 +25,9 @@ func newParentedImplementationRegistry(parent eval.ImplementationRegistry) eval.
 	return &parentedImplRegistry{parent, implRegistry{make(map[string]eval.Type, 7), make(map[string]reflect.Type, 7)}}
 }
 
-func (ir *implRegistry) RegisterType(c eval.Context, t eval.Type, r reflect.Type) {
+func (ir *implRegistry) RegisterType(t eval.Type, r reflect.Type) {
 	r = types.NormalizeType(r)
-	r = assertUnregistered(c, ir, t, r)
+	r = assertUnregistered(ir, t, r)
 	ir.addTypeMapping(t, r)
 }
 
@@ -50,9 +50,9 @@ func (ir *implRegistry) addTypeMapping(t eval.Type, r reflect.Type) {
 	ir.reflectToObjectType[r.String()] = t
 }
 
-func (pr *parentedImplRegistry) RegisterType(c eval.Context, t eval.Type, r reflect.Type) {
+func (pr *parentedImplRegistry) RegisterType(t eval.Type, r reflect.Type) {
 	r = types.NormalizeType(r)
-	r = assertUnregistered(c, pr, t, r)
+	r = assertUnregistered(pr, t, r)
 	pr.addTypeMapping(t, r)
 }
 
@@ -76,15 +76,15 @@ func (pr *parentedImplRegistry) ReflectedToType(t reflect.Type) (eval.Type, bool
 	return pr.ReflectedNameToType(types.NormalizeType(t).String())
 }
 
-func assertUnregistered(c eval.Context, ir eval.ImplementationRegistry, t eval.Type, r reflect.Type) reflect.Type {
+func assertUnregistered(ir eval.ImplementationRegistry, t eval.Type, r reflect.Type) reflect.Type {
 	if rt, ok := ir.TypeToReflected(t); ok {
 		if r.String() != rt.String() {
-			panic(eval.Error(eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: t}))
+			panic(eval.Error(eval.ImplAlreadyRegistered, issue.H{`type`: t}))
 		}
 	}
 	if tn, ok := ir.ReflectedToType(r); ok {
 		if tn != t {
-			panic(eval.Error(eval.EVAL_IMPL_ALREDY_REGISTERED, issue.H{`type`: r.String()}))
+			panic(eval.Error(eval.ImplAlreadyRegistered, issue.H{`type`: r.String()}))
 		}
 	}
 	return r

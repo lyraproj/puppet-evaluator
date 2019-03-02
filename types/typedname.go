@@ -1,11 +1,12 @@
 package types
 
 import (
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"regexp"
 	"strings"
+
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type typedName struct {
@@ -42,8 +43,8 @@ func init() {
 		return NewTypedName(ns, n)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*HashValue)
-		ns := eval.Namespace(h.Get5(`namespace`, eval.EMPTY_STRING).String())
-		n := h.Get5(`name`, eval.EMPTY_STRING).String()
+		ns := eval.Namespace(h.Get5(`namespace`, eval.EmptyString).String())
+		n := h.Get5(`name`, eval.EmptyString).String()
 		if x, ok := h.Get4(`authority`); ok {
 			return newTypedName2(ns, n, eval.URI(x.(*UriValue).String()))
 		}
@@ -67,7 +68,7 @@ func (t *typedName) Call(c eval.Context, method eval.ObjFunc, args []eval.Value,
 		if r, ok := t.RelativeTo(args[0].(eval.TypedName)); ok {
 			return r, true
 		}
-		return _UNDEF, true
+		return undef, true
 	}
 	return nil, false
 }
@@ -77,8 +78,8 @@ func (t *typedName) Get(key string) (value eval.Value, ok bool) {
 	case `namespace`:
 		return stringValue(string(t.namespace)), true
 	case `authority`:
-		if t.authority == eval.RUNTIME_NAME_AUTHORITY {
-			return eval.UNDEF, true
+		if t.authority == eval.RuntimeNameAuthority {
+			return eval.Undef, true
 		}
 		return WrapURI2(string(t.authority)), true
 	case `name`:
@@ -90,13 +91,13 @@ func (t *typedName) Get(key string) (value eval.Value, ok bool) {
 	case `parent`:
 		p := t.Parent()
 		if p == nil {
-			return _UNDEF, true
+			return undef, true
 		}
 		return p, true
 	case `child`:
 		p := t.Child()
 		if p == nil {
-			return _UNDEF, true
+			return undef, true
 		}
 		return p, true
 	}
@@ -107,27 +108,23 @@ func (t *typedName) InitHash() eval.OrderedMap {
 	es := make([]*HashEntry, 0, 3)
 	es = append(es, WrapHashEntry2(`namespace`, stringValue(string(t.Namespace()))))
 	es = append(es, WrapHashEntry2(`name`, stringValue(t.Name())))
-	if t.authority != eval.RUNTIME_NAME_AUTHORITY {
+	if t.authority != eval.RuntimeNameAuthority {
 		es = append(es, WrapHashEntry2(`authority`, WrapURI2(string(t.authority))))
 	}
 	return WrapHash(es)
 }
 
 func NewTypedName(namespace eval.Namespace, name string) eval.TypedName {
-	return newTypedName2(namespace, name, eval.RUNTIME_NAME_AUTHORITY)
+	return newTypedName2(namespace, name, eval.RuntimeNameAuthority)
 }
 
 var allowedCharacters = regexp.MustCompile(`\A[A-Za-z][0-9A-Z_a-z]*\z`)
 
 func newTypedName2(namespace eval.Namespace, name string, nameAuthority eval.URI) eval.TypedName {
 	tn := typedName{}
-	if strings.HasPrefix(name, `::`) {
-		name = name[2:]
-	}
-
 	tn.namespace = namespace
 	tn.authority = nameAuthority
-	tn.name = name
+	tn.name = strings.TrimPrefix(name, `::`)
 	return &tn
 }
 
@@ -139,7 +136,7 @@ func typedNameFromMapKey(mapKey string) eval.TypedName {
 			return newTypedName2(eval.Namespace(pfx[i+1:]), name, eval.URI(pfx[:i]))
 		}
 	}
-	panic(eval.Error(eval.EVAL_INVALID_TYPEDNAME_MAPKEY, issue.H{`mapKey`: mapKey}))
+	panic(eval.Error(eval.InvalidTypedNameMapKey, issue.H{`mapKey`: mapKey}))
 }
 
 func (t *typedName) Child() eval.TypedName {
@@ -248,7 +245,7 @@ func (t *typedName) Parts() []string {
 		parts := strings.Split(strings.ToLower(t.name), `::`)
 		for _, part := range parts {
 			if !allowedCharacters.MatchString(part) {
-				panic(eval.Error(eval.EVAL_INVALID_CHARACTERS_IN_NAME, issue.H{`name`: t.name}))
+				panic(eval.Error(eval.InvalidCharactersInName, issue.H{`name`: t.name}))
 			}
 		}
 		t.parts = parts
@@ -258,11 +255,11 @@ func (t *typedName) Parts() []string {
 
 func (t *typedName) PartsList() eval.List {
 	parts := t.Parts()
-	elems := make([]eval.Value, len(parts))
+	es := make([]eval.Value, len(parts))
 	for i, p := range parts {
-		elems[i] = stringValue(p)
+		es[i] = stringValue(p)
 	}
-	return WrapValues(elems)
+	return WrapValues(es)
 }
 
 func (t *typedName) String() string {

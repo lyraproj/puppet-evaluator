@@ -19,15 +19,14 @@ const MaxDedup = 2
 type Serializer interface {
 	// Convert the given RichData value to a series of Data values streamed to the
 	// given consumer.
-	Convert(value eval.Value, consumer ValueConsumer)
+	Convert(value eval.Value, consumer eval.ValueConsumer)
 }
 
 type rdSerializer struct {
-	context        eval.Context
-	symbolAsString bool
-	richData       bool
-	messagePrefix  string
-	dedupLevel     int
+	context       eval.Context
+	richData      bool
+	messagePrefix string
+	dedupLevel    int
 }
 
 type context struct {
@@ -36,15 +35,14 @@ type context struct {
 	path       []eval.Value
 	refIndex   int
 	dedupLevel int
-	consumer   ValueConsumer
+	consumer   eval.ValueConsumer
 }
 
 // NewSerializer returns a new Serializer
 func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
 	t := &rdSerializer{context: ctx}
-	t.symbolAsString = options.Get5(`symbol_as_string`, types.BooleanFalse).(eval.BooleanValue).Bool()
 	t.richData = options.Get5(`rich_data`, types.BooleanTrue).(eval.BooleanValue).Bool()
-	t.messagePrefix = options.Get5(`message_prefix`, eval.EMPTY_STRING).String()
+	t.messagePrefix = options.Get5(`message_prefix`, eval.EmptyString).String()
 	if !options.Get5(`local_reference`, types.BooleanTrue).(eval.BooleanValue).Bool() {
 		// local_reference explicitly set to false
 		t.dedupLevel = NoDedup
@@ -57,11 +55,11 @@ func NewSerializer(ctx eval.Context, options eval.OrderedMap) Serializer {
 var typeKey = types.WrapString(PcoreTypeKey)
 var valueKey = types.WrapString(PcoreValueKey)
 var defaultType = types.WrapString(PcoreTypeDefault)
-var binaryType = types.WrapString(PCORE_TYPE_BINARY)
+var binaryType = types.WrapString(PcoreTypeBinary)
 var sensitiveType = types.WrapString(PcoreTypeSensitive)
 var hashKey = types.WrapString(PcoreTypeHash)
 
-func (t *rdSerializer) Convert(value eval.Value, consumer ValueConsumer) {
+func (t *rdSerializer) Convert(value eval.Value, consumer eval.ValueConsumer) {
 	c := context{config: t, values: make(map[eval.Value]int, 63), refIndex: 0, consumer: consumer, path: make([]eval.Value, 0, 16), dedupLevel: t.dedupLevel}
 	if c.dedupLevel >= MaxDedup && !consumer.CanDoComplexKeys() {
 		c.dedupLevel = NoKeyDedup
@@ -78,7 +76,7 @@ func (sc *context) pathToString() string {
 		if v == nil {
 			s.WriteString(`null`)
 		} else if eval.IsInstance(types.DefaultScalarType(), v) {
-			v.ToString(s, types.PROGRAM, nil)
+			v.ToString(s, types.Program, nil)
 		} else {
 			s.WriteString(issue.Label(s))
 		}
@@ -88,11 +86,11 @@ func (sc *context) pathToString() string {
 
 func (sc *context) toData(level int, value eval.Value) {
 	if value == nil {
-		sc.addData(eval.UNDEF)
+		sc.addData(eval.Undef)
 		return
 	}
 
-	switch value.(type) {
+	switch value := value.(type) {
 	case *types.UndefValue, eval.IntegerValue, eval.FloatValue, eval.BooleanValue:
 		// Never dedup
 		sc.addData(value)
@@ -113,28 +111,26 @@ func (sc *context) toData(level int, value eval.Value) {
 				sc.toData(1, defaultType)
 			})
 		} else {
-			eval.LogWarning(eval.EVAL_SERIALIZATION_DEFAULT_CONVERTED_TO_STRING, issue.H{`path`: sc.pathToString()})
+			eval.LogWarning(eval.SerializationDefaultConvertedToString, issue.H{`path`: sc.pathToString()})
 			sc.toData(1, types.WrapString(`default`))
 		}
 	case *types.HashValue:
-		h := value.(*types.HashValue)
-		if sc.consumer.CanDoComplexKeys() || h.AllKeysAreStrings() {
+		if sc.consumer.CanDoComplexKeys() || value.AllKeysAreStrings() {
 			sc.process(value, func() {
-				sc.addHash(h.Len(), func() {
-					h.EachPair(func(key, elem eval.Value) {
+				sc.addHash(value.Len(), func() {
+					value.EachPair(func(key, elem eval.Value) {
 						sc.toData(2, key)
 						sc.withPath(key, func() { sc.toData(1, elem) })
 					})
 				})
 			})
 		} else {
-			sc.nonStringKeyedHashToData(h)
+			sc.nonStringKeyedHashToData(value)
 		}
 	case *types.ArrayValue:
 		sc.process(value, func() {
-			ar := value.(*types.ArrayValue)
-			sc.addArray(ar.Len(), func() {
-				ar.EachWithIndex(func(elem eval.Value, idx int) {
+			sc.addArray(value.Len(), func() {
+				value.EachWithIndex(func(elem eval.Value, idx int) {
 					sc.withPath(types.WrapInteger(int64(idx)), func() { sc.toData(1, elem) })
 				})
 			})
@@ -146,7 +142,7 @@ func (sc *context) toData(level int, value eval.Value) {
 					sc.toData(2, typeKey)
 					sc.toData(1, sensitiveType)
 					sc.toData(2, valueKey)
-					sc.withPath(valueKey, func() { sc.toData(1, value.(*types.SensitiveValue).Unwrap()) })
+					sc.withPath(valueKey, func() { sc.toData(1, value.Unwrap()) })
 				})
 			} else {
 				sc.unknownToStringWithWarning(level, value)
@@ -162,7 +158,7 @@ func (sc *context) toData(level int, value eval.Value) {
 						sc.toData(2, typeKey)
 						sc.toData(1, binaryType)
 						sc.toData(2, valueKey)
-						sc.toData(1, types.WrapString(value.(*types.BinaryValue).SerializationString()))
+						sc.toData(1, types.WrapString(value.SerializationString()))
 					})
 				} else {
 					sc.unknownToStringWithWarning(level, value)
@@ -179,25 +175,16 @@ func (sc *context) toData(level int, value eval.Value) {
 }
 
 func (sc *context) unknownToStringWithWarning(level int, value eval.Value) {
-	warn := true
-	klass := ``
-	s := ``
+	var klass string
+	var s string
 	if rt, ok := value.(*types.RuntimeValue); ok {
-		if sym, ok := rt.Interface().(Symbol); ok {
-			s = string(sym)
-			warn = !sc.config.symbolAsString
-			klass = `Symbol`
-		} else {
-			s = fmt.Sprintf(`%v`, rt.Interface())
-			klass = rt.PType().(*types.RuntimeType).Name()
-		}
+		s = fmt.Sprintf(`%v`, rt.Interface())
+		klass = rt.PType().(*types.RuntimeType).Name()
 	} else {
 		s = value.String()
 		klass = value.PType().Name()
 	}
-	if warn {
-		eval.LogWarning(eval.EVAL_SERIALIZATION_UNKNOWN_CONVERTED_TO_STRING, issue.H{`path`: sc.pathToString(), `klass`: klass, `value`: s})
-	}
+	eval.LogWarning(eval.SerializationUnknownConvertedToString, issue.H{`path`: sc.pathToString(), `klass`: klass, `value`: s})
 	sc.toData(level, types.WrapString(s))
 }
 
@@ -256,32 +243,20 @@ func (sc *context) addData(v eval.Value) {
 }
 
 func (sc *context) valueToDataHash(value eval.Value) {
-	if rt, ok := value.(*types.RuntimeValue); ok {
-		if !sc.config.symbolAsString {
-			if sym, ok := rt.Interface().(Symbol); ok {
-				sc.addHash(2, func() {
-					sc.toData(2, typeKey)
-					sc.toData(1, types.WrapString(PCORE_TYPE_SYMBOL))
-					sc.toData(2, valueKey)
-					sc.toData(1, types.WrapString(string(sym)))
-				})
-				return
-			}
-		}
+	if _, ok := value.(*types.RuntimeValue); ok {
 		sc.unknownToStringWithWarning(1, value)
 		return
 	}
 
-	switch value.(type) {
+	switch value := value.(type) {
 	case *types.TypeAliasType:
-		tv := value.(*types.TypeAliasType)
-		if sc.isKnownType(tv.Name()) {
+		if sc.isKnownType(value.Name()) {
 			sc.process(value, func() {
 				sc.addHash(2, func() {
 					sc.toData(2, typeKey)
 					sc.toData(2, types.WrapString(`Type`))
 					sc.toData(2, valueKey)
-					sc.toData(1, types.WrapString(tv.Name()))
+					sc.toData(1, types.WrapString(value.Name()))
 				})
 			})
 			return

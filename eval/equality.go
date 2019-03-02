@@ -9,7 +9,7 @@ type (
 	}
 
 	// Guard helps tracking endless recursion. The comparison algorithm assumes that all checks in progress
-	// are true when it reencounters them. Visited comparisons are stored in a map
+	// are true when it encounters them again. Visited comparisons are stored in a map
 	// indexed by visit.
 	//
 	// (algorithm copied from golang reflect/deepequal.go)
@@ -43,28 +43,28 @@ func EqSlice(slice interface{}) []Equality {
 }
 
 func Equals(a interface{}, b interface{}) bool {
-	switch a.(type) {
+	switch a := a.(type) {
 	case nil:
 		return b == nil
 	case Equality:
 		return a.(Equality).Equals(b, nil)
 	case string:
 		bs, ok := b.(string)
-		return ok && a.(string) == bs
+		return ok && a == bs
 	default:
 		return reflect.DeepEqual(a, b)
 	}
 }
 
 func GuardedEquals(a interface{}, b interface{}, g Guard) bool {
-	switch a.(type) {
+	switch a := a.(type) {
 	case nil:
 		return b == nil
 	case Equality:
-		return a.(Equality).Equals(b, g)
+		return a.Equals(b, g)
 	case string:
 		bs, ok := b.(string)
-		return ok && a.(string) == bs
+		return ok && a == bs
 	default:
 		return reflect.DeepEqual(a, b)
 	}

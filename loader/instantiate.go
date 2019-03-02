@@ -6,24 +6,25 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
 type Instantiator func(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string)
 
 func InstantiatePuppetActivityFromFile(ctx eval.Context, loader ContentProvidingLoader, file string) eval.TypedName {
+	ec := ctx.(eval.EvaluationContext)
 	content := string(loader.GetContent(ctx, file))
-	expr := ctx.ParseAndValidate(file, content, false)
+	expr := ec.ParseAndValidate(file, content, false)
 	name := `<any name>`
 	fd, ok := getDefinition(expr, eval.NsActivity, name).(parser.NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsActivity, `name`: name}))
+		panic(ctx.Error(expr, eval.NoDefinition, issue.H{`source`: expr.File(), `type`: eval.NsActivity, `name`: name}))
 	}
-	ctx.AddDefinitions(expr)
-	ctx.ResolveDefinitions()
+	ec.AddDefinitions(expr)
+	eval.ResolveDefinitions(ec)
 	return eval.NewTypedName(eval.NsActivity, fd.Name())
 }
 
@@ -36,42 +37,44 @@ func InstantiatePuppetPlan(ctx eval.Context, loader ContentProvidingLoader, tn e
 }
 
 func instantiatePuppetFunction(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+	ec := ctx.(eval.EvaluationContext)
 	source := sources[0]
 	content := string(loader.GetContent(ctx, source))
-	expr := ctx.ParseAndValidate(source, content, false)
+	expr := ec.ParseAndValidate(source, content, false)
 	name := tn.Name()
 	fd, ok := getDefinition(expr, tn.Namespace(), name).(parser.NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `name`: name}))
+		panic(ctx.Error(expr, eval.NoDefinition, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `name`: name}))
 	}
-	if strings.ToLower(fd.Name()) != strings.ToLower(name) {
-		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `expected`: name, `actual`: fd.Name()}))
+	if !strings.EqualFold(fd.Name(), name) {
+		panic(ctx.Error(expr, eval.WrongDefinition, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `expected`: name, `actual`: fd.Name()}))
 	}
-	ctx.AddDefinitions(expr)
-	ctx.ResolveDefinitions()
+	ec.AddDefinitions(expr)
+	eval.ResolveDefinitions(ec)
 }
 
 func InstantiatePuppetType(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
+	ec := ctx.(eval.EvaluationContext)
 	content := string(loader.GetContent(ctx, sources[0]))
-	expr := ctx.ParseAndValidate(sources[0], content, false)
+	expr := ec.ParseAndValidate(sources[0], content, false)
 	name := tn.Name()
 	def := getDefinition(expr, eval.NsType, name)
 	var tdn string
-	switch def.(type) {
+	switch def := def.(type) {
 	case *parser.TypeAlias:
-		tdn = def.(*parser.TypeAlias).Name()
+		tdn = def.Name()
 	case *parser.TypeDefinition:
-		tdn = def.(*parser.TypeDefinition).Name()
+		tdn = def.Name()
 	case *parser.TypeMapping:
-		tdn = def.(*parser.TypeMapping).Type().Label()
+		tdn = def.Type().Label()
 	default:
-		panic(ctx.Error(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsType, `name`: name}))
+		panic(ctx.Error(expr, eval.NoDefinition, issue.H{`source`: expr.File(), `type`: eval.NsType, `name`: name}))
 	}
-	if strings.ToLower(tdn) != strings.ToLower(name) {
-		panic(ctx.Error(expr, eval.EVAL_WRONG_DEFINITION, issue.H{`source`: expr.File(), `type`: eval.NsType, `expected`: name, `actual`: tdn}))
+	if !strings.EqualFold(tdn, name) {
+		panic(ctx.Error(expr, eval.WrongDefinition, issue.H{`source`: expr.File(), `type`: eval.NsType, `expected`: name, `actual`: tdn}))
 	}
-	ctx.AddDefinitions(expr)
-	ctx.ResolveDefinitions()
+	ec.AddDefinitions(expr)
+	eval.ResolveDefinitions(ec)
 }
 
 func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn eval.TypedName, sources []string) {
@@ -84,12 +87,12 @@ func InstantiatePuppetTask(ctx eval.Context, loader ContentProvidingLoader, tn e
 		} else if taskSource == `` {
 			taskSource = sourceRef
 		} else {
-			panic(eval.Error(eval.EVAL_TASK_TOO_MANY_FILES, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
+			panic(eval.Error(eval.TaskTooManyFiles, issue.H{`name`: name, `directory`: filepath.Dir(sourceRef)}))
 		}
 	}
 
 	if taskSource == `` {
-		panic(eval.Error(eval.EVAL_TASK_NO_EXECUTABLE_FOUND, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
+		panic(eval.Error(eval.TaskNoExecutableFound, issue.H{`name`: name, `directory`: filepath.Dir(sources[0])}))
 	}
 	task := createTask(ctx, loader, name, taskSource, metadata)
 	origin := metadata
@@ -108,12 +111,12 @@ func createTask(ctx eval.Context, loader ContentProvidingLoader, name, taskSourc
 	d := json.NewDecoder(bytes.NewReader(jsonText))
 	d.UseNumber()
 	if err := d.Decode(&parsedValue); err != nil {
-		panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: metadata, `detail`: err}))
+		panic(eval.Error(eval.TaskBadJson, issue.H{`path`: metadata, `detail`: err}))
 	}
 	if jo, ok := parsedValue.(map[string]interface{}); ok {
 		return createTaskFromHash(ctx, name, taskSource, jo)
 	}
-	panic(eval.Error(eval.EVAL_TASK_NOT_JSON_OBJECT, issue.H{`path`: metadata}))
+	panic(eval.Error(eval.TaskNotJsonObject, issue.H{`path`: metadata}))
 }
 
 func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[string]interface{}) eval.Value {
@@ -142,7 +145,7 @@ func createTaskFromHash(ctx eval.Context, name, taskSource string, hash map[stri
 	if taskCtor, ok := eval.Load(ctx, eval.NewTypedName(eval.NsConstructor, `Task`)); ok {
 		return taskCtor.(eval.Function).Call(ctx, nil, types.WrapStringToInterfaceMap(ctx, arguments))
 	}
-	panic(eval.Error(eval.EVAL_TASK_INITIALIZER_NOT_FOUND, issue.NO_ARGS))
+	panic(eval.Error(eval.TaskInitializerNotFound, issue.NO_ARGS))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains
@@ -157,9 +160,9 @@ func getDefinition(expr parser.Expression, ns eval.Namespace, name string) parse
 					return d
 				}
 			default:
-				panic(eval.Error2(expr, eval.EVAL_NOT_ONLY_DEFINITION, issue.H{`source`: expr.File(), `type`: ns, `name`: name}))
+				panic(eval.Error2(expr, eval.NotOnlyDefinition, issue.H{`source`: expr.File(), `type`: ns, `name`: name}))
 			}
 		}
 	}
-	panic(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: expr.File(), `type`: ns, `name`: name}))
+	panic(eval.Error2(expr, eval.NoDefinition, issue.H{`source`: expr.File(), `type`: ns, `name`: name}))
 }

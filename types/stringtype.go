@@ -7,11 +7,12 @@ import (
 	"math"
 	"strings"
 
+	"reflect"
+	"regexp"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"reflect"
-	"regexp"
 )
 
 type (
@@ -40,8 +41,7 @@ var stringTypeNotEmpty = &scStringType{size: NewIntegerType(1, math.MaxInt64)}
 var StringMetaType eval.ObjectType
 
 func init() {
-	StringMetaType = newObjectType(`Pcore::StringType`,
-		`Pcore::ScalarDataType {
+	StringMetaType = newObjectType(`Pcore::StringType`, `Pcore::ScalarDataType {
 	attributes => {
 		size_type_or_value => {
 			type => Variant[Undef,String,Type[Integer]],
@@ -49,12 +49,12 @@ func init() {
 		},
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewStringType2(args...)
-		})
+		return newStringType2(args...)
+	})
 
 	newGoConstructor2(`String`,
 		func(t eval.LocalTypes) {
-			t.Type2(`Format`, NewPatternType([]*RegexpType{NewRegexpTypeR(eval.FORMAT_PATTERN)}))
+			t.Type2(`Format`, NewPatternType([]*RegexpType{NewRegexpTypeR(eval.FormatPattern)}))
 			t.Type(`ContainerFormat`, `Struct[{
           Optional[format]         => Format,
           Optional[separator]      => String,
@@ -69,7 +69,7 @@ func init() {
 			d.Param(`Any`)
 			d.OptionalParam(`Formats`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				f := NONE
+				f := None
 				if len(args) > 1 {
 					var err error
 					f, err = eval.NewFormatContext3(args[0], args[1])
@@ -107,7 +107,7 @@ func NewStringType(rng *IntegerType, s string) eval.Type {
 	return &vcStringType{value: s}
 }
 
-func NewStringType2(args ...eval.Value) eval.Type {
+func newStringType2(args ...eval.Value) eval.Type {
 	var rng *IntegerType
 	var ok bool
 	switch len(args) {
@@ -123,7 +123,7 @@ func NewStringType2(args ...eval.Value) eval.Type {
 			var min int64
 			min, ok = toInt(args[0])
 			if !ok {
-				panic(NewIllegalArgumentType2(`String[]`, 0, `String, Integer or Type[Integer]`, args[0]))
+				panic(NewIllegalArgumentType(`String[]`, 0, `String, Integer or Type[Integer]`, args[0]))
 			}
 			rng = NewIntegerType(min, math.MaxInt64)
 		}
@@ -131,11 +131,11 @@ func NewStringType2(args ...eval.Value) eval.Type {
 		var min, max int64
 		min, ok = toInt(args[0])
 		if !ok {
-			panic(NewIllegalArgumentType2(`String[]`, 0, `Integer`, args[0]))
+			panic(NewIllegalArgumentType(`String[]`, 0, `Integer`, args[0]))
 		}
 		max, ok = toInt(args[1])
 		if !ok {
-			panic(NewIllegalArgumentType2(`String[]`, 1, `Integer`, args[1]))
+			panic(NewIllegalArgumentType(`String[]`, 1, `Integer`, args[1]))
 		}
 		rng = NewIntegerType(min, max)
 	default:
@@ -209,13 +209,13 @@ func (t *stringType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *scStringType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	switch o.(type) {
+	switch o := o.(type) {
 	case *vcStringType:
-		t.size.IsInstance3(len(o.(*vcStringType).value))
+		return t.size.IsInstance3(len(o.value))
 	case *scStringType:
-		t.size.IsAssignable(o.(*scStringType).size, g)
+		return t.size.IsAssignable(o.size, g)
 	case *EnumType:
-		for _, str := range o.(*EnumType).values {
+		for _, str := range o.values {
 			if !t.size.IsInstance3(len(string(str))) {
 				return false
 			}
@@ -256,7 +256,7 @@ func (t *stringType) Name() string {
 }
 
 func (t *stringType) Parameters() []eval.Value {
-	return eval.EMPTY_VALUES
+	return eval.EmptyValues
 }
 
 func (t *scStringType) Parameters() []eval.Value {
@@ -276,15 +276,15 @@ func (t *stringType) SerializationString() string {
 }
 
 func (t *stringType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *scStringType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *vcStringType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *stringType) Size() eval.Type {
@@ -311,12 +311,12 @@ func (t *stringType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func (t *stringType) Value() string {
-	return ``
+func (t *stringType) Value() *string {
+	return nil
 }
 
-func (t *vcStringType) Value() string {
-	return t.value
+func (t *vcStringType) Value() *string {
+	return &t.value
 }
 
 func WrapString(str string) eval.StringValue {
@@ -373,7 +373,7 @@ func (sv stringValue) At(i int) eval.Value {
 	if i >= 0 && i < len(sv.String()) {
 		return stringValue(sv.String()[i : i+1])
 	}
-	return _UNDEF
+	return undef
 }
 
 func (sv stringValue) Delete(v eval.Value) eval.List {
@@ -478,7 +478,7 @@ func (sv stringValue) Map(mapper eval.Mapper) eval.List {
 func (sv stringValue) Reduce(redactor eval.BiMapper) eval.Value {
 	s := sv.String()
 	if len(s) == 0 {
-		return _UNDEF
+		return undef
 	}
 	return reduceString(s[1:], sv.At(0), redactor)
 }
@@ -567,6 +567,7 @@ func (sv stringValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 		val = strings.TrimSpace(val)
 		f.ReplaceFormatChar('s').ApplyStringFlags(b, val, f.IsAlt())
 	default:
+		//noinspection SpellCheckingInspection
 		panic(s.UnsupportedFormat(sv.PType(), `cCudspt`, f))
 	}
 }

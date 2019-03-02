@@ -12,25 +12,25 @@ func init() {
 			d.Param(`Optional[Collection]`)
 			d.RepeatedParam(`Any`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				walkedPath := []eval.Value{}
+				walkedPath := make([]eval.Value, 0)
 				return types.WrapValues(args).Reduce(func(d, k eval.Value) eval.Value {
-					if eval.Equals(eval.UNDEF, k) {
-						return eval.UNDEF
+					if eval.Equals(eval.Undef, k) {
+						return eval.Undef
 					}
-					switch d.(type) {
+					switch d := d.(type) {
 					case *types.UndefValue:
-						return eval.UNDEF
+						return eval.Undef
 					case *types.HashValue:
 						walkedPath = append(walkedPath, k)
-						return d.(*types.HashValue).Get2(k, eval.UNDEF)
+						return d.Get2(k, eval.Undef)
 					case *types.ArrayValue:
 						walkedPath = append(walkedPath, k)
 						if idx, ok := k.(eval.IntegerValue); ok {
-							return d.(*types.ArrayValue).At(int(idx.Int()))
+							return d.At(int(idx.Int()))
 						}
-						return eval.UNDEF
+						return eval.Undef
 					default:
-						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
+						panic(eval.Error(eval.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

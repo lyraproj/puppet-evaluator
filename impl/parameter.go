@@ -60,7 +60,7 @@ func (p *parameter) InitHash() eval.OrderedMap {
 	if p.value != nil {
 		es = append(es, types.WrapHashEntry2(`value`, p.value))
 	}
-	if p.value == eval.UNDEF {
+	if p.value == eval.Undef {
 		es = append(es, types.WrapHashEntry2(`has_value`, types.BooleanTrue))
 	}
 	if p.captures {
@@ -69,7 +69,7 @@ func (p *parameter) InitHash() eval.OrderedMap {
 	return types.WrapHash(es)
 }
 
-var Parameter_Type eval.Type
+var ParameterMetaType eval.Type
 
 func (p *parameter) Equals(other interface{}, guard eval.Guard) bool {
 	return p == other
@@ -84,11 +84,11 @@ func (p *parameter) ToString(bld io.Writer, format eval.FormatContext, g eval.RD
 }
 
 func (p *parameter) PType() eval.Type {
-	return Parameter_Type
+	return ParameterMetaType
 }
 
 func init() {
-	Parameter_Type = eval.NewObjectType(`Parameter`, `{
+	ParameterMetaType = eval.NewObjectType(`Parameter`, `{
     attributes => {
       'name' => String,
       'type' => Type,
@@ -112,12 +112,12 @@ func init() {
 			c = args[4].(eval.BooleanValue).Bool()
 		}
 		if h && v == nil {
-			v = eval.UNDEF
+			v = eval.Undef
 		}
 		return NewParameter(n, t, v, c)
 	}, func(ctx eval.Context, args []eval.Value) eval.Value {
 		h := args[0].(*types.HashValue)
-		n := h.Get5(`name`, eval.EMPTY_STRING).String()
+		n := h.Get5(`name`, eval.EmptyString).String()
 		t := h.Get5(`type`, types.DefaultDataType()).(eval.Type)
 		var v eval.Value
 		if x, ok := h.Get4(`value`); ok {
@@ -132,7 +132,7 @@ func init() {
 			c = x.(eval.BooleanValue).Bool()
 		}
 		if hv && v == nil {
-			v = eval.UNDEF
+			v = eval.Undef
 		}
 		return NewParameter(n, t, v, c)
 	})

@@ -3,9 +3,10 @@ package types
 import (
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"reflect"
 )
 
 type PatternType struct {
@@ -21,23 +22,23 @@ func init() {
 		patterns => Array[Regexp]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewPatternType2(args...)
+			return newPatternType2(args...)
 		})
 }
 
 func DefaultPatternType() *PatternType {
-	return patternType_DEFAULT
+	return patternTypeDefault
 }
 
 func NewPatternType(regexps []*RegexpType) *PatternType {
 	return &PatternType{regexps}
 }
 
-func NewPatternType2(regexps ...eval.Value) *PatternType {
-	return NewPatternType3(WrapValues(regexps))
+func newPatternType2(regexps ...eval.Value) *PatternType {
+	return newPatternType3(WrapValues(regexps))
 }
 
-func NewPatternType3(regexps eval.List) *PatternType {
+func newPatternType3(regexps eval.List) *PatternType {
 
 	cnt := regexps.Len()
 	switch cnt {
@@ -45,21 +46,21 @@ func NewPatternType3(regexps eval.List) *PatternType {
 		return DefaultPatternType()
 	case 1:
 		if av, ok := regexps.At(0).(*ArrayValue); ok {
-			return NewPatternType3(av)
+			return newPatternType3(av)
 		}
 	}
 
 	rs := make([]*RegexpType, cnt)
 	regexps.EachWithIndex(func(arg eval.Value, idx int) {
-		switch arg.(type) {
+		switch arg := arg.(type) {
 		case *RegexpType:
-			rs[idx] = arg.(*RegexpType)
+			rs[idx] = arg
 		case *RegexpValue:
-			rs[idx] = arg.(*RegexpValue).PType().(*RegexpType)
+			rs[idx] = arg.PType().(*RegexpType)
 		case stringValue:
-			rs[idx] = NewRegexpType2(arg)
+			rs[idx] = newRegexpType2(arg)
 		default:
-			panic(NewIllegalArgumentType2(`Pattern[]`, idx, `Type[Regexp], Regexp, or String`, arg))
+			panic(NewIllegalArgumentType(`Pattern[]`, idx, `Type[Regexp], Regexp, or String`, arg))
 		}
 	})
 	return NewPatternType(rs)
@@ -73,7 +74,7 @@ func (t *PatternType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *PatternType) Default() eval.Type {
-	return patternType_DEFAULT
+	return patternTypeDefault
 }
 
 func (t *PatternType) Equals(o interface{}, g eval.Guard) bool {
@@ -136,7 +137,7 @@ func (t *PatternType) Name() string {
 func (t *PatternType) Parameters() []eval.Value {
 	top := len(t.regexps)
 	if top == 0 {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	rxs := make([]eval.Value, top)
 	for idx, rx := range t.regexps {
@@ -170,11 +171,11 @@ func (t *PatternType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 }
 
 func (t *PatternType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *PatternType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var patternType_DEFAULT = &PatternType{[]*RegexpType{}}
+var patternTypeDefault = &PatternType{[]*RegexpType{}}

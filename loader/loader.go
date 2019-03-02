@@ -1,12 +1,13 @@
 package loader
 
 import (
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"reflect"
 	"sort"
 	"sync"
+
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 )
 
 type (
@@ -36,7 +37,7 @@ var staticLoader = &basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 
 func init() {
 	sh := staticLoader.namedEntries
 	types.EachCoreType(func(t eval.Type) {
-		sh[types.NewTypedName(eval.NsType, t.Name()).MapKey()] = &loaderEntry{t, nil}
+		sh[eval.NewTypedName(eval.NsType, t.Name()).MapKey()] = &loaderEntry{t, nil}
 	})
 
 	eval.StaticLoader = func() eval.Loader {
@@ -86,7 +87,7 @@ func load(c eval.Context, name eval.TypedName) (interface{}, bool) {
 
 func (l *basicLoader) Discover(c eval.Context, predicate func(tn eval.TypedName) bool) []eval.TypedName {
 	found := make([]eval.TypedName, 0)
-	for k, _ := range l.namedEntries {
+	for k := range l.namedEntries {
 		tn := eval.TypedNameFromMapKey(k)
 		if predicate(tn) {
 			found = append(found, tn)
@@ -121,7 +122,7 @@ func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval
 		if reflect.ValueOf(old.Value()).Pointer() == reflect.ValueOf(entry.Value()).Pointer() {
 			return old
 		}
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: name}))
+		panic(eval.Error(eval.AttemptToRedefine, issue.H{`name`: name}))
 	}
 	l.namedEntries[name.MapKey()] = entry
 	l.lock.Unlock()
@@ -129,13 +130,13 @@ func (l *basicLoader) SetEntry(name eval.TypedName, entry eval.LoaderEntry) eval
 }
 
 func (l *basicLoader) NameAuthority() eval.URI {
-	return eval.RUNTIME_NAME_AUTHORITY
+	return eval.RuntimeNameAuthority
 }
 
 func (l *parentedLoader) Discover(c eval.Context, predicate func(tn eval.TypedName) bool) []eval.TypedName {
 	found := l.parent.Discover(c, predicate)
 	added := false
-	for k, _ := range l.namedEntries {
+	for k := range l.namedEntries {
 		tn := eval.TypedNameFromMapKey(k)
 		if !l.parent.HasEntry(tn) {
 			if predicate(tn) {

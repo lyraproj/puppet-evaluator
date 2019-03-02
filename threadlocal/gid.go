@@ -1,9 +1,9 @@
 package threadlocal
 
 import (
+	"fmt"
 	"runtime"
 	"sync"
-	"fmt"
 )
 
 // Getgid returns the ID of the current Go routine
@@ -22,7 +22,7 @@ func getg() int64 {
 		if d < 0x30 || d > 0x39 {
 			break
 		}
-		n = n * 10 + int64(d - 0x30)
+		n = n*10 + int64(d-0x30)
 	}
 	if n == 0 {
 		panic(fmt.Errorf(`unable to retrieve id of current go routine`))

@@ -18,10 +18,10 @@ const afterKey = 4
 
 // JsonToData reads JSON from the given reader and streams the values to the
 // given ValueConsumer
-func JsonToData(path string, in io.Reader, consumer ValueConsumer) {
+func JsonToData(path string, in io.Reader, consumer eval.ValueConsumer) {
 	defer func() {
 		if r := recover(); r != nil {
-			panic(eval.Error(eval.EVAL_TASK_BAD_JSON, issue.H{`path`: path, `detail`: r}))
+			panic(eval.Error(eval.TaskBadJson, issue.H{`path`: path, `detail`: r}))
 		}
 	}()
 	d := json.NewDecoder(in)
@@ -29,7 +29,7 @@ func JsonToData(path string, in io.Reader, consumer ValueConsumer) {
 	jsonValues(consumer, d)
 }
 
-func jsonValues(c ValueConsumer, d *json.Decoder) {
+func jsonValues(c eval.ValueConsumer, d *json.Decoder) {
 	for {
 		t, err := d.Token()
 		if err == io.EOF {
@@ -50,7 +50,7 @@ func jsonValues(c ValueConsumer, d *json.Decoder) {
 					if err != nil {
 						panic(err)
 					}
-					if ds, ok = t.(string); ok && ds == PCORE_REF_KEY && d.More() {
+					if ds, ok = t.(string); ok && ds == PcoreRefKey && d.More() {
 						t, err = d.Token()
 						if err != nil {
 							panic(err)
@@ -92,22 +92,22 @@ func jsonValues(c ValueConsumer, d *json.Decoder) {
 	}
 }
 
-func addValue(c ValueConsumer, t json.Token) {
-	switch t.(type) {
+func addValue(c eval.ValueConsumer, t json.Token) {
+	switch t := t.(type) {
 	case bool:
-		c.Add(types.WrapBoolean(t.(bool)))
+		c.Add(types.WrapBoolean(t))
 	case float64:
-		c.Add(types.WrapFloat(t.(float64)))
+		c.Add(types.WrapFloat(t))
 	case json.Number:
-		if i, err := t.(json.Number).Int64(); err == nil {
+		if i, err := t.Int64(); err == nil {
 			c.Add(types.WrapInteger(i))
 		} else {
-			f, _ := t.(json.Number).Float64()
+			f, _ := t.Float64()
 			c.Add(types.WrapFloat(f))
 		}
 	case string:
-		c.Add(types.WrapString(t.(string)))
+		c.Add(types.WrapString(t))
 	case nil:
-		c.Add(eval.UNDEF)
+		c.Add(eval.Undef)
 	}
 }

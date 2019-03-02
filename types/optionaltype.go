@@ -3,9 +3,10 @@ package types
 import (
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 type OptionalType struct {
@@ -24,22 +25,22 @@ func init() {
 		},
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewOptionalType2(args...)
+			return newOptionalType2(args...)
 		})
 }
 
 func DefaultOptionalType() *OptionalType {
-	return optionalType_DEFAULT
+	return optionalTypeDefault
 }
 
 func NewOptionalType(containedType eval.Type) *OptionalType {
-	if containedType == nil || containedType == anyType_DEFAULT {
+	if containedType == nil || containedType == anyTypeDefault {
 		return DefaultOptionalType()
 	}
 	return &OptionalType{containedType}
 }
 
-func NewOptionalType2(args ...eval.Value) *OptionalType {
+func newOptionalType2(args ...eval.Value) *OptionalType {
 	switch len(args) {
 	case 0:
 		return DefaultOptionalType()
@@ -48,15 +49,15 @@ func NewOptionalType2(args ...eval.Value) *OptionalType {
 			return NewOptionalType(containedType)
 		}
 		if containedType, ok := args[0].(stringValue); ok {
-			return NewOptionalType3(string(containedType))
+			return newOptionalType3(string(containedType))
 		}
-		panic(NewIllegalArgumentType2(`Optional[]`, 0, `Variant[Type,String]`, args[0]))
+		panic(NewIllegalArgumentType(`Optional[]`, 0, `Variant[Type,String]`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Optional[]`, `0 - 1`, len(args)))
 	}
 }
 
-func NewOptionalType3(str string) *OptionalType {
+func newOptionalType3(str string) *OptionalType {
 	return &OptionalType{NewStringType(nil, str)}
 }
 
@@ -70,7 +71,7 @@ func (t *OptionalType) ContainedType() eval.Type {
 }
 
 func (t *OptionalType) Default() eval.Type {
-	return optionalType_DEFAULT
+	return optionalTypeDefault
 }
 
 func (t *OptionalType) Equals(o interface{}, g eval.Guard) bool {
@@ -93,11 +94,11 @@ func (t *OptionalType) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *OptionalType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	return GuardedIsAssignable(o, undefType_DEFAULT, g) || GuardedIsAssignable(t.typ, o, g)
+	return GuardedIsAssignable(o, undefTypeDefault, g) || GuardedIsAssignable(t.typ, o, g)
 }
 
 func (t *OptionalType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return o == _UNDEF || GuardedIsInstance(t.typ, o, g)
+	return o == undef || GuardedIsInstance(t.typ, o, g)
 }
 
 func (t *OptionalType) MetaType() eval.ObjectType {
@@ -110,7 +111,7 @@ func (t *OptionalType) Name() string {
 
 func (t *OptionalType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	if str, ok := t.typ.(*vcStringType); ok && str.value != `` {
 		return []eval.Value{stringValue(str.value)}
@@ -136,7 +137,7 @@ func (t *OptionalType) SerializationString() string {
 }
 
 func (t *OptionalType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *OptionalType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -147,4 +148,4 @@ func (t *OptionalType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var optionalType_DEFAULT = &OptionalType{typ: anyType_DEFAULT}
+var optionalTypeDefault = &OptionalType{typ: anyTypeDefault}

@@ -14,52 +14,49 @@ func evalAssignmentExpression(e eval.Evaluator, expr *parser.AssignmentExpressio
 func assign(expr *parser.AssignmentExpression, scope eval.Scope, lv eval.Value, rv eval.Value) eval.Value {
 	if sv, ok := lv.(eval.StringValue); ok {
 		if !scope.Set(sv.String(), rv) {
-			panic(evalError(eval.EVAL_ILLEGAL_REASSIGNMENT, expr, issue.H{`var`: sv.String()}))
+			panic(evalError(eval.IllegalReassignment, expr, issue.H{`var`: sv.String()}))
 		}
 		return rv
 	}
 
 	names := lv.(*types.ArrayValue)
-	switch rv.(type) {
+	switch rv := rv.(type) {
 	case *types.HashValue:
-		h := rv.(*types.HashValue)
 		r := make([]eval.Value, names.Len())
 		names.EachWithIndex(func(name eval.Value, idx int) {
-			v, ok := h.Get(name)
+			v, ok := rv.Get(name)
 			if !ok {
-				panic(evalError(eval.EVAL_MISSING_MULTI_ASSIGNMENT_KEY, expr, issue.H{`name`: name.String()}))
+				panic(evalError(eval.MissingMultiAssignmentKey, expr, issue.H{`name`: name.String()}))
 			}
 			r[idx] = assign(expr, scope, name, v)
 		})
 		return types.WrapValues(r)
 	case *types.ArrayValue:
-		values := rv.(*types.ArrayValue)
-		if names.Len() != values.Len() {
-			panic(evalError(eval.EVAL_ILLEGAL_MULTI_ASSIGNMENT_SIZE, expr, issue.H{`expected`: names.Len(), `actual`: values.Len()}))
+		if names.Len() != rv.Len() {
+			panic(evalError(eval.IllegalMultiAssignmentSize, expr, issue.H{`expected`: names.Len(), `actual`: rv.Len()}))
 		}
 		names.EachWithIndex(func(name eval.Value, idx int) {
-			assign(expr, scope, name, values.At(idx))
+			assign(expr, scope, name, rv.At(idx))
 		})
 		return rv
 	default:
-		panic(evalError(eval.EVAL_ILLEGAL_ASSIGNMENT, expr.Lhs(), issue.H{`value`: expr.Lhs()}))
+		panic(evalError(eval.IllegalAssignment, expr.Lhs(), issue.H{`value`: expr.Lhs()}))
 	}
 }
 
 func lvalue(expr parser.Expression) eval.Value {
-	switch expr.(type) {
+	switch expr := expr.(type) {
 	case *parser.VariableExpression:
-		ve := expr.(*parser.VariableExpression)
-		if name, ok := ve.Name(); ok {
+		if name, ok := expr.Name(); ok {
 			return types.WrapString(name)
 		}
 	case *parser.LiteralList:
-		le := expr.(*parser.LiteralList).Elements()
+		le := expr.Elements()
 		ev := make([]eval.Value, len(le))
 		for idx, ex := range le {
 			ev[idx] = lvalue(ex)
 		}
 		return types.WrapValues(ev)
 	}
-	panic(evalError(eval.EVAL_ILLEGAL_ASSIGNMENT, expr, issue.H{`value`: expr}))
+	panic(evalError(eval.IllegalAssignment, expr, issue.H{`value`: expr}))
 }

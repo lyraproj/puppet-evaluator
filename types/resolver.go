@@ -7,12 +7,12 @@ import (
 
 var coreTypes map[string]eval.Type
 
-func Resolve(c eval.Context, qref string) eval.Type {
-	pt := coreTypes[qref]
+func Resolve(c eval.Context, tn string) eval.Type {
+	pt := coreTypes[tn]
 	if pt != nil {
 		return pt
 	}
-	return loadType(c, qref)
+	return loadType(c, tn)
 }
 
 func ResolveWithParams(c eval.Context, name string, args []eval.Value) eval.Type {
@@ -28,10 +28,13 @@ func ResolveWithParams(c eval.Context, name string, args []eval.Value) eval.Type
 			}
 		}
 	}
-	panic(eval.Error(eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: name}))
+	panic(eval.Error(eval.NotParameterizedType, issue.H{`type`: name}))
 }
 
 func loadType(c eval.Context, name string) eval.Type {
+	if c == nil {
+		return nil
+	}
 	tn := newTypedName2(eval.NsType, name, c.Loader().NameAuthority())
 	found, ok := eval.Load(c, tn)
 	if ok {

@@ -15,11 +15,11 @@ type (
 		// Reset clears all settings and loaders, except the static loaders
 		Reset()
 
-		// SystemLoader returs the loader that finds all built-ins. It's parented
+		// SystemLoader returns the loader that finds all built-ins. It's parented
 		// by a static loader.
 		SystemLoader() Loader
 
-		// EnvironmentLoader returs the loader that finds things declared
+		// EnvironmentLoader returns the loader that finds things declared
 		// in the environment and its modules. This loader is parented
 		// by the SystemLoader
 		EnvironmentLoader() Loader
@@ -56,23 +56,23 @@ type (
 		DoWithParent(context.Context, func(Context))
 
 		// Try executes a given function with an initialized Context instance. If an error occurs,
-		// it is cought and returned. The error returned from the given function is returned when
+		// it is caught and returned. The error returned from the given function is returned when
 		// no other error is caught.
 		//
 		// The Context will be parented by the Go context returned by context.Background()
 		Try(func(Context) error) error
 
 		// TryWithParent executes a given function with an initialized Context instance.  If an error occurs,
-		// it is cought and returned. The error returned from the given function is returned when no other
+		// it is caught and returned. The error returned from the given function is returned when no other
 		// error is caught
 		//
 		// The context will be parented by the given Go context
 		TryWithParent(context.Context, func(Context) error) error
 
 		// NewEvaluator creates a new evaluator instance that will be initialized
-		// with a loader parented by the EnvironmenLoader and the logger configured
+		// with a loader parented by the EnvironmentLoader and the logger configured
 		// for this instance.
-		NewEvaluator(Context) Evaluator
+		NewEvaluator(EvaluationContext) Evaluator
 
 		// NewParser returns a parser and validator that corresponds to the current
 		// settings of the receiver.
@@ -89,15 +89,15 @@ type (
 )
 
 const (
-	KEY_PCORE_URI     = `pcore_uri`
-	KEY_PCORE_VERSION = `pcore_version`
+	KeyPcoreUri     = `pcore_uri`
+	KeyPcoreVersion = `pcore_version`
 
-	RUNTIME_NAME_AUTHORITY = URI(`http://puppet.com/2016.1/runtime`)
-	PCORE_URI              = URI(`http://puppet.com/2016.1/pcore`)
+	RuntimeNameAuthority = URI(`http://puppet.com/2016.1/runtime`)
+	PcoreUri             = URI(`http://puppet.com/2016.1/pcore`)
 )
 
-var PCORE_VERSION, _ = semver.NewVersion3(1, 0, 0, ``, ``)
-var PARSABLE_PCORE_VERSIONS, _ = semver.ParseVersionRange(`1.x`)
+var PcoreVersion, _ = semver.NewVersion3(1, 0, 0, ``, ``)
+var ParsablePcoreVersions, _ = semver.ParseVersionRange(`1.x`)
 
 var Puppet Pcore = nil
 

@@ -2,22 +2,23 @@ package types
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
-var TYPE_FUNCTION_TYPE = NewTypeType(DefaultCallableType())
+var typeFunctionType = NewTypeType(DefaultCallableType())
 
-const KEY_RETURNS_ERROR = `returns_error`
+const keyReturnsError = `returns_error`
 
-var TYPE_FUNCTION = NewStructType([]*StructElement{
-	NewStructElement2(KEY_TYPE, TYPE_FUNCTION_TYPE),
-	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
-	NewStructElement(NewOptionalType3(KEY_GONAME), DefaultStringType()),
-	NewStructElement(NewOptionalType3(KEY_RETURNS_ERROR), NewBooleanType(true)),
+var typeFunction = NewStructType([]*StructElement{
+	newStructElement2(keyType, typeFunctionType),
+	NewStructElement(newOptionalType3(keyFinal), DefaultBooleanType()),
+	NewStructElement(newOptionalType3(keyOverride), DefaultBooleanType()),
+	NewStructElement(newOptionalType3(keyAnnotations), typeAnnotations),
+	NewStructElement(newOptionalType3(KeyGoName), DefaultStringType()),
+	NewStructElement(newOptionalType3(keyReturnsError), NewBooleanType(true)),
 })
 
 type function struct {
@@ -33,32 +34,32 @@ func newFunction(c eval.Context, name string, container *objectType, initHash *H
 }
 
 func (f *function) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
-	eval.AssertInstance(func() string { return fmt.Sprintf(`initializer function for %s[%s]`, container.Label(), name) }, TYPE_FUNCTION, initHash)
+	eval.AssertInstance(func() string { return fmt.Sprintf(`initializer function for %s[%s]`, container.Label(), name) }, typeFunction, initHash)
 	f.annotatedMember.initialize(c, `function`, name, container, initHash)
-	if gn, ok := initHash.Get4(KEY_GONAME); ok {
+	if gn, ok := initHash.Get4(KeyGoName); ok {
 		f.goName = gn.String()
 	}
-	if re, ok := initHash.Get4(KEY_RETURNS_ERROR); ok {
+	if re, ok := initHash.Get4(keyReturnsError); ok {
 		f.returnsError = re.(booleanValue).Bool()
 	}
 }
 
-func (a *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
-	if a.CallableType().(*CallableType).CallableWith(args, block) {
+func (f *function) Call(c eval.Context, receiver eval.Value, block eval.Lambda, args []eval.Value) eval.Value {
+	if f.CallableType().(*CallableType).CallableWith(args, block) {
 		if co, ok := receiver.(eval.CallableObject); ok {
-			if result, ok := co.Call(c, a, args, block); ok {
+			if result, ok := co.Call(c, f, args, block); ok {
 				return result
 			}
 		}
 
-		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: receiver.PType(), `message`: a.name}))
+		panic(eval.Error(eval.InstanceDoesNotRespond, issue.H{`type`: receiver.PType(), `message`: f.name}))
 	}
 	types := make([]eval.Value, len(args))
 	for i, a := range args {
 		types[i] = a.PType()
 	}
-	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
+	panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeSignatures(
+		[]eval.Signature{f.CallableType().(*CallableType)}, newTupleType2(types...), block)}))
 }
 
 func (f *function) CallGo(c eval.Context, receiver interface{}, args ...interface{}) []interface{} {
@@ -81,13 +82,13 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []refle
 	rt := args[0].Type()
 	m, ok := rt.MethodByName(f.goName)
 	if !ok {
-		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: rt.String(), `message`: f.goName}))
+		panic(eval.Error(eval.InstanceDoesNotRespond, issue.H{`type`: rt.String(), `message`: f.goName}))
 	}
 
 	mt := m.Type
 	pc := mt.NumIn()
 	if pc != len(args) {
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+		panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeSignatures(
 			[]eval.Signature{f.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}
 	result := m.Func.Call(args)
@@ -100,7 +101,7 @@ func (f *function) CallGoReflected(c eval.Context, args []reflect.Value) []refle
 			if re, ok := err.(issue.Reported); ok {
 				panic(re)
 			}
-			panic(eval.Error(eval.EVAL_GO_FUNCTION_ERROR, issue.H{`name`: f.goName, `error`: err}))
+			panic(eval.Error(eval.GoFunctionError, issue.H{`name`: f.goName, `error`: err}))
 		}
 		result = result[:oc]
 	}

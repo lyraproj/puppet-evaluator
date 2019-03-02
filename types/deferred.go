@@ -1,12 +1,13 @@
 package types
 
 import (
+	"io"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/puppet-parser/parser"
-	"io"
 )
 
 var DeferredMetaType eval.ObjectType
@@ -20,10 +21,10 @@ func init() {
       arguments => { type => Optional[Array[Any]], value => undef},
     }}`,
 		func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewDeferred2(ctx, args...)
+			return newDeferred2(args...)
 		},
 		func(ctx eval.Context, args []eval.Value) eval.Value {
-			return newDeferredFromHash(ctx, args[0].(*HashValue))
+			return newDeferredFromHash(args[0].(*HashValue))
 		})
 
 	// For internal use only
@@ -42,34 +43,30 @@ type deferred struct {
 }
 
 func NewDeferred(name string, arguments ...eval.Value) *deferred {
-	return newDeferred(name, WrapValues(arguments))
+	return &deferred{name, WrapValues(arguments)}
 }
 
-func newDeferred(name string, arguments *ArrayValue) *deferred {
-	return &deferred{name, arguments}
-}
-
-func NewDeferred2(c eval.Context, args ...eval.Value) *deferred {
+func newDeferred2(args ...eval.Value) *deferred {
 	argc := len(args)
 	if argc < 1 || argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`deferred[]`, `1 - 2`, argc))
 	}
 	if name, ok := args[0].(stringValue); ok {
 		if argc == 1 {
-			return newDeferred(string(name), _EMPTY_ARRAY)
+			return &deferred{string(name), emptyArray}
 		}
 		if as, ok := args[1].(*ArrayValue); ok {
-			return newDeferred(string(name), as)
+			return &deferred{string(name), as}
 		}
-		panic(NewIllegalArgumentType2(`deferred[]`, 1, `Array`, args[1]))
+		panic(NewIllegalArgumentType(`deferred[]`, 1, `Array`, args[1]))
 	}
-	panic(NewIllegalArgumentType2(`deferred[]`, 0, `String`, args[0]))
+	panic(NewIllegalArgumentType(`deferred[]`, 0, `String`, args[0]))
 }
 
-func newDeferredFromHash(c eval.Context, hash *HashValue) *deferred {
-	name := hash.Get5(`name`, eval.EMPTY_STRING).String()
-	arguments := hash.Get5(`arguments`, eval.EMPTY_ARRAY).(*ArrayValue)
-	return newDeferred(name, arguments)
+func newDeferredFromHash(hash *HashValue) *deferred {
+	name := hash.Get5(`name`, eval.EmptyString).String()
+	arguments := hash.Get5(`arguments`, eval.EmptyArray).(*ArrayValue)
+	return &deferred{name, arguments}
 }
 
 func (e *deferred) Name() string {
@@ -120,9 +117,9 @@ func (e *deferred) Resolve(c eval.Context) eval.Value {
 	var args []eval.Value
 	if fn[0] == '$' {
 		vn := fn[1:]
-		vv, ok := c.Scope().Get(vn)
+		vv, ok := c.(eval.EvaluationContext).Scope().Get(vn)
 		if !ok {
-			panic(eval.Error(eval.EVAL_UNKNOWN_VARIABLE, issue.H{`name`: vn}))
+			panic(eval.Error(eval.UnknownVariable, issue.H{`name`: vn}))
 		}
 		if e.arguments.Len() == 0 {
 			// No point digging with zero arguments
@@ -140,22 +137,23 @@ func (e *deferred) Resolve(c eval.Context) eval.Value {
 	return eval.Call(c, fn, args, nil)
 }
 
-// ResolveDeferred will resolve all occurences of a DeferredValue in its
+// ResolveDeferred will resolve all occurrences of a DeferredValue in its
 // given argument. Array and Hash arguments will be resolved recursively.
 func ResolveDeferred(c eval.Context, a eval.Value) eval.Value {
-	switch a.(type) {
+	switch a := a.(type) {
 	case Deferred:
-		a = a.(Deferred).Resolve(c)
+		return a.Resolve(c)
 	case *ArrayValue:
-		a = a.(*ArrayValue).Map(func(v eval.Value) eval.Value {
+		return a.Map(func(v eval.Value) eval.Value {
 			return ResolveDeferred(c, v)
 		})
 	case *HashValue:
-		a = a.(*HashValue).MapEntries(func(v eval.MapEntry) eval.MapEntry {
+		return a.MapEntries(func(v eval.MapEntry) eval.MapEntry {
 			return WrapHashEntry(ResolveDeferred(c, v.Key()), ResolveDeferred(c, v.Value()))
 		})
+	default:
+		return a
 	}
-	return a
 }
 
 func NewDeferredExpression(expression parser.Expression) Deferred {
@@ -175,9 +173,9 @@ func (d *deferredExpr) Equals(other interface{}, guard eval.Guard) bool {
 }
 
 func (d *deferredExpr) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, `DeferredExpression(`)
+	utils.WriteString(b, `DeferredExpression(`)
 	utils.PuppetQuote(b, d.expression.String())
-	io.WriteString(b, `)`)
+	utils.WriteString(b, `)`)
 }
 
 func (d *deferredExpr) PType() eval.Type {
@@ -185,5 +183,5 @@ func (d *deferredExpr) PType() eval.Type {
 }
 
 func (d *deferredExpr) Resolve(c eval.Context) eval.Value {
-	return eval.Evaluate(c, d.expression)
+	return eval.Evaluate(c.(eval.EvaluationContext), d.expression)
 }

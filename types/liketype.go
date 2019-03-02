@@ -3,11 +3,12 @@ package types
 import (
 	"io"
 
+	"strconv"
+	"strings"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"strconv"
-	"strings"
 )
 
 type LikeType struct {
@@ -26,19 +27,19 @@ func init() {
 		navigation => String[1]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewLikeType2(args...)
+			return newLikeType2(args...)
 		})
 }
 
 func DefaultLikeType() *LikeType {
-	return typeOfType_DEFAULT
+	return typeOfTypeDefault
 }
 
 func NewLikeType(baseType eval.Type, navigation string) *LikeType {
 	return &LikeType{baseType: baseType, navigation: navigation}
 }
 
-func NewLikeType2(args ...eval.Value) *LikeType {
+func newLikeType2(args ...eval.Value) *LikeType {
 	switch len(args) {
 	case 0:
 		return DefaultLikeType()
@@ -47,10 +48,10 @@ func NewLikeType2(args ...eval.Value) *LikeType {
 			if an, ok := args[1].(stringValue); ok {
 				return NewLikeType(tp, string(an))
 			} else {
-				panic(NewIllegalArgumentType2(`Like[]`, 1, `String`, args[1]))
+				panic(NewIllegalArgumentType(`Like[]`, 1, `String`, args[1]))
 			}
 		} else {
-			panic(NewIllegalArgumentType2(`Like[]`, 0, `Type`, args[1]))
+			panic(NewIllegalArgumentType(`Like[]`, 0, `Type`, args[1]))
 		}
 	default:
 		panic(errors.NewIllegalArgumentCount(`Like[]`, `0 or 2`, len(args)))
@@ -63,7 +64,7 @@ func (t *LikeType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *LikeType) Default() eval.Type {
-	return typeOfType_DEFAULT
+	return typeOfTypeDefault
 }
 
 func (t *LikeType) Equals(o interface{}, g eval.Guard) bool {
@@ -101,12 +102,12 @@ func (t *LikeType) Name() string {
 }
 
 func (t *LikeType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *LikeType) Parameters() []eval.Value {
-	if *t == *typeOfType_DEFAULT {
-		return eval.EMPTY_VALUES
+	if *t == *typeOfTypeDefault {
+		return eval.EmptyValues
 	}
 	return []eval.Value{t.baseType, stringValue(t.navigation)}
 }
@@ -117,17 +118,17 @@ func (t *LikeType) Resolve(c eval.Context) eval.Type {
 	}
 	bt := t.baseType
 	bv := bt.(eval.Value)
-	ok := true
+	var ok bool
 	for _, part := range strings.Split(t.navigation, `.`) {
 		if c, bv, ok = navigate(c, bv, part); !ok {
-			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE_OF, issue.H{`type`: t.baseType, `navigation`: t.navigation}))
+			panic(eval.Error(eval.UnresolvedTypeOf, issue.H{`type`: t.baseType, `navigation`: t.navigation}))
 		}
 	}
 	if bt, ok = bv.(eval.Type); ok {
 		t.resolved = bt
 		return bt
 	}
-	panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE_OF, issue.H{`type`: t.baseType, `navigation`: t.navigation}))
+	panic(eval.Error(eval.UnresolvedTypeOf, issue.H{`type`: t.baseType, `navigation`: t.navigation}))
 }
 
 func (t *LikeType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -182,4 +183,4 @@ func navigate(c eval.Context, value eval.Value, member string) (eval.Context, ev
 	return c, nil, false
 }
 
-var typeOfType_DEFAULT = &LikeType{baseType: DefaultAnyType()}
+var typeOfTypeDefault = &LikeType{baseType: DefaultAnyType()}

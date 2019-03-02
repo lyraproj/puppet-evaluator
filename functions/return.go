@@ -10,7 +10,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.OptionalParam(`Any`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := eval.UNDEF
+				arg := eval.Undef
 				if len(args) > 0 {
 					arg = args[0]
 				}

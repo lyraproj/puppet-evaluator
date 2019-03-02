@@ -19,15 +19,15 @@ func (a *annotatedMember) initialize(c eval.Context, memberType, name string, co
 	a.annotatable.initialize(initHash)
 	a.name = name
 	a.container = container
-	typ := initHash.Get5(KEY_TYPE, nil)
+	typ := initHash.Get5(keyType, nil)
 	if tn, ok := typ.(stringValue); ok {
 		a.typ = container.parseAttributeType(c, memberType, name, tn)
 	} else {
-		// Unchecked because type is guaranteed by earlier type assersion on the hash
+		// Unchecked because type is guaranteed by earlier type assertion on the hash
 		a.typ = typ.(eval.Type)
 	}
-	a.override = boolArg(initHash, KEY_OVERRIDE, false)
-	a.final = boolArg(initHash, KEY_FINAL, false)
+	a.override = boolArg(initHash, keyOverride, false)
+	a.final = boolArg(initHash, keyFinal, false)
 }
 
 func (a *annotatedMember) Accept(v eval.Visitor, g eval.Guard) {
@@ -62,12 +62,12 @@ func (a *annotatedMember) Override() bool {
 
 func (a *annotatedMember) initHash() *hash.StringHash {
 	h := a.annotatable.initHash()
-	h.Put(KEY_TYPE, a.typ)
+	h.Put(keyType, a.typ)
 	if a.final {
-		h.Put(KEY_FINAL, BooleanTrue)
+		h.Put(keyFinal, BooleanTrue)
 	}
 	if a.override {
-		h.Put(KEY_OVERRIDE, BooleanTrue)
+		h.Put(keyOverride, BooleanTrue)
 	}
 	return h
 }
@@ -82,7 +82,7 @@ func assertOverride(a eval.AnnotatedMember, parentMembers *hash.StringHash) {
 	parentMember, _ := parentMembers.Get(a.Name(), nil).(eval.AnnotatedMember)
 	if parentMember == nil {
 		if a.Override() {
-			panic(eval.Error(eval.EVAL_OVERRIDDEN_NOT_FOUND, issue.H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
+			panic(eval.Error(eval.OverriddenNotFound, issue.H{`label`: a.Label(), `feature_type`: a.FeatureType()}))
 		}
 	} else {
 		assertCanBeOverridden(parentMember, a)
@@ -91,19 +91,19 @@ func assertOverride(a eval.AnnotatedMember, parentMembers *hash.StringHash) {
 
 func assertCanBeOverridden(a eval.AnnotatedMember, member eval.AnnotatedMember) {
 	if a.FeatureType() != member.FeatureType() {
-		panic(eval.Error(eval.EVAL_OVERRIDE_MEMBER_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.OverrideMemberMismatch, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 	if a.Final() {
 		aa, ok := a.(eval.Attribute)
-		if !(ok && aa.Kind() == CONSTANT && member.(eval.Attribute).Kind() == CONSTANT) {
-			panic(eval.Error(eval.EVAL_OVERRIDE_OF_FINAL, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		if !(ok && aa.Kind() == constant && member.(eval.Attribute).Kind() == constant) {
+			panic(eval.Error(eval.OverrideOfFinal, issue.H{`member`: member.Label(), `label`: a.Label()}))
 		}
 	}
 	if !member.Override() {
-		panic(eval.Error(eval.EVAL_OVERRIDE_IS_MISSING, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.OverrideIsMissing, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 	if !eval.IsAssignable(a.Type(), member.Type()) {
-		panic(eval.Error(eval.EVAL_OVERRIDE_TYPE_MISMATCH, issue.H{`member`: member.Label(), `label`: a.Label()}))
+		panic(eval.Error(eval.OverrideTypeMismatch, issue.H{`member`: member.Label(), `label`: a.Label()}))
 	}
 }
 

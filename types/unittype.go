@@ -11,9 +11,10 @@ type UnitType struct{}
 var UnitMetaType eval.ObjectType
 
 func init() {
-	UnitMetaType = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return DefaultUnitType()
-	})
+	UnitMetaType = newObjectType(`Pcore::UnitType`, `Pcore::AnyType{}`,
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			return DefaultUnitType()
+		})
 
 	newGoConstructor(`Unit`,
 		func(d eval.Dispatch) {
@@ -26,7 +27,7 @@ func init() {
 }
 
 func DefaultUnitType() *UnitType {
-	return unitType_DEFAULT
+	return unitTypeDefault
 }
 
 func (t *UnitType) Accept(v eval.Visitor, g eval.Guard) {
@@ -74,4 +75,4 @@ func (t *UnitType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var unitType_DEFAULT = &UnitType{}
+var unitTypeDefault = &UnitType{}

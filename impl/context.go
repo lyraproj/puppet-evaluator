@@ -5,27 +5,33 @@ import (
 	"fmt"
 	"sync"
 
+	"runtime"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/puppet-parser/parser"
+	dsl "github.com/lyraproj/puppet-parser/parser"
 	"github.com/lyraproj/puppet-parser/validator"
-	"runtime"
 )
 
 type (
-	evalCtx struct {
+	pcoreCtx struct {
 		context.Context
-		evaluator    eval.Evaluator
 		loader       eval.Loader
 		logger       eval.Logger
 		stack        []issue.Location
-		scope        eval.Scope
 		implRegistry eval.ImplementationRegistry
-		static       bool
-		definitions  []interface{}
 		vars         map[string]interface{}
+	}
+
+	evalCtx struct {
+		pcoreCtx
+
+		evaluator   eval.Evaluator
+		scope       eval.Scope
+		static      bool
+		definitions []interface{}
 	}
 )
 
@@ -38,23 +44,17 @@ func init() {
 		if f, ok := eval.Load(c, tn); ok {
 			return f.(eval.Function).Call(c, block, args...)
 		}
-		panic(issue.NewReported(eval.EVAL_UNKNOWN_FUNCTION, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
+		panic(issue.NewReported(eval.UnknownFunction, issue.SEVERITY_ERROR, issue.H{`name`: tn.String()}, c.StackTop()))
 	}
+
+	eval.AddTypes = addTypes
 
 	eval.CurrentContext = func() eval.Context {
 		if ctx, ok := threadlocal.Get(eval.PuppetContextKey); ok {
 			return ctx.(eval.Context)
 		}
 		_, file, line, _ := runtime.Caller(1)
-		panic(issue.NewReported(eval.EVAL_NO_CURRENT_CONTEXT, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
-	}
-
-	eval.StackTop = func() issue.Location {
-		if ctx, ok := threadlocal.Get(eval.PuppetContextKey); ok {
-			return ctx.(eval.Context).StackTop()
-		}
-		_, file, line, _ := runtime.Caller(2)
-		return issue.NewLocation(file, line, 0)
+		panic(issue.NewReported(eval.NoCurrentContext, issue.SEVERITY_ERROR, issue.NO_ARGS, issue.NewLocation(file, line, 0)))
 	}
 
 	eval.RegisterGoFunction = func(function eval.ResolvableFunction) {
@@ -62,13 +62,30 @@ func init() {
 		resolvableFunctions = append(resolvableFunctions, function)
 		resolvableFunctionsLock.Unlock()
 	}
+
+	eval.ResolveDefinitions = resolveDefinitions
+	eval.ResolveResolvables = resolveResolvables
 }
 
-func NewContext(evaluatorCtor func(c eval.Context) eval.Evaluator, loader eval.Loader, logger eval.Logger) eval.Context {
+func NewContext(evaluatorCtor func(c eval.EvaluationContext) eval.Evaluator, loader eval.Loader, logger eval.Logger) eval.Context {
 	return WithParent(context.Background(), evaluatorCtor, loader, logger, newImplementationRegistry())
 }
 
-func WithParent(parent context.Context, evaluatorCtor func(c eval.Context) eval.Evaluator, loader eval.Loader, logger eval.Logger, ir eval.ImplementationRegistry) eval.Context {
+func WithTypeParent(parent context.Context, loader eval.Loader, logger eval.Logger, ir eval.ImplementationRegistry) eval.Context {
+	var c *pcoreCtx
+	ir = newParentedImplementationRegistry(ir)
+	if cp, ok := parent.(pcoreCtx); ok {
+		c = cp.clone()
+		c.Context = parent
+		c.loader = loader
+		c.logger = logger
+	} else {
+		c = &pcoreCtx{Context: parent, loader: loader, logger: logger, stack: make([]issue.Location, 0, 8), implRegistry: ir}
+	}
+	return c
+}
+
+func WithParent(parent context.Context, evaluatorCtor func(c eval.EvaluationContext) eval.Evaluator, loader eval.Loader, logger eval.Logger, ir eval.ImplementationRegistry) eval.Context {
 	var c *evalCtx
 	ir = newParentedImplementationRegistry(ir)
 	if cp, ok := parent.(evalCtx); ok {
@@ -78,22 +95,22 @@ func WithParent(parent context.Context, evaluatorCtor func(c eval.Context) eval.
 		c.logger = logger
 		c.evaluator = evaluatorCtor(c)
 	} else {
-		c = &evalCtx{Context: parent, loader: loader, logger: logger, stack: make([]issue.Location, 0, 8), implRegistry: ir}
+		c = &evalCtx{pcoreCtx: pcoreCtx{Context: parent, loader: loader, logger: logger, stack: make([]issue.Location, 0, 8), implRegistry: ir}}
 		c.evaluator = evaluatorCtor(c)
 	}
 	return c
 }
 
-func (c *evalCtx) AddDefinitions(expr parser.Expression) {
-	if prog, ok := expr.(*parser.Program); ok {
-		loader := c.DefiningLoader()
-		for _, d := range prog.Definitions() {
-			c.define(loader, d)
+func (c *evalCtx) AddDefinitions(expr dsl.Expression) {
+	if p, ok := expr.(*dsl.Program); ok {
+		dl := c.DefiningLoader()
+		for _, d := range p.Definitions() {
+			c.define(dl, d)
 		}
 	}
 }
 
-func (c *evalCtx) AddTypes(types ...eval.Type) {
+func addTypes(c eval.Context, types ...eval.Type) {
 	l := c.DefiningLoader()
 	rts := make([]eval.ResolvableType, 0, len(types))
 	for _, t := range types {
@@ -102,10 +119,10 @@ func (c *evalCtx) AddTypes(types ...eval.Type) {
 			rts = append(rts, rt)
 		}
 	}
-	c.resolveTypes(rts...)
+	resolveTypes(c, rts...)
 }
 
-func (c *evalCtx) DefiningLoader() eval.DefiningLoader {
+func (c *pcoreCtx) DefiningLoader() eval.DefiningLoader {
 	l := c.loader
 	for {
 		if dl, ok := l.(eval.DefiningLoader); ok {
@@ -119,7 +136,7 @@ func (c *evalCtx) DefiningLoader() eval.DefiningLoader {
 	}
 }
 
-func (c *evalCtx) Delete(key string) {
+func (c *pcoreCtx) Delete(key string) {
 	if c.vars != nil {
 		delete(c.vars, key)
 	}
@@ -138,7 +155,7 @@ func (c *evalCtx) DoStatic(doer eval.Doer) {
 	doer()
 }
 
-func (c *evalCtx) DoWithLoader(loader eval.Loader, doer eval.Doer) {
+func (c *pcoreCtx) DoWithLoader(loader eval.Loader, doer eval.Doer) {
 	saveLoader := c.loader
 	defer func() {
 		c.loader = saveLoader
@@ -156,7 +173,7 @@ func (c *evalCtx) DoWithScope(scope eval.Scope, doer eval.Doer) {
 	doer()
 }
 
-func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
+func (c *pcoreCtx) Error(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
 	if location == nil {
 		location = c.StackTop()
 	}
@@ -165,6 +182,33 @@ func (c *evalCtx) Error(location issue.Location, issueCode issue.Code, args issu
 
 func (c *evalCtx) GetEvaluator() eval.Evaluator {
 	return c.evaluator
+}
+
+func (c *pcoreCtx) Fork() eval.Context {
+	s := make([]issue.Location, len(c.stack))
+	copy(s, c.stack)
+	clone := c.clone()
+	clone.loader = eval.NewParentedLoader(clone.loader)
+	clone.implRegistry = newParentedImplementationRegistry(clone.implRegistry)
+	clone.stack = s
+
+	if c.vars != nil {
+		cv := make(map[string]interface{}, len(c.vars))
+		for k, v := range c.vars {
+			cv[k] = v
+		}
+		clone.vars = cv
+	}
+	return clone
+}
+
+// clone a new context from this context which is an exact copy except for the parent
+// of the clone which is set to the original. It is used internally by Fork
+func (c *evalCtx) clone() *evalCtx {
+	clone := &evalCtx{}
+	*clone = *c
+	clone.Context = c
+	return clone
 }
 
 func (c *evalCtx) Fork() eval.Context {
@@ -189,11 +233,11 @@ func (c *evalCtx) Fork() eval.Context {
 	return clone
 }
 
-func (c *evalCtx) Fail(message string) issue.Reported {
-	return c.Error(nil, eval.EVAL_FAILURE, issue.H{`message`: message})
+func (c *pcoreCtx) Fail(message string) issue.Reported {
+	return c.Error(nil, eval.Failure, issue.H{`message`: message})
 }
 
-func (c *evalCtx) Get(key string) (interface{}, bool) {
+func (c *pcoreCtx) Get(key string) (interface{}, bool) {
 	if c.vars != nil {
 		if v, ok := c.vars[key]; ok {
 			return v, true
@@ -202,27 +246,27 @@ func (c *evalCtx) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (c *evalCtx) ImplementationRegistry() eval.ImplementationRegistry {
+func (c *pcoreCtx) ImplementationRegistry() eval.ImplementationRegistry {
 	return c.implRegistry
 }
 
-func (c *evalCtx) Loader() eval.Loader {
+func (c *pcoreCtx) Loader() eval.Loader {
 	return c.loader
 }
 
-func (c *evalCtx) Logger() eval.Logger {
+func (c *pcoreCtx) Logger() eval.Logger {
 	return c.logger
 }
 
-func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
-	var parserOptions []parser.Option
+func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) dsl.Expression {
+	var parserOptions []dsl.Option
 	if eval.GetSetting(`workflow`, types.BooleanFalse).(eval.BooleanValue).Bool() {
-		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
+		parserOptions = append(parserOptions, dsl.PARSER_WORKFLOW_ENABLED)
 	}
 	if eval.GetSetting(`tasks`, types.BooleanFalse).(eval.BooleanValue).Bool() {
-		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
+		parserOptions = append(parserOptions, dsl.PARSER_TASKS_ENABLED)
 	}
-	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
+	expr, err := dsl.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
 	if err != nil {
 		panic(err)
 	}
@@ -244,44 +288,52 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 	return expr
 }
 
-func (c *evalCtx) ParseType(typeString eval.Value) eval.Type {
+func (c *pcoreCtx) ParseType(typeString eval.Value) eval.Type {
 	if sv, ok := typeString.(eval.StringValue); ok {
 		return c.ParseType2(sv.String())
 	}
-	panic(types.NewIllegalArgumentType2(`ParseType`, 0, `String`, typeString))
+	panic(types.NewIllegalArgumentType(`ParseType`, 0, `String`, typeString))
 }
 
-func (c *evalCtx) ParseType2(str string) eval.Type {
-	return c.ResolveType(c.ParseAndValidate(``, str, true))
+func (c *pcoreCtx) ParseType2(str string) eval.Type {
+	t, err := types.Parse(str)
+	if err != nil {
+		panic(err)
+	}
+	if pt, ok := t.(eval.ResolvableType); ok {
+		return pt.Resolve(c)
+	}
+	panic(fmt.Errorf(`expression "%s" does no resolve to a Type`, str))
 }
 
-func (c *evalCtx) Reflector() eval.Reflector {
+func (c *pcoreCtx) Reflector() eval.Reflector {
 	return types.NewReflector(c)
 }
 
-func (c *evalCtx) ResolveDefinitions() []interface{} {
-	if c.definitions == nil || len(c.definitions) == 0 {
+func resolveDefinitions(c eval.Context) []interface{} {
+	ec, ok := c.(*evalCtx)
+	if !ok || len(ec.definitions) == 0 {
 		return []interface{}{}
 	}
 
-	defs := c.definitions
-	c.definitions = nil
+	defs := ec.definitions
+	ec.definitions = nil
 	ts := make([]eval.ResolvableType, 0, 8)
 	for _, d := range defs {
-		switch d.(type) {
+		switch d := d.(type) {
 		case eval.Resolvable:
-			d.(eval.Resolvable).Resolve(c)
+			d.Resolve(ec)
 		case eval.ResolvableType:
-			ts = append(ts, d.(eval.ResolvableType))
+			ts = append(ts, d)
 		}
 	}
 	if len(ts) > 0 {
-		c.resolveTypes(ts...)
+		resolveTypes(c, ts...)
 	}
 	return defs
 }
 
-func (c *evalCtx) ResolveResolvables() {
+func resolveResolvables(c eval.Context) {
 	l := c.Loader().(eval.DefiningLoader)
 	ts := types.PopDeclaredTypes()
 	for _, rt := range ts {
@@ -289,10 +341,10 @@ func (c *evalCtx) ResolveResolvables() {
 	}
 
 	for _, mp := range types.PopDeclaredMappings() {
-		c.ImplementationRegistry().RegisterType(c, mp.T, mp.R)
+		c.ImplementationRegistry().RegisterType(mp.T, mp.R)
 	}
 
-	c.resolveTypes(ts...)
+	resolveTypes(c, ts...)
 
 	ctors := types.PopDeclaredConstructors()
 	for _, ct := range ctors {
@@ -300,13 +352,13 @@ func (c *evalCtx) ResolveResolvables() {
 		l.SetEntry(eval.NewTypedName(eval.NsConstructor, rf.Name()), eval.NewLoaderEntry(rf.Resolve(c), nil))
 	}
 
-	funcs := popDeclaredGoFunctions()
-	for _, rf := range funcs {
+	fs := popDeclaredGoFunctions()
+	for _, rf := range fs {
 		l.SetEntry(eval.NewTypedName(eval.NsFunction, rf.Name()), eval.NewLoaderEntry(rf.Resolve(c), nil))
 	}
 }
 
-func (c *evalCtx) ResolveType(expr parser.Expression) eval.Type {
+func (c *evalCtx) ResolveType(expr dsl.Expression) eval.Type {
 	var resolved eval.Value
 	c.DoStatic(func() {
 		resolved = eval.Evaluate(c, expr)
@@ -324,7 +376,7 @@ func (c *evalCtx) Scope() eval.Scope {
 	return c.scope
 }
 
-func (c *evalCtx) Set(key string, value interface{}) {
+func (c *pcoreCtx) Set(key string, value interface{}) {
 	if c.vars == nil {
 		c.vars = map[string]interface{}{key: value}
 	} else {
@@ -332,23 +384,23 @@ func (c *evalCtx) Set(key string, value interface{}) {
 	}
 }
 
-func (c *evalCtx) SetLoader(loader eval.Loader) {
+func (c *pcoreCtx) SetLoader(loader eval.Loader) {
 	c.loader = loader
 }
 
-func (c *evalCtx) Stack() []issue.Location {
+func (c *pcoreCtx) Stack() []issue.Location {
 	return c.stack
 }
 
-func (c *evalCtx) StackPop() {
+func (c *pcoreCtx) StackPop() {
 	c.stack = c.stack[:len(c.stack)-1]
 }
 
-func (c *evalCtx) StackPush(location issue.Location) {
+func (c *pcoreCtx) StackPush(location issue.Location) {
 	c.stack = append(c.stack, location)
 }
 
-func (c *evalCtx) StackTop() issue.Location {
+func (c *pcoreCtx) StackTop() issue.Location {
 	s := len(c.stack)
 	if s == 0 {
 		return &systemLocation{}
@@ -362,29 +414,26 @@ func (c *evalCtx) Static() bool {
 
 // clone a new context from this context which is an exact copy except for the parent
 // of the clone which is set to the original. It is used internally by Fork
-func (c *evalCtx) clone() *evalCtx {
-	clone := &evalCtx{}
+func (c *pcoreCtx) clone() *pcoreCtx {
+	clone := &pcoreCtx{}
 	*clone = *c
 	clone.Context = c
 	return clone
 }
 
-func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
+func (c *evalCtx) define(loader eval.DefiningLoader, d dsl.Definition) {
 	var ta interface{}
 	var tn eval.TypedName
-	switch d.(type) {
-	case *parser.ActivityExpression:
-		wf := d.(*parser.ActivityExpression)
-		tn = eval.NewTypedName2(eval.NsActivity, wf.Name(), loader.NameAuthority())
-		ta = NewPuppetActivity(c, wf)
-	case *parser.PlanDefinition:
-		pe := d.(*parser.PlanDefinition)
-		tn = eval.NewTypedName2(eval.NsPlan, pe.Name(), loader.NameAuthority())
-		ta = NewPuppetPlan(pe)
-	case *parser.FunctionDefinition:
-		fe := d.(*parser.FunctionDefinition)
-		tn = eval.NewTypedName2(eval.NsFunction, fe.Name(), loader.NameAuthority())
-		ta = NewPuppetFunction(fe)
+	switch d := d.(type) {
+	case *dsl.ActivityExpression:
+		tn = eval.NewTypedName2(eval.NsActivity, d.Name(), loader.NameAuthority())
+		ta = NewPuppetActivity(c, d)
+	case *dsl.PlanDefinition:
+		tn = eval.NewTypedName2(eval.NsPlan, d.Name(), loader.NameAuthority())
+		ta = NewPuppetPlan(d)
+	case *dsl.FunctionDefinition:
+		tn = eval.NewTypedName2(eval.NsFunction, d.Name(), loader.NameAuthority())
+		ta = NewPuppetFunction(d)
 	default:
 		ta, tn = types.CreateTypeDefinition(d, loader.NameAuthority())
 	}
@@ -396,7 +445,7 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	}
 }
 
-func (c *evalCtx) resolveTypes(types ...eval.ResolvableType) {
+func resolveTypes(c eval.Context, types ...eval.ResolvableType) {
 	l := c.DefiningLoader()
 	typeSets := make([]eval.TypeSet, 0)
 	allAnnotated := make([]eval.Annotatable, 0, len(types))
@@ -418,7 +467,7 @@ func (c *evalCtx) resolveTypes(types ...eval.ResolvableType) {
 	}
 
 	for _, ts := range typeSets {
-		allAnnotated = c.resolveTypeSet(l, ts, allAnnotated)
+		allAnnotated = resolveTypeSet(c, l, ts, allAnnotated)
 	}
 
 	// Validate type annotations
@@ -429,11 +478,11 @@ func (c *evalCtx) resolveTypes(types ...eval.ResolvableType) {
 	}
 }
 
-func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet, allAnnotated []eval.Annotatable) []eval.Annotatable {
+func resolveTypeSet(c eval.Context, l eval.DefiningLoader, ts eval.TypeSet, allAnnotated []eval.Annotatable) []eval.Annotatable {
 	ts.Types().EachValue(func(tv eval.Value) {
 		t := tv.(eval.Type)
 		if tsc, ok := t.(eval.TypeSet); ok {
-			allAnnotated = c.resolveTypeSet(l, tsc, allAnnotated)
+			allAnnotated = resolveTypeSet(c, l, tsc, allAnnotated)
 		}
 		// Types already known to the loader might have been added to a TypeSet. When that
 		// happens, we don't want them added again.
@@ -454,10 +503,10 @@ func (c *evalCtx) resolveTypeSet(l eval.DefiningLoader, ts eval.TypeSet, allAnno
 	return allAnnotated
 }
 
-func popDeclaredGoFunctions() (funcs []eval.ResolvableFunction) {
+func popDeclaredGoFunctions() (fs []eval.ResolvableFunction) {
 	resolvableFunctionsLock.Lock()
-	funcs = resolvableFunctions
-	if len(funcs) > 0 {
+	fs = resolvableFunctions
+	if len(fs) > 0 {
 		resolvableFunctions = make([]eval.ResolvableFunction, 0, 16)
 	}
 	resolvableFunctionsLock.Unlock()

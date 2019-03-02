@@ -3,17 +3,18 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/utils"
 	"io"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
-var uriType_Default = &UriType{_UNDEF}
+var uriTypeDefault = &UriType{undef}
 
 var URIMetaType eval.ObjectType
 
@@ -22,13 +23,13 @@ var members = map[string]uriMemberFunc{
 		if uri.Scheme != `` {
 			return stringValue(strings.ToLower(uri.Scheme))
 		}
-		return _UNDEF
+		return undef
 	},
 	`userinfo`: func(uri *url.URL) eval.Value {
 		if uri.User != nil {
 			return stringValue(uri.User.String())
 		}
-		return _UNDEF
+		return undef
 	},
 	`host`: func(uri *url.URL) eval.Value {
 		if uri.Host != `` {
@@ -39,7 +40,7 @@ var members = map[string]uriMemberFunc{
 			}
 			return stringValue(strings.ToLower(h))
 		}
-		return _UNDEF
+		return undef
 	},
 	`port`: func(uri *url.URL) eval.Value {
 		port := uri.Port()
@@ -48,31 +49,31 @@ var members = map[string]uriMemberFunc{
 				return integerValue(int64(pn))
 			}
 		}
-		return _UNDEF
+		return undef
 	},
 	`path`: func(uri *url.URL) eval.Value {
 		if uri.Path != `` {
 			return stringValue(uri.Path)
 		}
-		return _UNDEF
+		return undef
 	},
 	`query`: func(uri *url.URL) eval.Value {
 		if uri.RawQuery != `` {
 			return stringValue(uri.RawQuery)
 		}
-		return _UNDEF
+		return undef
 	},
 	`fragment`: func(uri *url.URL) eval.Value {
 		if uri.Fragment != `` {
 			return stringValue(uri.Fragment)
 		}
-		return _UNDEF
+		return undef
 	},
 	`opaque`: func(uri *url.URL) eval.Value {
 		if uri.Opaque != `` {
 			return stringValue(uri.Opaque)
 		}
-		return _UNDEF
+		return undef
 	},
 }
 
@@ -98,7 +99,7 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewUriType2(args...)
+			return newUriType2(args...)
 		})
 
 	newGoConstructor(`URI`,
@@ -113,7 +114,7 @@ func init() {
 				}
 				u, err := ParseURI2(str, strict)
 				if err != nil {
-					panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+					panic(eval.Error(eval.InvalidUri, issue.H{`str`: str, `detail`: err.Error()}))
 				}
 				return WrapURI(u)
 			})
@@ -148,21 +149,21 @@ func (um *uriMember) Call(c eval.Context, receiver eval.Value, block eval.Lambda
 }
 
 func DefaultUriType() *UriType {
-	return uriType_Default
+	return uriTypeDefault
 }
 
 func NewUriType(uri *url.URL) *UriType {
 	return &UriType{uri}
 }
 
-func NewUriType3(parameters *HashValue) *UriType {
+func newUriType3(parameters *HashValue) *UriType {
 	if parameters.IsEmpty() {
-		return uriType_Default
+		return uriTypeDefault
 	}
 	return &UriType{parameters}
 }
 
-func NewUriType2(args ...eval.Value) *UriType {
+func newUriType2(args ...eval.Value) *UriType {
 	switch len(args) {
 	case 0:
 		return DefaultUriType()
@@ -174,9 +175,9 @@ func NewUriType2(args ...eval.Value) *UriType {
 			return NewUriType(uri.URL())
 		}
 		if hash, ok := args[0].(*HashValue); ok {
-			return NewUriType3(hash)
+			return newUriType3(hash)
 		}
-		panic(NewIllegalArgumentType2(`URI[]`, 0, `Variant[URI, Hash]`, args[0]))
+		panic(NewIllegalArgumentType(`URI[]`, 0, `Variant[URI, Hash]`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`URI[]`, `0 or 1`, len(args)))
 	}
@@ -186,7 +187,7 @@ func NewUriType2(args ...eval.Value) *UriType {
 func ParseURI(str string) *url.URL {
 	uri, err := url.Parse(str)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_URI, issue.H{`str`: str, `detail`: err.Error()}))
+		panic(eval.Error(eval.InvalidUri, issue.H{`str`: str, `detail`: err.Error()}))
 	}
 	return uri
 }
@@ -204,12 +205,12 @@ func URIFromHash(hash *HashValue) *url.URL {
 		uri.Scheme = scheme.String()
 	}
 	if user, ok := hash.Get4(`userinfo`); ok {
-		ustr := user.String()
-		colon := strings.IndexByte(ustr, ':')
+		us := user.String()
+		colon := strings.IndexByte(us, ':')
 		if colon >= 0 {
-			uri.User = url.UserPassword(ustr[:colon], ustr[colon+1:])
+			uri.User = url.UserPassword(us[:colon], us[colon+1:])
 		} else {
-			uri.User = url.User(ustr)
+			uri.User = url.User(us)
 		}
 	}
 	if host, ok := hash.Get4(`host`); ok {
@@ -238,18 +239,18 @@ func (t *UriType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *UriType) Default() eval.Type {
-	return uriType_Default
+	return uriTypeDefault
 }
 
 func (t *UriType) Equals(other interface{}, g eval.Guard) bool {
 	if ot, ok := other.(*UriType); ok {
 		switch t.parameters.(type) {
 		case *UndefValue:
-			return _UNDEF.Equals(ot.parameters, g)
+			return undef.Equals(ot.parameters, g)
 		case *HashValue:
 			return t.parameters.(*HashValue).Equals(ot.paramsAsHash(), g)
 		default:
-			if _UNDEF.Equals(ot.parameters, g) {
+			if undef.Equals(ot.parameters, g) {
 				return false
 			}
 			if _, ok := ot.parameters.(*url.URL); ok {
@@ -265,7 +266,7 @@ func (t *UriType) Get(key string) (value eval.Value, ok bool) {
 	if key == `parameters` {
 		switch t.parameters.(type) {
 		case *UndefValue:
-			return _UNDEF, true
+			return undef, true
 		case *HashValue:
 			return t.parameters.(*HashValue), true
 		default:
@@ -330,7 +331,7 @@ func (t *UriType) Name() string {
 func (t *UriType) Parameters() []eval.Value {
 	switch t.parameters.(type) {
 	case *UndefValue:
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	case *HashValue:
 		return []eval.Value{t.parameters.(*HashValue)}
 	default:
@@ -347,7 +348,7 @@ func (t *UriType) SerializationString() string {
 }
 
 func (t *UriType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *UriType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -361,7 +362,7 @@ func (t *UriType) PType() eval.Type {
 func (t *UriType) paramsAsHash() *HashValue {
 	switch t.parameters.(type) {
 	case *UndefValue:
-		return _EMPTY_MAP
+		return emptyMap
 	case *HashValue:
 		return t.parameters.(*HashValue)
 	default:
@@ -408,7 +409,7 @@ func getURLField(uri *url.URL, key string) eval.Value {
 	if member, ok := members[key]; ok {
 		return member(uri)
 	}
-	return _UNDEF
+	return undef
 }
 
 func WrapURI(uri *url.URL) *UriValue {
@@ -430,7 +431,7 @@ func (u *UriValue) Get(key string) (eval.Value, bool) {
 	if member, ok := members[key]; ok {
 		return member(u.URL()), true
 	}
-	return _UNDEF, false
+	return undef, false
 }
 
 func (u *UriValue) CanSerializeAsString() bool {
@@ -452,7 +453,7 @@ func (u *UriValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	case 's':
 		f.ApplyStringFlags(b, val, f.IsAlt())
 	case 'p':
-		io.WriteString(b, `URI(`)
+		utils.WriteString(b, `URI(`)
 		utils.PuppetQuote(b, val)
 		utils.WriteByte(b, ')')
 	default:
@@ -462,7 +463,7 @@ func (u *UriValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 
 func (u *UriValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
-	b.WriteByte(HK_URI)
+	b.WriteByte(HkUri)
 	b.Write([]byte(u.URL().String()))
 }
 

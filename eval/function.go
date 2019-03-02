@@ -1,7 +1,7 @@
 package eval
 
 type (
-	InvocableValue interface {
+	InvokableValue interface {
 		Value
 
 		Call(c Context, block Lambda, args ...Value) Value
@@ -22,7 +22,7 @@ type (
 	}
 
 	Lambda interface {
-		InvocableValue
+		InvokableValue
 
 		Parameters() []Parameter
 
@@ -46,7 +46,7 @@ type (
 	}
 
 	Function interface {
-		InvocableValue
+		InvokableValue
 
 		Dispatchers() []Lambda
 
@@ -123,7 +123,7 @@ type (
 	LocalTypesCreator func(lt LocalTypes)
 )
 
-var NoParameters = make([]Parameter, 0, 0)
+var NoParameters = make([]Parameter, 0)
 
 var BuildFunction func(name string, localTypes LocalTypesCreator, creators []DispatchCreator) ResolvableFunction
 

@@ -17,13 +17,13 @@ func ExampleUniqueValues() {
 	types.UniqueValues([]eval.Value{x, y})
 
 	z := types.WrapString(`hello`)
-	svec := []eval.StringValue{x, z}
-	fmt.Println(types.UniqueValues([]eval.Value{svec[0], svec[1]}))
+	sv := []eval.StringValue{x, z}
+	fmt.Println(types.UniqueValues([]eval.Value{sv[0], sv[1]}))
 	// Output: [hello]
 }
 
-func ExampleNewCallableType2() {
-	cc := types.NewCallableType2(types.ZERO, types.WrapDefault())
+func ExampleNewCallableType() {
+	cc := types.NewCallableType(types.NewTupleType([]eval.Type{types.DefaultUnitType()}, types.PositiveIntegerType()), nil, nil)
 	fmt.Println(cc)
 	// Output: Callable[0, default]
 }

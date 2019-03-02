@@ -11,7 +11,7 @@ type TypeType struct {
 	typ eval.Type
 }
 
-var typeType_DEFAULT = &TypeType{typ: anyType_DEFAULT}
+var typeTypeDefault = &TypeType{typ: anyTypeDefault}
 
 var TypeMetaType eval.ObjectType
 
@@ -25,7 +25,7 @@ func init() {
 		},
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewTypeType2(args...)
+			return newTypeType2(args...)
 		})
 
 	newGoConstructor(`Type`,
@@ -36,25 +36,25 @@ func init() {
 			})
 		},
 		func(d eval.Dispatch) {
-			d.Param2(TYPE_OBJECT_INIT_HASH)
+			d.Param2(TypeObjectInitHash)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return NewObjectType(``, nil, args[0]).Resolve(c)
+				return newObjectType3(``, nil, args[0].(eval.OrderedMap)).Resolve(c)
 			})
 		})
 }
 
 func DefaultTypeType() *TypeType {
-	return typeType_DEFAULT
+	return typeTypeDefault
 }
 
 func NewTypeType(containedType eval.Type) *TypeType {
-	if containedType == nil || containedType == anyType_DEFAULT {
+	if containedType == nil || containedType == anyTypeDefault {
 		return DefaultTypeType()
 	}
 	return &TypeType{containedType}
 }
 
-func NewTypeType2(args ...eval.Value) *TypeType {
+func newTypeType2(args ...eval.Value) *TypeType {
 	switch len(args) {
 	case 0:
 		return DefaultTypeType()
@@ -62,7 +62,7 @@ func NewTypeType2(args ...eval.Value) *TypeType {
 		if containedType, ok := args[0].(eval.Type); ok {
 			return NewTypeType(containedType)
 		}
-		panic(NewIllegalArgumentType2(`Type[]`, 0, `Type`, args[0]))
+		panic(NewIllegalArgumentType(`Type[]`, 0, `Type`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Type[]`, `0 or 1`, len(args)))
 	}
@@ -78,7 +78,7 @@ func (t *TypeType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *TypeType) Default() eval.Type {
-	return typeType_DEFAULT
+	return typeTypeDefault
 }
 
 func (t *TypeType) Equals(o interface{}, g eval.Guard) bool {
@@ -124,7 +124,7 @@ func (t *TypeType) Name() string {
 
 func (t *TypeType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{t.typ}
 }
@@ -143,7 +143,7 @@ func (t *TypeType) SerializationString() string {
 }
 
 func (t *TypeType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *TypeType) PType() eval.Type {

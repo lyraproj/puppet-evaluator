@@ -34,11 +34,11 @@ type (
 )
 
 func init() {
-	eval.NewFilebasedLoader = newFileBasedLoader
+	eval.NewFileBasedLoader = newFileBasedLoader
 }
 
-func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables ...eval.PathType) eval.ModuleLoader {
-	paths := make(map[eval.Namespace][]SmartPath, len(loadables))
+func newFileBasedLoader(parent eval.Loader, path, moduleName string, lds ...eval.PathType) eval.ModuleLoader {
+	paths := make(map[eval.Namespace][]SmartPath, len(lds))
 	loader := &fileBasedLoader{
 		parentedLoader: parentedLoader{
 			basicLoader: basicLoader{namedEntries: make(map[string]eval.LoaderEntry, 64)},
@@ -50,7 +50,7 @@ func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables .
 		moduleName:      moduleName,
 		paths:           paths}
 
-	for _, p := range loadables {
+	for _, p := range lds {
 		path := loader.newSmartPath(p, !(moduleName == `` || moduleName == `environment`))
 		if sa, ok := paths[path.Namespace()]; ok {
 			paths[path.Namespace()] = append(sa, path)
@@ -63,19 +63,21 @@ func newFileBasedLoader(parent eval.Loader, path, moduleName string, loadables .
 
 func (l *fileBasedLoader) newSmartPath(pathType eval.PathType, moduleNameRelative bool) SmartPath {
 	switch pathType {
-	case eval.PUPPET_FUNCTION_PATH:
+	case eval.PuppetFunctionPath:
 		return l.newPuppetFunctionPath(moduleNameRelative)
-	case eval.PUPPET_DATA_TYPE_PATH:
+	case eval.PuppetDataTypePath:
 		return l.newPuppetTypePath(moduleNameRelative)
-	case eval.PLAN_PATH:
+	case eval.PlanPath:
 		return l.newPlanPath(moduleNameRelative)
-	case eval.TASK_PATH:
+	case eval.TaskPath:
 		return l.newTaskPath(moduleNameRelative)
 	default:
 		panic(errors.NewIllegalArgument(`newSmartPath`, 1, fmt.Sprintf(`Unknown path type '%s'`, pathType)))
 	}
 }
 
+/*
+ * Possible future addition
 func (l *fileBasedLoader) newPuppetActivityPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
 		relativePath:       `activities`,
@@ -87,6 +89,7 @@ func (l *fileBasedLoader) newPuppetActivityPath(moduleNameRelative bool) SmartPa
 		instantiator:       InstantiatePuppetFunction,
 	}
 }
+*/
 
 func (l *fileBasedLoader) newPuppetFunctionPath(moduleNameRelative bool) SmartPath {
 	return &smartPath{
@@ -224,7 +227,7 @@ func (l *fileBasedLoader) find(c eval.Context, name eval.TypedName) eval.LoaderE
 						return entry
 					}
 				}
-				panic(eval.Error(eval.EVAL_NOT_EXPECTED_TYPESET, issue.H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
+				panic(eval.Error(eval.NotExpectedTypeset, issue.H{`source`: origins[0], `name`: utils.CapitalizeSegment(l.moduleName)}))
 			}
 		default:
 			return nil
@@ -305,7 +308,7 @@ func (l *fileBasedLoader) Discover(c eval.Context, predicate func(eval.TypedName
 	l.ensureAllIndexed()
 	found := l.parent.Discover(c, predicate)
 	added := false
-	for k, _ := range l.index {
+	for k := range l.index {
 		tn := eval.TypedNameFromMapKey(k)
 		if !l.parent.HasEntry(tn) {
 			if predicate(tn) {
@@ -323,7 +326,7 @@ func (l *fileBasedLoader) Discover(c eval.Context, predicate func(eval.TypedName
 func (l *fileBasedLoader) GetContent(c eval.Context, path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_UNABLE_TO_READ_FILE, issue.H{`path`: path, `detail`: err.Error()}))
+		panic(eval.Error(eval.UnableToReadFile, issue.H{`path`: path, `detail`: err.Error()}))
 	}
 	return content
 }
@@ -379,6 +382,6 @@ func (l *fileBasedLoader) addToIndex(smartPath SmartPath) {
 	})
 
 	if err != nil {
-		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
+		panic(eval.Error(eval.Failure, issue.H{`message`: err.Error()}))
 	}
 }

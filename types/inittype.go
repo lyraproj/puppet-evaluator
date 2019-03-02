@@ -1,9 +1,10 @@
 package types
 
 import (
+	"io"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"io"
 )
 
 type InitType struct {
@@ -21,12 +22,12 @@ func init() {
 		init_args => { type => Array, value => [] }
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return NewInitType2(args...)
+		return newInitType2(args...)
 	})
 }
 
 func DefaultInitType() *InitType {
-	return initType_DEFAULT
+	return initTypeDefault
 }
 
 func NewInitType(typ eval.Value, args eval.Value) *InitType {
@@ -36,15 +37,15 @@ func NewInitType(typ eval.Value, args eval.Value) *InitType {
 	}
 	aa, ok := args.(*ArrayValue)
 	if !ok {
-		aa = _EMPTY_ARRAY
+		aa = emptyArray
 	}
 	if typ == nil && aa.Len() == 0 {
-		return initType_DEFAULT
+		return initTypeDefault
 	}
 	return &InitType{typ: tp, initArgs: aa}
 }
 
-func NewInitType2(args ...eval.Value) *InitType {
+func newInitType2(args ...eval.Value) *InitType {
 	switch len(args) {
 	case 0:
 		return DefaultInitType()
@@ -69,7 +70,7 @@ func (t *InitType) SerializationString() string {
 }
 
 func (t *InitType) Default() eval.Type {
-	return initType_DEFAULT
+	return initTypeDefault
 }
 
 func (t *InitType) Equals(o interface{}, g eval.Guard) bool {
@@ -83,7 +84,7 @@ func (t *InitType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `type`:
 		if t.typ == nil {
-			return _UNDEF, true
+			return undef, true
 		}
 		return t.typ, true
 	case `init_args`:
@@ -118,7 +119,7 @@ func (t *InitType) anySignature(doer func(signature eval.Signature) bool) bool {
 // instantiating an instance of the contained type
 func (t *InitType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if t.typ == nil {
-		return richDataType_DEFAULT.IsAssignable(o, g)
+		return richDataTypeDefault.IsAssignable(o, g)
 	}
 
 	if !t.initArgs.IsEmpty() {
@@ -131,19 +132,13 @@ func (t *InitType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	// First test if the given value matches a single value constructor
 	tp := NewTupleType([]eval.Type{o}, nil)
 	return t.anySignature(func(s eval.Signature) bool { return s.IsAssignable(tp, g) })
-
-	// If the given value is tuple, check if it matches the signature tuple verbatim
-	if tp, ok := o.(*TupleType); ok {
-		return t.anySignature(func(s eval.Signature) bool { return s.IsAssignable(tp, g) })
-	}
-	return false
 }
 
 // IsInstance answers the question if the given value can be used when
 // instantiating an instance of the contained type
 func (t *InitType) IsInstance(o eval.Value, g eval.Guard) bool {
 	if t.typ == nil {
-		return richDataType_DEFAULT.IsInstance(o, g)
+		return richDataTypeDefault.IsInstance(o, g)
 	}
 
 	if !t.initArgs.IsEmpty() {
@@ -179,7 +174,7 @@ func (t *InitType) Name() string {
 func (t *InitType) New(c eval.Context, args []eval.Value) eval.Value {
 	t.Resolve(c)
 	if t.ctor == nil {
-		panic(eval.Error(eval.EVAL_INSTANCE_DOES_NOT_RESPOND, issue.H{`type`: t, `message`: `new`}))
+		panic(eval.Error(eval.InstanceDoesNotRespond, issue.H{`type`: t, `message`: `new`}))
 	}
 
 	if !t.initArgs.IsEmpty() {
@@ -213,25 +208,25 @@ func (t *InitType) Resolve(c eval.Context) eval.Type {
 		if ctor, ok := eval.Load(c, NewTypedName(eval.NsConstructor, t.typ.Name())); ok {
 			t.ctor = ctor.(eval.Function)
 		} else {
-			panic(eval.Error(eval.EVAL_CTOR_NOT_FOUND, issue.H{`type`: t.typ.Name()}))
+			panic(eval.Error(eval.CtorNotFound, issue.H{`type`: t.typ.Name()}))
 		}
 	}
 	return t
 }
 
 func (t *InitType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *InitType) Parameters() []eval.Value {
 	t.assertInitialized()
 	if t.initArgs.Len() == 0 {
 		if t.typ == nil {
-			return eval.EMPTY_VALUES
+			return eval.EmptyValues
 		}
 		return []eval.Value{t.typ}
 	}
-	ps := []eval.Value{_UNDEF, t.initArgs}
+	ps := []eval.Value{undef, t.initArgs}
 	if t.typ != nil {
 		ps[1] = t.typ
 	}
@@ -256,4 +251,4 @@ func (t *InitType) assertInitialized() {
 	}
 }
 
-var initType_DEFAULT = &InitType{typ: nil, initArgs: _EMPTY_ARRAY}
+var initTypeDefault = &InitType{typ: nil, initArgs: emptyArray}

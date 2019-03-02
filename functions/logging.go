@@ -5,13 +5,13 @@ import (
 )
 
 func init() {
-	for _, level := range eval.LOG_LEVELS {
+	for _, level := range eval.LogLevels {
 		eval.NewGoFunction(string(level),
 			func(d eval.Dispatch) {
 				d.RepeatedParam(`Any`)
 				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 					c.Logger().Log(eval.LogLevel(d.Name()), args...)
-					return eval.UNDEF
+					return eval.Undef
 				})
 			})
 	}

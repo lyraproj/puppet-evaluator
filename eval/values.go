@@ -214,11 +214,11 @@ type (
 	}
 )
 
-var EMPTY_ARRAY List
-var EMPTY_MAP OrderedMap
-var EMPTY_STRING Value
-var EMPTY_VALUES []Value
-var UNDEF Value
+var EmptyArray List
+var EmptyMap OrderedMap
+var EmptyString Value
+var EmptyValues []Value
+var Undef Value
 
 var DetailedValueType func(value Value) Type
 var GenericValueType func(value Value) Type
@@ -240,11 +240,11 @@ func StringElements(l List) []string {
 }
 
 func ToString(t Value) string {
-	return ToString2(t, DEFAULT_FORMAT_CONTEXT)
+	return ToString2(t, DefaultFormatContext)
 }
 
 func ToPrettyString(t Value) string {
-	return ToString2(t, PRETTY)
+	return ToString2(t, Pretty)
 }
 
 func ToString2(t Value, format FormatContext) string {
@@ -254,7 +254,7 @@ func ToString2(t Value, format FormatContext) string {
 }
 
 func ToString3(t Value, writer io.Writer) {
-	ToString4(t, DEFAULT_FORMAT_CONTEXT, writer)
+	ToString4(t, DefaultFormatContext, writer)
 }
 
 func ToString4(t Value, format FormatContext, writer io.Writer) {
@@ -263,8 +263,6 @@ func ToString4(t Value, format FormatContext, writer io.Writer) {
 
 func CopyValues(src []Value) []Value {
 	dst := make([]Value, len(src))
-	for i, v := range src {
-		dst[i] = v
-	}
+	copy(dst, src)
 	return dst
 }

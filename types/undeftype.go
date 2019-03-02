@@ -3,9 +3,12 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/puppet-evaluator/utils"
+
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 type (
@@ -15,18 +18,19 @@ type (
 	UndefValue struct{}
 )
 
-var undefType_DEFAULT = &UndefType{}
+var undefTypeDefault = &UndefType{}
 
 var UndefMetaType eval.ObjectType
 
 func init() {
-	UndefMetaType = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return DefaultUndefType()
-	})
+	UndefMetaType = newObjectType(`Pcore::UndefType`, `Pcore::AnyType{}`,
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			return DefaultUndefType()
+		})
 }
 
 func DefaultUndefType() *UndefType {
-	return undefType_DEFAULT
+	return undefTypeDefault
 }
 
 func (t *UndefType) Accept(v eval.Visitor, g eval.Guard) {
@@ -44,7 +48,7 @@ func (t *UndefType) IsAssignable(o eval.Type, g eval.Guard) bool {
 }
 
 func (t *UndefType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return o == _UNDEF
+	return o == undef
 }
 
 func (t *UndefType) MetaType() eval.ObjectType {
@@ -94,7 +98,7 @@ func (uv *UndefValue) Reflect(c eval.Context) reflect.Value {
 
 func (uv *UndefValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: value.Kind().String()}))
+		panic(eval.Error(eval.AttemptToSetUnsettable, issue.H{`kind`: value.Kind().String()}))
 	}
 	value.Set(reflect.Zero(value.Type()))
 }
@@ -104,11 +108,11 @@ func (uv *UndefValue) String() string {
 }
 
 func (uv *UndefValue) ToKey() eval.HashKey {
-	return eval.HashKey([]byte{1, HK_UNDEF})
+	return eval.HashKey([]byte{1, HkUndef})
 }
 
 func (uv *UndefValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, `undef`)
+	utils.WriteString(b, `undef`)
 }
 
 func (uv *UndefValue) PType() eval.Type {

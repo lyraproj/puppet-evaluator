@@ -2,6 +2,7 @@ package hash
 
 import (
 	"fmt"
+
 	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
@@ -25,7 +26,7 @@ type (
 	}
 )
 
-var EMPTY_STRINGHASH = &StringHash{[]*stringEntry{}, map[string]int{}, true}
+var EmptyStringHash = &StringHash{[]*stringEntry{}, map[string]int{}, true}
 
 func (f *frozenError) Error() string {
 	return fmt.Sprintf("attempt to add, modify, or delete key '%s' in a frozen StringHash", f.key)
@@ -57,7 +58,7 @@ func (h *StringHash) EachKey(consumer func(key string)) {
 }
 
 // AllPair calls the given function once for each key/value pair in this hash. Return
-// true if all invcations returned true. False otherwise.
+// true if all invocations returned true. False otherwise.
 // The method returns true if the hash i empty.
 func (h *StringHash) AllPair(f func(key string, value interface{}) bool) bool {
 	for _, e := range h.entries {
@@ -69,7 +70,7 @@ func (h *StringHash) AllPair(f func(key string, value interface{}) bool) bool {
 }
 
 // AnyPair calls the given function once for each key/value pair in this hash. Return
-// true when an invcation returns true. False otherwise.
+// true when an invocation returns true. False otherwise.
 // The method returns false if the hash i empty.
 func (h *StringHash) AnyPair(f func(key string, value interface{}) bool) bool {
 	for _, e := range h.entries {

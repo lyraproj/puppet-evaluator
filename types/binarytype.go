@@ -7,15 +7,16 @@ import (
 	"unicode/utf8"
 
 	"fmt"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"io/ioutil"
 	"os"
 	"reflect"
+
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
-var binaryType_DEFAULT = &BinaryType{}
+var binaryTypeDefault = &BinaryType{}
 
 var BinaryMetaType eval.ObjectType
 
@@ -56,7 +57,7 @@ func init() {
 			d.Param(`StringHash`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hv := args[0].(eval.OrderedMap)
-				return BinaryFromString(hv.Get5(`value`, eval.UNDEF).String(), hv.Get5(`format`, eval.UNDEF).String())
+				return BinaryFromString(hv.Get5(`value`, eval.Undef).String(), hv.Get5(`format`, eval.Undef).String())
 			})
 		},
 
@@ -79,7 +80,7 @@ type (
 )
 
 func DefaultBinaryType() *BinaryType {
-	return binaryType_DEFAULT
+	return binaryTypeDefault
 }
 
 func (t *BinaryType) Accept(v eval.Visitor, g eval.Guard) {
@@ -140,11 +141,11 @@ func WrapBinary(val []byte) *BinaryValue {
 // BinaryFromFile opens file appointed by the given path for reading and returns
 // its contents as a Binary. The function will panic with an issue.Reported unless
 // the operation succeeds.
-func BinaryFromFile(c eval.Context, path string) *BinaryValue {
-	if bf, ok := BinaryFromFile2(c, path); ok {
+func BinaryFromFile(path string) *BinaryValue {
+	if bf, ok := BinaryFromFile2(path); ok {
 		return bf
 	}
-	panic(eval.Error(eval.EVAL_FILE_NOT_FOUND, issue.H{`path`: path}))
+	panic(eval.Error(eval.FileNotFound, issue.H{`path`: path}))
 }
 
 // BinaryFromFile2 opens file appointed by the given path for reading and returns
@@ -153,50 +154,50 @@ func BinaryFromFile(c eval.Context, path string) *BinaryValue {
 //
 // The function will only return false if the given file does not exist. It will panic
 // with an issue.Reported on all other errors.
-func BinaryFromFile2(c eval.Context, path string) (*BinaryValue, bool) {
-	bytes, err := ioutil.ReadFile(path)
+func BinaryFromFile2(path string) (*BinaryValue, bool) {
+	bs, err := ioutil.ReadFile(path)
 	if err != nil {
-		stat, serr := os.Stat(path)
-		if serr != nil {
-			if os.IsNotExist(serr) {
+		stat, statErr := os.Stat(path)
+		if statErr != nil {
+			if os.IsNotExist(statErr) {
 				return nil, false
 			}
-			if os.IsPermission(serr) {
-				panic(eval.Error(eval.EVAL_FILE_READ_DENIED, issue.H{`path`: path}))
+			if os.IsPermission(statErr) {
+				panic(eval.Error(eval.FileReadDenied, issue.H{`path`: path}))
 			}
 		} else {
 			if stat.IsDir() {
-				panic(eval.Error(eval.EVAL_IS_DIRECTORY, issue.H{`path`: path}))
+				panic(eval.Error(eval.IsDirectory, issue.H{`path`: path}))
 			}
 		}
-		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err.Error()}))
+		panic(eval.Error(eval.Failure, issue.H{`message`: err.Error()}))
 	}
-	return WrapBinary(bytes), true
+	return WrapBinary(bs), true
 }
 
 func BinaryFromString(str string, f string) *BinaryValue {
-	var bytes []byte
+	var bs []byte
 	var err error
 
 	switch f {
 	case `%b`:
-		bytes, err = base64.StdEncoding.DecodeString(str)
+		bs, err = base64.StdEncoding.DecodeString(str)
 	case `%u`:
-		bytes, err = base64.URLEncoding.DecodeString(str)
+		bs, err = base64.URLEncoding.DecodeString(str)
 	case `%B`:
-		bytes, err = base64.StdEncoding.Strict().DecodeString(str)
+		bs, err = base64.StdEncoding.Strict().DecodeString(str)
 	case `%s`:
 		if !utf8.ValidString(str) {
 			panic(errors.NewIllegalArgument(`BinaryFromString`, 0, `The given string is not valid utf8. Cannot create a Binary UTF-8 representation`))
 		}
-		bytes = []byte(str)
+		bs = []byte(str)
 	case `%r`:
-		bytes = []byte(str)
+		bs = []byte(str)
 	default:
 		panic(errors.NewIllegalArgument(`BinaryFromString`, 1, `unsupported format specifier`))
 	}
 	if err == nil {
-		return WrapBinary(bytes)
+		return WrapBinary(bs)
 	}
 	panic(errors.NewIllegalArgument(`BinaryFromString`, 0, err.Error()))
 }
@@ -240,7 +241,7 @@ func (bv *BinaryValue) ReflectTo(c eval.Context, value reflect.Value) {
 	case reflect.Interface:
 		value.Set(reflect.ValueOf(bv.bytes))
 	default:
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `[]byte`, `actual`: fmt.Sprintf(`[]%s`, value.Kind())}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: `[]byte`, `actual`: fmt.Sprintf(`[]%s`, value.Kind())}))
 	}
 }
 
@@ -253,12 +254,12 @@ func (bv *BinaryValue) SerializationString() string {
 }
 
 func (bv *BinaryValue) String() string {
-	return eval.ToString2(bv, NONE)
+	return eval.ToString2(bv, None)
 }
 
 func (bv *BinaryValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(0)
-	b.WriteByte(HK_BINARY)
+	b.WriteByte(HkBinary)
 	b.Write(bv.bytes)
 }
 

@@ -20,12 +20,12 @@ func init() {
     'size_type' => { type => Type[Integer], value => Integer[0] }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return NewCollectionType2(args...)
+		return newCollectionType2(args...)
 	})
 }
 
 func DefaultCollectionType() *CollectionType {
-	return collectionType_DEFAULT
+	return collectionTypeDefault
 }
 
 func NewCollectionType(size *IntegerType) *CollectionType {
@@ -35,7 +35,7 @@ func NewCollectionType(size *IntegerType) *CollectionType {
 	return &CollectionType{size}
 }
 
-func NewCollectionType2(args ...eval.Value) *CollectionType {
+func newCollectionType2(args ...eval.Value) *CollectionType {
 	switch len(args) {
 	case 0:
 		return DefaultCollectionType()
@@ -46,7 +46,7 @@ func NewCollectionType2(args ...eval.Value) *CollectionType {
 			sz, ok := toInt(arg)
 			if !ok {
 				if _, ok := arg.(*DefaultValue); !ok {
-					panic(NewIllegalArgumentType2(`Collection[]`, 0, `Variant[Integer, Default, Type[Integer]]`, arg))
+					panic(NewIllegalArgumentType(`Collection[]`, 0, `Variant[Integer, Default, Type[Integer]]`, arg))
 				}
 				sz = 0
 			}
@@ -58,7 +58,7 @@ func NewCollectionType2(args ...eval.Value) *CollectionType {
 		min, ok := toInt(arg)
 		if !ok {
 			if _, ok := arg.(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Collection[]`, 0, `Variant[Integer, Default]`, arg))
+				panic(NewIllegalArgumentType(`Collection[]`, 0, `Variant[Integer, Default]`, arg))
 			}
 			min = 0
 		}
@@ -66,7 +66,7 @@ func NewCollectionType2(args ...eval.Value) *CollectionType {
 		max, ok := toInt(arg)
 		if !ok {
 			if _, ok := arg.(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Collection[]`, 1, `Variant[Integer, Default]`, arg))
+				panic(NewIllegalArgumentType(`Collection[]`, 1, `Variant[Integer, Default]`, arg))
 			}
 			max = math.MaxInt64
 		}
@@ -82,7 +82,7 @@ func (t *CollectionType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *CollectionType) Default() eval.Type {
-	return collectionType_DEFAULT
+	return collectionTypeDefault
 }
 
 func (t *CollectionType) Equals(o interface{}, g eval.Guard) bool {
@@ -93,14 +93,14 @@ func (t *CollectionType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *CollectionType) Generic() eval.Type {
-	return collectionType_DEFAULT
+	return collectionTypeDefault
 }
 
 func (t *CollectionType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `size_type`:
 		if t.size == nil {
-			return eval.UNDEF, true
+			return eval.Undef, true
 		}
 		return t.size, true
 	default:
@@ -110,17 +110,17 @@ func (t *CollectionType) Get(key string) (eval.Value, bool) {
 
 func (t *CollectionType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	var osz *IntegerType
-	switch o.(type) {
+	switch o := o.(type) {
 	case *CollectionType:
-		osz = o.(*CollectionType).size
+		osz = o.size
 	case *ArrayType:
-		osz = o.(*ArrayType).size
+		osz = o.size
 	case *HashType:
-		osz = o.(*HashType).size
+		osz = o.size
 	case *TupleType:
-		osz = o.(*TupleType).givenOrActualSize
+		osz = o.givenOrActualSize
 	case *StructType:
-		n := int64(len(o.(*StructType).elements))
+		n := int64(len(o.elements))
 		osz = NewIntegerType(n, n)
 	default:
 		return false
@@ -142,7 +142,7 @@ func (t *CollectionType) Name() string {
 
 func (t *CollectionType) Parameters() []eval.Value {
 	if *t.size == *IntegerTypePositive {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return t.size.SizeParameters()
 }
@@ -160,7 +160,7 @@ func (t *CollectionType) Size() *IntegerType {
 }
 
 func (t *CollectionType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *CollectionType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -171,4 +171,4 @@ func (t *CollectionType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var collectionType_DEFAULT = &CollectionType{IntegerTypePositive}
+var collectionTypeDefault = &CollectionType{IntegerTypePositive}

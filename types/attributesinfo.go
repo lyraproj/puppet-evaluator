@@ -29,8 +29,8 @@ func (ai *attributesInfo) NameToPos() map[string]int {
 	return ai.nameToPos
 }
 
-func (pi *attributesInfo) Attributes() []eval.Attribute {
-	return pi.attributes
+func (ai *attributesInfo) Attributes() []eval.Attribute {
+	return ai.attributes
 }
 
 func (ai *attributesInfo) EqualityAttributeIndex() []int {

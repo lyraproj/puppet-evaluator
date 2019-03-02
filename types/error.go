@@ -43,16 +43,16 @@ type errorObj struct {
 }
 
 func newError2(c eval.Context, args ...eval.Value) eval.ErrorObject {
-	nargs := len(args)
-	ev := &errorObj{partialResult: eval.UNDEF, details: eval.EMPTY_MAP}
+	argc := len(args)
+	ev := &errorObj{partialResult: eval.Undef, details: eval.EmptyMap}
 	ev.message = args[0].String()
-	if nargs > 1 {
+	if argc > 1 {
 		ev.kind = args[1].String()
-		if nargs > 2 {
+		if argc > 2 {
 			ev.issueCode = args[2].String()
-			if nargs > 3 {
+			if argc > 3 {
 				ev.partialResult = args[3]
-				if nargs > 4 {
+				if argc > 4 {
 					ev.details = args[4].(*HashValue)
 				}
 			}
@@ -64,10 +64,10 @@ func newError2(c eval.Context, args ...eval.Value) eval.ErrorObject {
 
 func newError(c eval.Context, message, kind, issueCode string, partialResult eval.Value, details eval.OrderedMap) eval.ErrorObject {
 	if partialResult == nil {
-		partialResult = eval.UNDEF
+		partialResult = eval.Undef
 	}
 	if details == nil {
-		details = eval.EMPTY_MAP
+		details = eval.EmptyMap
 	}
 	ev := &errorObj{message: message, kind: kind, issueCode: issueCode, partialResult: partialResult, details: details}
 	ev.initType(c)
@@ -75,7 +75,7 @@ func newError(c eval.Context, message, kind, issueCode string, partialResult eva
 }
 
 func errorFromReported(c eval.Context, err issue.Reported) eval.ErrorObject {
-	ev := &errorObj{partialResult: eval.UNDEF, details: eval.EMPTY_MAP}
+	ev := &errorObj{partialResult: eval.Undef, details: eval.EmptyMap}
 	ev.message = err.Error()
 	ev.kind = `PUPPET_ERROR`
 	ev.issueCode = string(err.Code())
@@ -88,11 +88,11 @@ func errorFromReported(c eval.Context, err issue.Reported) eval.ErrorObject {
 
 func newErrorFromHash(c eval.Context, hash *HashValue) eval.ErrorObject {
 	ev := &errorObj{}
-	ev.message = hash.Get5(`message`, eval.EMPTY_STRING).String()
-	ev.kind = hash.Get5(`kind`, eval.EMPTY_STRING).String()
-	ev.issueCode = hash.Get5(`issue_code`, eval.EMPTY_STRING).String()
-	ev.partialResult = hash.Get5(`partial_result`, eval.UNDEF)
-	ev.details = hash.Get5(`details`, eval.EMPTY_MAP).(eval.OrderedMap)
+	ev.message = hash.Get5(`message`, eval.EmptyString).String()
+	ev.kind = hash.Get5(`kind`, eval.EmptyString).String()
+	ev.issueCode = hash.Get5(`issue_code`, eval.EmptyString).String()
+	ev.partialResult = hash.Get5(`partial_result`, eval.Undef)
+	ev.details = hash.Get5(`details`, eval.EmptyMap).(eval.OrderedMap)
 	ev.initType(c)
 	return ev
 }
@@ -163,10 +163,10 @@ func (e *errorObj) InitHash() eval.OrderedMap {
 	if e.issueCode != `` {
 		entries = append(entries, WrapHashEntry2(`issue_code`, stringValue(e.issueCode)))
 	}
-	if !e.partialResult.Equals(eval.UNDEF, nil) {
+	if !e.partialResult.Equals(eval.Undef, nil) {
 		entries = append(entries, WrapHashEntry2(`partial_result`, e.partialResult))
 	}
-	if !e.details.Equals(eval.EMPTY_MAP, nil) {
+	if !e.details.Equals(eval.EmptyMap, nil) {
 		entries = append(entries, WrapHashEntry2(`details`, e.details))
 	}
 	return WrapHash(entries)

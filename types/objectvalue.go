@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type typedObject struct {
@@ -39,7 +40,7 @@ type attributeSlice struct {
 	values []eval.Value
 }
 
-func AllocObjectValue(c eval.Context, typ eval.ObjectType) eval.Object {
+func AllocObjectValue(typ eval.ObjectType) eval.Object {
 	if typ.IsMetaType() {
 		return AllocObjectType()
 	}
@@ -49,7 +50,7 @@ func AllocObjectValue(c eval.Context, typ eval.ObjectType) eval.Object {
 		}
 		return &reflectedObject{typedObject{typ}, reflect.New(rf).Elem()}
 	}
-	return &attributeSlice{typedObject{typ}, eval.EMPTY_VALUES}
+	return &attributeSlice{typedObject{typ}, eval.EmptyValues}
 }
 
 func NewReflectedValue(typ eval.ObjectType, value reflect.Value) eval.Object {
@@ -60,13 +61,13 @@ func NewReflectedValue(typ eval.ObjectType, value reflect.Value) eval.Object {
 }
 
 func NewObjectValue(c eval.Context, typ eval.ObjectType, values []eval.Value) (ov eval.Object) {
-	ov = AllocObjectValue(c, typ)
+	ov = AllocObjectValue(typ)
 	ov.Initialize(c, values)
 	return ov
 }
 
-func NewObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) (ov eval.Object) {
-	ov = AllocObjectValue(c, typ)
+func newObjectValue2(c eval.Context, typ eval.ObjectType, hash *HashValue) (ov eval.Object) {
+	ov = AllocObjectValue(typ)
 	ov.InitFromHash(c, hash)
 	return ov
 }
@@ -78,7 +79,7 @@ func (o *attributeSlice) Reflect(c eval.Context) reflect.Value {
 		o.ReflectTo(c, rv.Elem())
 		return rv
 	}
-	panic(eval.Error(eval.EVAL_UNREFLECTABLE_VALUE, issue.H{`type`: o.PType()}))
+	panic(eval.Error(eval.UnreflectableValue, issue.H{`type`: o.PType()}))
 }
 
 func (o *attributeSlice) ReflectTo(c eval.Context, value reflect.Value) {
@@ -103,11 +104,11 @@ func fillValueSlice(values []eval.Value, attrs []eval.Attribute) {
 	for ix, v := range values {
 		if v == nil {
 			at := attrs[ix]
-			if at.Kind() == GIVEN_OR_DERIVED {
-				values[ix] = _UNDEF
+			if at.Kind() == givenOrDerived {
+				values[ix] = undef
 			} else {
 				if !at.HasValue() {
-					panic(eval.Error(eval.EVAL_MISSING_REQUIRED_ATTRIBUTE, issue.H{`label`: at.Label()}))
+					panic(eval.Error(eval.MissingRequiredAttribute, issue.H{`label`: at.Label()}))
 				}
 				values[ix] = at.Value()
 			}
@@ -122,15 +123,15 @@ func (o *attributeSlice) Get(key string) (eval.Value, bool) {
 			return o.values[idx], ok
 		}
 		a := pi.Attributes()[idx]
-		if a.Kind() == GIVEN_OR_DERIVED {
-			return _UNDEF, true
+		if a.Kind() == givenOrDerived {
+			return undef, true
 		}
 		return a.Value(), ok
 	}
 	return nil, false
 }
 
-func (o *attributeSlice) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+func (o *attributeSlice) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
 	if v, ok := eval.Load(c, NewTypedName(eval.NsFunction, strings.ToLower(o.typ.Name())+`::`+method.Name())); ok {
 		if f, ok := v.(eval.Function); ok {
 			return f.Call(c, block, args...), true
@@ -165,7 +166,7 @@ func makeValueHash(pi eval.AttributesInfo, values []eval.Value) *HashValue {
 	entries := make([]*HashEntry, 0, len(at))
 	for i, v := range values {
 		attr := at[i]
-		if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
+		if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == givenOrDerived && v.Equals(undef, nil)) {
 			entries = append(entries, WrapHashEntry2(attr.Name(), v))
 		}
 	}
@@ -177,7 +178,7 @@ type reflectedObject struct {
 	value reflect.Value
 }
 
-func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
 	m, ok := o.value.Type().MethodByName(method.GoName())
 	if !ok {
 		return nil, false
@@ -197,14 +198,14 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 	if mt.IsVariadic() {
 		if argc < last {
 			// Must be at least expected number of arguments minus one (variadic can have a zero count)
-			panic(fmt.Errorf("Agrument count error. Expected at least %d, got %d", last, argc))
+			panic(fmt.Errorf("argument count error. Expected at least %d, got %d", last, argc))
 		}
 
 		// Slice big enough to hold all variadics
 		vat = mt.In(last).Elem()
 	} else {
 		if top != argc {
-			panic(fmt.Errorf("Agrument count error. Expected %d, got %d", top, argc))
+			panic(fmt.Errorf("argument count error. Expected %d, got %d", top, argc))
 		}
 	}
 
@@ -224,25 +225,25 @@ func (o *reflectedObject) Call(c eval.Context, method eval.ObjFunc, args []eval.
 		rfArgs[pn] = av
 	}
 
-	result := method.(eval.CallableGoMember).CallGoReflected(c, rfArgs)
+	rr := method.(eval.CallableGoMember).CallGoReflected(c, rfArgs)
 
-	switch len(result) {
+	switch len(rr) {
 	case 0:
-		return _UNDEF, true
+		return undef, true
 	case 1:
-		r := result[0]
+		r := rr[0]
 		if r.IsValid() {
 			return wrapReflected(c, r), true
 		} else {
-			return _UNDEF, true
+			return undef, true
 		}
 	default:
-		rs := make([]eval.Value, len(result))
-		for i, r := range result {
+		rs := make([]eval.Value, len(rr))
+		for i, r := range rr {
 			if r.IsValid() {
 				rs[i] = wrapReflected(c, r)
 			} else {
-				rs[i] = _UNDEF
+				rs[i] = undef
 			}
 		}
 		return WrapValues(rs), true
@@ -284,7 +285,7 @@ func (o *reflectedObject) InitFromHash(c eval.Context, hash eval.OrderedMap) {
 func (o *reflectedObject) setValues(c eval.Context, values []eval.Value) {
 	attrs := o.typ.AttributesInfo().Attributes()
 	rf := c.Reflector()
-	if len(attrs) == 1 && attrs[0].GoName() == KEY_VALUE {
+	if len(attrs) == 1 && attrs[0].GoName() == keyValue {
 		rf.ReflectTo(values[0], o.value)
 	} else {
 		oe := o.structVal()
@@ -296,7 +297,7 @@ func (o *reflectedObject) setValues(c eval.Context, values []eval.Value) {
 				if a.HasValue() {
 					v = a.Value()
 				} else {
-					v = _UNDEF
+					v = undef
 				}
 			}
 			rf.ReflectTo(v, oe.FieldByName(a.GoName()))
@@ -308,7 +309,7 @@ func (o *reflectedObject) Get(key string) (eval.Value, bool) {
 	pi := o.typ.AttributesInfo()
 	if idx, ok := pi.NameToPos()[key]; ok {
 		attr := pi.Attributes()[idx]
-		if attr.GoName() == KEY_VALUE {
+		if attr.GoName() == keyValue {
 			return WrapPrimitive(o.value)
 		}
 		rf := o.structVal().FieldByName(attr.GoName())
@@ -316,8 +317,8 @@ func (o *reflectedObject) Get(key string) (eval.Value, bool) {
 			return wrap(nil, rf), true
 		}
 		a := pi.Attributes()[idx]
-		if a.Kind() == GIVEN_OR_DERIVED {
-			return _UNDEF, true
+		if a.Kind() == givenOrDerived {
+			return undef, true
 		}
 		return a.Value(), ok
 	}
@@ -344,12 +345,12 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 	at := pi.Attributes()
 	nc := len(at)
 	if nc == 0 {
-		return eval.EMPTY_MAP
+		return eval.EmptyMap
 	}
 
 	if nc == 1 {
 		attr := at[0]
-		if attr.GoName() == KEY_VALUE {
+		if attr.GoName() == keyValue {
 			pv, _ := WrapPrimitive(o.value)
 			return SingletonHash2(`value`, pv)
 		}
@@ -362,7 +363,7 @@ func (o *reflectedObject) InitHash() eval.OrderedMap {
 		gn := attr.GoName()
 		if gn != `` {
 			v := wrapReflected(c, oe.FieldByName(gn))
-			if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == GIVEN_OR_DERIVED && v.Equals(_UNDEF, nil)) {
+			if !(attr.HasValue() && eval.Equals(v, attr.Value()) || attr.Kind() == givenOrDerived && v.Equals(undef, nil)) {
 				entries = append(entries, WrapHashEntry2(attr.Name(), v))
 			}
 		}
@@ -383,7 +384,7 @@ type reflectedFunc struct {
 	function reflect.Value
 }
 
-func (o *reflectedFunc) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (eval.Value, bool) {
+func (o *reflectedFunc) Call(c eval.Context, method eval.ObjFunc, args []eval.Value, block eval.Lambda) (result eval.Value, ok bool) {
 	mt := o.function.Type()
 	rf := c.Reflector()
 	rfArgs := make([]reflect.Value, len(args))
@@ -395,42 +396,42 @@ func (o *reflectedFunc) Call(c eval.Context, method eval.ObjFunc, args []eval.Va
 
 	pc := mt.NumIn()
 	if pc != len(args) {
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
+		panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeSignatures(
 			[]eval.Signature{method.CallableType().(*CallableType)}, NewTupleType([]eval.Type{}, NewIntegerType(int64(pc-1), int64(pc-1))), nil)}))
 	}
-	result := o.function.Call(rfArgs)
+	rr := o.function.Call(rfArgs)
 
 	oc := mt.NumOut()
 
 	if method.ReturnsError() {
 		oc--
-		err := result[oc].Interface()
+		err := rr[oc].Interface()
 		if err != nil {
 			if re, ok := err.(issue.Reported); ok {
 				panic(re)
 			}
-			panic(eval.Error(eval.EVAL_GO_FUNCTION_ERROR, issue.H{`name`: mt.Name(), `error`: err}))
+			panic(eval.Error(eval.GoFunctionError, issue.H{`name`: mt.Name(), `error`: err}))
 		}
-		result = result[:oc]
+		rr = rr[:oc]
 	}
 
-	switch len(result) {
+	switch len(rr) {
 	case 0:
-		return _UNDEF, true
+		return undef, true
 	case 1:
-		r := result[0]
+		r := rr[0]
 		if r.IsValid() {
 			return wrap(c, r), true
 		} else {
-			return _UNDEF, true
+			return undef, true
 		}
 	default:
-		rs := make([]eval.Value, len(result))
-		for i, r := range result {
+		rs := make([]eval.Value, len(rr))
+		for i, r := range rr {
 			if r.IsValid() {
 				rs[i] = wrap(c, r)
 			} else {
-				rs[i] = _UNDEF
+				rs[i] = undef
 			}
 		}
 		return WrapValues(rs), true
@@ -445,7 +446,7 @@ func (o *reflectedFunc) ReflectTo(c eval.Context, value reflect.Value) {
 	value.Set(o.function)
 }
 
-func (o *reflectedFunc) Initialize(c eval.Context, values []eval.Value) {
+func (o *reflectedFunc) Initialize(c eval.Context, arguments []eval.Value) {
 }
 
 func (o *reflectedFunc) InitFromHash(c eval.Context, hash eval.OrderedMap) {
@@ -471,5 +472,5 @@ func (o *reflectedFunc) ToString(b io.Writer, s eval.FormatContext, g eval.RDete
 }
 
 func (o *reflectedFunc) InitHash() eval.OrderedMap {
-	return eval.EMPTY_MAP
+	return eval.EmptyMap
 }

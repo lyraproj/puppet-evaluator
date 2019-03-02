@@ -7,7 +7,7 @@ import (
 )
 
 type dsContext struct {
-	collector
+	types.BasicCollector
 	allowUnresolved bool
 	context         eval.Context
 	newTypes        []eval.Type
@@ -16,7 +16,7 @@ type dsContext struct {
 }
 
 // NewDeserializer creates a new Collector that consumes input and creates a RichData Value
-func NewDeserializer(ctx eval.Context, options eval.OrderedMap) Collector {
+func NewDeserializer(ctx eval.Context, options eval.OrderedMap) eval.Collector {
 	ds := &dsContext{
 		context:         ctx,
 		newTypes:        make([]eval.Type, 0, 11),
@@ -28,8 +28,8 @@ func NewDeserializer(ctx eval.Context, options eval.OrderedMap) Collector {
 
 func (ds *dsContext) Value() eval.Value {
 	if ds.value == nil {
-		ds.value = ds.convert(ds.collector.Value())
-		ds.context.AddTypes(ds.newTypes...)
+		ds.value = ds.convert(ds.BasicCollector.Value())
+		eval.AddTypes(ds.context, ds.newTypes...)
 	}
 	return ds.value
 }
@@ -68,7 +68,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 							if t.Equals(lt, nil) {
 								return lt.(eval.Value)
 							}
-							panic(eval.Error(eval.EVAL_ATTEMPT_TO_REDEFINE, issue.H{`name`: tn}))
+							panic(eval.Error(eval.AttemptToRedefine, issue.H{`name`: tn}))
 						}
 						ds.newTypes = append(ds.newTypes, v.(eval.Type))
 					}
@@ -97,7 +97,7 @@ func (ds *dsContext) convert(value eval.Value) eval.Value {
 }
 
 func (ds *dsContext) convertHash(hv eval.OrderedMap) eval.Value {
-	value := hv.Get5(PcoreValueKey, eval.EMPTY_ARRAY).(eval.List)
+	value := hv.Get5(PcoreValueKey, eval.EmptyArray).(eval.List)
 	return types.BuildHash(value.Len(), func(hash *types.HashValue, entries []*types.HashEntry) []*types.HashEntry {
 		ds.converted[hv] = hash
 		for idx := 0; idx < value.Len(); idx += 2 {
@@ -108,7 +108,7 @@ func (ds *dsContext) convertHash(hv eval.OrderedMap) eval.Value {
 }
 
 func (ds *dsContext) convertSensitive(hash eval.OrderedMap) eval.Value {
-	cv := types.WrapSensitive(ds.convert(hash.Get5(PcoreValueKey, eval.UNDEF)))
+	cv := types.WrapSensitive(ds.convert(hash.Get5(PcoreValueKey, eval.Undef)))
 	ds.converted[hash] = cv
 	return cv
 }
@@ -126,7 +126,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, typeValue eval.Value) ev
 		typ := ds.convert(typeHash)
 		if _, ok := typ.(*types.HashValue); ok {
 			if !ds.allowUnresolved {
-				panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_TYPE, issue.H{`hash`: typ.String()}))
+				panic(eval.Error(eval.UnableToDeserializeType, issue.H{`hash`: typ.String()}))
 			}
 			return hash
 		}
@@ -135,7 +135,7 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, typeValue eval.Value) ev
 	typ := ds.context.ParseType(typeValue)
 	if tr, ok := typ.(*types.TypeReferenceType); ok {
 		if !ds.allowUnresolved {
-			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: tr.String()}))
+			panic(eval.Error(eval.UnresolvedType, issue.H{`typeString`: tr.String()}))
 		}
 		return hash
 	}
@@ -144,7 +144,6 @@ func (ds *dsContext) convertOther(hash eval.OrderedMap, typeValue eval.Value) ev
 
 func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key, value eval.Value) eval.Value {
 	var ov eval.Value
-
 	if hash, ok := value.(*types.HashValue); ok {
 		if ov, ok = ds.allocate(typ); ok {
 			ds.converted[key] = ov
@@ -166,7 +165,7 @@ func (ds *dsContext) pcoreTypeHashToValue(typ eval.Type, key, value eval.Value) 
 		if str, ok := value.(eval.StringValue); ok {
 			ov = eval.New(ds.context, typ, str)
 		} else {
-			panic(eval.Error(eval.EVAL_UNABLE_TO_DESERIALIZE_VALUE, issue.H{`type`: typ.Name(), `arg_type`: value.PType().Name()}))
+			panic(eval.Error(eval.UnableToDeserializeValue, issue.H{`type`: typ.Name(), `arg_type`: value.PType().Name()}))
 		}
 	}
 	ds.converted[key] = ov

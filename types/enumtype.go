@@ -3,10 +3,11 @@ package types
 import (
 	"io"
 
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/utils"
 	"reflect"
 	"strings"
+
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 type EnumType struct {
@@ -27,12 +28,12 @@ func init() {
 		}
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewEnumType2(args...)
+			return newEnumType2(args...)
 		})
 }
 
 func DefaultEnumType() *EnumType {
-	return enumType_DEFAULT
+	return enumTypeDefault
 }
 
 func NewEnumType(enums []string, caseInsensitive bool) *EnumType {
@@ -49,11 +50,11 @@ func NewEnumType(enums []string, caseInsensitive bool) *EnumType {
 	return &EnumType{caseInsensitive, enums}
 }
 
-func NewEnumType2(args ...eval.Value) *EnumType {
-	return NewEnumType3(WrapValues(args))
+func newEnumType2(args ...eval.Value) *EnumType {
+	return newEnumType3(WrapValues(args))
 }
 
-func NewEnumType3(args eval.List) *EnumType {
+func newEnumType3(args eval.List) *EnumType {
 	if args.Len() == 0 {
 		return DefaultEnumType()
 	}
@@ -62,13 +63,13 @@ func NewEnumType3(args eval.List) *EnumType {
 	caseInsensitive := false
 	first := args.At(0)
 	if top == 1 {
-		switch first.(type) {
+		switch first := first.(type) {
 		case stringValue:
 			enums = []string{first.String()}
 		case *ArrayValue:
-			return NewEnumType3(first.(*ArrayValue))
+			return newEnumType3(first)
 		default:
-			panic(NewIllegalArgumentType2(`Enum[]`, 0, `String or Array[String]`, args.At(0)))
+			panic(NewIllegalArgumentType(`Enum[]`, 0, `String or Array[String]`, args.At(0)))
 		}
 	} else {
 		if ar, ok := first.(*ArrayValue); ok {
@@ -91,7 +92,7 @@ func NewEnumType3(args eval.List) *EnumType {
 					caseInsensitive = ci.Bool()
 					return
 				}
-				panic(NewIllegalArgumentType2(`Enum[]`, idx, `String`, arg))
+				panic(NewIllegalArgumentType(`Enum[]`, idx, `String`, arg))
 			}
 			enums[idx] = string(str)
 		})
@@ -104,7 +105,7 @@ func (t *EnumType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *EnumType) Default() eval.Type {
-	return enumType_DEFAULT
+	return enumTypeDefault
 }
 
 func (t *EnumType) Equals(o interface{}, g eval.Guard) bool {
@@ -115,13 +116,13 @@ func (t *EnumType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *EnumType) Generic() eval.Type {
-	return enumType_DEFAULT
+	return enumTypeDefault
 }
 
 func (t *EnumType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `values`:
-		return WrapValues(t.pvalues()), true
+		return WrapValues(t.enums()), true
 	case `case_insensitive`:
 		return booleanValue(t.caseInsensitive), true
 	default:
@@ -187,11 +188,11 @@ func (t *EnumType) ReflectType(c eval.Context) (reflect.Type, bool) {
 }
 
 func (t *EnumType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *EnumType) Parameters() []eval.Value {
-	result := t.pvalues()
+	result := t.enums()
 	if t.caseInsensitive {
 		result = append(result, BooleanTrue)
 	}
@@ -214,10 +215,10 @@ func (t *EnumType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func (t *EnumType) pvalues() []eval.Value {
+func (t *EnumType) enums() []eval.Value {
 	top := len(t.values)
 	if top == 0 {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	v := make([]eval.Value, top)
 	for idx, e := range t.values {
@@ -226,4 +227,4 @@ func (t *EnumType) pvalues() []eval.Value {
 	return v
 }
 
-var enumType_DEFAULT = &EnumType{false, []string{}}
+var enumTypeDefault = &EnumType{false, []string{}}

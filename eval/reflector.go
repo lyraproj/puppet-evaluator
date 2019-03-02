@@ -25,7 +25,7 @@ type Reflected interface {
 // An ImplementationRegistry contains mappings between ObjectType and reflect.Type
 type ImplementationRegistry interface {
 	// RegisterType registers the mapping between the given Type and reflect.Type
-	RegisterType(c Context, t Type, r reflect.Type)
+	RegisterType(t Type, r reflect.Type)
 
 	// TypeToReflected returns the reflect.Type for the given Type
 	TypeToReflected(t Type) (reflect.Type, bool)
@@ -37,7 +37,7 @@ type ImplementationRegistry interface {
 	ReflectedNameToType(name string) (Type, bool)
 }
 
-// A AnnotatedType represenst a reflect.Type with fields that may have 'puppet' tag overrides.
+// A AnnotatedType represent a reflect.Type with fields that may have 'puppet' tag overrides.
 type AnnotatedType interface {
 	// Type returns the reflect.Type
 	Type() reflect.Type
@@ -49,7 +49,7 @@ type AnnotatedType interface {
 	// Tags returns a map, keyed by field names, containing values that are the
 	// 'puppet' tag parsed into an OrderedMap. The map is merged with possible
 	// overrides given when the AnnotatedType instance was created
-	Tags(c Context) map[string]OrderedMap
+	Tags() map[string]OrderedMap
 }
 
 // NewTaggedType returns a new instance of a AnnotatedType

@@ -1,10 +1,11 @@
 package impl
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
+
+	"github.com/lyraproj/puppet-evaluator/utils"
 
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
@@ -114,7 +115,7 @@ func (l *lambda) String() string {
 }
 
 func (l *lambda) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	io.WriteString(bld, `lambda`)
+	utils.WriteString(bld, `lambda`)
 }
 
 func (l *lambda) PType() eval.Type {
@@ -125,18 +126,16 @@ func (l *lambda) Signature() eval.Signature {
 	return l.signature
 }
 
-func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (result eval.Value) {
-	result = l.function(c, args)
-	return
+func (l *goLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Value) eval.Value {
+	return l.function(c, args)
 }
 
 func (l *goLambda) Parameters() []eval.Parameter {
 	return parametersFromSignature(l.signature)
 }
 
-func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (result eval.Value) {
-	result = l.function(c, args, block)
-	return
+func (l *goLambdaWithBlock) Call(c eval.Context, block eval.Lambda, args ...eval.Value) eval.Value {
+	return l.function(c, args, block)
 }
 
 func (l *goLambdaWithBlock) Parameters() []eval.Parameter {
@@ -172,27 +171,29 @@ func (fb *functionBuilder) Name() string {
 
 func (fb *functionBuilder) Resolve(c eval.Context) eval.Function {
 	ds := make([]eval.Lambda, len(fb.dispatchers))
-	if len(fb.localTypeBuilder.localTypes) > 0 {
+
+	if tl := len(fb.localTypeBuilder.localTypes); tl > 0 {
 		localLoader := eval.NewParentedLoader(c.Loader())
 		c.DoWithLoader(localLoader, func() {
-			b := bytes.NewBufferString(``)
+			te := make([]eval.Type, 0, tl)
 			for _, td := range fb.localTypeBuilder.localTypes {
 				if td.tp == nil {
-					b.WriteString(`type `)
-					b.WriteString(td.name)
-					b.WriteString(` = `)
-					b.WriteString(td.decl)
-					b.WriteByte('\n')
+					v, err := types.Parse(td.decl)
+					if err != nil {
+						panic(err)
+					}
+					if dt, ok := v.(*types.DeferredType); ok {
+						te = append(te, types.NamedType(eval.RuntimeNameAuthority, td.name, dt))
+					}
 				} else {
 					localLoader.SetEntry(eval.NewTypedName(eval.NsType, td.name), eval.NewLoaderEntry(td.tp, nil))
 				}
 			}
 
-			s := b.String()
-			if len(s) > 0 {
-				c.AddDefinitions(c.ParseAndValidate(``, s, false))
+			if len(te) > 0 {
+				eval.AddTypes(c, te...)
 			}
-			c.ResolveDefinitions()
+			eval.ResolveResolvables(c)
 			for i, d := range fb.dispatchers {
 				ds[i] = d.createDispatch(c)
 			}
@@ -377,7 +378,8 @@ func (f *goFunction) String() string {
 }
 
 func (f *goFunction) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	fmt.Fprintf(bld, `function %s`, f.name)
+	utils.WriteString(bld, `function `)
+	utils.WriteString(bld, f.name)
 }
 
 func (f *goFunction) PType() eval.Type {
@@ -389,7 +391,7 @@ func (f *goFunction) PType() eval.Type {
 	return types.NewVariantType(variants...)
 }
 
-func NewPuppetLambda(expr *parser.LambdaExpression, c eval.Context) eval.Lambda {
+func NewPuppetLambda(expr *parser.LambdaExpression, c eval.EvaluationContext) eval.Lambda {
 	rps := ResolveParameters(c, expr.Parameters())
 	sg := CreateTupleType(rps)
 
@@ -409,7 +411,7 @@ func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Valu
 			}
 		}
 	}()
-	v = CallBlock(c, `lambda`, l.parameters, l.signature, l.expression.Body(), args)
+	v = CallBlock(c.(eval.EvaluationContext), `lambda`, l.parameters, l.signature, l.expression.Body(), args)
 	return
 }
 
@@ -432,7 +434,7 @@ func (l *puppetLambda) String() string {
 }
 
 func (l *puppetLambda) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	io.WriteString(bld, `lambda`)
+	utils.WriteString(bld, `lambda`)
 }
 
 func (l *puppetLambda) PType() eval.Type {
@@ -449,17 +451,17 @@ func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Va
 	}
 	defer func() {
 		if err := recover(); err != nil {
-			switch err.(type) {
+			switch err := err.(type) {
 			case *errors.NextIteration:
-				v = err.(*errors.NextIteration).Value()
+				v = err.Value()
 			case *errors.Return:
-				v = err.(*errors.Return).Value()
+				v = err.Value()
 			default:
 				panic(err)
 			}
 		}
 	}()
-	v = CallBlock(c, f.Name(), f.parameters, f.signature, f.expression.Body(), args)
+	v = CallBlock(c.(eval.EvaluationContext), f.Name(), f.parameters, f.signature, f.expression.Body(), args)
 	return
 }
 
@@ -467,7 +469,7 @@ func (f *puppetFunction) Signature() eval.Signature {
 	return f.signature
 }
 
-func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.Value) eval.Value {
+func CallBlock(c eval.EvaluationContext, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.Value) eval.Value {
 	return c.Scope().WithLocalScope(func() (v eval.Value) {
 		na := len(args)
 		np := len(parameters)
@@ -479,7 +481,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 				for idx := na; idx < np; idx++ {
 					p := parameters[idx]
 					if !p.HasValue() {
-						ap[idx] = eval.UNDEF
+						ap[idx] = eval.Undef
 						continue
 					}
 					d := p.Value()
@@ -492,7 +494,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 					ap[idx] = d
 				}
 				args = ap
-				return eval.UNDEF
+				return eval.Undef
 			})
 		}
 
@@ -515,7 +517,7 @@ func CallBlock(c eval.Context, name string, parameters []eval.Parameter, signatu
 
 func AssertArgument(name string, index int, pt eval.Type, arg eval.Value) {
 	if !eval.IsInstance(pt, arg) {
-		panic(types.NewIllegalArgumentType2(name, index, pt.String(), arg))
+		panic(types.NewIllegalArgumentType(name, index, pt.String(), arg))
 	}
 }
 
@@ -524,11 +526,11 @@ func (f *puppetFunction) Dispatchers() []eval.Lambda {
 }
 
 func (f *puppetFunction) Defaults() []eval.Value {
-	dflts := make([]eval.Value, len(f.parameters))
+	ds := make([]eval.Value, len(f.parameters))
 	for i, p := range f.parameters {
-		dflts[i] = p.Value()
+		ds[i] = p.Value()
 	}
-	return dflts
+	return ds
 }
 
 func (f *puppetFunction) Equals(other interface{}, guard eval.Guard) bool {
@@ -552,8 +554,9 @@ func (f *puppetFunction) Resolve(c eval.Context) {
 	if f.parameters != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
 	}
-	f.parameters = ResolveParameters(c, f.expression.Parameters())
-	f.signature = types.NewCallableType(CreateTupleType(f.parameters), ResolveReturnType(c, f.expression.ReturnType()), nil)
+	ec := c.(eval.EvaluationContext)
+	f.parameters = ResolveParameters(ec, f.expression.Parameters())
+	f.signature = types.NewCallableType(CreateTupleType(f.parameters), ResolveReturnType(ec, f.expression.ReturnType()), nil)
 }
 
 func (f *puppetFunction) ReturnType() parser.Expression {
@@ -565,8 +568,8 @@ func (f *puppetFunction) String() string {
 }
 
 func (f *puppetFunction) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	io.WriteString(bld, `function `)
-	io.WriteString(bld, f.Name())
+	utils.WriteString(bld, `function `)
+	utils.WriteString(bld, f.Name())
 }
 
 func (f *puppetFunction) PType() eval.Type {
@@ -578,8 +581,8 @@ func NewPuppetPlan(expr *parser.PlanDefinition) *puppetPlan {
 }
 
 func (p *puppetPlan) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	io.WriteString(bld, `plan `)
-	io.WriteString(bld, p.Name())
+	utils.WriteString(bld, `plan `)
+	utils.WriteString(bld, p.Name())
 }
 
 func (p *puppetPlan) String() string {
@@ -602,14 +605,14 @@ func CreateTupleType(params []eval.Parameter) *types.TupleType {
 	return types.NewTupleType(tps, types.NewIntegerType(int64(min), int64(max)))
 }
 
-func ResolveReturnType(c eval.Context, typeExpr parser.Expression) eval.Type {
+func ResolveReturnType(c eval.EvaluationContext, typeExpr parser.Expression) eval.Type {
 	if typeExpr == nil {
 		return types.DefaultAnyType()
 	}
 	return c.ResolveType(typeExpr)
 }
 
-func ResolveParameters(c eval.Context, eps []parser.Expression) []eval.Parameter {
+func ResolveParameters(c eval.EvaluationContext, eps []parser.Expression) []eval.Parameter {
 	pps := make([]eval.Parameter, len(eps))
 	for idx, ep := range eps {
 		pps[idx] = eval.Evaluate(c, ep).(eval.Parameter)

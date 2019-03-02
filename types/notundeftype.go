@@ -3,9 +3,10 @@ package types
 import (
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 type NotUndefType struct {
@@ -24,22 +25,22 @@ func init() {
 				},
 			}
 		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewNotUndefType2(args...)
+			return newNotUndefType2(args...)
 		})
 }
 
 func DefaultNotUndefType() *NotUndefType {
-	return notUndefType_DEFAULT
+	return notUndefTypeDefault
 }
 
 func NewNotUndefType(containedType eval.Type) *NotUndefType {
-	if containedType == nil || containedType == anyType_DEFAULT {
+	if containedType == nil || containedType == anyTypeDefault {
 		return DefaultNotUndefType()
 	}
 	return &NotUndefType{containedType}
 }
 
-func NewNotUndefType2(args ...eval.Value) *NotUndefType {
+func newNotUndefType2(args ...eval.Value) *NotUndefType {
 	switch len(args) {
 	case 0:
 		return DefaultNotUndefType()
@@ -48,15 +49,15 @@ func NewNotUndefType2(args ...eval.Value) *NotUndefType {
 			return NewNotUndefType(containedType)
 		}
 		if containedType, ok := args[0].(stringValue); ok {
-			return NewNotUndefType3(string(containedType))
+			return newNotUndefType3(string(containedType))
 		}
-		panic(NewIllegalArgumentType2(`NotUndef[]`, 0, `Variant[Type,String]`, args[0]))
+		panic(NewIllegalArgumentType(`NotUndef[]`, 0, `Variant[Type,String]`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`NotUndef[]`, `0 - 1`, len(args)))
 	}
 }
 
-func NewNotUndefType3(str string) *NotUndefType {
+func newNotUndefType3(str string) *NotUndefType {
 	return &NotUndefType{NewStringType(nil, str)}
 }
 
@@ -70,7 +71,7 @@ func (t *NotUndefType) ContainedType() eval.Type {
 }
 
 func (t *NotUndefType) Default() eval.Type {
-	return notUndefType_DEFAULT
+	return notUndefTypeDefault
 }
 
 func (t *NotUndefType) Equals(o interface{}, g eval.Guard) bool {
@@ -93,11 +94,11 @@ func (t *NotUndefType) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *NotUndefType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	return !GuardedIsAssignable(o, undefType_DEFAULT, g) && GuardedIsAssignable(t.typ, o, g)
+	return !GuardedIsAssignable(o, undefTypeDefault, g) && GuardedIsAssignable(t.typ, o, g)
 }
 
 func (t *NotUndefType) IsInstance(o eval.Value, g eval.Guard) bool {
-	return o != _UNDEF && GuardedIsInstance(t.typ, o, g)
+	return o != undef && GuardedIsInstance(t.typ, o, g)
 }
 
 func (t *NotUndefType) MetaType() eval.ObjectType {
@@ -110,7 +111,7 @@ func (t *NotUndefType) Name() string {
 
 func (t *NotUndefType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	if str, ok := t.typ.(*vcStringType); ok && str.value != `` {
 		return []eval.Value{stringValue(str.value)}
@@ -136,7 +137,7 @@ func (t *NotUndefType) SerializationString() string {
 }
 
 func (t *NotUndefType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *NotUndefType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -147,4 +148,4 @@ func (t *NotUndefType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var notUndefType_DEFAULT = &NotUndefType{typ: anyType_DEFAULT}
+var notUndefTypeDefault = &NotUndefType{typ: anyTypeDefault}

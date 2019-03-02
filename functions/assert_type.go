@@ -1,8 +1,8 @@
 package functions
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func assertType(c eval.Context, t eval.Type, v eval.Value, b eval.Lambda) eval.Value {
@@ -11,7 +11,7 @@ func assertType(c eval.Context, t eval.Type, v eval.Value, b eval.Lambda) eval.V
 	}
 	vt := eval.DetailedValueType(v)
 	if b == nil {
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
+		panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
 	}
 	return b.Call(c, nil, t, vt)
 }

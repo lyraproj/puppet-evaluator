@@ -3,6 +3,7 @@ package eval
 import (
 	"bytes"
 	"fmt"
+	"github.com/lyraproj/puppet-evaluator/utils"
 	"io"
 	"os"
 
@@ -54,7 +55,7 @@ const (
 	IGNORE  = LogLevel(``)
 )
 
-var LOG_LEVELS = []LogLevel{ALERT, CRIT, DEBUG, EMERG, ERR, INFO, NOTICE, WARNING}
+var LogLevels = []LogLevel{ALERT, CRIT, DEBUG, EMERG, ERR, INFO, NOTICE, WARNING}
 
 func (l LogLevel) Severity() issue.Severity {
 	switch l {
@@ -73,18 +74,18 @@ func NewStdLogger() Logger {
 
 func (l *stdlog) Log(level LogLevel, args ...Value) {
 	w := l.writerFor(level)
-	fmt.Fprintf(w, `%s: `, level)
+	utils.Fprintf(w, `%s: `, level)
 	for _, arg := range args {
 		ToString3(arg, w)
 	}
-	fmt.Fprintln(w)
+	utils.Fprintln(w)
 }
 
 func (l *stdlog) Logf(level LogLevel, format string, args ...interface{}) {
 	w := l.writerFor(level)
-	fmt.Fprintf(w, `%s: `, level)
-	fmt.Fprintf(w, format, args...)
-	fmt.Fprintln(w)
+	utils.Fprintf(w, `%s: `, level)
+	utils.Fprintf(w, format, args...)
+	utils.Fprintln(w)
 }
 
 func (l *stdlog) writerFor(level LogLevel) io.Writer {
@@ -97,7 +98,7 @@ func (l *stdlog) writerFor(level LogLevel) io.Writer {
 }
 
 func (l *stdlog) LogIssue(issue issue.Reported) {
-	fmt.Fprintln(os.Stderr, issue.String())
+	utils.Fprintln(os.Stderr, issue.String())
 }
 
 func NewArrayLogger() *ArrayLogger {

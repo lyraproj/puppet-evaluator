@@ -11,30 +11,29 @@ import (
 //
 func init() {
 	eval.PuppetEquals = func(a eval.Value, b eval.Value) bool {
-		switch a.(type) {
+		switch a := a.(type) {
 		case eval.StringValue:
-			return a.(eval.StringValue).EqualsIgnoreCase(b)
+			return a.EqualsIgnoreCase(b)
 		case eval.IntegerValue:
-			lhs := a.(eval.IntegerValue).Int()
-			switch b.(type) {
+			lhs := a.Int()
+			switch b := b.(type) {
 			case eval.IntegerValue:
-				return lhs == b.(eval.IntegerValue).Int()
+				return lhs == b.Int()
 			case eval.NumericValue:
-				return float64(lhs) == b.(eval.NumericValue).Float()
+				return float64(lhs) == b.Float()
 			}
 			return false
 		case eval.FloatValue:
-			lhs := a.(eval.FloatValue).Float()
+			lhs := a.Float()
 			if rhv, ok := b.(eval.NumericValue); ok {
 				return lhs == rhv.Float()
 			}
 			return false
 		case *types.ArrayValue:
 			if rhs, ok := b.(*types.ArrayValue); ok {
-				lhs := a.(*types.ArrayValue)
-				if lhs.Len() == rhs.Len() {
+				if a.Len() == rhs.Len() {
 					idx := 0
-					return lhs.All(func(el eval.Value) bool {
+					return a.All(func(el eval.Value) bool {
 						eq := eval.PuppetEquals(el, rhs.At(idx))
 						idx++
 						return eq
@@ -44,9 +43,8 @@ func init() {
 			return false
 		case *types.HashValue:
 			if rhs, ok := b.(*types.HashValue); ok {
-				lhs := a.(*types.HashValue)
-				if lhs.Len() == rhs.Len() {
-					return lhs.AllPairs(func(key, value eval.Value) bool {
+				if a.Len() == rhs.Len() {
+					return a.AllPairs(func(key, value eval.Value) bool {
 						rhsValue, ok := rhs.Get(key)
 						return ok && eval.PuppetEquals(value, rhsValue)
 					})

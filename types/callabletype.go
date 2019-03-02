@@ -1,9 +1,10 @@
 package types
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"io"
 	"strconv"
+
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type CallableType struct {
@@ -12,10 +13,10 @@ type CallableType struct {
 	blockType  eval.Type // Callable or Optional[Callable]
 }
 
-var Callable_Type eval.ObjectType
+var CallableMetaType eval.ObjectType
 
 func init() {
-	Callable_Type = newObjectType(`Pcore::CallableType`,
+	CallableMetaType = newObjectType(`Pcore::CallableType`,
 		`Pcore::AnyType {
   attributes => {
     param_types => {
@@ -32,23 +33,23 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewCallableType2(args...)
+			return newCallableType2(args...)
 		})
 }
 
 func DefaultCallableType() *CallableType {
-	return callableType_DEFAULT
+	return callableTypeDefault
 }
 
 func NewCallableType(paramsType eval.Type, returnType eval.Type, blockType eval.Type) *CallableType {
 	return &CallableType{paramsType, returnType, blockType}
 }
 
-func NewCallableType2(args ...eval.Value) *CallableType {
-	return NewCallableType3(WrapValues(args))
+func newCallableType2(args ...eval.Value) *CallableType {
+	return newCallableType3(WrapValues(args))
 }
 
-func NewCallableType3(args eval.List) *CallableType {
+func newCallableType3(args eval.List) *CallableType {
 	argc := args.Len()
 	if argc == 0 {
 		return DefaultCallableType()
@@ -81,7 +82,7 @@ func NewCallableType3(args eval.List) *CallableType {
 		if iv, ok = first.(eval.List); ok {
 			if argc == 2 {
 				if rt, ok = args.At(1).(eval.Type); !ok {
-					panic(NewIllegalArgumentType2(`Callable[]`, 1, `Type`, args.At(1)))
+					panic(NewIllegalArgumentType(`Callable[]`, 1, `Type`, args.At(1)))
 				}
 			}
 			argc = iv.Len()
@@ -103,7 +104,6 @@ func NewCallableType3(args eval.List) *CallableType {
 	if ok {
 		argc--
 		args = args.Slice(0, argc)
-		last = args.At(argc)
 	}
 	return NewCallableType(tupleFromArgs(true, args), rt, block)
 }
@@ -118,11 +118,11 @@ func (t *CallableType) BlockType() eval.Type {
 func (t *CallableType) CallableWith(args []eval.Value, block eval.Lambda) bool {
 	if block != nil {
 		cb := t.blockType
-		switch cb.(type) {
+		switch ca := cb.(type) {
 		case nil:
 			return false
 		case *OptionalType:
-			cb = cb.(*OptionalType).ContainedType()
+			cb = ca.ContainedType()
 		}
 		if block.PType() == nil {
 			return false
@@ -130,7 +130,7 @@ func (t *CallableType) CallableWith(args []eval.Value, block eval.Lambda) bool {
 		if !isAssignable(block.PType(), cb) {
 			return false
 		}
-	} else if t.blockType != nil && !isAssignable(t.blockType, anyType_DEFAULT) {
+	} else if t.blockType != nil && !isAssignable(t.blockType, anyTypeDefault) {
 		// Required block but non provided
 		return false
 	}
@@ -166,7 +166,7 @@ func (t *CallableType) SerializationString() string {
 }
 
 func (t *CallableType) Default() eval.Type {
-	return callableType_DEFAULT
+	return callableTypeDefault
 }
 
 func (t *CallableType) Equals(o interface{}, g eval.Guard) bool {
@@ -175,24 +175,24 @@ func (t *CallableType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *CallableType) Generic() eval.Type {
-	return callableType_DEFAULT
+	return callableTypeDefault
 }
 
 func (t *CallableType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `param_types`:
 		if t.paramsType == nil {
-			return eval.UNDEF, true
+			return eval.Undef, true
 		}
 		return t.paramsType, true
 	case `return_type`:
 		if t.returnType == nil {
-			return eval.UNDEF, true
+			return eval.Undef, true
 		}
 		return t.returnType, true
 	case `block_type`:
 		if t.blockType == nil {
-			return eval.UNDEF, true
+			return eval.Undef, true
 		}
 		return t.blockType, true
 	default:
@@ -212,7 +212,7 @@ func (t *CallableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	if t.returnType != nil {
 		or := oc.returnType
 		if or == nil {
-			or = anyType_DEFAULT
+			or = anyTypeDefault
 		}
 		if !isAssignable(t.returnType, or) {
 			return false
@@ -226,10 +226,7 @@ func (t *CallableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	}
 
 	if t.blockType == nil {
-		if oc.blockType != nil {
-			return false
-		}
-		return true
+		return oc.blockType == nil
 	}
 	if oc.blockType == nil {
 		return false
@@ -246,7 +243,7 @@ func (t *CallableType) IsInstance(o eval.Value, g eval.Guard) bool {
 }
 
 func (t *CallableType) MetaType() eval.ObjectType {
-	return Callable_Type
+	return CallableMetaType
 }
 
 func (t *CallableType) Name() string {
@@ -267,8 +264,8 @@ func (t *CallableType) ParameterNames() []string {
 }
 
 func (t *CallableType) Parameters() (params []eval.Value) {
-	if *t == *callableType_DEFAULT {
-		return eval.EMPTY_VALUES
+	if *t == *callableTypeDefault {
+		return eval.EmptyValues
 	}
 	if pt, ok := t.paramsType.(*TupleType); ok {
 		tupleParams := pt.Parameters()
@@ -314,7 +311,7 @@ func (t *CallableType) ReturnType() eval.Type {
 }
 
 func (t *CallableType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *CallableType) PType() eval.Type {
@@ -325,4 +322,4 @@ func (t *CallableType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	TypeToString(t, b, s, g)
 }
 
-var callableType_DEFAULT = &CallableType{paramsType: nil, blockType: nil, returnType: nil}
+var callableTypeDefault = &CallableType{paramsType: nil, blockType: nil, returnType: nil}

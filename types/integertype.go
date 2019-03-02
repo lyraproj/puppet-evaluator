@@ -7,10 +7,11 @@ import (
 	"math"
 	"strconv"
 
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 type (
@@ -48,13 +49,13 @@ func init() {
     to => { type => Optional[Integer], value => undef }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewIntegerType2(args...)
+			return newIntegerType2(args...)
 		})
 
 	newGoConstructor2(`Integer`,
 		func(t eval.LocalTypes) {
 			t.Type(`Radix`, `Variant[Default, Integer[2,2], Integer[8,8], Integer[10,10], Integer[16,16]]`)
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+INTEGER_PATTERN+`/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+IntegerPattern+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[radix] => Radix, Optional[abs] => Boolean}]`)
 		},
 
@@ -95,7 +96,7 @@ func init() {
 				if ab, ok := h.Get4(`abs`); ok {
 					abs = ab.(booleanValue).Bool()
 				}
-				n := intFromConvertible(h.Get5(`from`, _UNDEF), r)
+				n := intFromConvertible(h.Get5(`from`, undef), r)
 				if abs && n < 0 {
 					n = -n
 				}
@@ -106,23 +107,23 @@ func init() {
 }
 
 func intFromConvertible(from eval.Value, radix int) int64 {
-	switch from.(type) {
+	switch from := from.(type) {
 	case integerValue:
-		return from.(integerValue).Int()
+		return from.Int()
 	case floatValue:
-		return from.(floatValue).Int()
+		return from.Int()
 	case *TimestampValue:
-		return from.(*TimestampValue).Int()
+		return from.Int()
 	case TimespanValue:
-		return from.(TimespanValue).Int()
+		return from.Int()
 	case booleanValue:
-		return from.(booleanValue).Int()
+		return from.Int()
 	default:
 		i, err := strconv.ParseInt(from.String(), radix, 64)
 		if err == nil {
 			return i
 		}
-		panic(eval.Error(eval.EVAL_NOT_INTEGER, issue.H{`value`: from}))
+		panic(eval.Error(eval.NotInteger, issue.H{`value`: from}))
 	}
 }
 
@@ -154,7 +155,7 @@ func NewIntegerType(min int64, max int64) *IntegerType {
 	return &IntegerType{min, max}
 }
 
-func NewIntegerType2(limits ...eval.Value) *IntegerType {
+func newIntegerType2(limits ...eval.Value) *IntegerType {
 	argc := len(limits)
 	if argc == 0 {
 		return integerTypeDefault
@@ -162,7 +163,7 @@ func NewIntegerType2(limits ...eval.Value) *IntegerType {
 	min, ok := toInt(limits[0])
 	if !ok {
 		if _, ok = limits[0].(*DefaultValue); !ok {
-			panic(NewIllegalArgumentType2(`Integer[]`, 0, `Integer`, limits[0]))
+			panic(NewIllegalArgumentType(`Integer[]`, 0, `Integer`, limits[0]))
 		}
 		min = math.MinInt64
 	}
@@ -175,7 +176,7 @@ func NewIntegerType2(limits ...eval.Value) *IntegerType {
 		max, ok = toInt(limits[1])
 		if !ok {
 			if _, ok = limits[1].(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Integer[]`, 1, `Integer`, limits[1]))
+				panic(NewIllegalArgumentType(`Integer[]`, 1, `Integer`, limits[1]))
 			}
 			max = math.MaxInt64
 		}
@@ -207,13 +208,13 @@ func (t *IntegerType) Generic() eval.Type {
 func (t *IntegerType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
-		v := eval.UNDEF
+		v := eval.Undef
 		if t.min != math.MinInt64 {
 			v = integerValue(t.min)
 		}
 		return v, true
 	case `to`:
-		v := eval.UNDEF
+		v := eval.Undef
 		if t.max != math.MaxInt64 {
 			v = integerValue(t.max)
 		}
@@ -268,7 +269,7 @@ func (t *IntegerType) Name() string {
 func (t *IntegerType) Parameters() []eval.Value {
 	if t.min == math.MinInt64 {
 		if t.max == math.MaxInt64 {
-			return eval.EMPTY_VALUES
+			return eval.EmptyValues
 		}
 		return []eval.Value{WrapDefault(), integerValue(t.max)}
 	}
@@ -302,7 +303,7 @@ func (t *IntegerType) SerializationString() string {
 }
 
 func (t *IntegerType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *IntegerType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -345,7 +346,7 @@ func (iv integerValue) Reflect(c eval.Context) reflect.Value {
 
 func (iv integerValue) ReflectTo(c eval.Context, value reflect.Value) {
 	if !value.CanSet() {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_UNSETTABLE, issue.H{`kind`: reflect.Int.String()}))
+		panic(eval.Error(eval.AttemptToSetUnsettable, issue.H{`kind`: reflect.Int.String()}))
 	}
 	ok := true
 	switch value.Kind() {
@@ -394,7 +395,7 @@ func (iv integerValue) ReflectTo(c eval.Context, value reflect.Value) {
 		ok = false
 	}
 	if !ok {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: reflect.Int.String(), `actual`: value.Kind().String()}))
 	}
 }
 
@@ -405,7 +406,7 @@ func (iv integerValue) String() string {
 func (iv integerValue) ToKey(b *bytes.Buffer) {
 	n := int64(iv)
 	b.WriteByte(1)
-	b.WriteByte(HK_INTEGER)
+	b.WriteByte(HkInteger)
 	b.WriteByte(byte(n >> 56))
 	b.WriteByte(byte(n >> 48))
 	b.WriteByte(byte(n >> 40))
@@ -484,6 +485,7 @@ func (iv integerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetec
 	case 's':
 		f.ApplyStringFlags(b, strconv.Itoa(int(int64(iv))), f.IsAlt())
 	default:
+		//noinspection SpellCheckingInspection
 		panic(s.UnsupportedFormat(iv.PType(), `dxXobBeEfgGaAspc`, f))
 	}
 	if err != nil {

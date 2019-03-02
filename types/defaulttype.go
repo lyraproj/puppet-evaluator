@@ -14,7 +14,7 @@ type (
 	DefaultValue struct{}
 )
 
-var defaultType_DEFAULT = &DefaultType{}
+var defaultTypeDefault = &DefaultType{}
 
 var DefaultMetaType eval.ObjectType
 
@@ -25,7 +25,7 @@ func init() {
 }
 
 func DefaultDefaultType() *DefaultType {
-	return defaultType_DEFAULT
+	return defaultTypeDefault
 }
 
 func (t *DefaultType) Accept(v eval.Visitor, g eval.Guard) {
@@ -38,7 +38,7 @@ func (t *DefaultType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *DefaultType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	return o == defaultType_DEFAULT
+	return o == defaultTypeDefault
 }
 
 func (t *DefaultType) IsInstance(o eval.Value, g eval.Guard) bool {
@@ -63,7 +63,7 @@ func (t *DefaultType) SerializationString() string {
 }
 
 func (t *DefaultType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *DefaultType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -88,7 +88,7 @@ func (dv *DefaultValue) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (dv *DefaultValue) ToKey() eval.HashKey {
-	return eval.HashKey([]byte{1, HK_DEFAULT})
+	return eval.HashKey([]byte{1, HkDefault})
 }
 
 func (dv *DefaultValue) String() string {

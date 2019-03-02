@@ -6,11 +6,12 @@ import (
 	"math"
 	"time"
 
+	"reflect"
+	"sync"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
-	"sync"
 )
 
 type (
@@ -27,16 +28,16 @@ type (
 // represents the number of seconds from 1970-01-01:00:00:00 UTC. This offset
 // must be retracted from the MaxInt64 value in order for it to end up
 // as that value internally.
-const MAX_UNIX_SECS = math.MaxInt64 - 62135596800
+const MaxUnixSecs = math.MaxInt64 - 62135596800
 
-var MIN_TIME = time.Time{}
-var MAX_TIME = time.Unix(MAX_UNIX_SECS, 999999999)
-var timestampType_DEFAULT = &TimestampType{MIN_TIME, MAX_TIME}
+var MinTime = time.Time{}
+var MaxTime = time.Unix(MaxUnixSecs, 999999999)
+var timestampTypeDefault = &TimestampType{MinTime, MaxTime}
 
 var TimestampMetaType eval.ObjectType
 
-var DEFAULT_TIMESTAMP_FORMATS_WO_TZ []*TimestampFormat
-var DEFAULT_TIMESTAMP_FORMATS []*TimestampFormat
+var DefaultTimestampFormatsWoTz []*TimestampFormat
+var DefaultTimestampFormats []*TimestampFormat
 var DefaultTimestampFormatParser *TimestampFormatParser
 
 func init() {
@@ -47,13 +48,13 @@ func init() {
 		to => { type => Optional[Timestamp], value => undef }
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewTimestampType2(args...)
+			return newTimestampType2(args...)
 		})
 
 	tp := NewTimestampFormatParser()
 	DefaultTimestampFormatParser = tp
 
-	DEFAULT_TIMESTAMP_FORMATS_WO_TZ = []*TimestampFormat{
+	DefaultTimestampFormatsWoTz = []*TimestampFormat{
 		tp.ParseFormat(`%FT%T.%N`),
 		tp.ParseFormat(`%FT%T`),
 		tp.ParseFormat(`%F %T.%N`),
@@ -61,14 +62,14 @@ func init() {
 		tp.ParseFormat(`%F`),
 	}
 
-	DEFAULT_TIMESTAMP_FORMATS = []*TimestampFormat{
+	DefaultTimestampFormats = []*TimestampFormat{
 		tp.ParseFormat(`%FT%T.%N %Z`),
 		tp.ParseFormat(`%FT%T %Z`),
 		tp.ParseFormat(`%F %T.%N %Z`),
 		tp.ParseFormat(`%F %T %Z`),
 		tp.ParseFormat(`%F %Z`),
 	}
-	DEFAULT_TIMESTAMP_FORMATS = append(DEFAULT_TIMESTAMP_FORMATS, DEFAULT_TIMESTAMP_FORMATS_WO_TZ...)
+	DefaultTimestampFormats = append(DefaultTimestampFormats, DefaultTimestampFormatsWoTz...)
 
 	newGoConstructor2(`Timestamp`,
 
@@ -99,7 +100,7 @@ func init() {
 			d.OptionalParam(`Formats`)
 			d.OptionalParam(`String[1]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				formats := DEFAULT_TIMESTAMP_FORMATS
+				formats := DefaultTimestampFormats
 				tz := ``
 				if len(args) > 1 {
 					formats = toTimestampFormats(args[1])
@@ -115,38 +116,40 @@ func init() {
 			d.Param(`Struct[string => String[1],Optional[format] => Formats,Optional[timezone] => String[1]]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				hash := args[0].(*HashValue)
-				str := hash.Get5(`string`, _EMPTY_STRING).String()
-				formats := toTimestampFormats(hash.Get5(`format`, eval.UNDEF))
-				tz := hash.Get5(`timezone`, _EMPTY_STRING).String()
+				str := hash.Get5(`string`, emptyString).String()
+				formats := toTimestampFormats(hash.Get5(`format`, eval.Undef))
+				tz := hash.Get5(`timezone`, emptyString).String()
 				return ParseTimestamp(str, formats, tz)
 			})
 		})
 }
 
 func DefaultTimestampType() *TimestampType {
-	return timestampType_DEFAULT
+	return timestampTypeDefault
 }
 
 func NewTimestampType(min time.Time, max time.Time) *TimestampType {
 	return &TimestampType{min, max}
 }
 
-func TimeFromHash(value *HashValue) (time.Time, bool) {
-	// TODO
-	return time.Time{}, false
+func TimeFromHash(hash *HashValue) (time.Time, bool) {
+	str := hash.Get5(`string`, emptyString).String()
+	formats := toTimestampFormats(hash.Get5(`format`, undef))
+	tz := hash.Get5(`timezone`, emptyString).String()
+	return parseTime(str, formats, tz)
 }
 
 func TimeFromString(value string) time.Time {
-	return time.Time(*ParseTimestamp(value, DEFAULT_TIMESTAMP_FORMATS, ``))
+	return time.Time(*ParseTimestamp(value, DefaultTimestampFormats, ``))
 }
 
-func NewTimestampType2(args ...eval.Value) *TimestampType {
+func newTimestampType2(args ...eval.Value) *TimestampType {
 	argc := len(args)
 	if argc > 2 {
 		panic(errors.NewIllegalArgumentCount(`Timestamp[]`, `0 or 2`, argc))
 	}
 	if argc == 0 {
-		return timestampType_DEFAULT
+		return timestampTypeDefault
 	}
 	convertArg := func(args []eval.Value, argNo int) time.Time {
 		arg := args[argNo]
@@ -154,23 +157,23 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 			t  time.Time
 			ok bool
 		)
-		switch arg.(type) {
+		switch arg := arg.(type) {
 		case *TimestampValue:
-			t, ok = time.Time(*(arg.(*TimestampValue))), true
+			t, ok = time.Time(*arg), true
 		case *HashValue:
-			t, ok = TimeFromHash(arg.(*HashValue))
+			t, ok = TimeFromHash(arg)
 		case stringValue:
 			t, ok = TimeFromString(arg.String()), true
 		case integerValue:
-			t, ok = time.Unix(int64(arg.(integerValue)), 0), true
+			t, ok = time.Unix(int64(arg), 0), true
 		case floatValue:
-			s, f := math.Modf(float64(arg.(floatValue)))
+			s, f := math.Modf(float64(arg))
 			t, ok = time.Unix(int64(s), int64(f*1000000000.0)), true
 		case *DefaultValue:
 			if argNo == 0 {
 				t, ok = time.Time{}, true
 			} else {
-				t, ok = time.Unix(MAX_UNIX_SECS, 999999999), true
+				t, ok = time.Unix(MaxUnixSecs, 999999999), true
 			}
 		default:
 			t, ok = time.Time{}, false
@@ -178,14 +181,14 @@ func NewTimestampType2(args ...eval.Value) *TimestampType {
 		if ok {
 			return t
 		}
-		panic(NewIllegalArgumentType2(`Timestamp[]`, 0, `Variant[Hash,String,Integer,Float,Default]`, args[0]))
+		panic(NewIllegalArgumentType(`Timestamp[]`, 0, `Variant[Hash,String,Integer,Float,Default]`, args[0]))
 	}
 
 	min := convertArg(args, 0)
 	if argc == 2 {
 		return &TimestampType{min, convertArg(args, 1)}
 	} else {
-		return &TimestampType{min, MAX_TIME}
+		return &TimestampType{min, MaxTime}
 	}
 }
 
@@ -194,7 +197,7 @@ func (t *TimestampType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *TimestampType) Default() eval.Type {
-	return timestampType_DEFAULT
+	return timestampTypeDefault
 }
 
 func (t *TimestampType) Equals(other interface{}, guard eval.Guard) bool {
@@ -207,14 +210,14 @@ func (t *TimestampType) Equals(other interface{}, guard eval.Guard) bool {
 func (t *TimestampType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
-		v := eval.UNDEF
-		if t.min != MIN_TIME {
+		v := eval.Undef
+		if t.min != MinTime {
 			v = WrapTimestamp(t.min)
 		}
 		return v, true
 	case `to`:
-		v := eval.UNDEF
-		if t.max != MAX_TIME {
+		v := eval.Undef
+		if t.max != MaxTime {
 			v = WrapTimestamp(t.max)
 		}
 		return v, true
@@ -239,13 +242,13 @@ func (t *TimestampType) MetaType() eval.ObjectType {
 }
 
 func (t *TimestampType) Parameters() []eval.Value {
-	if t.max.Equal(MAX_TIME) {
-		if t.min.Equal(MIN_TIME) {
-			return eval.EMPTY_VALUES
+	if t.max.Equal(MaxTime) {
+		if t.min.Equal(MinTime) {
+			return eval.EmptyValues
 		}
 		return []eval.Value{stringValue(t.min.String())}
 	}
-	if t.min.Equal(MIN_TIME) {
+	if t.min.Equal(MinTime) {
 		return []eval.Value{WrapDefault(), stringValue(t.max.String())}
 	}
 	return []eval.Value{stringValue(t.min.String()), stringValue(t.max.String())}
@@ -264,7 +267,7 @@ func (t *TimestampType) SerializationString() string {
 }
 
 func (t *TimestampType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *TimestampType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -294,7 +297,7 @@ func ParseTimestamp(str string, formats []*TimestampFormat, tz string) *Timestam
 		}
 		fs.WriteString(f.format)
 	}
-	panic(eval.Error(eval.EVAL_TIMESTAMP_CANNOT_BE_PARSED, issue.H{`str`: str, `formats`: fs.String()}))
+	panic(eval.Error(eval.TimestampCannotBeParsed, issue.H{`str`: str, `formats`: fs.String()}))
 }
 
 func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bool) {
@@ -309,7 +312,7 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 		if err == nil {
 			if usedTz != ts.Location().String() {
 				if tz != `` {
-					panic(eval.Error(eval.EVAL_TIMESTAMP_TZ_AMBIGUITY, issue.H{`parsed`: ts.Location().String(), `given`: tz}))
+					panic(eval.Error(eval.TimestampTzAmbiguity, issue.H{`parsed`: ts.Location().String(), `given`: tz}))
 				}
 				// Golang does real weird things when the string contains a timezone that isn't equal
 				// to the given timezone. Instead of loading the given zone, it creates a new location
@@ -318,6 +321,9 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 				// here followed by a reparse.
 				loc, _ = time.LoadLocation(ts.Location().String())
 				ts, err = time.ParseInLocation(f.layout, str, loc)
+				if err != nil {
+					continue
+				}
 			}
 			return ts.UTC(), true
 		}
@@ -328,7 +334,7 @@ func parseTime(str string, formats []*TimestampFormat, tz string) (time.Time, bo
 func loadLocation(tz string) *time.Location {
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_TIMEZONE, issue.H{`zone`: tz, `detail`: err.Error()}))
+		panic(eval.Error(eval.InvalidTimezone, issue.H{`zone`: tz, `detail`: err.Error()}))
 	}
 	return loc
 }
@@ -368,7 +374,7 @@ func (tv *TimestampValue) Reflect(c eval.Context) reflect.Value {
 func (tv *TimestampValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := tv.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }
@@ -390,13 +396,13 @@ func (tv *TimestampValue) SerializationString() string {
 }
 
 func (tv *TimestampValue) String() string {
-	return eval.ToString2(tv, NONE)
+	return eval.ToString2(tv, None)
 }
 
 func (tv *TimestampValue) ToKey(b *bytes.Buffer) {
 	t := (*time.Time)(tv)
 	b.WriteByte(1)
-	b.WriteByte(HK_TIMESTAMP)
+	b.WriteByte(HkTimestamp)
 	n := t.Unix()
 	b.WriteByte(byte(n >> 56))
 	b.WriteByte(byte(n >> 48))
@@ -418,7 +424,7 @@ func (tv *TimestampValue) ToKey(b *bytes.Buffer) {
 }
 
 func (tv *TimestampValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
-	_, err := io.WriteString(b, (*time.Time)(tv).Format(DEFAULT_TIMESTAMP_FORMATS[0].layout))
+	_, err := io.WriteString(b, (*time.Time)(tv).Format(DefaultTimestampFormats[0].layout))
 	if err != nil {
 		panic(err)
 	}
@@ -432,32 +438,34 @@ func (tv *TimestampValue) PType() eval.Type {
 const (
 	// Strings recognized as golang "layout" elements
 
-	loLongMonth             = `January`
-	loMonth                 = `Jan`
-	loLongWeekDay           = `Monday`
-	loWeekDay               = `Mon`
-	loTZ                    = `MST`
-	loZeroMonth             = `01`
-	loZeroDay               = `02`
-	loZeroHour12            = `03`
-	loZeroMinute            = `04`
-	loZeroSecond            = `05`
-	loYear                  = `06`
-	loHour                  = `15`
-	loNumMonth              = `1`
-	loLongYear              = `2006`
-	loDay                   = `2`
-	loUnderDay              = `_2`
-	loHour12                = `3`
-	loMinute                = `4`
-	loSecond                = `5`
-	loPM                    = `PM`
-	lopm                    = `pm`
-	loNumSecondsTz          = `-070000`
-	loNumColonSecondsTZ     = `-07:00:00`
-	loNumTZ                 = `-0700`
-	loNumColonTZ            = `-07:00`
-	loNumShortTZ            = `-07`
+	loLongMonth   = `January`
+	loMonth       = `Jan`
+	loLongWeekDay = `Monday`
+	loWeekDay     = `Mon`
+	loTZ          = `MST`
+	loZeroMonth   = `01`
+	loZeroDay     = `02`
+	loZeroHour12  = `03`
+	loZeroMinute  = `04`
+	loZeroSecond  = `05`
+	loYear        = `06`
+	loHour        = `15`
+	loNumMonth    = `1`
+	loLongYear    = `2006`
+	loDay         = `2`
+	loUnderDay    = `_2`
+	loHour12      = `3`
+	loMinute      = `4`
+	loSecond      = `5`
+	loPM          = `PM`
+	loPm          = `pm`
+
+	loNumColonSecondsTZ = `-07:00:00`
+	loNumTZ             = `-0700`
+	loNumColonTZ        = `-07:00`
+	loNumShortTZ        = `-07`
+
+	/* Potential future additions
 	loISO8601SecondsTZ      = `Z070000`
 	loISO8601ColonSecondsTZ = `Z07:00:00`
 	loISO8601TZ             = `Z0700`
@@ -465,6 +473,7 @@ const (
 	loISO8601ShortTz        = `Z07`
 	loFracSecond0           = `.000`
 	loFracSecond9           = `.999`
+	*/
 )
 
 type (
@@ -508,17 +517,17 @@ func (f *TimestampFormat) Format2(t *TimestampValue, tz string) string {
 func strftimeToLayout(bld *bytes.Buffer, str string) {
 	state := stateLiteral
 	colons := 0
-	padchar := '0'
+	padChar := '0'
 	width := -1
-	fstart := 0
+	formatStart := 0
 	upper := false
 
 	for pos, c := range str {
 		if state == stateLiteral {
 			if c == '%' {
 				state = statePad
-				fstart = pos
-				padchar = '0'
+				formatStart = pos
+				padChar = '0'
 				width = -1
 				upper = false
 				colons = 0
@@ -531,20 +540,20 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 		switch c {
 		case '-':
 			if state != statePad {
-				panic(badFormatSpecifier(str, fstart, pos))
+				panic(badFormatSpecifier(str, formatStart, pos))
 			}
-			padchar = 0
+			padChar = 0
 			state = stateWidth
 		case '^':
 			if state != statePad {
-				panic(badFormatSpecifier(str, fstart, pos))
+				panic(badFormatSpecifier(str, formatStart, pos))
 			}
 			upper = true
 		case '_':
 			if state != statePad {
-				panic(badFormatSpecifier(str, fstart, pos))
+				panic(badFormatSpecifier(str, formatStart, pos))
 			}
-			padchar = ' '
+			padChar = ' '
 			state = stateWidth
 		case 'Y':
 			bld.WriteString(loLongYear)
@@ -553,31 +562,31 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			bld.WriteString(loYear)
 			state = stateLiteral
 		case 'C':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `century`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `century`))
 		case 'm':
-			switch padchar {
+			switch padChar {
 			case 0:
 				bld.WriteString(loNumMonth)
 			case '0':
 				bld.WriteString(loZeroMonth)
 			case ' ':
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `space padded month`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `space padded month`))
 			}
 			state = stateLiteral
 		case 'B':
 			if upper {
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `upper cased month`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `upper cased month`))
 			}
 			bld.WriteString(loLongMonth)
 			state = stateLiteral
 		case 'b', 'h':
 			if upper {
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `upper cased short month`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `upper cased short month`))
 			}
 			bld.WriteString(loMonth)
 			state = stateLiteral
 		case 'd':
-			switch padchar {
+			switch padChar {
 			case 0:
 				bld.WriteString(loDay)
 			case '0':
@@ -590,19 +599,19 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			bld.WriteString(loUnderDay)
 			state = stateLiteral
 		case 'j':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `year of the day`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `year of the day`))
 		case 'H':
-			switch padchar {
+			switch padChar {
 			case ' ':
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `blank padded 24 hour`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `blank padded 24 hour`))
 			case 0:
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `short 24 hour`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `short 24 hour`))
 			default:
 				bld.WriteString(loHour)
 			}
 			state = stateLiteral
 		case 'k':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `blank padded 24 hour`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `blank padded 24 hour`))
 		case 'I':
 			bld.WriteString(loZeroHour12)
 			state = stateLiteral
@@ -610,15 +619,15 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			bld.WriteString(loHour12)
 			state = stateLiteral
 		case 'P':
-			bld.WriteString(lopm)
+			bld.WriteString(loPm)
 			state = stateLiteral
 		case 'p':
 			bld.WriteString(loPM)
 			state = stateLiteral
 		case 'M':
-			switch padchar {
+			switch padChar {
 			case ' ':
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `blank padded minute`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `blank padded minute`))
 			case 0:
 				bld.WriteString(loMinute)
 			default:
@@ -626,9 +635,9 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			}
 			state = stateLiteral
 		case 'S':
-			switch padchar {
+			switch padChar {
 			case ' ':
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `blank padded second`))
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `blank padded second`))
 			case 0:
 				bld.WriteString(loSecond)
 			default:
@@ -636,21 +645,21 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			}
 			state = stateLiteral
 		case 'L':
-			if fstart == 0 || str[fstart-1] != '.' {
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `fraction not preceded by dot in format`))
+			if formatStart == 0 || str[formatStart-1] != '.' {
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `fraction not preceded by dot in format`))
 			}
-			if padchar == '0' {
+			if padChar == '0' {
 				bld.WriteString(`000`)
 			} else {
 				bld.WriteString(`999`)
 			}
 			state = stateLiteral
 		case 'N':
-			if fstart == 0 || str[fstart-1] != '.' {
-				panic(notSupportedByGoTimeLayout(str, fstart, pos, `fraction not preceded by dot in format`))
+			if formatStart == 0 || str[formatStart-1] != '.' {
+				panic(notSupportedByGoTimeLayout(str, formatStart, pos, `fraction not preceded by dot in format`))
 			}
 			digit := byte('9')
-			if padchar == '0' {
+			if padChar == '0' {
 				digit = '0'
 			}
 			w := width
@@ -684,15 +693,15 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			bld.WriteString(loWeekDay)
 			state = stateLiteral
 		case 'u', 'w':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `numeric week day`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `numeric week day`))
 		case 'G', 'g':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `week based year`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `week based year`))
 		case 'V':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `week number of the based year`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `week number of the based year`))
 		case 's':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `seconds since epoch`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `seconds since epoch`))
 		case 'Q':
-			panic(notSupportedByGoTimeLayout(str, fstart, pos, `milliseconds since epoch`))
+			panic(notSupportedByGoTimeLayout(str, formatStart, pos, `milliseconds since epoch`))
 		case 't':
 			bld.WriteString("\t")
 			state = stateLiteral
@@ -725,10 +734,10 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 			state = stateLiteral
 		default:
 			if c < '0' || c > '9' {
-				panic(badFormatSpecifier(str, fstart, pos))
+				panic(badFormatSpecifier(str, formatStart, pos))
 			}
 			if state == statePad && c == '0' {
-				padchar = '0'
+				padChar = '0'
 			} else {
 				n := int(c) - 0x30
 				if width == -1 {
@@ -742,21 +751,20 @@ func strftimeToLayout(bld *bytes.Buffer, str string) {
 	}
 
 	if state != stateLiteral {
-		panic(badFormatSpecifier(str, fstart, len(str)))
+		panic(badFormatSpecifier(str, formatStart, len(str)))
 	}
 }
 
 func notSupportedByGoTimeLayout(str string, start, pos int, description string) issue.Reported {
-	return eval.Error(eval.EVAL_NOT_SUPPORTED_BY_GO_TIME_LAYOUT, issue.H{`format_specifier`: str[start : pos+1], `description`: description})
+	return eval.Error(eval.NotSupportedByGoTimeLayout, issue.H{`format_specifier`: str[start : pos+1], `description`: description})
 }
 
 func toTimestampFormats(fmt eval.Value) []*TimestampFormat {
-	formats := DEFAULT_TIMESTAMP_FORMATS
-	switch fmt.(type) {
+	formats := DefaultTimestampFormats
+	switch fmt := fmt.(type) {
 	case *ArrayValue:
-		fa := fmt.(*ArrayValue)
-		formats = make([]*TimestampFormat, fa.Len())
-		fa.EachWithIndex(func(f eval.Value, i int) {
+		formats = make([]*TimestampFormat, fmt.Len())
+		fmt.EachWithIndex(func(f eval.Value, i int) {
 			formats[i] = DefaultTimestampFormatParser.ParseFormat(f.String())
 		})
 	case stringValue:

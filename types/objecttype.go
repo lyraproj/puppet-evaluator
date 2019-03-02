@@ -8,79 +8,79 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	dsl "github.com/lyraproj/puppet-parser/parser"
+	"github.com/lyraproj/puppet-parser/validator"
+
 	"bytes"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"github.com/lyraproj/puppet-parser/parser"
-	"github.com/lyraproj/puppet-parser/validator"
 )
 
 var ObjectMetaType eval.ObjectType
 
 func init() {
 	oneArgCtor := func(ctx eval.Context, args []eval.Value) eval.Value {
-		return NewObjectType2(ctx, args...)
+		return newObjectType2(ctx, args...)
 	}
-	ObjectMetaType = newObjectType2(`Pcore::ObjectType`, AnyMetaType,
+	ObjectMetaType = newObjectType3(`Pcore::ObjectType`, AnyMetaType,
 		WrapStringToValueMap(map[string]eval.Value{
-			`attributes`: SingletonHash2(`_pcore_init_hash`, TYPE_OBJECT_INIT_HASH)}),
+			`attributes`: SingletonHash2(`_pcore_init_hash`, TypeObjectInitHash)}),
 		oneArgCtor, oneArgCtor)
 }
 
 const (
-	KEY_ANNOTATIONS           = `annotations`
-	KEY_ATTRIBUTES            = `attributes`
-	KEY_CHECKS                = `checks`
-	KEY_CONSTANTS             = `constants`
-	KEY_EQUALITY              = `equality`
-	KEY_EQUALITY_INCLUDE_TYPE = `equality_include_type`
-	KEY_FINAL                 = `final`
-	KEY_FUNCTIONS             = `functions`
-	KEY_KIND                  = `kind`
-	KEY_NAME                  = `name`
-	KEY_OVERRIDE              = `override`
-	KEY_PARENT                = `parent`
-	KEY_SERIALIZATION         = `serialization`
-	KEY_TYPE                  = `type`
-	KEY_TYPE_PARAMETERS       = `type_parameters`
-	KEY_VALUE                 = `value`
+	keyAnnotations         = `annotations`
+	keyAttributes          = `attributes`
+	keyConstants           = `constants`
+	keyEquality            = `equality`
+	keyEqualityIncludeType = `equality_include_type`
+	keyFinal               = `final`
+	keyFunctions           = `functions`
+	keyKind                = `kind`
+	keyName                = `name`
+	keyOverride            = `override`
+	keyParent              = `parent`
+	keySerialization       = `serialization`
+	keyType                = `type`
+	keyTypeParameters      = `type_parameters`
+	keyValue               = `value`
 
-	DEFAULT_KIND     = eval.AttributeKind(``)
-	CONSTANT         = eval.AttributeKind(`constant`)
-	DERIVED          = eval.AttributeKind(`derived`)
-	GIVEN_OR_DERIVED = eval.AttributeKind(`given_or_derived`)
-	REFERENCE        = eval.AttributeKind(`reference`)
+	defaultKind    = eval.AttributeKind(``)
+	constant       = eval.AttributeKind(`constant`)
+	derived        = eval.AttributeKind(`derived`)
+	givenOrDerived = eval.AttributeKind(`given_or_derived`)
+	reference      = eval.AttributeKind(`reference`)
 )
 
-var QREF_PATTERN = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
+var TypeNamePattern = regexp.MustCompile(`\A[A-Z][\w]*(?:::[A-Z][\w]*)*\z`)
 
-var TYPE_TYPE_NAME = NewPatternType([]*RegexpType{NewRegexpTypeR(QREF_PATTERN)})
+var TypeTypeName = NewPatternType([]*RegexpType{NewRegexpTypeR(TypeNamePattern)})
 
-var TYPE_MEMBER_NAME = NewPatternType2(NewRegexpTypeR(validator.PARAM_NAME))
+var TypeMemberName = newPatternType2(NewRegexpTypeR(validator.PARAM_NAME))
 
-var TYPE_MEMBER_NAMES = NewArrayType2(TYPE_MEMBER_NAME)
-var TYPE_PARAMETERS = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
-var TYPE_ATTRIBUTES = NewHashType(TYPE_MEMBER_NAME, DefaultNotUndefType(), nil)
-var TYPE_CONSTANTS = NewHashType(TYPE_MEMBER_NAME, DefaultAnyType(), nil)
-var TYPE_FUNCTIONS = NewHashType(NewVariantType2(TYPE_MEMBER_NAME, NewPatternType2(NewRegexpTypeR(regexp.MustCompile(`^\[\]$`)))), DefaultNotUndefType(), nil)
-var TYPE_EQUALITY = NewVariantType2(TYPE_MEMBER_NAME, TYPE_MEMBER_NAMES)
-var TYPE_CHECKS = DefaultAnyType()
+var TypeMemberNames = newArrayType2(TypeMemberName)
+var TypeParameters = NewHashType(TypeMemberName, DefaultNotUndefType(), nil)
+var TypeAttributes = NewHashType(TypeMemberName, DefaultNotUndefType(), nil)
+var TypeConstants = NewHashType(TypeMemberName, DefaultAnyType(), nil)
+var TypeFunctions = NewHashType(newVariantType2(TypeMemberName, newPatternType2(NewRegexpTypeR(regexp.MustCompile(`^\[]$`)))), DefaultNotUndefType(), nil)
+var TypeEquality = newVariantType2(TypeMemberName, TypeMemberNames)
 
-var TYPE_OBJECT_INIT_HASH = NewStructType([]*StructElement{
-	NewStructElement(NewOptionalType3(KEY_NAME), TYPE_TYPE_NAME),
-	NewStructElement(NewOptionalType3(KEY_PARENT), NewVariantType(DefaultTypeType(), TYPE_TYPE_NAME)),
-	NewStructElement(NewOptionalType3(KEY_TYPE_PARAMETERS), TYPE_PARAMETERS),
-	NewStructElement(NewOptionalType3(KEY_ATTRIBUTES), TYPE_ATTRIBUTES),
-	NewStructElement(NewOptionalType3(KEY_CONSTANTS), TYPE_CONSTANTS),
-	NewStructElement(NewOptionalType3(KEY_FUNCTIONS), TYPE_FUNCTIONS),
-	NewStructElement(NewOptionalType3(KEY_EQUALITY), TYPE_EQUALITY),
-	NewStructElement(NewOptionalType3(KEY_EQUALITY_INCLUDE_TYPE), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_EQUALITY), TYPE_EQUALITY),
-	NewStructElement(NewOptionalType3(KEY_SERIALIZATION), TYPE_MEMBER_NAMES),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
+var TypeObjectInitHash = NewStructType([]*StructElement{
+	NewStructElement(newOptionalType3(keyName), TypeTypeName),
+	NewStructElement(newOptionalType3(keyParent), NewVariantType(DefaultTypeType(), TypeTypeName)),
+	NewStructElement(newOptionalType3(keyTypeParameters), TypeParameters),
+	NewStructElement(newOptionalType3(keyAttributes), TypeAttributes),
+	NewStructElement(newOptionalType3(keyConstants), TypeConstants),
+	NewStructElement(newOptionalType3(keyFunctions), TypeFunctions),
+	NewStructElement(newOptionalType3(keyEquality), TypeEquality),
+	NewStructElement(newOptionalType3(keyEqualityIncludeType), DefaultBooleanType()),
+	NewStructElement(newOptionalType3(keyEquality), TypeEquality),
+	NewStructElement(newOptionalType3(keySerialization), TypeMemberNames),
+	NewStructElement(newOptionalType3(keyAnnotations), typeAnnotations),
 })
 
 type objectType struct {
@@ -113,94 +113,54 @@ func (t *objectType) ReflectType(c eval.Context) (reflect.Type, bool) {
 func ObjectToString(o eval.PuppetObject, s eval.FormatContext, b io.Writer, g eval.RDetect) {
 	indent := s.Indentation()
 	if indent.Breaks() {
-		io.WriteString(b, "\n")
-		io.WriteString(b, indent.Padding())
+		utils.WriteString(b, "\n")
+		utils.WriteString(b, indent.Padding())
 	}
-	io.WriteString(b, o.PType().Name())
+	utils.WriteString(b, o.PType().Name())
 	o.InitHash().(*HashValue).ToString2(b, s, eval.GetFormat(s.FormatMap(), o.PType()), '(', g)
 }
 
-var objectType_DEFAULT = &objectType{
-	annotatable:         annotatable{annotations: _EMPTY_MAP},
+var objectTypeDefault = &objectType{
+	annotatable:         annotatable{annotations: emptyMap},
 	name:                `Object`,
 	hashKey:             eval.HashKey("\x00tObject"),
-	parameters:          hash.EMPTY_STRINGHASH,
-	attributes:          hash.EMPTY_STRINGHASH,
-	functions:           hash.EMPTY_STRINGHASH,
+	parameters:          hash.EmptyStringHash,
+	attributes:          hash.EmptyStringHash,
+	functions:           hash.EmptyStringHash,
 	equalityIncludeType: true}
 
 func DefaultObjectType() *objectType {
-	return objectType_DEFAULT
+	return objectTypeDefault
 }
 
 var objectId = int64(0)
 
 func AllocObjectType() *objectType {
 	return &objectType{
-		annotatable:         annotatable{annotations: _EMPTY_MAP},
+		annotatable:         annotatable{annotations: emptyMap},
 		hashKey:             eval.HashKey(fmt.Sprintf("\x00tObject%d", atomic.AddInt64(&objectId, 1))),
-		parameters:          hash.EMPTY_STRINGHASH,
-		attributes:          hash.EMPTY_STRINGHASH,
-		functions:           hash.EMPTY_STRINGHASH,
+		parameters:          hash.EmptyStringHash,
+		attributes:          hash.EmptyStringHash,
+		functions:           hash.EmptyStringHash,
 		equalityIncludeType: true}
 }
 
-func (t *objectType) Initialize(c eval.Context, args []eval.Value) {
-	if len(args) == 1 {
-		if hash, ok := args[0].(eval.OrderedMap); ok {
-			t.InitFromHash(c, hash)
-			return
-		}
-	}
-	panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `internal error when creating an Object data type`}))
-}
-
-func NewObjectType(name string, parent eval.Type, initHashExpression interface{}) *objectType {
-	obj := AllocObjectType()
-	if name == `` {
-		if h, ok := initHashExpression.(*HashValue); ok {
-			name = h.Get5(`name`, _EMPTY_STRING).String()
-		} else if h, ok := initHashExpression.(*parser.LiteralHash); ok {
-			ne := h.Get(`name`)
-			if s, ok := ne.(*parser.LiteralString); ok {
-				name = s.StringValue()
-			}
-		}
-	}
-	obj.name = name
-	obj.initHashExpression = initHashExpression
-	obj.parent = parent
-	return obj
-}
-
-func NewObjectType2(c eval.Context, args ...eval.Value) *objectType {
-	argc := len(args)
-	switch argc {
-	case 0:
-		return DefaultObjectType()
-	case 1:
-		arg := args[0]
-		if initHash, ok := arg.(*HashValue); ok {
-			if initHash.IsEmpty() {
-				return DefaultObjectType()
-			}
-			obj := AllocObjectType()
-			obj.InitFromHash(c, initHash)
-			obj.loader = c.Loader()
-			return obj
-		}
-		panic(NewIllegalArgumentType2(`Object[]`, 0, `Hash[String,Any]`, arg.PType()))
-	default:
-		panic(errors.NewIllegalArgumentCount(`Object[]`, `1`, argc))
-	}
-}
-
-func NewObjectType3(name string, parent eval.Type, hashProducer func(eval.ObjectType) eval.OrderedMap) eval.ObjectType {
+func BuildObjectType(name string, parent eval.Type, hashProducer func(eval.ObjectType) eval.OrderedMap) eval.ObjectType {
 	obj := AllocObjectType()
 	obj.name = name
 	obj.parent = parent
 	obj.initHashExpression = hashProducer(obj)
 	return obj
+}
+
+func (t *objectType) Initialize(c eval.Context, args []eval.Value) {
+	if len(args) == 1 {
+		if om, ok := args[0].(eval.OrderedMap); ok {
+			t.InitFromHash(c, om)
+			return
+		}
+	}
+	panic(eval.Error(eval.Failure, issue.H{`message`: `internal error when creating an Object data type`}))
 }
 
 func (t *objectType) Accept(v eval.Visitor, g eval.Guard) {
@@ -232,7 +192,7 @@ func (t *objectType) Constructor(c eval.Context) eval.Function {
 }
 
 func (t *objectType) Default() eval.Type {
-	return objectType_DEFAULT
+	return objectTypeDefault
 }
 
 func (t *objectType) EachAttribute(includeParent bool, consumer func(attr eval.Attribute)) {
@@ -366,13 +326,13 @@ func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver s
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
-				label := ``
+				var label string
 				if receiverType == `` {
 					label = fmt.Sprintf(`%s.%s`, t.Label(), receiver)
 				} else {
 					label = fmt.Sprintf(`%s %s[%s]`, receiverType, t.Label(), receiver)
 				}
-				panic(eval.Error(eval.EVAL_BAD_TYPE_STRING,
+				panic(eval.Error(eval.BadTypeString,
 					issue.H{
 						`string`: typeString,
 						`label`:  label,
@@ -385,27 +345,27 @@ func (t *objectType) parseAttributeType(c eval.Context, receiverType, receiver s
 }
 
 func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
-	eval.AssertInstance(`object initializer`, TYPE_OBJECT_INIT_HASH, initHash)
-	t.parameters = hash.EMPTY_STRINGHASH
-	t.attributes = hash.EMPTY_STRINGHASH
-	t.functions = hash.EMPTY_STRINGHASH
-	t.name = stringArg(initHash, KEY_NAME, t.name)
+	eval.AssertInstance(`object initializer`, TypeObjectInitHash, initHash)
+	t.parameters = hash.EmptyStringHash
+	t.attributes = hash.EmptyStringHash
+	t.functions = hash.EmptyStringHash
+	t.name = stringArg(initHash, keyName, t.name)
 
 	if t.parent == nil {
-		if pt, ok := initHash.Get4(KEY_PARENT); ok {
-			switch pt.(type) {
+		if pt, ok := initHash.Get4(keyParent); ok {
+			switch pt := pt.(type) {
 			case stringValue:
-				t.parent = t.parseAttributeType(c, ``, `parent`, pt.(eval.StringValue))
+				t.parent = t.parseAttributeType(c, ``, `parent`, pt)
 			case eval.ResolvableType:
-				t.parent = pt.(eval.ResolvableType).Resolve(c)
+				t.parent = pt.Resolve(c)
 			default:
 				t.parent = pt.(eval.Type)
 			}
 		}
 	}
 
-	parentMembers := hash.EMPTY_STRINGHASH
-	parentTypeParams := hash.EMPTY_STRINGHASH
+	parentMembers := hash.EmptyStringHash
+	parentTypeParams := hash.EmptyStringHash
 	var parentObjectType *objectType
 
 	if t.parent != nil {
@@ -415,7 +375,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 		parentTypeParams = parentObjectType.typeParameters(true)
 	}
 
-	typeParameters := hashArg(initHash, KEY_TYPE_PARAMETERS)
+	typeParameters := hashArg(initHash, keyTypeParameters)
 	if !typeParameters.IsEmpty() {
 		parameters := hash.NewStringHash(typeParameters.Len())
 		typeParameters.EachPair(func(k, v eval.Value) {
@@ -425,9 +385,9 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			if ph, ok := v.(*HashValue); ok {
 				eval.AssertInstance(
 					func() string { return fmt.Sprintf(`type_parameter %s[%s]`, t.Label(), key) },
-					TYPE_TYPE_PARAMETER, ph)
-				paramType = typeArg(ph, KEY_TYPE, DefaultTypeType())
-				paramValue = ph.Get5(KEY_VALUE, nil)
+					TypeTypeParameter, ph)
+				paramType = typeArg(ph, keyType, DefaultTypeType())
+				paramValue = ph.Get5(keyValue, nil)
 			} else {
 				if tn, ok := v.(stringValue); ok {
 					// Type name. Load the type.
@@ -443,8 +403,8 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 				paramType = NewOptionalType(paramType)
 			}
 			param := newTypeParameter(c, key, t, WrapStringToInterfaceMap(c, issue.H{
-				KEY_TYPE:  paramType,
-				KEY_VALUE: paramValue}))
+				keyType:  paramType,
+				keyValue: paramValue}))
 			assertOverride(param, parentTypeParams)
 			parameters.Put(key, param)
 		})
@@ -452,8 +412,8 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 		t.parameters = parameters
 	}
 
-	constants := hashArg(initHash, KEY_CONSTANTS)
-	attributes := hashArg(initHash, KEY_ATTRIBUTES)
+	constants := hashArg(initHash, keyConstants)
+	attributes := hashArg(initHash, keyAttributes)
 	attrSpecs := hash.NewStringHash(constants.Len() + attributes.Len())
 	attributes.EachPair(func(k, v eval.Value) {
 		attrSpecs.Put(k.String(), v)
@@ -463,14 +423,14 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 		constants.EachPair(func(k, v eval.Value) {
 			key := k.String()
 			if attrSpecs.Includes(key) {
-				panic(eval.Error(eval.EVAL_BOTH_CONSTANT_AND_ATTRIBUTE, issue.H{`label`: t.Label(), `key`: key}))
+				panic(eval.Error(eval.BothConstantAndAttribute, issue.H{`label`: t.Label(), `key`: key}))
 			}
 			value := v.(eval.Value)
 			attrSpec := issue.H{
-				KEY_TYPE:  eval.Generalize(value.PType()),
-				KEY_VALUE: value,
-				KEY_KIND:  CONSTANT}
-			attrSpec[KEY_OVERRIDE] = parentMembers.Includes(key)
+				keyType:  eval.Generalize(value.PType()),
+				keyValue: value,
+				keyKind:  constant}
+			attrSpec[keyOverride] = parentMembers.Includes(key)
 			attrSpecs.Put(key, WrapStringToInterfaceMap(c, attrSpec))
 		})
 	}
@@ -490,11 +450,11 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 						func() string { return fmt.Sprintf(`attribute %s[%s]`, t.Label(), key) },
 						DefaultTypeType(), value).(eval.Type)
 				}
-				hash := issue.H{KEY_TYPE: attrType}
+				h := issue.H{keyType: attrType}
 				if _, ok = attrType.(*OptionalType); ok {
-					hash[KEY_VALUE] = eval.UNDEF
+					h[keyValue] = eval.Undef
 				}
-				attrSpec = WrapStringToInterfaceMap(c, hash)
+				attrSpec = WrapStringToInterfaceMap(c, h)
 			}
 			attr := newAttribute(c, key, t, attrSpec)
 			assertOverride(attr, parentMembers)
@@ -512,16 +472,16 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 			// Create the special attribute that holds the primitive value that is
 			// reflectable to/from the the go type
 			attrs := make([]*HashEntry, 2)
-			attrs[0] = WrapHashEntry2(KEY_TYPE, pt)
-			attrs[1] = WrapHashEntry2(KEY_GONAME, stringValue(KEY_VALUE))
+			attrs[0] = WrapHashEntry2(keyType, pt)
+			attrs[1] = WrapHashEntry2(KeyGoName, stringValue(keyValue))
 			ah := hash.NewStringHash(1)
-			ah.Put(KEY_VALUE, newAttribute(c, KEY_VALUE, t, WrapHash(attrs)))
+			ah.Put(keyValue, newAttribute(c, keyValue, t, WrapHash(attrs)))
 			ah.Freeze()
 			t.attributes = ah
 		}
 	}
 
-	funcSpecs := hashArg(initHash, KEY_FUNCTIONS)
+	funcSpecs := hashArg(initHash, keyFunctions)
 	if funcSpecs.IsEmpty() {
 		if isInterface && parentObjectType == nil {
 			isInterface = false
@@ -530,7 +490,7 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 		functions := hash.NewStringHash(funcSpecs.Len())
 		funcSpecs.EachPair(func(key, value eval.Value) {
 			if attributes.IncludesKey(key) {
-				panic(eval.Error(eval.EVAL_MEMBER_NAME_CONFLICT, issue.H{`label`: fmt.Sprintf(`function %s[%s]`, t.Label(), key)}))
+				panic(eval.Error(eval.MemberNameConflict, issue.H{`label`: fmt.Sprintf(`function %s[%s]`, t.Label(), key)}))
 			}
 			funcSpec, ok := value.(*HashValue)
 			if !ok {
@@ -541,9 +501,9 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 				} else {
 					funcType = eval.AssertInstance(
 						func() string { return fmt.Sprintf(`function %s[%s]`, t.Label(), key) },
-						TYPE_FUNCTION_TYPE, value).(eval.Type)
+						typeFunctionType, value).(eval.Type)
 				}
-				funcSpec = WrapStringToInterfaceMap(c, issue.H{KEY_TYPE: funcType})
+				funcSpec = WrapStringToInterfaceMap(c, issue.H{keyType: funcType})
 			}
 			fnc := newFunction(c, key.String(), t, funcSpec)
 			assertOverride(fnc, parentMembers)
@@ -552,10 +512,10 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 		functions.Freeze()
 		t.functions = functions
 	}
-	t.equalityIncludeType = boolArg(initHash, KEY_EQUALITY_INCLUDE_TYPE, true)
+	t.equalityIncludeType = boolArg(initHash, keyEqualityIncludeType, true)
 
 	var equality []string
-	eq := initHash.Get5(KEY_EQUALITY, nil)
+	eq := initHash.Get5(keyEquality, nil)
 	if es, ok := eq.(stringValue); ok {
 		equality = []string{string(es)}
 	} else if ea, ok := eq.(*ArrayValue); ok {
@@ -563,63 +523,57 @@ func (t *objectType) InitFromHash(c eval.Context, initHash eval.OrderedMap) {
 	} else {
 		equality = nil
 	}
-	if equality != nil {
-		for _, attrName := range equality {
-			var attr eval.Attribute
-			ok := false
-			mbr := t.attributes.Get2(attrName, func() interface{} {
-				return t.functions.Get2(attrName, func() interface{} {
-					return parentMembers.Get(attrName, nil)
-				})
+	for _, attrName := range equality {
+		mbr := t.attributes.Get2(attrName, func() interface{} {
+			return t.functions.Get2(attrName, func() interface{} {
+				return parentMembers.Get(attrName, nil)
 			})
-			attr, ok = mbr.(eval.Attribute)
+		})
+		attr, ok := mbr.(eval.Attribute)
 
-			if !ok {
-				if mbr == nil {
-					panic(eval.Error(eval.EVAL_EQUALITY_ATTRIBUTE_NOT_FOUND, issue.H{`label`: t.Label(), `attribute`: attrName}))
-				}
-				panic(eval.Error(eval.EVAL_EQUALITY_NOT_ATTRIBUTE, issue.H{`label`: t.Label(), `member`: mbr.(eval.AnnotatedMember).Label()}))
+		if !ok {
+			if mbr == nil {
+				panic(eval.Error(eval.EqualityAttributeNotFound, issue.H{`label`: t.Label(), `attribute`: attrName}))
 			}
-			if attr.Kind() == CONSTANT {
-				panic(eval.Error(eval.EVAL_EQUALITY_ON_CONSTANT, issue.H{`label`: t.Label(), `attribute`: mbr.(eval.AnnotatedMember).Label()}))
-			}
-			// Assert that attribute is not already include by parent equality
-			if ok && parentObjectType.EqualityAttributes().Includes(attrName) {
-				includingParent := t.findEqualityDefiner(attrName)
-				panic(eval.Error(eval.EVAL_EQUALITY_REDEFINED, issue.H{`label`: t.Label(), `attribute`: attr.Label(), `including_parent`: includingParent}))
-			}
+			panic(eval.Error(eval.EqualityNotAttribute, issue.H{`label`: t.Label(), `member`: mbr.(eval.AnnotatedMember).Label()}))
+		}
+		if attr.Kind() == constant {
+			panic(eval.Error(eval.EqualityOnConstant, issue.H{`label`: t.Label(), `attribute`: mbr.(eval.AnnotatedMember).Label()}))
+		}
+		// Assert that attribute is not already include by parent equality
+		if ok && parentObjectType != nil && parentObjectType.EqualityAttributes().Includes(attrName) {
+			includingParent := t.findEqualityDefiner(attrName)
+			panic(eval.Error(eval.EqualityRedefined, issue.H{`label`: t.Label(), `attribute`: attr.Label(), `including_parent`: includingParent}))
 		}
 	}
 	t.equality = equality
 
-	se, ok := initHash.Get5(KEY_SERIALIZATION, nil).(*ArrayValue)
+	se, ok := initHash.Get5(keySerialization, nil).(*ArrayValue)
 	if ok {
 		serialization := make([]string, se.Len())
 		var optFound eval.Attribute
 		se.EachWithIndex(func(elem eval.Value, i int) {
 			attrName := elem.String()
-			var attr eval.Attribute
-			ok := false
 			mbr := t.attributes.Get2(attrName, func() interface{} {
 				return t.functions.Get2(attrName, func() interface{} {
 					return parentMembers.Get(attrName, nil)
 				})
 			})
-			attr, ok = mbr.(eval.Attribute)
+			attr, ok := mbr.(eval.Attribute)
 
 			if !ok {
 				if mbr == nil {
-					panic(eval.Error(eval.EVAL_SERIALIZATION_ATTRIBUTE_NOT_FOUND, issue.H{`label`: t.Label(), `attribute`: attrName}))
+					panic(eval.Error(eval.SerializationAttributeNotFound, issue.H{`label`: t.Label(), `attribute`: attrName}))
 				}
-				panic(eval.Error(eval.EVAL_SERIALIZATION_NOT_ATTRIBUTE, issue.H{`label`: t.Label(), `member`: mbr.(eval.AnnotatedMember).Label()}))
+				panic(eval.Error(eval.SerializationNotAttribute, issue.H{`label`: t.Label(), `member`: mbr.(eval.AnnotatedMember).Label()}))
 			}
-			if attr.Kind() == CONSTANT || attr.Kind() == DERIVED {
-				panic(eval.Error(eval.EVAL_SERIALIZATION_BAD_KIND, issue.H{`label`: t.Label(), `kind`: attr.Kind(), `attribute`: attr.Label()}))
+			if attr.Kind() == constant || attr.Kind() == derived {
+				panic(eval.Error(eval.SerializationBadKind, issue.H{`label`: t.Label(), `kind`: attr.Kind(), `attribute`: attr.Label()}))
 			}
-			if attr.Kind() == GIVEN_OR_DERIVED || attr.HasValue() {
+			if attr.Kind() == givenOrDerived || attr.HasValue() {
 				optFound = attr
 			} else if optFound != nil {
-				panic(eval.Error(eval.EVAL_SERIALIZATION_REQUIRED_AFTER_OPTIONAL, issue.H{`label`: t.Label(), `required`: attr.Label(), `optional`: optFound.Label()}))
+				panic(eval.Error(eval.SerializationRequiredAfterOptional, issue.H{`label`: t.Label(), `required`: attr.Label(), `optional`: optFound.Label()}))
 			}
 			serialization[i] = attrName
 		})
@@ -663,11 +617,11 @@ func (t *objectType) IsInterface() bool {
 
 func (t *objectType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	var ot *objectType
-	switch o.(type) {
+	switch o := o.(type) {
 	case *objectType:
-		ot = o.(*objectType)
+		ot = o
 	case *objectTypeExtension:
-		ot = o.(*objectTypeExtension).baseType
+		ot = o.baseType
 	default:
 		return false
 	}
@@ -747,8 +701,8 @@ func (t *objectType) Parameters() []eval.Value {
 }
 
 func (t *objectType) Parameters2(includeName bool) []eval.Value {
-	if t == objectType_DEFAULT {
-		return eval.EMPTY_VALUES
+	if t == objectTypeDefault {
+		return eval.EmptyValues
 	}
 	return []eval.Value{WrapStringPValue(t.initHash(includeName))}
 }
@@ -767,21 +721,23 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 		}
 
 		var initHash eval.OrderedMap
-		if lh, ok := ihe.(*parser.LiteralHash); ok {
-			c.DoStatic(func() {
-				initHash = eval.Evaluate(c, lh).(eval.OrderedMap)
-			})
+		if lh, ok := ihe.(*dsl.LiteralHash); ok {
+			if ec, ok := c.(eval.EvaluationContext); ok {
+				c.(eval.EvaluationContext).DoStatic(func() {
+					initHash = eval.Evaluate(ec, lh).(eval.OrderedMap)
+				})
+			}
 		} else if hv, ok := ihe.(*HashValue); ok {
 			initHash = resolveTypeRefs(c, hv).(eval.OrderedMap)
 		} else if tg, ok := ihe.(*taggedType); ok {
 			t.goType = tg
 			initHash = c.Reflector().InitializerFromTagged(t.name, t.parent, tg)
-			c.ImplementationRegistry().RegisterType(c, t, tg.Type())
+			c.ImplementationRegistry().RegisterType(t, tg.Type())
 		} else {
 			tg := eval.NewTaggedType(reflect.TypeOf(ihe), nil)
 			t.goType = tg
 			initHash = c.Reflector().InitializerFromTagged(t.name, t.parent, tg)
-			c.ImplementationRegistry().RegisterType(c, t, tg.Type())
+			c.ImplementationRegistry().RegisterType(t, tg.Type())
 		}
 		t.InitFromHash(c, initHash)
 	}
@@ -789,7 +745,7 @@ func (t *objectType) Resolve(c eval.Context) eval.Type {
 }
 
 func (t *objectType) CanSerializeAsString() bool {
-	return t == objectType_DEFAULT
+	return t == objectTypeDefault
 }
 
 func (t *objectType) SerializationString() string {
@@ -819,7 +775,7 @@ func (t *objectType) ToReflectedValue(c eval.Context, src eval.PuppetObject, des
 			rf.ReflectTo(av, f)
 			continue
 		}
-		panic(eval.Error(eval.EVAL_ATTRIBUTE_NOT_FOUND, issue.H{`name`: an}))
+		panic(eval.Error(eval.AttributeNotFound, issue.H{`name`: an}))
 	}
 }
 
@@ -843,7 +799,7 @@ func (t *objectType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect)
 func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.FormatContext, g eval.RDetect) {
 
 	if t.Equals(DefaultObjectType(), nil) {
-		io.WriteString(b, `Object`)
+		utils.WriteString(b, `Object`)
 		return
 	}
 
@@ -853,7 +809,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 		if inTypeSet {
 			name = stripTypeSetName(typeSetName, name)
 		}
-		io.WriteString(b, name)
+		utils.WriteString(b, name)
 		return
 	}
 
@@ -874,7 +830,7 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 
 	cf := f.ContainerFormats()
 	if cf == nil {
-		cf = DEFAULT_CONTAINER_FORMATS
+		cf = DefaultContainerFormats
 	}
 
 	ctx2 := eval.NewFormatContext2(indent2, s.FormatMap(), s.Properties())
@@ -883,11 +839,11 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 
 	if inTypeSet {
 		if t.parent != nil {
-			io.WriteString(b, stripTypeSetName(typeSetName, t.parent.Name()))
+			utils.WriteString(b, stripTypeSetName(typeSetName, t.parent.Name()))
 		}
-		io.WriteString(b, `{`)
+		utils.WriteString(b, `{`)
 	} else {
-		io.WriteString(b, `Object[{`)
+		utils.WriteString(b, `Object[{`)
 	}
 
 	first2 := true
@@ -901,44 +857,44 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 		if first2 {
 			first2 = false
 		} else {
-			io.WriteString(b, `,`)
+			utils.WriteString(b, `,`)
 			if !f.IsAlt() {
-				io.WriteString(b, ` `)
+				utils.WriteString(b, ` `)
 			}
 		}
 		if f.IsAlt() {
-			io.WriteString(b, "\n")
-			io.WriteString(b, padding2)
+			utils.WriteString(b, "\n")
+			utils.WriteString(b, padding2)
 		}
-		io.WriteString(b, key)
-		io.WriteString(b, ` => `)
+		utils.WriteString(b, key)
+		utils.WriteString(b, ` => `)
 		switch key {
 		case `attributes`, `functions`:
 			// The keys should not be quoted in this hash
-			io.WriteString(b, `{`)
+			utils.WriteString(b, `{`)
 			first3 := true
 			value.(*HashValue).EachPair(func(name, typ eval.Value) {
 				if first3 {
 					first3 = false
 				} else {
-					io.WriteString(b, `,`)
+					utils.WriteString(b, `,`)
 					if !f.IsAlt() {
-						io.WriteString(b, ` `)
+						utils.WriteString(b, ` `)
 					}
 				}
 				if f.IsAlt() {
-					io.WriteString(b, "\n")
-					io.WriteString(b, padding3)
+					utils.WriteString(b, "\n")
+					utils.WriteString(b, padding3)
 				}
 				utils.PuppetQuote(b, name.String())
-				io.WriteString(b, ` => `)
+				utils.WriteString(b, ` => `)
 				typ.ToString(b, ctx3, g)
 			})
 			if f.IsAlt() {
-				io.WriteString(b, "\n")
-				io.WriteString(b, padding2)
+				utils.WriteString(b, "\n")
+				utils.WriteString(b, padding2)
 			}
-			io.WriteString(b, "}")
+			utils.WriteString(b, "}")
 		default:
 			cx := cti2
 			if isContainer(value, s) {
@@ -948,12 +904,12 @@ func (t *objectType) basicTypeToString(b io.Writer, f eval.Format, s eval.Format
 		}
 	}
 	if f.IsAlt() {
-		io.WriteString(b, "\n")
-		io.WriteString(b, padding1)
+		utils.WriteString(b, "\n")
+		utils.WriteString(b, padding1)
 	}
-	io.WriteString(b, "}")
+	utils.WriteString(b, "}")
 	if !inTypeSet {
-		io.WriteString(b, "]")
+		utils.WriteString(b, "]")
 	}
 }
 
@@ -984,7 +940,7 @@ func (t *objectType) checkSelfRecursion(c eval.Context, originator *objectType) 
 	if t.parent != nil {
 		op := t.resolvedParent()
 		if eval.Equals(op, originator) {
-			panic(eval.Error(eval.EVAL_OBJECT_INHERITS_SELF, issue.H{`label`: originator.Label()}))
+			panic(eval.Error(eval.ObjectInheritsSelf, issue.H{`label`: originator.Label()}))
 		}
 		op.checkSelfRecursion(c, originator)
 	}
@@ -1037,8 +993,8 @@ func (t *objectType) createAttributesInfo() *attributesInfo {
 		optAttrs := make([]eval.Attribute, 0)
 		t.EachAttribute(true, func(attr eval.Attribute) {
 			switch attr.Kind() {
-			case CONSTANT, DERIVED:
-			case GIVEN_OR_DERIVED:
+			case constant, derived:
+			case givenOrDerived:
 				optAttrs = append(optAttrs, attr)
 			default:
 				if attr.HasValue() {
@@ -1068,13 +1024,13 @@ func (t *objectType) createInitType() *StructType {
 	elements := make([]*StructElement, 0)
 	t.EachAttribute(true, func(attr eval.Attribute) {
 		switch attr.Kind() {
-		case CONSTANT, DERIVED:
-		case GIVEN_OR_DERIVED:
-			elements = append(elements, NewStructElement(NewOptionalType3(attr.Name()), attr.Type()))
+		case constant, derived:
+		case givenOrDerived:
+			elements = append(elements, NewStructElement(newOptionalType3(attr.Name()), attr.Type()))
 		default:
 			var key eval.Type
 			if attr.HasValue() {
-				key = NewOptionalType3(attr.Name())
+				key = newOptionalType3(attr.Name())
 			} else {
 				key = NewStringType(nil, attr.Name())
 			}
@@ -1105,7 +1061,7 @@ func (t *objectType) createNewFunction(c eval.Context) {
 		le := dl.LoadEntry(c, tn)
 		if le == nil || le.Value() == nil {
 			dl.SetEntry(tn, eval.NewLoaderEntry(eval.MakeGoAllocator(func(ctx eval.Context, args []eval.Value) eval.Value {
-				return AllocObjectValue(c, t)
+				return AllocObjectValue(t)
 			}), nil))
 		}
 
@@ -1116,15 +1072,15 @@ func (t *objectType) createNewFunction(c eval.Context) {
 			},
 			// Named argument creator
 			func(c eval.Context, args []eval.Value) eval.Value {
-				return NewObjectValue2(c, t, args[0].(*HashValue))
+				return newObjectValue2(c, t, args[0].(*HashValue))
 			}}
 	}
 
 	paCreator := func(d eval.Dispatch) {
 		for i, attr := range pi.Attributes() {
 			switch attr.Kind() {
-			case CONSTANT, DERIVED:
-			case GIVEN_OR_DERIVED:
+			case constant, derived:
+			case givenOrDerived:
 				d.OptionalParam2(attr.Type())
 			default:
 				if i >= pi.RequiredCount() {
@@ -1166,13 +1122,13 @@ func (t *objectType) findEqualityDefiner(attrName string) *objectType {
 func (t *objectType) initHash(includeName bool) *hash.StringHash {
 	h := t.annotatable.initHash()
 	if includeName && t.name != `` && t.name != `Object` {
-		h.Put(KEY_NAME, stringValue(t.name))
+		h.Put(keyName, stringValue(t.name))
 	}
 	if t.parent != nil {
-		h.Put(KEY_PARENT, t.parent)
+		h.Put(keyParent, t.parent)
 	}
 	if !t.parameters.IsEmpty() {
-		h.Put(KEY_TYPE_PARAMETERS, compressedMembersHash(t.parameters))
+		h.Put(keyTypeParameters, compressedMembersHash(t.parameters))
 	}
 	if !t.attributes.IsEmpty() {
 		// Divide attributes into constants and others
@@ -1180,32 +1136,32 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		others := hash.NewStringHash(5)
 		t.attributes.EachPair(func(key string, value interface{}) {
 			a := value.(eval.Attribute)
-			if a.Kind() == CONSTANT && eval.Equals(a.Type(), eval.Generalize(a.Value().PType())) {
+			if a.Kind() == constant && eval.Equals(a.Type(), eval.Generalize(a.Value().PType())) {
 				constants = append(constants, WrapHashEntry2(key, a.Value()))
 			} else {
 				others.Put(key, a)
 			}
 			if !others.IsEmpty() {
-				h.Put(KEY_ATTRIBUTES, compressedMembersHash(others))
+				h.Put(keyAttributes, compressedMembersHash(others))
 			}
 			if len(constants) > 0 {
-				h.Put(KEY_CONSTANTS, WrapHash(constants))
+				h.Put(keyConstants, WrapHash(constants))
 			}
 		})
 	}
 	if !t.functions.IsEmpty() {
-		h.Put(KEY_FUNCTIONS, compressedMembersHash(t.functions))
+		h.Put(keyFunctions, compressedMembersHash(t.functions))
 	}
 	if t.equality != nil {
 		ev := make([]eval.Value, len(t.equality))
 		for i, e := range t.equality {
 			ev[i] = stringValue(e)
 		}
-		h.Put(KEY_EQUALITY, WrapValues(ev))
+		h.Put(keyEquality, WrapValues(ev))
 	}
 
 	if !t.equalityIncludeType {
-		h.Put(KEY_EQUALITY_INCLUDE_TYPE, BooleanFalse)
+		h.Put(keyEqualityIncludeType, BooleanFalse)
 	}
 
 	if t.serialization != nil {
@@ -1213,7 +1169,7 @@ func (t *objectType) initHash(includeName bool) *hash.StringHash {
 		for i, s := range t.serialization {
 			sv[i] = stringValue(s)
 		}
-		h.Put(KEY_SERIALIZATION, WrapValues(sv))
+		h.Put(keySerialization, WrapValues(sv))
 	}
 	return h
 }
@@ -1224,31 +1180,18 @@ func (t *objectType) members(includeParent bool) *hash.StringHash {
 	return collector
 }
 
-func (t *objectType) namedInitSignature() eval.Signature {
-	return NewCallableType(NewTupleType([]eval.Type{t.createInitType()}, NewIntegerType(1, 1)), t, nil)
-}
-
-func (t *objectType) positionalInitSignature() eval.Signature {
-	ai := t.AttributesInfo()
-	argTypes := make([]eval.Type, len(ai.Attributes()))
-	for i, attr := range ai.Attributes() {
-		argTypes[i] = attr.Type()
-	}
-	return NewCallableType(NewTupleType(argTypes, NewIntegerType(int64(ai.RequiredCount()), int64(len(argTypes)))), t, nil)
-}
-
 func (t *objectType) resolvedParent() *objectType {
 	tp := t.parent
 	for {
-		switch tp.(type) {
+		switch at := tp.(type) {
 		case nil:
 			return nil
 		case *objectType:
-			return tp.(*objectType)
+			return at
 		case *TypeAliasType:
-			tp = tp.(*TypeAliasType).resolvedType
+			tp = at.resolvedType
 		default:
-			panic(eval.Error(eval.EVAL_ILLEGAL_OBJECT_INHERITANCE, issue.H{`label`: t.Label(), `type`: tp.PType().String()}))
+			panic(eval.Error(eval.IllegalObjectInheritance, issue.H{`label`: t.Label(), `type`: tp.PType().String()}))
 		}
 	}
 }
@@ -1260,9 +1203,9 @@ func (t *objectType) setCreators(creators ...eval.DispatchFunction) {
 }
 
 func (t *objectType) typeParameters(includeParent bool) *hash.StringHash {
-	collector := hash.NewStringHash(5)
-	t.collectParameters(includeParent, collector)
-	return collector
+	c := hash.NewStringHash(5)
+	t.collectParameters(includeParent, c)
+	return c
 }
 
 func compressedMembersHash(mh *hash.StringHash) *HashValue {
@@ -1270,7 +1213,7 @@ func compressedMembersHash(mh *hash.StringHash) *HashValue {
 	mh.EachPair(func(key string, value interface{}) {
 		fh := value.(eval.AnnotatedMember).InitHash()
 		if fh.Len() == 1 {
-			tp := fh.Get5(KEY_TYPE, nil)
+			tp := fh.Get5(keyType, nil)
 			if tp != nil {
 				he = append(he, WrapHashEntry2(key, tp))
 				return
@@ -1282,61 +1225,107 @@ func compressedMembersHash(mh *hash.StringHash) *HashValue {
 }
 
 func resolveTypeRefs(c eval.Context, v interface{}) eval.Value {
-	switch v.(type) {
+	switch v := v.(type) {
 	case *HashValue:
-		hv := v.(*HashValue)
-		he := make([]*HashEntry, hv.Len())
+		he := make([]*HashEntry, v.Len())
 		i := 0
-		hv.EachPair(func(key, value eval.Value) {
+		v.EachPair(func(key, value eval.Value) {
 			he[i] = WrapHashEntry(
 				resolveTypeRefs(c, key), resolveTypeRefs(c, value))
 			i++
 		})
 		return WrapHash(he)
 	case *ArrayValue:
-		av := v.(*ArrayValue)
-		ae := make([]eval.Value, av.Len())
+		ae := make([]eval.Value, v.Len())
 		i := 0
-		av.Each(func(value eval.Value) {
+		v.Each(func(value eval.Value) {
 			ae[i] = resolveTypeRefs(c, value)
 			i++
 		})
 		return WrapValues(ae)
 	case eval.ResolvableType:
-		return v.(eval.ResolvableType).Resolve(c)
+		return v.Resolve(c)
 	default:
 		return v.(eval.Value)
 	}
 }
 
-func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
-	p := parser.CreateParser()
-	_, fileName, fileLine, _ := runtime.Caller(1)
-	expr, err := p.Parse(fileName, fmt.Sprintf(`type %s = %s`, name, typeDecl), true)
-	if err != nil {
-		err = convertReported(err, fileName, fileLine)
-		panic(err)
+func ObjectTypeFromAST(name string, parent eval.Type, initHashExpression *dsl.LiteralHash) *objectType {
+	t := AllocObjectType()
+	if name == `` {
+		ne := initHashExpression.Get(`name`)
+		if s, ok := ne.(*dsl.LiteralString); ok {
+			name = s.StringValue()
+		}
 	}
+	t.name = name
+	t.initHashExpression = initHashExpression
+	t.parent = parent
+	return t
+}
 
-	if ta, ok := expr.(*parser.TypeAlias); ok {
-		rt, _ := CreateTypeDefinition(ta, eval.RUNTIME_NAME_AUTHORITY)
-		ot := rt.(*objectType)
-		ot.setCreators(creators...)
-		registerResolvableType(ot)
-		return ot
+func newObjectType(name, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
+	ta, err := Parse(typeDecl)
+	if err != nil {
+		_, fileName, fileLine, _ := runtime.Caller(1)
+		panic(convertReported(err, fileName, fileLine))
 	}
-	panic(convertReported(eval.Error2(expr, eval.EVAL_NO_DEFINITION, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}), fileName, fileLine))
+	if h, ok := ta.(*HashValue); ok {
+		// "type = {}"
+		return newObjectType3(name, nil, h, creators...)
+	}
+	if dt, ok := ta.(*DeferredType); ok {
+		ps := dt.Parameters()
+		if len(ps) == 1 {
+			if h, ok := ps[0].(*HashValue); ok {
+				var p eval.Type
+				if pn := dt.Name(); pn != `TypeSet` && pn != `Object` {
+					p = NewTypeReferenceType(pn)
+				}
+				return newObjectType3(name, p, h, creators...)
+			}
+		}
+	}
+	panic(eval.Error(eval.NoDefinition, issue.H{`source`: ``, `type`: eval.NsType, `name`: name}))
+}
+
+func newObjectType2(c eval.Context, args ...eval.Value) *objectType {
+	argc := len(args)
+	switch argc {
+	case 0:
+		return DefaultObjectType()
+	case 1:
+		arg := args[0]
+		if initHash, ok := arg.(*HashValue); ok {
+			if initHash.IsEmpty() {
+				return DefaultObjectType()
+			}
+			obj := AllocObjectType()
+			obj.InitFromHash(c, initHash)
+			obj.loader = c.Loader()
+			return obj
+		}
+		panic(NewIllegalArgumentType(`Object[]`, 0, `Hash[String,Any]`, arg.PType()))
+	default:
+		panic(errors.NewIllegalArgumentCount(`Object[]`, `1`, argc))
+	}
+}
+
+func newObjectType3(name string, parent eval.Type, initHash eval.OrderedMap, creators ...eval.DispatchFunction) *objectType {
+	if name == `` {
+		name = initHash.Get5(`name`, emptyString).String()
+	}
+	obj := AllocObjectType()
+	obj.name = name
+	obj.initHashExpression = initHash
+	obj.parent = parent
+	obj.setCreators(creators...)
+	registerResolvableType(obj)
+	return obj
 }
 
 func newGoObjectType(name string, rType reflect.Type, typeDecl string, creators ...eval.DispatchFunction) eval.ObjectType {
 	t := newObjectType(name, typeDecl, creators...)
 	registerMapping(t, rType)
 	return t
-}
-
-func newObjectType2(name string, parent eval.Type, initHash *HashValue, creators ...eval.DispatchFunction) eval.ObjectType {
-	ta := NewObjectType(name, parent, initHash)
-	ta.setCreators(creators...)
-	registerResolvableType(ta)
-	return ta
 }

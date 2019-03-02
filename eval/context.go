@@ -3,6 +3,7 @@ package eval
 import (
 	"context"
 	"github.com/lyraproj/puppet-evaluator/threadlocal"
+	"runtime"
 
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-parser/parser"
@@ -17,30 +18,15 @@ const PuppetContextKey = `puppet.context`
 type Context interface {
 	context.Context
 
-	AddDefinitions(expression parser.Expression)
-
-	// AddTypes Makes the given types known to the loader appointed by this context
-	AddTypes(types ...Type)
-
 	// Delete deletes the given key from the context variable map
 	Delete(key string)
 
 	// DefiningLoader returns a Loader that can receive new definitions
 	DefiningLoader() DefiningLoader
 
-	// DoStatic ensures that the reciver is in static mode during the evaluation of the given doer
-	DoStatic(doer Doer)
-
 	// DoWithLoader assigns the given loader to the receiver and calls the doer. The original loader is
 	// restored before this call returns.
 	DoWithLoader(loader Loader, doer Doer)
-
-	// DoWithScope assigns the given scope to the receiver and calls the doer. The original scope is
-	// restored before this call returns.
-	DoWithScope(scope Scope, doer Doer)
-
-	// EvaluatorConstructor returns the evaluator constructor
-	GetEvaluator() Evaluator
 
 	// Error creates a Reported with the given issue code, location, and arguments
 	// Typical use is to panic with the returned value
@@ -70,42 +56,25 @@ type Context interface {
 	// logger of the evaluator.
 	Logger() Logger
 
-	// ParseAndValidate parses and evaluates the given content. It will panic with
-	// an issue.Reported unless the parsing and evaluation was succesful.
-	ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
-
 	// ParseType parses and evaluates the given Value into a Type. It will panic with
-	// an issue.Reported unless the parsing was succesfull and the result is evaluates
+	// an issue.Reported unless the parsing was successful and the result is evaluates
 	// to a Type
 	ParseType(str Value) Type
 
 	// ParseType2 parses and evaluates the given string into a Type. It will panic with
-	// an issue.Reported unless the parsing was succesfull and the result is evaluates
+	// an issue.Reported unless the parsing was successful and the result is evaluates
 	// to a Type
 	ParseType2(typeString string) Type
 
-	// Reflector returns a Reflector capable of converting to and from refleced values
+	// Reflector returns a Reflector capable of converting to and from reflected values
 	// and types
 	Reflector() Reflector
-
-	ResolveDefinitions() []interface{}
-
-	// Resolve types, constructions, or functions that has been recently added
-	ResolveResolvables()
-
-	// ResolveType evaluates the given Expression into a Type. It will panic with
-	// an issue.Reported unless the evaluation was succesfull and the result
-	// is evaluates to a Type
-	ResolveType(expr parser.Expression) Type
 
 	// Set adds or replaces the context variable for the given key with the given value
 	Set(key string, value interface{})
 
 	// Permanently change the loader of this context
 	SetLoader(loader Loader)
-
-	// Scope returns the scope
-	Scope() Scope
 
 	// Stack returns the full stack. The returned value must not be modified.
 	Stack() []issue.Location
@@ -119,15 +88,52 @@ type Context interface {
 
 	// StackTop returns the top of the stack
 	StackTop() issue.Location
+}
+
+type EvaluationContext interface {
+	Context
+
+	AddDefinitions(expression parser.Expression)
+
+	// DoStatic ensures that the receiver is in static mode during the evaluation of the given doer
+	DoStatic(doer Doer)
+
+	// DoWithScope assigns the given scope to the receiver and calls the doer. The original scope is
+	// restored before this call returns.
+	DoWithScope(scope Scope, doer Doer)
+
+	// EvaluatorConstructor returns the evaluator constructor
+	GetEvaluator() Evaluator
+
+	// ParseAndValidate parses and evaluates the given content. It will panic with
+	// an issue.Reported unless the parsing and evaluation was successful.
+	ParseAndValidate(filename, content string, singleExpression bool) parser.Expression
+
+	// ResolveType evaluates the given Expression into a Type. It will panic with
+	// an issue.Reported unless the evaluation was successful and the result
+	// is evaluates to a Type
+	ResolveType(expr parser.Expression) Type
+
+	// Scope returns the scope
+	Scope() Scope
 
 	// Static returns true during evaluation of type expressions. It is used to prevent
 	// dynamic expressions within such expressions
 	Static() bool
 }
 
+// AddTypes Makes the given types known to the loader appointed by this context
+var AddTypes func(c Context, types ...Type)
+
 // Call calls a function known to the loader with arguments and an optional
 // block.
 var Call func(c Context, name string, args []Value, block Lambda) Value
+
+// ResolveDefinitions resolves all definitions of a parser.Program
+var ResolveDefinitions func(c Context) []interface{}
+
+// Resolve types, constructions, or functions that has been recently added
+var ResolveResolvables func(c Context)
 
 func DoWithContext(ctx Context, actor func(Context)) {
 	if saveCtx, ok := threadlocal.Get(PuppetContextKey); ok {
@@ -143,13 +149,19 @@ func DoWithContext(ctx Context, actor func(Context)) {
 
 // TopEvaluate resolves all pending definitions prior to evaluating. The evaluated expression is not
 // allowed ot contain return, next, or break.
-var TopEvaluate func(c Context, expr parser.Expression) (result Value, err issue.Reported)
+var TopEvaluate func(c EvaluationContext, expr parser.Expression) (result Value, err issue.Reported)
 
 // Evaluate the given expression. Allow return, break, etc.
-func Evaluate(c Context, expr parser.Expression) Value {
+func Evaluate(c EvaluationContext, expr parser.Expression) Value {
 	return c.GetEvaluator().Eval(expr)
 }
 
 var CurrentContext func() Context
 
-var StackTop func() issue.Location
+func StackTop() issue.Location {
+	if ctx, ok := threadlocal.Get(PuppetContextKey); ok {
+		return ctx.(Context).StackTop()
+	}
+	_, file, line, _ := runtime.Caller(2)
+	return issue.NewLocation(file, line, 0)
+}

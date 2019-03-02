@@ -26,18 +26,18 @@ func init() {
     }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewTupleType2(args...)
+			return newTupleType2(args...)
 		})
 
 	// Go constructor for Tuple instances is registered by ArrayType
 }
 
 func DefaultTupleType() *TupleType {
-	return tupleType_DEFAULT
+	return tupleTypeDefault
 }
 
 func EmptyTupleType() *TupleType {
-	return tupleType_EMPTY
+	return tupleTypeEmpty
 }
 
 func NewTupleType(types []eval.Type, size *IntegerType) *TupleType {
@@ -59,18 +59,14 @@ func NewTupleType(types []eval.Type, size *IntegerType) *TupleType {
 	return &TupleType{size, givenOrActualSize, types}
 }
 
-func NewTupleType2(args ...eval.Value) *TupleType {
+func newTupleType2(args ...eval.Value) *TupleType {
 	return tupleFromArgs(false, WrapValues(args))
-}
-
-func NewTupleType3(args eval.List) *TupleType {
-	return tupleFromArgs(false, args)
 }
 
 func tupleFromArgs(callable bool, args eval.List) *TupleType {
 	argc := args.Len()
 	if argc == 0 {
-		return tupleType_DEFAULT
+		return tupleTypeDefault
 	}
 
 	if argc == 1 || argc == 2 {
@@ -114,21 +110,21 @@ func tupleFromArgs(callable bool, args eval.List) *TupleType {
 	}
 
 	if argc == 0 {
-		if *rng == *IntegerTypeZero {
-			return tupleType_EMPTY
+		if rng != nil && *rng == *IntegerTypeZero {
+			return tupleTypeEmpty
 		}
 		if callable {
 			return &TupleType{rng, rng, []eval.Type{DefaultUnitType()}}
 		}
-		if *rng == *IntegerTypePositive {
-			return tupleType_DEFAULT
+		if rng != nil && *rng == *IntegerTypePositive {
+			return tupleTypeDefault
 		}
 		return &TupleType{rng, rng, []eval.Type{}}
 	}
 
 	var tupleTypes []eval.Type
 	ok = false
-	failIdx := -1
+	var failIdx int
 	if argc == 1 {
 		// One arg can be either array of types or a type
 		tupleTypes, failIdx = toTypes(args.Slice(0, 1))
@@ -142,7 +138,7 @@ func tupleFromArgs(callable bool, args eval.List) *TupleType {
 			if callable {
 				name = `Callable[]`
 			}
-			panic(NewIllegalArgumentType2(name, failIdx, `Type`, args.At(failIdx)))
+			panic(NewIllegalArgumentType(name, failIdx, `Type`, args.At(failIdx)))
 		}
 	}
 	return &TupleType{rng, givenOrActualRng, tupleTypes}
@@ -165,13 +161,13 @@ func (t *TupleType) At(i int) eval.Value {
 			return t.types[len(t.types)-1]
 		}
 	}
-	return _UNDEF
+	return undef
 }
 
 func (t *TupleType) CommonElementType() eval.Type {
 	top := len(t.types)
 	if top == 0 {
-		return anyType_DEFAULT
+		return anyTypeDefault
 	}
 	cet := t.types[0]
 	for idx := 1; idx < top; idx++ {
@@ -181,7 +177,7 @@ func (t *TupleType) CommonElementType() eval.Type {
 }
 
 func (t *TupleType) Default() eval.Type {
-	return tupleType_DEFAULT
+	return tupleTypeDefault
 }
 
 func (t *TupleType) Equals(o interface{}, g eval.Guard) bool {
@@ -210,7 +206,7 @@ func (t *TupleType) Get(key string) (value eval.Value, ok bool) {
 		return WrapValues(tps), true
 	case `size_type`:
 		if t.size == nil {
-			return _UNDEF, true
+			return undef, true
 		}
 		return t.size, true
 	}
@@ -218,17 +214,16 @@ func (t *TupleType) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *TupleType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	switch o.(type) {
+	switch o := o.(type) {
 	case *ArrayType:
-		at := o.(*ArrayType)
-		if !GuardedIsInstance(t.givenOrActualSize, integerValue(at.size.Min()), g) {
+		if !GuardedIsInstance(t.givenOrActualSize, integerValue(o.size.Min()), g) {
 			return false
 		}
 		top := len(t.types)
 		if top == 0 {
 			return true
 		}
-		elemType := at.typ
+		elemType := o.typ
 		for idx := 0; idx < top; idx++ {
 			if !GuardedIsAssignable(t.types[idx], elemType, g) {
 				return false
@@ -237,13 +232,12 @@ func (t *TupleType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		return true
 
 	case *TupleType:
-		tt := o.(*TupleType)
-		if !(t.size == nil || GuardedIsInstance(t.size, integerValue(tt.givenOrActualSize.Min()), g)) {
+		if !(t.size == nil || GuardedIsInstance(t.size, integerValue(o.givenOrActualSize.Min()), g)) {
 			return false
 		}
 
 		if len(t.types) > 0 {
-			top := len(tt.types)
+			top := len(o.types)
 			if top == 0 {
 				return t.givenOrActualSize.min == 0
 			}
@@ -254,7 +248,7 @@ func (t *TupleType) IsAssignable(o eval.Type, g eval.Guard) bool {
 				if myIdx > last {
 					myIdx = last
 				}
-				if !GuardedIsAssignable(t.types[myIdx], tt.types[idx], g) {
+				if !GuardedIsAssignable(t.types[myIdx], o.types[idx], g) {
 					return false
 				}
 			}
@@ -354,7 +348,7 @@ func (t *TupleType) Size() *IntegerType {
 }
 
 func (t *TupleType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *TupleType) Parameters() []eval.Value {
@@ -381,5 +375,5 @@ func (t *TupleType) Types() []eval.Type {
 	return t.types
 }
 
-var tupleType_DEFAULT = &TupleType{IntegerTypePositive, IntegerTypePositive, []eval.Type{}}
-var tupleType_EMPTY = &TupleType{IntegerTypeZero, IntegerTypeZero, []eval.Type{}}
+var tupleTypeDefault = &TupleType{IntegerTypePositive, IntegerTypePositive, []eval.Type{}}
+var tupleTypeEmpty = &TupleType{IntegerTypeZero, IntegerTypeZero, []eval.Type{}}

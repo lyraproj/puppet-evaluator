@@ -11,6 +11,7 @@ type AnyType struct{}
 var AnyMetaType eval.ObjectType
 
 func init() {
+	eval.NewCollector = NewCollector
 	eval.NewTypedName = NewTypedName
 	eval.NewTypedName2 = newTypedName2
 	eval.TypedNameFromMapKey = typedNameFromMapKey
@@ -21,7 +22,7 @@ func init() {
 }
 
 func DefaultAnyType() *AnyType {
-	return anyType_DEFAULT
+	return anyTypeDefault
 }
 
 func (t *AnyType) Accept(v eval.Visitor, g eval.Guard) {
@@ -69,4 +70,4 @@ func (t *AnyType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var anyType_DEFAULT = &AnyType{}
+var anyTypeDefault = &AnyType{}

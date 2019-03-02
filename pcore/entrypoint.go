@@ -14,6 +14,7 @@ import (
 	// results in a segfault if functions is not imported (but
 	// not used) at this point
 	"context"
+
 	_ "github.com/lyraproj/puppet-evaluator/functions"
 	"github.com/lyraproj/puppet-evaluator/threadlocal"
 	"github.com/lyraproj/puppet-parser/parser"
@@ -26,7 +27,6 @@ type (
 		logger            eval.Logger
 		systemLoader      eval.Loader
 		environmentLoader eval.Loader
-		moduleLoaders     map[string]eval.Loader
 		settings          map[string]*setting
 	}
 )
@@ -57,13 +57,13 @@ func InitializePuppet() {
 
 	puppet.logger = eval.NewStdLogger()
 
-	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::MemberName`, nil, types.TYPE_MEMBER_NAME))
-	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::SimpleTypeName`, nil, types.TYPE_SIMPLE_TYPE_NAME))
-	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::TypeName`, nil, types.TYPE_TYPE_NAME))
-	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::QRef`, nil, types.TYPE_QUALIFIED_REFERENCE))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::MemberName`, nil, types.TypeMemberName))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::SimpleTypeName`, nil, types.TypeSimpleTypeName))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::typeName`, nil, types.TypeTypeName))
+	eval.RegisterResolvableType(types.NewTypeAliasType(`Pcore::QRef`, nil, types.TypeQualifiedReference))
 
 	c := impl.NewContext(impl.NewEvaluator, eval.StaticLoader().(eval.DefiningLoader), puppet.logger)
-	c.ResolveResolvables()
+	eval.ResolveResolvables(c)
 	topImplRegistry = c.ImplementationRegistry()
 }
 
@@ -109,14 +109,14 @@ func (p *pcoreImpl) EnvironmentLoader() eval.Loader {
 		envLoader := p.systemLoader // TODO: Add proper environment loader
 		s := p.settings[`module_path`]
 		mds := make([]eval.ModuleLoader, 0)
-		loadables := []eval.PathType{eval.PUPPET_FUNCTION_PATH, eval.PUPPET_DATA_TYPE_PATH, eval.PLAN_PATH, eval.TASK_PATH}
+		lds := []eval.PathType{eval.PuppetFunctionPath, eval.PuppetDataTypePath, eval.PlanPath, eval.TaskPath}
 		if s.isSet() {
 			modulesPath := s.get().String()
 			fis, err := ioutil.ReadDir(modulesPath)
 			if err == nil {
 				for _, fi := range fis {
 					if fi.IsDir() && eval.IsValidModuleName(fi.Name()) {
-						ml := eval.NewFilebasedLoader(envLoader, filepath.Join(modulesPath, fi.Name()), fi.Name(), loadables...)
+						ml := eval.NewFileBasedLoader(envLoader, filepath.Join(modulesPath, fi.Name()), fi.Name(), lds...)
 						mds = append(mds, ml)
 					}
 				}
@@ -162,7 +162,7 @@ func (p *pcoreImpl) Get(key string, defaultProducer eval.Producer) eval.Value {
 			return v.get()
 		}
 		if defaultProducer == nil {
-			return eval.UNDEF
+			return eval.Undef
 		}
 		return defaultProducer()
 	}
@@ -176,7 +176,6 @@ func (p *pcoreImpl) Logger() eval.Logger {
 func (p *pcoreImpl) RootContext() eval.Context {
 	InitializePuppet()
 	c := impl.WithParent(context.Background(), impl.NewEvaluator, eval.NewParentedLoader(p.EnvironmentLoader()), p.logger, topImplRegistry)
-	types.InitTypeSetType(c)
 	threadlocal.Init()
 	threadlocal.Set(eval.PuppetContextKey, c)
 	return c
@@ -217,7 +216,7 @@ func (p *pcoreImpl) TryWithParent(parentCtx context.Context, actor func(eval.Con
 	return
 }
 
-func (p *pcoreImpl) NewEvaluator(c eval.Context) eval.Evaluator {
+func (p *pcoreImpl) NewEvaluator(c eval.EvaluationContext) eval.Evaluator {
 	return impl.NewEvaluator(c)
 }
 

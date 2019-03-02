@@ -19,12 +19,12 @@ func init() {
 		types => Array[Type]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewVariantType2(args...)
+			return newVariantType2(args...)
 		})
 }
 
 func DefaultVariantType() *VariantType {
-	return variantType_DEFAULT
+	return variantTypeDefault
 }
 
 func NewVariantType(types ...eval.Type) eval.Type {
@@ -38,11 +38,11 @@ func NewVariantType(types ...eval.Type) eval.Type {
 	}
 }
 
-func NewVariantType2(args ...eval.Value) eval.Type {
-	return NewVariantType3(WrapValues(args))
+func newVariantType2(args ...eval.Value) eval.Type {
+	return newVariantType3(WrapValues(args))
 }
 
-func NewVariantType3(args eval.List) eval.Type {
+func newVariantType3(args eval.List) eval.Type {
 	var variants []eval.Type
 	var failIdx int
 
@@ -51,18 +51,18 @@ func NewVariantType3(args eval.List) eval.Type {
 		return DefaultVariantType()
 	case 1:
 		first := args.At(0)
-		switch first.(type) {
+		switch first := first.(type) {
 		case eval.Type:
-			return first.(eval.Type)
+			return first
 		case *ArrayValue:
-			return NewVariantType3(first.(*ArrayValue))
+			return newVariantType3(first)
 		default:
-			panic(NewIllegalArgumentType2(`Variant[]`, 0, `Type or Array[Type]`, args.At(0)))
+			panic(NewIllegalArgumentType(`Variant[]`, 0, `Type or Array[Type]`, args.At(0)))
 		}
 	default:
 		variants, failIdx = toTypes(args)
 		if failIdx >= 0 {
-			panic(NewIllegalArgumentType2(`Variant[]`, failIdx, `Type`, args.At(failIdx)))
+			panic(NewIllegalArgumentType(`Variant[]`, failIdx, `Type`, args.At(failIdx)))
 		}
 	}
 	return &VariantType{variants}
@@ -85,7 +85,7 @@ func (t *VariantType) Generic() eval.Type {
 }
 
 func (t *VariantType) Default() eval.Type {
-	return variantType_DEFAULT
+	return variantTypeDefault
 }
 
 func (t *VariantType) IsAssignable(o eval.Type, g eval.Guard) bool {
@@ -116,7 +116,7 @@ func (t *VariantType) Name() string {
 
 func (t *VariantType) Parameters() []eval.Value {
 	if len(t.types) == 0 {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	ps := make([]eval.Value, len(t.types))
 	for idx, t := range t.types {
@@ -148,7 +148,7 @@ func (t *VariantType) SerializationString() string {
 }
 
 func (t *VariantType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *VariantType) Types() []eval.Type {
@@ -167,7 +167,7 @@ func (t *VariantType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var variantType_DEFAULT = &VariantType{types: []eval.Type{}}
+var variantTypeDefault = &VariantType{types: []eval.Type{}}
 
 func allAssignableTo(types []eval.Type, o eval.Type, g eval.Guard) bool {
 	for _, v := range types {

@@ -2,13 +2,14 @@ package types
 
 import (
 	"bytes"
+	"io"
+	"reflect"
+	"regexp"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
-	"io"
-	"reflect"
-	"regexp"
 )
 
 type (
@@ -34,7 +35,7 @@ func init() {
     }
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewRegexpType2(args...)
+			return newRegexpType2(args...)
 		})
 
 	newGoConstructor(`Regexp`,
@@ -61,7 +62,7 @@ func NewRegexpType(patternString string) *RegexpType {
 	}
 	pattern, err := regexp.Compile(patternString)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: patternString, `detail`: err.Error()}))
+		panic(eval.Error(eval.InvalidRegexp, issue.H{`pattern`: patternString, `detail`: err.Error()}))
 	}
 	return &RegexpType{pattern: pattern}
 }
@@ -73,7 +74,7 @@ func NewRegexpTypeR(pattern *regexp.Regexp) *RegexpType {
 	return &RegexpType{pattern: pattern}
 }
 
-func NewRegexpType2(args ...eval.Value) *RegexpType {
+func newRegexpType2(args ...eval.Value) *RegexpType {
 	switch len(args) {
 	case 0:
 		return regexpTypeDefault
@@ -85,7 +86,7 @@ func NewRegexpType2(args ...eval.Value) *RegexpType {
 		if rt, ok := rx.(*RegexpValue); ok {
 			return rt.PType().(*RegexpType)
 		}
-		panic(NewIllegalArgumentType2(`Regexp[]`, 0, `Variant[Regexp,String]`, args[0]))
+		panic(NewIllegalArgumentType(`Regexp[]`, 0, `Variant[Regexp,String]`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Regexp[]`, `0 - 1`, len(args)))
 	}
@@ -108,7 +109,7 @@ func (t *RegexpType) Get(key string) (value eval.Value, ok bool) {
 	switch key {
 	case `pattern`:
 		if t.String() == `` {
-			return _UNDEF, true
+			return undef, true
 		}
 		return stringValue(t.pattern.String()), true
 	}
@@ -135,7 +136,7 @@ func (t *RegexpType) Name() string {
 
 func (t *RegexpType) Parameters() []eval.Value {
 	if t.pattern.String() == `` {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{WrapRegexp2(t.pattern)}
 }
@@ -161,7 +162,7 @@ func (t *RegexpType) SerializationString() string {
 }
 
 func (t *RegexpType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *RegexpType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -202,7 +203,7 @@ func UniqueRegexps(regexpTypes []*RegexpType) []*RegexpType {
 func WrapRegexp(str string) *RegexpValue {
 	pattern, err := regexp.Compile(str)
 	if err != nil {
-		panic(eval.Error(eval.EVAL_INVALID_REGEXP, issue.H{`pattern`: str, `detail`: err.Error()}))
+		panic(eval.Error(eval.InvalidRegexp, issue.H{`pattern`: str, `detail`: err.Error()}))
 	}
 	return &RegexpValue{pattern}
 }
@@ -237,18 +238,18 @@ func (r *RegexpValue) Reflect(c eval.Context) reflect.Value {
 func (r *RegexpValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := r.Reflect(c).Elem()
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }
 
 func (r *RegexpValue) String() string {
-	return eval.ToString2(r, NONE)
+	return eval.ToString2(r, None)
 }
 
 func (r *RegexpValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
-	b.WriteByte(HK_REGEXP)
+	b.WriteByte(HkRegexp)
 	b.Write([]byte(r.pattern.String()))
 }
 

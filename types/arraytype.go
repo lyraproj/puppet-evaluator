@@ -2,14 +2,14 @@ package types
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/utils"
 	"io"
 	"math"
 	"reflect"
 	"sort"
+
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 type (
@@ -35,13 +35,13 @@ func init() {
   },
   serialization => [ 'element_type', 'size_type' ]
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewArrayType2(args...)
+			return newArrayType2(args...)
 		},
 		func(ctx eval.Context, args []eval.Value) eval.Value {
 			h := args[0].(*HashValue)
 			et := h.Get5(`element_type`, DefaultAnyType())
 			st := h.Get5(`size_type`, PositiveIntegerType())
-			return NewArrayType2(et, st)
+			return newArrayType2(et, st)
 		})
 
 	newGoConstructor3([]string{`Array`, `Tuple`}, nil,
@@ -49,8 +49,7 @@ func init() {
 			d.Param(`Variant[Array,Hash,Binary,Iterable]`)
 			d.OptionalParam(`Boolean`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := args[0]
-				switch arg.(type) {
+				switch arg := args[0].(type) {
 				case *ArrayValue:
 					if len(args) > 1 && args[1].(booleanValue).Bool() {
 						// Wrapped
@@ -58,9 +57,9 @@ func init() {
 					}
 					return arg
 				case *HashValue:
-					return arg.(*HashValue).AsArray()
+					return arg.AsArray()
 				case *BinaryValue:
-					return arg.(*BinaryValue).AsArray()
+					return arg.AsArray()
 				default:
 					return arg.(eval.IterableValue).Iterator().AsArray()
 				}
@@ -70,30 +69,30 @@ func init() {
 }
 
 func DefaultArrayType() *ArrayType {
-	return arrayType_DEFAULT
+	return arrayTypeDefault
 }
 
 func EmptyArrayType() *ArrayType {
-	return arrayType_EMPTY
+	return arrayTypeEmpty
 }
 
 func NewArrayType(element eval.Type, rng *IntegerType) *ArrayType {
 	if element == nil {
-		element = anyType_DEFAULT
+		element = anyTypeDefault
 	}
 	if rng == nil {
 		rng = IntegerTypePositive
 	}
-	if *rng == *IntegerTypePositive && element == anyType_DEFAULT {
+	if *rng == *IntegerTypePositive && element == anyTypeDefault {
 		return DefaultArrayType()
 	}
-	if *rng == *IntegerTypeZero && element == unitType_DEFAULT {
+	if *rng == *IntegerTypeZero && element == unitTypeDefault {
 		return EmptyArrayType()
 	}
 	return &ArrayType{rng, element}
 }
 
-func NewArrayType2(args ...eval.Value) *ArrayType {
+func newArrayType2(args ...eval.Value) *ArrayType {
 	argc := len(args)
 	if argc == 0 {
 		return DefaultArrayType()
@@ -117,7 +116,7 @@ func NewArrayType2(args ...eval.Value) *ArrayType {
 			var sz int64
 			sz, ok = toInt(sizeArg)
 			if !ok {
-				panic(NewIllegalArgumentType2(`Array[]`, offset, `Variant[Integer, Type[Integer]]`, sizeArg))
+				panic(NewIllegalArgumentType(`Array[]`, offset, `Variant[Integer, Type[Integer]]`, sizeArg))
 			}
 			rng = NewIntegerType(sz, math.MaxInt64)
 		}
@@ -126,7 +125,7 @@ func NewArrayType2(args ...eval.Value) *ArrayType {
 		arg := args[offset]
 		if min, ok = toInt(arg); !ok {
 			if _, ok = arg.(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Array[]`, offset, `Integer`, arg))
+				panic(NewIllegalArgumentType(`Array[]`, offset, `Integer`, arg))
 			}
 			min = 0
 		}
@@ -134,7 +133,7 @@ func NewArrayType2(args ...eval.Value) *ArrayType {
 		arg = args[offset]
 		if max, ok = toInt(args[offset]); !ok {
 			if _, ok = arg.(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Array[]`, offset, `Integer`, arg))
+				panic(NewIllegalArgumentType(`Array[]`, offset, `Integer`, arg))
 			}
 			max = math.MaxInt64
 		}
@@ -163,8 +162,8 @@ func (t *ArrayType) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (t *ArrayType) Generic() eval.Type {
-	if t.typ == anyType_DEFAULT {
-		return arrayType_DEFAULT
+	if t.typ == anyTypeDefault {
+		return arrayTypeDefault
 	}
 	return NewArrayType(eval.Generalize(t.typ), nil)
 }
@@ -180,21 +179,18 @@ func (t *ArrayType) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *ArrayType) Default() eval.Type {
-	return arrayType_DEFAULT
+	return arrayTypeDefault
 }
 
 func (t *ArrayType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	switch o.(type) {
+	switch o := o.(type) {
 	case *ArrayType:
-		oa := o.(*ArrayType)
-		return t.size.IsAssignable(oa.size, g) && GuardedIsAssignable(t.typ, oa.typ, g)
+		return t.size.IsAssignable(o.size, g) && GuardedIsAssignable(t.typ, o.typ, g)
 	case *TupleType:
-		ot := o.(*TupleType)
-		return t.size.IsAssignable(ot.givenOrActualSize, g) && allAssignableTo(ot.types, t.typ, g)
+		return t.size.IsAssignable(o.givenOrActualSize, g) && allAssignableTo(o.types, t.typ, g)
 	default:
 		return false
 	}
-	return true
 }
 
 func (t *ArrayType) IsInstance(v eval.Value, g eval.Guard) bool {
@@ -208,7 +204,7 @@ func (t *ArrayType) IsInstance(v eval.Value, g eval.Guard) bool {
 		return false
 	}
 
-	if t.typ == anyType_DEFAULT {
+	if t.typ == anyTypeDefault {
 		return true
 	}
 
@@ -238,44 +234,15 @@ func (t *ArrayType) Size() *IntegerType {
 }
 
 func (t *ArrayType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *ArrayType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-func writeTypes(bld io.Writer, format eval.FormatContext, g eval.RDetect, types ...eval.Type) bool {
-	top := len(types)
-	if top == 0 {
-		return false
-	}
-	types[0].ToString(bld, format, g)
-	for idx := 1; idx < top; idx++ {
-		utils.WriteByte(bld, ',')
-		types[idx].ToString(bld, format, g)
-	}
-	return true
-}
-
-func writeRange(bld io.Writer, t *IntegerType, needComma bool, skipDefault bool) bool {
-	if skipDefault && *t == *IntegerTypePositive {
-		return false
-	}
-	if needComma {
-		utils.WriteByte(bld, ',')
-	}
-	fmt.Fprintf(bld, "%d,", t.min)
-	if t.max == math.MaxInt64 {
-		io.WriteString(bld, `default`)
-	} else {
-		fmt.Fprintf(bld, "%d", t.max)
-	}
-	return true
-}
-
 func (t *ArrayType) Parameters() []eval.Value {
-	if t.typ.Equals(unitType_DEFAULT, nil) && *t.size == *IntegerTypeZero {
+	if t.typ.Equals(unitTypeDefault, nil) && *t.size == *IntegerTypeZero {
 		return t.size.SizeParameters()
 	}
 
@@ -308,8 +275,8 @@ func (t *ArrayType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) 
 	TypeToString(t, b, s, g)
 }
 
-var arrayType_DEFAULT = &ArrayType{IntegerTypePositive, anyType_DEFAULT}
-var arrayType_EMPTY = &ArrayType{IntegerTypeZero, unitType_DEFAULT}
+var arrayTypeDefault = &ArrayType{IntegerTypePositive, anyTypeDefault}
+var arrayTypeEmpty = &ArrayType{IntegerTypeZero, unitTypeDefault}
 
 func BuildArray(len int, bld func(*ArrayValue, []eval.Value) []eval.Value) *ArrayValue {
 	ar := &ArrayValue{elements: make([]eval.Value, 0, len)}
@@ -409,7 +376,7 @@ func (av *ArrayValue) At(i int) eval.Value {
 	if i >= 0 && i < len(av.elements) {
 		return av.elements[i]
 	}
-	return _UNDEF
+	return undef
 }
 
 func (av *ArrayValue) Delete(ov eval.Value) eval.List {
@@ -427,7 +394,7 @@ func (av *ArrayValue) DeleteAll(ov eval.List) eval.List {
 }
 
 func (av *ArrayValue) DetailedType() eval.Type {
-	return av.prtvDetailedType()
+	return av.privateDetailedType()
 }
 
 func (av *ArrayValue) Each(consumer eval.Consumer) {
@@ -497,12 +464,11 @@ func (av *ArrayValue) Flatten() eval.List {
 
 func flattenElements(elements, receiver []eval.Value) []eval.Value {
 	for _, e := range elements {
-		switch e.(type) {
+		switch e := e.(type) {
 		case *ArrayValue:
-			receiver = flattenElements(e.(*ArrayValue).elements, receiver)
+			receiver = flattenElements(e.elements, receiver)
 		case *HashEntry:
-			he := e.(*HashEntry)
-			receiver = flattenElements([]eval.Value{he.key, he.value}, receiver)
+			receiver = flattenElements([]eval.Value{e.key, e.value}, receiver)
 		default:
 			receiver = append(receiver, e)
 		}
@@ -536,7 +502,7 @@ func (av *ArrayValue) Map(mapper eval.Mapper) eval.List {
 
 func (av *ArrayValue) Reduce(redactor eval.BiMapper) eval.Value {
 	if av.IsEmpty() {
-		return _UNDEF
+		return undef
 	}
 	return reduceSlice(av.elements[1:], av.At(0), redactor)
 }
@@ -643,7 +609,7 @@ func (av *ArrayValue) Sort(comparator eval.Comparator) eval.List {
 }
 
 func (av *ArrayValue) String() string {
-	return eval.ToString2(av, NONE)
+	return eval.ToString2(av, None)
 }
 
 func (av *ArrayValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -654,7 +620,7 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 	if g == nil {
 		g = make(eval.RDetect)
 	} else if g[av] {
-		io.WriteString(b, `<recursive reference>`)
+		utils.WriteString(b, `<recursive reference>`)
 		return
 	}
 	g[av] = true
@@ -668,8 +634,8 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 	indent = indent.Indenting(f.IsAlt() || indent.IsIndenting())
 
 	if indent.Breaks() {
-		io.WriteString(b, "\n")
-		io.WriteString(b, indent.Padding())
+		utils.WriteString(b, "\n")
+		utils.WriteString(b, indent.Padding())
 	}
 
 	var delims [2]byte
@@ -679,7 +645,7 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 		delims = delimiterPairs[f.LeftDelimiter()]
 	}
 	if delims[0] != 0 {
-		b.Write(delims[:1])
+		utils.WriteByte(b, delims[0])
 	}
 
 	top := len(av.elements)
@@ -690,7 +656,7 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 
 		cf := f.ContainerFormats()
 		if cf == nil {
-			cf = DEFAULT_CONTAINER_FORMATS
+			cf = DefaultContainerFormats
 		}
 		for idx, v := range av.elements {
 			arrayOrHash[idx] = isContainer(v, s)
@@ -719,25 +685,25 @@ func (av *ArrayValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format
 				childrenIndent = childrenIndent.Subsequent()
 				// if breaking, indent first element by one
 				if szBreak && !ah {
-					io.WriteString(b, ` `)
+					utils.WriteString(b, ` `)
 				}
 			} else {
-				io.WriteString(b, sep)
+				utils.WriteString(b, sep)
 				// if break on each (and breaking will not occur because next is an array or hash)
 				// or, if indenting, and previous was an array or hash, then break and continue on next line
 				// indented.
 				if !ah && (szBreak || f.IsAlt() && arrayOrHash[idx-1]) {
-					io.WriteString(b, "\n")
-					io.WriteString(b, childrenIndent.Padding())
+					utils.WriteString(b, "\n")
+					utils.WriteString(b, childrenIndent.Padding())
 				} else if !(f.IsAlt() && ah) {
-					io.WriteString(b, ` `)
+					utils.WriteString(b, ` `)
 				}
 			}
-			io.WriteString(b, mapped[idx])
+			utils.WriteString(b, mapped[idx])
 		}
 	}
 	if delims[1] != 0 {
-		b.Write(delims[1:])
+		utils.WriteByte(b, delims[1])
 	}
 	delete(g, av)
 }
@@ -792,17 +758,17 @@ func isContainer(child eval.Value, s eval.FormatContext) bool {
 }
 
 func (av *ArrayValue) PType() eval.Type {
-	return av.prtvReducedType()
+	return av.privateReducedType()
 }
 
-func (av *ArrayValue) prtvDetailedType() eval.Type {
+func (av *ArrayValue) privateDetailedType() eval.Type {
 	if av.detailedType == nil {
 		if len(av.elements) == 0 {
-			av.detailedType = av.prtvReducedType()
+			av.detailedType = av.privateReducedType()
 		} else {
 			types := make([]eval.Type, len(av.elements))
 			av.detailedType = NewTupleType(types, nil)
-			for idx, _ := range types {
+			for idx := range types {
 				types[idx] = DefaultAnyType()
 			}
 			for idx, element := range av.elements {
@@ -813,7 +779,7 @@ func (av *ArrayValue) prtvDetailedType() eval.Type {
 	return av.detailedType
 }
 
-func (av *ArrayValue) prtvReducedType() *ArrayType {
+func (av *ArrayValue) privateReducedType() *ArrayType {
 	if av.reducedType == nil {
 		top := len(av.elements)
 		if top == 0 {

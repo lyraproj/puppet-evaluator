@@ -4,6 +4,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/lyraproj/puppet-evaluator/utils"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 )
@@ -43,7 +45,7 @@ func init() {
 		elements => Array[Pcore::StructElement]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewStructType2(args...)
+			return newStructType2(args...)
 		})
 
 	// Go constructor for Struct instances is registered by HashType
@@ -56,38 +58,35 @@ func NewStructElement(key eval.Value, value eval.Type) *StructElement {
 		keyType eval.Type
 	)
 
-	switch key.(type) {
+	switch key := key.(type) {
 	case stringValue:
-		v := key.(stringValue)
-		keyType = v.PType()
+		keyType = key.PType()
 		if isAssignable(value, DefaultUndefType()) {
 			keyType = NewOptionalType(keyType)
 		}
-		name = string(v)
+		name = string(key)
 	case *vcStringType:
-		strType := key.(*vcStringType)
-		name = strType.value
-		keyType = strType
+		name = key.value
+		keyType = key
 	case *OptionalType:
-		optType := key.(*OptionalType)
-		if strType, ok := optType.typ.(*vcStringType); ok {
+		if strType, ok := key.typ.(*vcStringType); ok {
 			name = strType.value
-			keyType = optType
+			keyType = key
 		}
 	}
 
 	if keyType == nil || name == `` {
-		panic(NewIllegalArgumentType2(`StructElement`, 0, `Variant[String[1], Type[String[1]], , Type[Optional[String[1]]]]`, key))
+		panic(NewIllegalArgumentType(`StructElement`, 0, `Variant[String[1], Type[String[1]], , Type[Optional[String[1]]]]`, key))
 	}
 	return &StructElement{name, keyType, value}
 }
 
-func NewStructElement2(key string, value eval.Type) *StructElement {
+func newStructElement2(key string, value eval.Type) *StructElement {
 	return NewStructElement(stringValue(key), value)
 }
 
 func DefaultStructType() *StructType {
-	return structType_DEFAULT
+	return structTypeDefault
 }
 
 func NewStructType(elements []*StructElement) *StructType {
@@ -97,30 +96,30 @@ func NewStructType(elements []*StructElement) *StructType {
 	return &StructType{elements: elements}
 }
 
-func NewStructType2(args ...eval.Value) *StructType {
+func newStructType2(args ...eval.Value) *StructType {
 	switch len(args) {
 	case 0:
 		return DefaultStructType()
 	case 1:
 		arg := args[0]
 		if ar, ok := arg.(*ArrayValue); ok {
-			return NewStructType2(ar.AppendTo(make([]eval.Value, 0, ar.Len()))...)
+			return newStructType2(ar.AppendTo(make([]eval.Value, 0, ar.Len()))...)
 		}
 		hash, ok := arg.(eval.OrderedMap)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Struct[]`, 0, `Hash[Variant[String[1], Optional[String[1]]], Type]`, arg))
+			panic(NewIllegalArgumentType(`Struct[]`, 0, `Hash[Variant[String[1], Optional[String[1]]], Type]`, arg))
 		}
 		top := hash.Len()
-		elems := make([]*StructElement, top)
+		es := make([]*StructElement, top)
 		hash.EachWithIndex(func(v eval.Value, idx int) {
 			e := v.(*HashEntry)
 			vt, ok := e.Value().(eval.Type)
 			if !ok {
-				panic(NewIllegalArgumentType2(`StructElement`, 1, `Type`, v))
+				panic(NewIllegalArgumentType(`StructElement`, 1, `Type`, v))
 			}
-			elems[idx] = NewStructElement(e.Key(), vt)
+			es[idx] = NewStructElement(e.Key(), vt)
 		})
-		return NewStructType(elems)
+		return NewStructType(es)
 	default:
 		panic(errors.NewIllegalArgumentCount(`Struct`, `0 - 1`, len(args)))
 	}
@@ -172,10 +171,10 @@ func (s *StructElement) resolve(c eval.Context) {
 }
 
 func (s *StructElement) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
-	optionalValue := isAssignable(s.value, undefType_DEFAULT)
+	optionalValue := isAssignable(s.value, undefTypeDefault)
 	if _, ok := s.key.(*OptionalType); ok {
 		if optionalValue {
-			io.WriteString(bld, s.name)
+			utils.WriteString(bld, s.name)
 		} else {
 			s.key.ToString(bld, format, g)
 		}
@@ -183,10 +182,10 @@ func (s *StructElement) ToString(bld io.Writer, format eval.FormatContext, g eva
 		if optionalValue {
 			NewNotUndefType(s.key).ToString(bld, format, g)
 		} else {
-			io.WriteString(bld, s.name)
+			utils.WriteString(bld, s.name)
 		}
 	}
-	io.WriteString(bld, ` => `)
+	utils.WriteString(bld, ` => `)
 	s.value.ToString(bld, format, g)
 }
 
@@ -202,7 +201,7 @@ func (t *StructType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *StructType) Default() eval.Type {
-	return structType_DEFAULT
+	return structTypeDefault
 }
 
 func (t *StructType) Equals(o interface{}, g eval.Guard) bool {
@@ -259,15 +258,14 @@ func (t *StructType) HashedMembersCloned() map[string]*StructElement {
 }
 
 func (t *StructType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	switch o.(type) {
+	switch o := o.(type) {
 	case *StructType:
-		st := o.(*StructType)
-		hm := st.HashedMembers()
+		hm := o.HashedMembers()
 		matched := 0
 		for _, e1 := range t.elements {
 			e2 := hm[e1.name]
 			if e2 == nil {
-				if !GuardedIsAssignable(e1.key, undefType_DEFAULT, g) {
+				if !GuardedIsAssignable(e1.key, undefTypeDefault, g) {
 					return false
 				}
 			} else {
@@ -279,20 +277,19 @@ func (t *StructType) IsAssignable(o eval.Type, g eval.Guard) bool {
 		}
 		return matched == len(hm)
 	case *HashType:
-		ht := o.(*HashType)
 		required := 0
 		for _, e := range t.elements {
-			if !GuardedIsAssignable(e.key, undefType_DEFAULT, g) {
-				if !GuardedIsAssignable(e.value, ht.valueType, g) {
+			if !GuardedIsAssignable(e.key, undefTypeDefault, g) {
+				if !GuardedIsAssignable(e.value, o.valueType, g) {
 					return false
 				}
 				required++
 			}
 		}
-		if required > 0 && !GuardedIsAssignable(stringTypeDefault, ht.keyType, g) {
+		if required > 0 && !GuardedIsAssignable(stringTypeDefault, o.keyType, g) {
 			return false
 		}
-		return GuardedIsAssignable(NewIntegerType(int64(required), int64(len(t.elements))), ht.size, g)
+		return GuardedIsAssignable(NewIntegerType(int64(required), int64(len(t.elements))), o.size, g)
 	default:
 		return false
 	}
@@ -308,7 +305,7 @@ func (t *StructType) IsInstance(o eval.Value, g eval.Guard) bool {
 		key := element.name
 		v, ok := ov.Get(stringValue(key))
 		if !ok {
-			if !GuardedIsAssignable(element.key, undefType_DEFAULT, g) {
+			if !GuardedIsAssignable(element.key, undefTypeDefault, g) {
 				return false
 			}
 		} else {
@@ -332,11 +329,11 @@ func (t *StructType) Name() string {
 func (t *StructType) Parameters() []eval.Value {
 	top := len(t.elements)
 	if top == 0 {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	entries := make([]*HashEntry, top)
 	for idx, s := range t.elements {
-		optionalValue := isAssignable(s.value, undefType_DEFAULT)
+		optionalValue := isAssignable(s.value, undefTypeDefault)
 		var key eval.Value
 		if _, ok := s.key.(*OptionalType); ok {
 			if optionalValue {
@@ -379,7 +376,7 @@ func (t *StructType) SerializationString() string {
 func (t *StructType) Size() *IntegerType {
 	required := 0
 	for _, e := range t.elements {
-		if !GuardedIsAssignable(e.key, undefType_DEFAULT, nil) {
+		if !GuardedIsAssignable(e.key, undefTypeDefault, nil) {
 			required++
 		}
 	}
@@ -387,7 +384,7 @@ func (t *StructType) Size() *IntegerType {
 }
 
 func (t *StructType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *StructType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -398,4 +395,4 @@ func (t *StructType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var structType_DEFAULT = &StructType{elements: []*StructElement{}}
+var structTypeDefault = &StructType{elements: []*StructElement{}}

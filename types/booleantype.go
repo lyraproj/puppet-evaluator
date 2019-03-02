@@ -4,9 +4,10 @@ import (
 	"io"
 	"strings"
 
+	"reflect"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 var BooleanFalse = booleanValue(false)
@@ -31,22 +32,21 @@ func init() {
     value => { type => Optional[Boolean], value => undef }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return NewBooleanType2(args...)
+		return newBooleanType2(args...)
 	})
 
 	newGoConstructor(`Boolean`,
 		func(d eval.Dispatch) {
 			d.Param(`Variant[Integer, Float, Boolean, Enum['false','true','yes','no','y','n',true]]`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := args[0]
-				switch arg.(type) {
+				switch arg := args[0].(type) {
 				case integerValue:
-					if arg.(integerValue) == 0 {
+					if arg == 0 {
 						return BooleanFalse
 					}
 					return BooleanTrue
 				case floatValue:
-					if arg.(floatValue) == 0.0 {
+					if arg == 0.0 {
 						return BooleanFalse
 					}
 					return BooleanTrue
@@ -77,7 +77,7 @@ func NewBooleanType(value bool) *BooleanType {
 	return &BooleanType{n}
 }
 
-func NewBooleanType2(args ...eval.Value) *BooleanType {
+func newBooleanType2(args ...eval.Value) *BooleanType {
 	switch len(args) {
 	case 0:
 		return DefaultBooleanType()
@@ -85,7 +85,7 @@ func NewBooleanType2(args ...eval.Value) *BooleanType {
 		if bv, ok := args[0].(booleanValue); ok {
 			return NewBooleanType(bool(bv))
 		}
-		panic(NewIllegalArgumentType2(`Boolean[]`, 0, `Boolean`, args[0]))
+		panic(NewIllegalArgumentType(`Boolean[]`, 0, `Boolean`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Boolean[]`, `0 or 1`, len(args)))
 	}
@@ -119,7 +119,7 @@ func (t *BooleanType) Get(key string) (eval.Value, bool) {
 		case 1:
 			return BooleanTrue, true
 		default:
-			return eval.UNDEF, true
+			return eval.Undef, true
 		}
 	default:
 		return nil, false
@@ -161,7 +161,7 @@ func (t *BooleanType) IsInstance(o eval.Value, g eval.Guard) bool {
 
 func (t *BooleanType) Parameters() []eval.Value {
 	if t.value == -1 {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{booleanValue(t.value == 1)}
 }
@@ -298,8 +298,8 @@ func (bv booleanValue) stringVal(alt bool, yes string, no string) string {
 	return str
 }
 
-var hkTrue = eval.HashKey([]byte{1, HK_BOOLEAN, 1})
-var hkFalse = eval.HashKey([]byte{1, HK_BOOLEAN, 0})
+var hkTrue = eval.HashKey([]byte{1, HkBoolean, 1})
+var hkFalse = eval.HashKey([]byte{1, HkBoolean, 0})
 
 func (bv booleanValue) ToKey() eval.HashKey {
 	if bv {

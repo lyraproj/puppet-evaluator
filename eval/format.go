@@ -45,17 +45,18 @@ type (
 		Property(key string) (string, bool)
 		Properties() map[string]string
 		SetProperty(key, value string)
+		Subsequent() FormatContext
 		UnsupportedFormat(t Type, supportedFormats string, actualFormat Format) error
 		WithProperties(properties map[string]string) FormatContext
 	}
 )
 
-var FORMAT_PATTERN = regexp.MustCompile(`\A%([\s\[+#0{<(|-]*)([1-9][0-9]*)?(?:\.([0-9]+))?([a-zA-Z])\z`)
+var FormatPattern = regexp.MustCompile(`\A%([\s\[+#0{<(|-]*)([1-9][0-9]*)?(?:\.([0-9]+))?([a-zA-Z])\z`)
 
-var DEFAULT_FORMAT Format
-var DEFAULT_FORMAT_CONTEXT FormatContext
-var PRETTY FormatContext
-var PRETTY_EXPANDED FormatContext
+var DefaultFormat Format
+var DefaultFormatContext FormatContext
+var Pretty FormatContext
+var PrettyExpanded FormatContext
 
 var NewFormat func(format string) Format
 var NewIndentation func(indenting bool, level int) Indentation
@@ -68,8 +69,8 @@ func GetFormat(f FormatMap, t Type) Format {
 		entry := ev.(MapEntry)
 		return IsAssignable(entry.Key().(Type), t)
 	})
-	if v != UNDEF {
+	if v != Undef {
 		return v.(MapEntry).Value().(Format)
 	}
-	return DEFAULT_FORMAT
+	return DefaultFormat
 }

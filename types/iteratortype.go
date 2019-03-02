@@ -3,6 +3,8 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/puppet-evaluator/utils"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 )
@@ -35,7 +37,7 @@ type (
 	}
 )
 
-var iteratorType_DEFAULT = &IteratorType{typ: DefaultAnyType()}
+var iteratorTypeDefault = &IteratorType{typ: DefaultAnyType()}
 
 var IteratorMetaType eval.ObjectType
 
@@ -49,29 +51,29 @@ func init() {
 				},
 			}
 		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewIteratorType2(args...)
+			return newIteratorType2(args...)
 		})
 }
 
 func DefaultIteratorType() *IteratorType {
-	return iteratorType_DEFAULT
+	return iteratorTypeDefault
 }
 
 func NewIteratorType(elementType eval.Type) *IteratorType {
-	if elementType == nil || elementType == anyType_DEFAULT {
+	if elementType == nil || elementType == anyTypeDefault {
 		return DefaultIteratorType()
 	}
 	return &IteratorType{elementType}
 }
 
-func NewIteratorType2(args ...eval.Value) *IteratorType {
+func newIteratorType2(args ...eval.Value) *IteratorType {
 	switch len(args) {
 	case 0:
 		return DefaultIteratorType()
 	case 1:
 		containedType, ok := args[0].(eval.Type)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Iterator[]`, 0, `Type`, args[0]))
+			panic(NewIllegalArgumentType(`Iterator[]`, 0, `Type`, args[0]))
 		}
 		return NewIteratorType(containedType)
 	default:
@@ -85,7 +87,7 @@ func (t *IteratorType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *IteratorType) Default() eval.Type {
-	return iteratorType_DEFAULT
+	return iteratorTypeDefault
 }
 
 func (t *IteratorType) Equals(o interface{}, g eval.Guard) bool {
@@ -131,7 +133,7 @@ func (t *IteratorType) Name() string {
 
 func (t *IteratorType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{t.typ}
 }
@@ -145,7 +147,7 @@ func (t *IteratorType) SerializationString() string {
 }
 
 func (t *IteratorType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *IteratorType) ElementType() eval.Type {
@@ -185,16 +187,16 @@ func (it *iteratorValue) PType() eval.Type {
 }
 
 func (it *iteratorValue) String() string {
-	return eval.ToString2(it, NONE)
+	return eval.ToString2(it, None)
 }
 
 func (it *iteratorValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	if it.iterator.ElementType() != DefaultAnyType() {
-		io.WriteString(b, `Iterator[`)
+		utils.WriteString(b, `Iterator[`)
 		eval.GenericType(it.iterator.ElementType()).ToString(b, s, g)
-		io.WriteString(b, `]-Value`)
+		utils.WriteString(b, `]-Value`)
 	} else {
-		io.WriteString(b, `Iterator-Value`)
+		utils.WriteString(b, `Iterator-Value`)
 	}
 }
 
@@ -209,8 +211,8 @@ func stopIteration() {
 func find(iter eval.Iterator, predicate eval.Predicate, dflt eval.Value, dfltProducer eval.Producer) (result eval.Value) {
 	defer stopIteration()
 
-	result = eval.UNDEF
-	ok := false
+	result = eval.Undef
+	var ok bool
 	for {
 		result, ok = iter.Next()
 		if !ok {
@@ -303,7 +305,7 @@ func reduce2(iter eval.Iterator, value eval.Value, redactor eval.BiMapper) (resu
 func reduce(iter eval.Iterator, redactor eval.BiMapper) eval.Value {
 	v, ok := iter.Next()
 	if !ok {
-		return _UNDEF
+		return undef
 	}
 	return reduce2(iter, v, redactor)
 }
@@ -355,7 +357,7 @@ func (ai *indexedIterator) ElementType() eval.Type {
 }
 
 func (ai *indexedIterator) Find(predicate eval.Predicate) eval.Value {
-	return find(ai, predicate, _UNDEF, nil)
+	return find(ai, predicate, undef, nil)
 }
 
 func (ai *indexedIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {
@@ -372,7 +374,7 @@ func (ai *indexedIterator) Next() (eval.Value, bool) {
 		ai.pos = pos
 		return ai.indexed.At(pos), true
 	}
-	return _UNDEF, false
+	return undef, false
 }
 
 func (ai *indexedIterator) Map(elementType eval.Type, mapFunc eval.Mapper) eval.IteratorValue {
@@ -412,7 +414,7 @@ func (ai *predicateIterator) Next() (v eval.Value, ok bool) {
 		if err := recover(); err != nil {
 			if _, ok = err.(*errors.StopIteration); ok {
 				ok = false
-				v = _UNDEF
+				v = undef
 			} else {
 				panic(err)
 			}
@@ -422,7 +424,7 @@ func (ai *predicateIterator) Next() (v eval.Value, ok bool) {
 	for {
 		v, ok = ai.base.Next()
 		if !ok {
-			v = _UNDEF
+			v = undef
 			break
 		}
 		if ai.predicate(v) == ai.outcome {
@@ -445,7 +447,7 @@ func (ai *predicateIterator) ElementType() eval.Type {
 }
 
 func (ai *predicateIterator) Find(predicate eval.Predicate) eval.Value {
-	return find(ai, predicate, _UNDEF, nil)
+	return find(ai, predicate, undef, nil)
 }
 
 func (ai *predicateIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {
@@ -491,7 +493,7 @@ func (ai *mappingIterator) Any(predicate eval.Predicate) bool {
 func (ai *mappingIterator) Next() (v eval.Value, ok bool) {
 	v, ok = ai.base.Next()
 	if !ok {
-		v = _UNDEF
+		v = undef
 	} else {
 		v = ai.mapFunc(v)
 	}
@@ -511,7 +513,7 @@ func (ai *mappingIterator) ElementType() eval.Type {
 }
 
 func (ai *mappingIterator) Find(predicate eval.Predicate) eval.Value {
-	return find(ai, predicate, _UNDEF, nil)
+	return find(ai, predicate, undef, nil)
 }
 
 func (ai *mappingIterator) Find2(predicate eval.Predicate, dflt eval.Value) eval.Value {

@@ -3,13 +3,12 @@ package proto
 import (
 	"github.com/lyraproj/data-protobuf/datapb"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/serialization"
 	"github.com/lyraproj/puppet-evaluator/types"
 )
 
-// A ProtoConsumer consumes values and produces a datapb.Data
-type ProtoConsumer interface {
-	serialization.ValueConsumer
+// A Consumer consumes values and produces a datapb.Data
+type Consumer interface {
+	eval.ValueConsumer
 
 	// Value returns the created value. Must not be called until the consumption
 	// of values is complete.
@@ -20,8 +19,8 @@ type protoConsumer struct {
 	stack [][]*datapb.Data
 }
 
-// NewProtoConsumer creates a new ProtoConsumer
-func NewProtoConsumer() ProtoConsumer {
+// NewProtoConsumer creates a new Consumer
+func NewProtoConsumer() Consumer {
 	return &protoConsumer{stack: make([][]*datapb.Data, 1, 8)}
 }
 
@@ -43,7 +42,7 @@ func (pc *protoConsumer) AddArray(cap int, doer eval.Doer) {
 	doer()
 	els := pc.stack[top]
 	pc.stack = pc.stack[0:top]
-	pc.add(&datapb.Data{Kind: &datapb.Data_ArrayValue{&datapb.DataArray{els}}})
+	pc.add(&datapb.Data{Kind: &datapb.Data_ArrayValue{ArrayValue: &datapb.DataArray{Values: els}}})
 }
 
 func (pc *protoConsumer) AddHash(cap int, doer eval.Doer) {
@@ -54,11 +53,11 @@ func (pc *protoConsumer) AddHash(cap int, doer eval.Doer) {
 	pc.stack = pc.stack[0:top]
 
 	top = len(els)
-	vals := make([]*datapb.DataEntry, top/2)
+	vs := make([]*datapb.DataEntry, top/2)
 	for i := 0; i < top; i += 2 {
-		vals[i/2] = &datapb.DataEntry{els[i], els[i+1]}
+		vs[i/2] = &datapb.DataEntry{Key: els[i], Value: els[i+1]}
 	}
-	pc.add(&datapb.Data{Kind: &datapb.Data_HashValue{&datapb.DataHash{vals}}})
+	pc.add(&datapb.Data{Kind: &datapb.Data_HashValue{HashValue: &datapb.DataHash{Entries: vs}}})
 }
 
 func (pc *protoConsumer) Add(v eval.Value) {
@@ -66,7 +65,7 @@ func (pc *protoConsumer) Add(v eval.Value) {
 }
 
 func (pc *protoConsumer) AddRef(ref int) {
-	pc.add(&datapb.Data{Kind: &datapb.Data_Reference{int64(ref)}})
+	pc.add(&datapb.Data{Kind: &datapb.Data_Reference{Reference: int64(ref)}})
 }
 
 func (pc *protoConsumer) Value() *datapb.Data {
@@ -83,34 +82,32 @@ func (pc *protoConsumer) add(value *datapb.Data) {
 }
 
 func ToPBData(v eval.Value) (value *datapb.Data) {
-	switch v.(type) {
+	switch v := v.(type) {
 	case eval.BooleanValue:
-		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{v.(eval.BooleanValue).Bool()}}
+		value = &datapb.Data{Kind: &datapb.Data_BooleanValue{BooleanValue: v.Bool()}}
 	case eval.FloatValue:
-		value = &datapb.Data{Kind: &datapb.Data_FloatValue{v.(eval.FloatValue).Float()}}
+		value = &datapb.Data{Kind: &datapb.Data_FloatValue{FloatValue: v.Float()}}
 	case eval.IntegerValue:
-		value = &datapb.Data{Kind: &datapb.Data_IntegerValue{v.(eval.IntegerValue).Int()}}
+		value = &datapb.Data{Kind: &datapb.Data_IntegerValue{IntegerValue: v.Int()}}
 	case eval.StringValue:
-		value = &datapb.Data{Kind: &datapb.Data_StringValue{v.String()}}
+		value = &datapb.Data{Kind: &datapb.Data_StringValue{StringValue: v.String()}}
 	case *types.UndefValue:
 		value = &datapb.Data{Kind: &datapb.Data_UndefValue{}}
 	case *types.ArrayValue:
-		av := v.(*types.ArrayValue)
-		vals := make([]*datapb.Data, av.Len())
-		av.EachWithIndex(func(elem eval.Value, i int) {
-			vals[i] = ToPBData(elem)
+		vs := make([]*datapb.Data, v.Len())
+		v.EachWithIndex(func(elem eval.Value, i int) {
+			vs[i] = ToPBData(elem)
 		})
-		value = &datapb.Data{Kind: &datapb.Data_ArrayValue{&datapb.DataArray{vals}}}
+		value = &datapb.Data{Kind: &datapb.Data_ArrayValue{ArrayValue: &datapb.DataArray{Values: vs}}}
 	case *types.HashValue:
-		av := v.(*types.HashValue)
-		vals := make([]*datapb.DataEntry, av.Len())
-		av.EachWithIndex(func(elem eval.Value, i int) {
+		vs := make([]*datapb.DataEntry, v.Len())
+		v.EachWithIndex(func(elem eval.Value, i int) {
 			entry := elem.(*types.HashEntry)
-			vals[i] = &datapb.DataEntry{ToPBData(entry.Key()), ToPBData(entry.Value())}
+			vs[i] = &datapb.DataEntry{Key: ToPBData(entry.Key()), Value: ToPBData(entry.Value())}
 		})
-		value = &datapb.Data{Kind: &datapb.Data_HashValue{&datapb.DataHash{vals}}}
+		value = &datapb.Data{Kind: &datapb.Data_HashValue{HashValue: &datapb.DataHash{Entries: vs}}}
 	case *types.BinaryValue:
-		value = &datapb.Data{Kind: &datapb.Data_BinaryValue{v.(*types.BinaryValue).Bytes()}}
+		value = &datapb.Data{Kind: &datapb.Data_BinaryValue{BinaryValue: v.Bytes()}}
 	default:
 		value = &datapb.Data{Kind: &datapb.Data_UndefValue{}}
 	}
@@ -119,7 +116,7 @@ func ToPBData(v eval.Value) (value *datapb.Data) {
 
 // ConsumePBData converts a datapb.Data into stream of values that are sent to a
 // serialization.ValueConsumer.
-func ConsumePBData(v *datapb.Data, consumer serialization.ValueConsumer) {
+func ConsumePBData(v *datapb.Data, consumer eval.ValueConsumer) {
 	switch v.Kind.(type) {
 	case *datapb.Data_BooleanValue:
 		consumer.Add(types.WrapBoolean(v.GetBooleanValue()))
@@ -130,7 +127,7 @@ func ConsumePBData(v *datapb.Data, consumer serialization.ValueConsumer) {
 	case *datapb.Data_StringValue:
 		consumer.Add(types.WrapString(v.GetStringValue()))
 	case *datapb.Data_UndefValue:
-		consumer.Add(eval.UNDEF)
+		consumer.Add(eval.Undef)
 	case *datapb.Data_ArrayValue:
 		av := v.GetArrayValue().GetValues()
 		consumer.AddArray(len(av), func() {
@@ -151,9 +148,8 @@ func ConsumePBData(v *datapb.Data, consumer serialization.ValueConsumer) {
 	case *datapb.Data_Reference:
 		consumer.AddRef(int(v.GetReference()))
 	default:
-		consumer.Add(eval.UNDEF)
+		consumer.Add(eval.Undef)
 	}
-	return
 }
 
 func FromPBData(v *datapb.Data) (value eval.Value) {
@@ -167,23 +163,23 @@ func FromPBData(v *datapb.Data) (value eval.Value) {
 	case *datapb.Data_StringValue:
 		value = types.WrapString(v.GetStringValue())
 	case *datapb.Data_UndefValue:
-		value = eval.UNDEF
+		value = eval.Undef
 	case *datapb.Data_ArrayValue:
 		av := v.GetArrayValue().GetValues()
-		vals := make([]eval.Value, len(av))
+		vs := make([]eval.Value, len(av))
 		for i, elem := range av {
-			vals[i] = FromPBData(elem)
+			vs[i] = FromPBData(elem)
 		}
-		value = types.WrapValues(vals)
+		value = types.WrapValues(vs)
 	case *datapb.Data_HashValue:
 		av := v.GetHashValue().Entries
-		vals := make([]*types.HashEntry, len(av))
+		vs := make([]*types.HashEntry, len(av))
 		for i, val := range av {
-			vals[i] = types.WrapHashEntry(FromPBData(val.Key), FromPBData(val.Value))
+			vs[i] = types.WrapHashEntry(FromPBData(val.Key), FromPBData(val.Value))
 		}
-		value = types.WrapHash(vals)
+		value = types.WrapHash(vs)
 	default:
-		value = eval.UNDEF
+		value = eval.Undef
 	}
 	return
 }

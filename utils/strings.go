@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/lyraproj/puppet-parser/parser"
 )
 
 func AllStrings(strings []string, predicate func(str string) bool) bool {
@@ -101,28 +99,28 @@ func CapitalizeSegment(segment string) string {
 	return b.String()
 }
 
-func capitalizeSegment(b io.Writer, segment string) {
+func capitalizeSegment(b *bytes.Buffer, segment string) {
 	_, s := utf8.DecodeRuneInString(segment)
 	if s > 0 {
 		if s == len(segment) {
-			io.WriteString(b, strings.ToUpper(segment))
+			b.WriteString(strings.ToUpper(segment))
 		} else {
-			io.WriteString(b, strings.ToUpper(segment[:s]))
-			io.WriteString(b, strings.ToLower(segment[s:]))
+			b.WriteString(strings.ToUpper(segment[:s]))
+			b.WriteString(strings.ToLower(segment[s:]))
 		}
 	}
 }
 
-var COLON_SPLIT = regexp.MustCompile(`::`)
+var ColonSplit = regexp.MustCompile(`::`)
 
 func CapitalizeSegments(segment string) string {
-	segments := COLON_SPLIT.Split(segment, -1)
+	segments := ColonSplit.Split(segment, -1)
 	top := len(segments)
 	if top > 0 {
 		b := bytes.NewBufferString(``)
 		capitalizeSegment(b, segments[0])
 		for idx := 1; idx < top; idx++ {
-			io.WriteString(b, `::`)
+			b.WriteString(`::`)
 			capitalizeSegment(b, segments[idx])
 		}
 		return b.String()
@@ -135,18 +133,21 @@ func RegexpQuote(b io.Writer, str string) {
 	for _, c := range str {
 		switch c {
 		case '\t':
-			io.WriteString(b, `\t`)
+			WriteString(b, `\t`)
 		case '\n':
-			io.WriteString(b, `\n`)
+			WriteString(b, `\n`)
 		case '\r':
-			io.WriteString(b, `\r`)
+			WriteString(b, `\r`)
 		case '/':
-			io.WriteString(b, `\/`)
+			WriteString(b, `\/`)
 		case '\\':
-			io.WriteString(b, `\\`)
+			WriteString(b, `\\`)
 		default:
 			if c < 0x20 {
-				fmt.Fprintf(b, `\u{%X}`, c)
+				_, err := fmt.Fprintf(b, `\u{%X}`, c)
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				WriteRune(b, c)
 			}
@@ -156,22 +157,22 @@ func RegexpQuote(b io.Writer, str string) {
 }
 
 func PuppetQuote(w io.Writer, str string) {
-	r := parser.NewStringReader(str)
+	r := NewStringReader(str)
 	b, ok := w.(*bytes.Buffer)
 	if !ok {
 		b = bytes.NewBufferString(``)
 		defer func() {
-			w.Write(b.Bytes())
+			WriteString(w, b.String())
 		}()
 	}
-	bpos := b.Len()
+	begin := b.Len()
 
 	WriteByte(b, '\'')
 	escaped := false
-	for c, start := r.Next(); c != 0; c, _ = r.Next() {
+	for c := r.Next(); c != 0; c = r.Next() {
 		if c < 0x20 {
-			r.SetPos(start)
-			b.Truncate(bpos)
+			r.Rewind()
+			b.Truncate(begin)
 			puppetDoubleQuote(r, b)
 			return
 		}
@@ -185,7 +186,7 @@ func PuppetQuote(w io.Writer, str string) {
 
 		switch c {
 		case '\'':
-			io.WriteString(b, `\'`)
+			WriteString(b, `\'`)
 		case '\\':
 			escaped = true
 		default:
@@ -198,25 +199,28 @@ func PuppetQuote(w io.Writer, str string) {
 	WriteByte(b, '\'')
 }
 
-func puppetDoubleQuote(r parser.StringReader, b io.Writer) {
+func puppetDoubleQuote(r *StringReader, b io.Writer) {
 	WriteByte(b, '"')
-	for c, _ := r.Next(); c != 0; c, _ = r.Next() {
+	for c := r.Next(); c != 0; c = r.Next() {
 		switch c {
 		case '\t':
-			io.WriteString(b, `\t`)
+			WriteString(b, `\t`)
 		case '\n':
-			io.WriteString(b, `\n`)
+			WriteString(b, `\n`)
 		case '\r':
-			io.WriteString(b, `\r`)
+			WriteString(b, `\r`)
 		case '"':
-			io.WriteString(b, `\"`)
+			WriteString(b, `\"`)
 		case '\\':
-			io.WriteString(b, `\\`)
+			WriteString(b, `\\`)
 		case '$':
-			io.WriteString(b, `\$`)
+			WriteString(b, `\$`)
 		default:
 			if c < 0x20 {
-				fmt.Fprintf(b, `\u{%X}`, c)
+				_, err := fmt.Fprintf(b, `\u{%X}`, c)
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				WriteRune(b, c)
 			}
@@ -225,8 +229,25 @@ func puppetDoubleQuote(r parser.StringReader, b io.Writer) {
 	WriteByte(b, '"')
 }
 
+func Fprintf(b io.Writer, format string, args ...interface{}) {
+	_, err := fmt.Fprintf(b, format, args...)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Fprintln(b io.Writer, args ...interface{}) {
+	_, err := fmt.Fprintln(b, args...)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func WriteByte(b io.Writer, v byte) {
-	b.Write([]byte{v})
+	_, err := b.Write([]byte{v})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func WriteRune(b io.Writer, v rune) {
@@ -235,6 +256,16 @@ func WriteRune(b io.Writer, v rune) {
 	} else {
 		buf := make([]byte, utf8.UTFMax)
 		n := utf8.EncodeRune(buf, v)
-		b.Write(buf[:n])
+		_, err := b.Write(buf[:n])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func WriteString(b io.Writer, s string) {
+	_, err := io.WriteString(b, s)
+	if err != nil {
+		panic(err)
 	}
 }

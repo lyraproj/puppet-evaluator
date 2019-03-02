@@ -64,10 +64,10 @@ type (
 )
 
 const (
-	PUPPET_DATA_TYPE_PATH = PathType(`puppetDataType`)
-	PUPPET_FUNCTION_PATH  = PathType(`puppetFunction`)
-	PLAN_PATH             = PathType(`plan`)
-	TASK_PATH             = PathType(`task`)
+	PuppetDataTypePath = PathType(`puppetDataType`)
+	PuppetFunctionPath = PathType(`puppetFunction`)
+	PlanPath           = PathType(`plan`)
+	TaskPath           = PathType(`task`)
 )
 
 var moduleNameRX = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
@@ -80,7 +80,7 @@ var Load func(c Context, name TypedName) (interface{}, bool)
 var NewLoaderEntry func(value interface{}, origin issue.Location) LoaderEntry
 var StaticLoader func() Loader
 var NewParentedLoader func(parent Loader) DefiningLoader
-var NewFilebasedLoader func(parent Loader, path, moduleName string, pathTypes ...PathType) ModuleLoader
+var NewFileBasedLoader func(parent Loader, path, moduleName string, pathTypes ...PathType) ModuleLoader
 var NewDependencyLoader func(depLoaders []ModuleLoader) Loader
 var RegisterGoFunction func(function ResolvableFunction)
 var RegisterResolvableType func(rt ResolvableType)

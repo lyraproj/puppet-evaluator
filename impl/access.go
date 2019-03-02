@@ -20,10 +20,10 @@ func evalAccessExpression(e eval.Evaluator, expr *parser.AccessExpression) (resu
 					name = e.Eval(ne).String()
 				}
 				if qr.Name() == `Object` {
-					return types.NewObjectType(name, nil, hash)
+					return types.ObjectTypeFromAST(name, nil, hash)
 				}
 
-				na := eval.RUNTIME_NAME_AUTHORITY
+				na := eval.RuntimeNameAuthority
 				ne = hash.Get(`name_authority`)
 				if ne != nil {
 					na = eval.URI(e.Eval(ne).String())
@@ -38,7 +38,7 @@ func evalAccessExpression(e eval.Evaluator, expr *parser.AccessExpression) (resu
 				args[idx] = e.Eval(key)
 			}
 		})
-		return eval_ParameterizedTypeExpression(e, qr, args, expr)
+		return evalParameterizedTypeExpression(e, qr, args, expr)
 	}
 
 	args := make([]eval.Value, len(keys))
@@ -48,9 +48,9 @@ func evalAccessExpression(e eval.Evaluator, expr *parser.AccessExpression) (resu
 
 	lhs := e.Eval(op)
 
-	switch lhs.(type) {
+	switch lhs := lhs.(type) {
 	case eval.List:
-		return accessIndexedValue(expr, lhs.(eval.List), args)
+		return accessIndexedValue(expr, lhs, args)
 	default:
 		if tem, ok := lhs.PType().(eval.TypeWithCallableMembers); ok {
 			if mbr, ok := tem.Member(`[]`); ok {
@@ -58,7 +58,7 @@ func evalAccessExpression(e eval.Evaluator, expr *parser.AccessExpression) (resu
 			}
 		}
 	}
-	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
+	panic(evalError(eval.OperatorNotApplicable, op, issue.H{`operator`: `[]`, `left`: lhs.PType()}))
 }
 
 func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eval.Value) (result eval.Value) {
@@ -69,7 +69,7 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 		if arg, ok := eval.ToInt(key); ok {
 			return int(arg)
 		}
-		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_TYPE, expr.Keys()[index],
+		panic(evalError(eval.IllegalArgumentType, expr.Keys()[index],
 			issue.H{`expression`: lhs.PType(), `number`: 0, `expected`: `Integer`, `actual`: key}))
 	}
 
@@ -108,16 +108,16 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 
 	if hv, ok := lhs.(*types.HashValue); ok {
 		if hv.Len() == 0 {
-			return eval.UNDEF
+			return eval.Undef
 		}
 		if nArgs == 0 {
-			panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `at least one`, `actual`: nArgs}))
+			panic(evalError(eval.IllegalArgumentCount, expr, issue.H{`expression`: lhs.PType(), `expected`: `at least one`, `actual`: nArgs}))
 		}
 		if nArgs == 1 {
 			if v, ok := hv.Get(args[0]); ok {
 				return v
 			}
-			return eval.UNDEF
+			return eval.Undef
 		}
 		el := make([]eval.Value, 0, nArgs)
 		for _, key := range args {
@@ -129,7 +129,7 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 	}
 
 	if nArgs == 0 || nArgs > 2 {
-		panic(evalError(eval.EVAL_ILLEGAL_ARGUMENT_COUNT, expr, issue.H{`expression`: lhs.PType(), `expected`: `1 or 2`, `actual`: nArgs}))
+		panic(evalError(eval.IllegalArgumentCount, expr, issue.H{`expression`: lhs.PType(), `expected`: `1 or 2`, `actual`: nArgs}))
 	}
 	if nArgs == 2 {
 		start := indexArg(0)
@@ -139,9 +139,9 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 		}
 		if start == lhs.Len() || count == 0 {
 			if _, ok := lhs.(eval.StringValue); ok {
-				return eval.EMPTY_STRING
+				return eval.EmptyString
 			}
-			return eval.EMPTY_ARRAY
+			return eval.EmptyArray
 		}
 		return lhs.Slice(start, start+count)
 	}
@@ -149,16 +149,16 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs eval.List, args []eva
 	if pos < 0 {
 		pos = lhs.Len() + pos
 		if pos < 0 {
-			return eval.UNDEF
+			return eval.Undef
 		}
 	}
 	if pos >= lhs.Len() {
-		return eval.UNDEF
+		return eval.Undef
 	}
 	return lhs.At(pos)
 }
 
-func eval_ParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression) (tp eval.Type) {
+func evalParameterizedTypeExpression(e eval.Evaluator, qr *parser.QualifiedReference, args []eval.Value, expr *parser.AccessExpression) (tp eval.Type) {
 	defer func() {
 		if err := recover(); err != nil {
 			convertCallError(err, expr, expr.Keys())

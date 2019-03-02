@@ -133,41 +133,41 @@ func commonType(a eval.Type, b eval.Type) eval.Type {
 	}
 
 	if isCommonNumeric(a, b) {
-		return numericType_DEFAULT
+		return numericTypeDefault
 	}
 	if isCommonScalarData(a, b) {
-		return scalarDataType_DEFAULT
+		return scalarDataTypeDefault
 	}
 	if isCommonScalar(a, b) {
-		return scalarType_DEFAULT
+		return scalarTypeDefault
 	}
 	if isCommonData(a, b) {
-		return dataType_DEFAULT
+		return dataTypeDefault
 	}
 	if isCommonRichData(a, b) {
-		return richDataType_DEFAULT
+		return richDataTypeDefault
 	}
-	return anyType_DEFAULT
+	return anyTypeDefault
 }
 
 func isCommonNumeric(a eval.Type, b eval.Type) bool {
-	return isAssignable(numericType_DEFAULT, a) && isAssignable(numericType_DEFAULT, b)
+	return isAssignable(numericTypeDefault, a) && isAssignable(numericTypeDefault, b)
 }
 
 func isCommonScalarData(a eval.Type, b eval.Type) bool {
-	return isAssignable(scalarDataType_DEFAULT, a) && isAssignable(scalarDataType_DEFAULT, b)
+	return isAssignable(scalarDataTypeDefault, a) && isAssignable(scalarDataTypeDefault, b)
 }
 
 func isCommonScalar(a eval.Type, b eval.Type) bool {
-	return isAssignable(scalarType_DEFAULT, a) && isAssignable(scalarType_DEFAULT, b)
+	return isAssignable(scalarTypeDefault, a) && isAssignable(scalarTypeDefault, b)
 }
 
 func isCommonData(a eval.Type, b eval.Type) bool {
-	return isAssignable(dataType_DEFAULT, a) && isAssignable(dataType_DEFAULT, b)
+	return isAssignable(dataTypeDefault, a) && isAssignable(dataTypeDefault, b)
 }
 
 func isCommonRichData(a eval.Type, b eval.Type) bool {
-	return isAssignable(richDataType_DEFAULT, a) && isAssignable(richDataType_DEFAULT, b)
+	return isAssignable(richDataTypeDefault, a) && isAssignable(richDataTypeDefault, b)
 }
 
 func init() {

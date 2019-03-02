@@ -12,7 +12,7 @@ func toType(pt interface{}) eval.Type {
 	return pt.(eval.Type)
 }
 
-func TestAssignability(t *testing.T) {
+func TestIsAssignable(t *testing.T) {
 	t1 := &types.AnyType{}
 	t2 := &types.UnitType{}
 	if !eval.IsAssignable(t1, t2) {
@@ -59,36 +59,6 @@ func TestIdentitySameInstance(t *testing.T) {
 
 	if if1 != if2 {
 		t.Error(`Interfaces are not equal`)
-	}
-
-	idMap := IdentitySet{}
-	idMap.Add(if1)
-	if idMap.Add(if2) {
-		t.Error(`Value with the same identity was added twice`)
-	}
-}
-
-func TestIdentitySameString(t *testing.T) {
-	if1 := "hello"
-	if2 := if1
-
-	if if1 != if2 {
-		t.Error(`strings are not equal`)
-	}
-
-	idMap := IdentitySet{}
-	idMap.Add(if1)
-	if idMap.Add(if2) {
-		t.Error(`Value with the same identity was added twice`)
-	}
-}
-
-func TestIdentitySameInt(t *testing.T) {
-	if1 := 32
-	if2 := if1
-
-	if if1 != if2 {
-		t.Error(`strings are not equal`)
 	}
 
 	idMap := IdentitySet{}

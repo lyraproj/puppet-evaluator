@@ -12,7 +12,7 @@ import (
 
 // NewJsonStreamer creates a new streamer that will produce JSON when
 // receiving values
-func NewJsonStreamer(out io.Writer) ValueConsumer {
+func NewJsonStreamer(out io.Writer) eval.ValueConsumer {
 	return &jsonStreamer{out, firstInArray}
 }
 
@@ -57,7 +57,7 @@ func (j *jsonStreamer) Add(element eval.Value) {
 
 func (j *jsonStreamer) AddRef(ref int) {
 	j.delimit(func() {
-		assertOk(fmt.Fprintf(j.out, `{"%s":%d}`, PCORE_REF_KEY, ref))
+		assertOk(fmt.Fprintf(j.out, `{"%s":%d}`, PcoreRefKey, ref))
 	})
 }
 
@@ -95,18 +95,18 @@ func (j *jsonStreamer) delimit(doer eval.Doer) {
 	}
 }
 
-func (j *jsonStreamer) write(element eval.Value) {
+func (j *jsonStreamer) write(e eval.Value) {
 	var v []byte
 	var err error
-	switch element.(type) {
+	switch e := e.(type) {
 	case eval.StringValue:
-		v, err = json.Marshal(element.String())
+		v, err = json.Marshal(e.String())
 	case eval.FloatValue:
-		v, err = json.Marshal(element.(eval.FloatValue).Float())
+		v, err = json.Marshal(e.Float())
 	case eval.IntegerValue:
-		v, err = json.Marshal(element.(eval.IntegerValue).Int())
+		v, err = json.Marshal(e.Int())
 	case eval.BooleanValue:
-		v, err = json.Marshal(element.(eval.BooleanValue).Bool())
+		v, err = json.Marshal(e.Bool())
 	default:
 		v = []byte(`null`)
 	}
@@ -116,6 +116,6 @@ func (j *jsonStreamer) write(element eval.Value) {
 
 func assertOk(_ int, err error) {
 	if err != nil {
-		panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: err}))
+		panic(eval.Error(eval.Failure, issue.H{`message`: err}))
 	}
 }

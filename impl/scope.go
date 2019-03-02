@@ -9,7 +9,7 @@ import (
 
 type (
 	BasicScope struct {
-		scopes []map[string]eval.Value
+		scopes  []map[string]eval.Value
 		mutable bool
 	}
 
@@ -53,7 +53,7 @@ func (e *BasicScope) RxGet(index int) (value eval.Value, found bool) {
 			return gv.At(index), true
 		}
 	}
-	return eval.UNDEF, false
+	return eval.Undef, false
 }
 
 func (e *BasicScope) WithLocalScope(producer eval.Producer) eval.Value {
@@ -90,7 +90,7 @@ func (e *BasicScope) Get(name string) (value eval.Value, found bool) {
 		if value, found = e.scopes[0][name[2:]]; found {
 			return
 		}
-		return eval.UNDEF, false
+		return eval.Undef, false
 	}
 
 	for idx := len(e.scopes) - 1; idx >= 0; idx-- {
@@ -98,7 +98,7 @@ func (e *BasicScope) Get(name string) (value eval.Value, found bool) {
 			return
 		}
 	}
-	return eval.UNDEF, false
+	return eval.Undef, false
 }
 
 func (e *BasicScope) RxSet(variables []string) {
@@ -116,7 +116,7 @@ func (e *BasicScope) Set(name string, value eval.Value) bool {
 	if strings.HasPrefix(name, `::`) {
 		name = name[2:]
 	} else {
-		scopeIdx = len(e.scopes)-1
+		scopeIdx = len(e.scopes) - 1
 	}
 	current := e.scopes[scopeIdx]
 
@@ -132,7 +132,7 @@ func (e *BasicScope) Set(name string, value eval.Value) bool {
 	return false
 }
 
-func (e *BasicScope) State(name string)  eval.VariableState {
+func (e *BasicScope) State(name string) eval.VariableState {
 	if strings.HasPrefix(name, `::`) {
 		// Shortcut to global scope
 		_, ok := e.scopes[0][name[2:]]
@@ -173,7 +173,7 @@ func (e *parentedScope) Set(name string, value eval.Value) bool {
 	if strings.HasPrefix(name, `::`) {
 		name = name[2:]
 	} else {
-		scopeIdx = len(e.scopes)-1
+		scopeIdx = len(e.scopes) - 1
 	}
 	if scopeIdx == 0 && e.parent.State(name) == eval.Global {
 		// Attempt to override global declared in parent. Only $pnr can do

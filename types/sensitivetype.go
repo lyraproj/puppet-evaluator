@@ -3,11 +3,13 @@ package types
 import (
 	"io"
 
+	"github.com/lyraproj/puppet-evaluator/utils"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
-var sensitiveType_DEFAULT = &SensitiveType{typ: anyType_DEFAULT}
+var sensitiveTypeDefault = &SensitiveType{typ: anyTypeDefault}
 
 type (
 	SensitiveType struct {
@@ -22,9 +24,17 @@ type (
 var SensitiveMetaType eval.ObjectType
 
 func init() {
-	SensitiveMetaType = newObjectType(`Pcore::SensitiveType`, `Pcore::AnyType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return DefaultSensitiveType()
-	})
+	SensitiveMetaType = newObjectType(`Pcore::SensitiveType`,
+		`Pcore::AnyType {
+	attributes => {
+		type => {
+			type => Optional[Type],
+			value => Any
+		},
+	}
+}`, func(ctx eval.Context, args []eval.Value) eval.Value {
+			return newSensitiveType2(args...)
+		})
 
 	newGoConstructor(`Sensitive`,
 		func(d eval.Dispatch) {
@@ -36,17 +46,17 @@ func init() {
 }
 
 func DefaultSensitiveType() *SensitiveType {
-	return sensitiveType_DEFAULT
+	return sensitiveTypeDefault
 }
 
 func NewSensitiveType(containedType eval.Type) *SensitiveType {
-	if containedType == nil || containedType == anyType_DEFAULT {
+	if containedType == nil || containedType == anyTypeDefault {
 		return DefaultSensitiveType()
 	}
 	return &SensitiveType{containedType}
 }
 
-func NewSensitiveType2(args ...eval.Value) *SensitiveType {
+func newSensitiveType2(args ...eval.Value) *SensitiveType {
 	switch len(args) {
 	case 0:
 		return DefaultSensitiveType()
@@ -54,7 +64,7 @@ func NewSensitiveType2(args ...eval.Value) *SensitiveType {
 		if containedType, ok := args[0].(eval.Type); ok {
 			return NewSensitiveType(containedType)
 		}
-		panic(NewIllegalArgumentType2(`Sensitive[]`, 0, `Type`, args[0]))
+		panic(NewIllegalArgumentType(`Sensitive[]`, 0, `Type`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`Sensitive[]`, `0 or 1`, len(args)))
 	}
@@ -108,7 +118,7 @@ func (t *SensitiveType) Name() string {
 
 func (t *SensitiveType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{t.typ}
 }
@@ -127,7 +137,7 @@ func (t *SensitiveType) SerializationString() string {
 }
 
 func (t *SensitiveType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *SensitiveType) PType() eval.Type {
@@ -147,11 +157,11 @@ func (s *SensitiveValue) Equals(o interface{}, g eval.Guard) bool {
 }
 
 func (s *SensitiveValue) String() string {
-	return eval.ToString2(s, NONE)
+	return eval.ToString2(s, None)
 }
 
 func (s *SensitiveValue) ToString(b io.Writer, f eval.FormatContext, g eval.RDetect) {
-	io.WriteString(b, `Sensitive [value redacted]`)
+	utils.WriteString(b, `Sensitive [value redacted]`)
 }
 
 func (s *SensitiveValue) PType() eval.Type {

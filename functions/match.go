@@ -1,9 +1,9 @@
 package functions
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/issue/issue"
 )
 
 func init() {
@@ -16,7 +16,7 @@ func init() {
 			d.Param(`String`)
 			d.Param(`Patterns`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return matchPatterns(c, args[0].String(), args[1])
+				return matchPatterns(args[0].String(), args[1])
 			})
 		},
 
@@ -26,36 +26,36 @@ func init() {
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				p := args[1]
 				return args[0].(*types.ArrayValue).Map(func(arg eval.Value) eval.Value {
-					return matchPatterns(c, arg.String(), p)
+					return matchPatterns(arg.String(), p)
 				})
 			})
 		},
 	)
 }
 
-func matchPatterns(c eval.Context, s string, v eval.Value) eval.Value {
-	switch v.(type) {
+func matchPatterns(s string, v eval.Value) eval.Value {
+	switch v := v.(type) {
 	case *types.RegexpValue:
-		return matchRegexp(c, s, v.(*types.RegexpValue))
+		return matchRegexp(s, v)
 	case *types.PatternType:
-		return matchArray(c, s, v.(*types.PatternType).Patterns())
+		return matchArray(s, v.Patterns())
 	case *types.RegexpType:
-		return matchRegexp(c, s, types.WrapRegexp(v.(*types.RegexpType).PatternString()))
-	case *types.ArrayType:
-		return matchArray(c, s, v.(*types.ArrayValue))
+		return matchRegexp(s, types.WrapRegexp(v.PatternString()))
+	case *types.ArrayValue:
+		return matchArray(s, v)
 	default:
-		return matchRegexp(c, s, types.WrapRegexp(v.String()))
+		return matchRegexp(s, types.WrapRegexp(v.String()))
 	}
 }
 
-func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.Value {
+func matchRegexp(s string, rx *types.RegexpValue) eval.Value {
 	if rx.PatternString() == `` {
-		panic(eval.Error(eval.EVAL_MISSING_REGEXP_IN_TYPE, issue.NO_ARGS))
+		panic(eval.Error(eval.MissingRegexpInType, issue.NO_ARGS))
 	}
 
 	g := rx.Match(s)
 	if g == nil {
-		return eval.UNDEF
+		return eval.Undef
 	}
 	rs := make([]eval.Value, len(g))
 	for i, s := range g {
@@ -64,11 +64,11 @@ func matchRegexp(c eval.Context, s string, rx *types.RegexpValue) eval.Value {
 	return types.WrapValues(rs)
 }
 
-func matchArray(c eval.Context, s string, ar *types.ArrayValue) eval.Value {
-	result := eval.UNDEF
+func matchArray(s string, ar *types.ArrayValue) eval.Value {
+	result := eval.Undef
 	ar.Find(func(p eval.Value) bool {
-		r := matchPatterns(c, s, p)
-		if r == eval.UNDEF {
+		r := matchPatterns(s, p)
+		if r == eval.Undef {
 			return false
 		}
 		result = r

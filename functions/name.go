@@ -15,7 +15,7 @@ func init() {
 				if n, ok := v.(issue.Named); ok {
 					return types.WrapString(n.Name())
 				}
-				panic(eval.Error(eval.EVAL_UNKNOWN_FUNCTION, issue.H{`name`: `name`}))
+				panic(eval.Error(eval.UnknownFunction, issue.H{`name`: `name`}))
 			})
 		})
 }

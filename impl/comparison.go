@@ -47,20 +47,19 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 	switch a.(type) {
 	case eval.Type:
 		left := a.(eval.Type)
-		switch b.(type) {
+		switch b := b.(type) {
 		case eval.Type:
-			right := b.(eval.Type)
 			switch op {
 			case `<`:
-				return eval.IsAssignable(right, left) && !eval.Equals(left, right)
+				return eval.IsAssignable(b, left) && !eval.Equals(left, b)
 			case `<=`:
-				return eval.IsAssignable(right, left)
+				return eval.IsAssignable(b, left)
 			case `>`:
-				return eval.IsAssignable(left, right) && !eval.Equals(left, right)
+				return eval.IsAssignable(left, b) && !eval.Equals(left, b)
 			case `>=`:
-				return eval.IsAssignable(left, right)
+				return eval.IsAssignable(left, b)
 			default:
-				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -84,7 +83,7 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 			case `>=`:
 				return cmp >= 0
 			default:
-				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -101,7 +100,7 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
@@ -118,21 +117,21 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 			case `>=`:
 				return cmp >= 0.0
 			default:
-				panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+				panic(evalError(eval.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
 	default:
-		panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE, expr, issue.H{`operator`: op, `left`: a.PType()}))
+		panic(evalError(eval.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 	}
-	panic(evalError(eval.EVAL_OPERATOR_NOT_APPLICABLE_WHEN, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
+	panic(evalError(eval.OperatorNotApplicableWhen, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
 }
 
 func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, updateScope bool, a eval.Value, b eval.Value) bool {
 	result := false
-	switch b.(type) {
+	switch b := b.(type) {
 	case eval.Type:
-		result = eval.IsInstance(b.(eval.Type), a)
+		result = eval.IsInstance(b, a)
 
 	case eval.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp
@@ -140,7 +139,7 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(eval.Error2(rhs, eval.EVAL_MATCH_NOT_REGEXP, issue.H{`detail`: err.Error()}))
+				panic(eval.Error2(rhs, eval.MatchNotRegexp, issue.H{`detail`: err.Error()}))
 			}
 		} else {
 			rx = b.(*types.RegexpValue).Regexp()
@@ -148,11 +147,11 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 
 		sv, ok := a.(eval.StringValue)
 		if !ok {
-			panic(eval.Error2(lhs, eval.EVAL_MATCH_NOT_STRING, issue.H{`left`: a.PType()}))
+			panic(eval.Error2(lhs, eval.MatchNotString, issue.H{`left`: a.PType()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			if updateScope {
-				c.Scope().RxSet(group)
+				c.(eval.EvaluationContext).Scope().RxSet(group)
 			}
 			result = true
 		}
@@ -166,10 +165,10 @@ func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operato
 			var err error
 			version, err = semver.ParseVersion(s.String())
 			if err != nil {
-				panic(eval.Error2(lhs, eval.EVAL_NOT_SEMVER, issue.H{`detail`: err.Error()}))
+				panic(eval.Error2(lhs, eval.NotSemver, issue.H{`detail`: err.Error()}))
 			}
 		} else {
-			panic(eval.Error2(lhs, eval.EVAL_NOT_SEMVER,
+			panic(eval.Error2(lhs, eval.NotSemver,
 				issue.H{`detail`: fmt.Sprintf(`A value of type %s cannot be converted to a SemVer`, a.PType().String())}))
 		}
 		if lv, ok := b.(*types.SemVerValue); ok {

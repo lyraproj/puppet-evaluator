@@ -84,7 +84,7 @@ func init() {
 		`Variant`:       DefaultVariantType(),
 	}
 
-	wellknowns = map[reflect.Type]eval.Type{
+	wellKnown = map[reflect.Type]eval.Type{
 		reflect.TypeOf(&ArrayValue{}):                    DefaultArrayType(),
 		reflect.TypeOf((*eval.List)(nil)).Elem():         DefaultArrayType(),
 		reflect.TypeOf(&BinaryValue{}):                   DefaultBinaryType(),

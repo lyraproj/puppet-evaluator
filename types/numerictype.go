@@ -4,15 +4,16 @@ import (
 	"io"
 
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"reflect"
 	"strconv"
+
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type NumericType struct{}
 
-var numericType_DEFAULT = &NumericType{}
+var numericTypeDefault = &NumericType{}
 
 var NumericMetaType eval.ObjectType
 
@@ -23,7 +24,7 @@ func init() {
 
 	newGoConstructor2(`Numeric`,
 		func(t eval.LocalTypes) {
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FLOAT_PATTERN+`/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FloatPattern+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[from => Convertible, Optional[abs] => Boolean]`)
 		},
 
@@ -58,7 +59,7 @@ func numberFromPositionalArgs(args []eval.Value, tryInt bool) eval.NumericValue 
 
 func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 	h := args[0].(*HashValue)
-	n := fromConvertible(h.Get5(`from`, eval.UNDEF), tryInt)
+	n := fromConvertible(h.Get5(`from`, eval.Undef), tryInt)
 	a := h.Get5(`abs`, nil)
 	if a != nil && a.(booleanValue).Bool() {
 		if i, ok := n.(integerValue); ok {
@@ -71,7 +72,7 @@ func numberFromNamedArgs(args []eval.Value, tryInt bool) eval.NumericValue {
 }
 
 func DefaultNumericType() *NumericType {
-	return numericType_DEFAULT
+	return numericTypeDefault
 }
 
 func (t *NumericType) Accept(v eval.Visitor, g eval.Guard) {
@@ -122,7 +123,7 @@ func (t *NumericType) SerializationString() string {
 }
 
 func (t *NumericType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *NumericType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -134,24 +135,23 @@ func (t *NumericType) PType() eval.Type {
 }
 
 func fromConvertible(c eval.Value, allowInt bool) eval.NumericValue {
-	switch c.(type) {
+	switch c := c.(type) {
 	case integerValue:
-		iv := c.(integerValue)
 		if allowInt {
-			return iv
+			return c
 		}
-		return floatValue(iv.Float())
+		return floatValue(c.Float())
 	case *TimestampValue:
-		return floatValue(c.(*TimestampValue).Float())
+		return floatValue(c.Float())
 	case TimespanValue:
-		return floatValue(c.(TimespanValue).Float())
+		return floatValue(c.Float())
 	case booleanValue:
 		if allowInt {
-			return integerValue(c.(booleanValue).Int())
+			return integerValue(c.Int())
 		}
-		return floatValue(c.(booleanValue).Float())
+		return floatValue(c.Float())
 	case eval.NumericValue:
-		return c.(eval.NumericValue)
+		return c
 	case stringValue:
 		s := c.String()
 		if allowInt {

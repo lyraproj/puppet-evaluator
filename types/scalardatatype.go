@@ -11,13 +11,14 @@ type ScalarDataType struct{}
 var ScalarDataMetaType eval.ObjectType
 
 func init() {
-	ScalarDataMetaType = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return DefaultScalarDataType()
-	})
+	ScalarDataMetaType = newObjectType(`Pcore::ScalarDataType`, `Pcore::ScalarType{}`,
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			return DefaultScalarDataType()
+		})
 }
 
 func DefaultScalarDataType() *ScalarDataType {
-	return scalarDataType_DEFAULT
+	return scalarDataTypeDefault
 }
 
 func (t *ScalarDataType) Accept(v eval.Visitor, g eval.Guard) {
@@ -77,4 +78,4 @@ func (t *ScalarDataType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var scalarDataType_DEFAULT = &ScalarDataType{}
+var scalarDataTypeDefault = &ScalarDataType{}

@@ -7,10 +7,11 @@ import (
 	"math"
 	"strings"
 
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
-	"reflect"
 )
 
 type (
@@ -36,12 +37,12 @@ func init() {
     to => { type => Optional[Float], value => undef }
   }
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewFloatType2(args...)
+			return newFloatType2(args...)
 		})
 
 	newGoConstructor2(`Float`,
 		func(t eval.LocalTypes) {
-			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FLOAT_PATTERN+`/], Timespan, Timestamp]`)
+			t.Type(`Convertible`, `Variant[Numeric, Boolean, Pattern[/`+FloatPattern+`/], Timespan, Timestamp]`)
 			t.Type(`NamedArgs`, `Struct[{from => Convertible, Optional[abs] => Boolean}]`)
 		},
 
@@ -76,7 +77,7 @@ func NewFloatType(min float64, max float64) *FloatType {
 	return &FloatType{min, max}
 }
 
-func NewFloatType2(limits ...eval.Value) *FloatType {
+func newFloatType2(limits ...eval.Value) *FloatType {
 	argc := len(limits)
 	if argc == 0 {
 		return floatTypeDefault
@@ -84,7 +85,7 @@ func NewFloatType2(limits ...eval.Value) *FloatType {
 	min, ok := toFloat(limits[0])
 	if !ok {
 		if _, ok = limits[0].(*DefaultValue); !ok {
-			panic(NewIllegalArgumentType2(`Float[]`, 0, `Float`, limits[0]))
+			panic(NewIllegalArgumentType(`Float[]`, 0, `Float`, limits[0]))
 		}
 		min = -math.MaxFloat64
 	}
@@ -96,7 +97,7 @@ func NewFloatType2(limits ...eval.Value) *FloatType {
 	case 2:
 		if max, ok = toFloat(limits[1]); !ok {
 			if _, ok = limits[1].(*DefaultValue); !ok {
-				panic(NewIllegalArgumentType2(`Float[]`, 1, `Float`, limits[1]))
+				panic(NewIllegalArgumentType(`Float[]`, 1, `Float`, limits[1]))
 			}
 			max = math.MaxFloat64
 		}
@@ -128,13 +129,13 @@ func (t *FloatType) Generic() eval.Type {
 func (t *FloatType) Get(key string) (eval.Value, bool) {
 	switch key {
 	case `from`:
-		v := eval.UNDEF
+		v := eval.Undef
 		if t.min != -math.MaxFloat64 {
 			v = floatValue(t.min)
 		}
 		return v, true
 	case `to`:
-		v := eval.UNDEF
+		v := eval.Undef
 		if t.max != math.MaxFloat64 {
 			v = floatValue(t.max)
 		}
@@ -177,7 +178,7 @@ func (t *FloatType) Name() string {
 func (t *FloatType) Parameters() []eval.Value {
 	if t.min == -math.MaxFloat64 {
 		if t.max == math.MaxFloat64 {
-			return eval.EMPTY_VALUES
+			return eval.EmptyValues
 		}
 		return []eval.Value{WrapDefault(), floatValue(t.max)}
 	}
@@ -200,7 +201,7 @@ func (t *FloatType) SerializationString() string {
 }
 
 func (t *FloatType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *FloatType) IsUnbounded() bool {
@@ -266,7 +267,7 @@ func (fv floatValue) ReflectTo(c eval.Context, value reflect.Value) {
 			return
 		}
 	}
-	panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
+	panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: `Float`, `actual`: value.Kind().String()}))
 }
 
 func (fv floatValue) String() string {
@@ -276,7 +277,7 @@ func (fv floatValue) String() string {
 func (fv floatValue) ToKey(b *bytes.Buffer) {
 	n := math.Float64bits(float64(fv))
 	b.WriteByte(1)
-	b.WriteByte(HK_FLOAT)
+	b.WriteByte(HkFloat)
 	b.WriteByte(byte(n >> 56))
 	b.WriteByte(byte(n >> 48))
 	b.WriteByte(byte(n >> 40))
@@ -331,18 +332,18 @@ func floatGFormat(f eval.Format, value float64) string {
 	// Go might strip both trailing zeroes and decimal point when using '%g'. The
 	// decimal point and trailing zeroes are restored here
 	totLen := len(str)
-	prec := f.Precision()
-	if prec < 0 && !f.IsAlt() {
-		prec = 6
+	prc := f.Precision()
+	if prc < 0 && !f.IsAlt() {
+		prc = 6
 	}
 
 	dotIndex := strings.IndexByte(str, '.')
 	missing := 0
-	if prec >= 0 {
+	if prc >= 0 {
 		if dotIndex >= 0 {
-			missing = prec - (totLen - 1)
+			missing = prc - (totLen - 1)
 		} else {
-			missing = prec - totLen
+			missing = prc - totLen
 			if missing == 0 {
 				// Impossible to add a fraction part. Force scientific notation
 				return fmt.Sprintf(f.ReplaceFormatChar(sc).OrigFormat(), value)

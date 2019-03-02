@@ -2,26 +2,27 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
 )
 
-const KEY_GONAME = `go_name`
+const KeyGoName = `go_name`
 
-var TYPE_ATTRIBUTE_KIND = NewEnumType([]string{string(CONSTANT), string(DERIVED), string(GIVEN_OR_DERIVED), string(REFERENCE)}, false)
+var typeAttributeKind = NewEnumType([]string{string(constant), string(derived), string(givenOrDerived), string(reference)}, false)
 
-var TYPE_ATTRIBUTE = NewStructType([]*StructElement{
-	NewStructElement2(KEY_TYPE, NewVariantType(DefaultTypeType(), TYPE_TYPE_NAME)),
-	NewStructElement(NewOptionalType3(KEY_FINAL), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_OVERRIDE), DefaultBooleanType()),
-	NewStructElement(NewOptionalType3(KEY_KIND), TYPE_ATTRIBUTE_KIND),
-	NewStructElement(NewOptionalType3(KEY_VALUE), DefaultAnyType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
-	NewStructElement(NewOptionalType3(KEY_GONAME), DefaultStringType()),
+var typeAttribute = NewStructType([]*StructElement{
+	newStructElement2(keyType, NewVariantType(DefaultTypeType(), TypeTypeName)),
+	NewStructElement(newOptionalType3(keyFinal), DefaultBooleanType()),
+	NewStructElement(newOptionalType3(keyOverride), DefaultBooleanType()),
+	NewStructElement(newOptionalType3(keyKind), typeAttributeKind),
+	NewStructElement(newOptionalType3(keyValue), DefaultAnyType()),
+	NewStructElement(newOptionalType3(keyAnnotations), typeAnnotations),
+	NewStructElement(newOptionalType3(KeyGoName), DefaultStringType()),
 })
 
-var TYPE_ATTRIBUTE_CALLABLE = NewCallableType2(NewIntegerType(0, 0))
+var typeAttributeCallable = newCallableType2(NewIntegerType(0, 0))
 
 type attribute struct {
 	annotatedMember
@@ -37,38 +38,38 @@ func newAttribute(c eval.Context, name string, container *objectType, initHash *
 }
 
 func (a *attribute) initialize(c eval.Context, name string, container *objectType, initHash *HashValue) {
-	eval.AssertInstance(func() string { return fmt.Sprintf(`initializer for attribute %s[%s]`, container.Label(), name) }, TYPE_ATTRIBUTE, initHash)
+	eval.AssertInstance(func() string { return fmt.Sprintf(`initializer for attribute %s[%s]`, container.Label(), name) }, typeAttribute, initHash)
 	a.annotatedMember.initialize(c, `attribute`, name, container, initHash)
-	a.kind = eval.AttributeKind(stringArg(initHash, KEY_KIND, ``))
-	if a.kind == CONSTANT { // final is implied
-		if initHash.IncludesKey2(KEY_FINAL) && !a.final {
-			panic(eval.Error(eval.EVAL_CONSTANT_WITH_FINAL, issue.H{`label`: a.Label()}))
+	a.kind = eval.AttributeKind(stringArg(initHash, keyKind, ``))
+	if a.kind == constant { // final is implied
+		if initHash.IncludesKey2(keyFinal) && !a.final {
+			panic(eval.Error(eval.ConstantWithFinal, issue.H{`label`: a.Label()}))
 		}
 		a.final = true
 	}
-	v := initHash.Get5(KEY_VALUE, nil)
+	v := initHash.Get5(keyValue, nil)
 	if v != nil {
-		if a.kind == DERIVED || a.kind == GIVEN_OR_DERIVED {
-			panic(eval.Error(eval.EVAL_ILLEGAL_KIND_VALUE_COMBINATION, issue.H{`label`: a.Label(), `kind`: a.kind}))
+		if a.kind == derived || a.kind == givenOrDerived {
+			panic(eval.Error(eval.IllegalKindValueCombination, issue.H{`label`: a.Label(), `kind`: a.kind}))
 		}
 		if _, ok := v.(*DefaultValue); ok || eval.IsInstance(a.typ, v) {
 			a.value = v
 		} else {
-			panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(a.Label(), a.typ, eval.DetailedValueType(v))}))
+			panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeMismatch(a.Label(), a.typ, eval.DetailedValueType(v))}))
 		}
 	} else {
-		if a.kind == CONSTANT {
-			panic(eval.Error(eval.EVAL_CONSTANT_REQUIRES_VALUE, issue.H{`label`: a.Label()}))
+		if a.kind == constant {
+			panic(eval.Error(eval.ConstantRequiresValue, issue.H{`label`: a.Label()}))
 		}
-		if a.kind == GIVEN_OR_DERIVED {
+		if a.kind == givenOrDerived {
 			// Type is always optional
-			if !eval.IsInstance(a.typ, _UNDEF) {
+			if !eval.IsInstance(a.typ, undef) {
 				a.typ = NewOptionalType(a.typ)
 			}
 		}
 		a.value = nil // Not to be confused with undef
 	}
-	if gn, ok := initHash.Get4(KEY_GONAME); ok {
+	if gn, ok := initHash.Get4(KeyGoName); ok {
 		a.goName = gn.String()
 	}
 }
@@ -81,8 +82,8 @@ func (a *attribute) Call(c eval.Context, receiver eval.Value, block eval.Lambda,
 	for i, a := range args {
 		types[i] = a.PType()
 	}
-	panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeSignatures(
-		[]eval.Signature{a.CallableType().(*CallableType)}, NewTupleType2(types...), block)}))
+	panic(eval.Error(eval.TypeMismatch, issue.H{`detail`: eval.DescribeSignatures(
+		[]eval.Signature{a.CallableType().(*CallableType)}, newTupleType2(types...), block)}))
 }
 
 func (a *attribute) Default(value eval.Value) bool {
@@ -102,14 +103,14 @@ func (a *attribute) HasValue() bool {
 }
 
 func (a *attribute) initHash() *hash.StringHash {
-	hash := a.annotatedMember.initHash()
-	if a.kind != DEFAULT_KIND {
-		hash.Put(KEY_KIND, stringValue(string(a.kind)))
+	h := a.annotatedMember.initHash()
+	if a.kind != defaultKind {
+		h.Put(keyKind, stringValue(string(a.kind)))
 	}
 	if a.value != nil {
-		hash.Put(KEY_VALUE, a.value)
+		h.Put(keyValue, a.value)
 	}
-	return hash
+	return h
 }
 
 func (a *attribute) InitHash() eval.OrderedMap {
@@ -118,7 +119,7 @@ func (a *attribute) InitHash() eval.OrderedMap {
 
 func (a *attribute) Value() eval.Value {
 	if a.value == nil {
-		panic(eval.Error(eval.EVAL_ATTRIBUTE_HAS_NO_VALUE, issue.H{`label`: a.Label()}))
+		panic(eval.Error(eval.AttributeHasNoValue, issue.H{`label`: a.Label()}))
 	}
 	return a.value
 }
@@ -128,13 +129,13 @@ func (a *attribute) FeatureType() string {
 }
 
 func (a *attribute) Get(instance eval.Value) eval.Value {
-	if a.kind == CONSTANT {
+	if a.kind == constant {
 		return a.value
 	}
 	if v, ok := a.container.GetValue(a.name, instance); ok {
 		return v
 	}
-	panic(eval.Error(eval.EVAL_NO_ATTRIBUTE_READER, issue.H{`label`: a.Label()}))
+	panic(eval.Error(eval.NoAttributeReader, issue.H{`label`: a.Label()}))
 }
 
 func (a *attribute) Label() string {
@@ -149,7 +150,7 @@ func (a *attribute) Equals(other interface{}, g eval.Guard) bool {
 }
 
 func (a *attribute) CallableType() eval.Type {
-	return TYPE_ATTRIBUTE_CALLABLE
+	return typeAttributeCallable
 }
 
 func newTypeParameter(c eval.Context, name string, container *objectType, initHash *HashValue) eval.Attribute {

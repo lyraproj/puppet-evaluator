@@ -2,21 +2,48 @@ package eval_test
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/semver/semver"
 	"reflect"
 	"testing"
+
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/semver/semver"
 
 	// Initialize pcore
 	_ "github.com/lyraproj/puppet-evaluator/pcore"
 )
+
+func ExampleContext_ParseType2() {
+	eval.Puppet.Do(func(c eval.Context) {
+		t := c.ParseType2(`Object[
+      name => 'Address',
+      attributes => {
+        'annotations' => {
+          'type' => Optional[Hash[String, String]],
+          'value' => undef
+        },
+        'lineOne' => {
+          'type' => String,
+          'value' => ''
+        }
+      }
+    ]`)
+		eval.AddTypes(c, t)
+		eval.ResolveDefinitions(c)
+
+		v := eval.New(c, t, eval.Wrap(c, map[string]string{`lineOne`: `30 East 60th Street`}))
+		fmt.Println(v.String())
+	})
+
+	// Output: Address('lineOne' => '30 East 60th Street')
+}
 
 func ExampleWrap() {
 	// Wrap native Go types
 	str := eval.Wrap(nil, "hello")
 	idx := eval.Wrap(nil, 23)
 	bl := eval.Wrap(nil, true)
-	und := eval.UNDEF
+	und := eval.Undef
 
 	fmt.Printf("'%s' is a %s\n", str, str.PType())
 	fmt.Printf("'%s' is a %s\n", idx, idx.PType())
@@ -114,27 +141,31 @@ func ExampleImplementationRegistry() {
 		Active  bool
 	}
 
-	c := eval.Puppet.RootContext()
-	c.AddDefinitions(c.ParseAndValidate(``, `
-  type My::Address = {
+	address, err := types.Parse(`
     attributes => {
       street => String,
       zip => String,
-    }
-  }
-  type My::Person = {
+    }`)
+	if err != nil {
+		panic(err)
+	}
+	person, err := types.Parse(`
 		attributes => {
       name => String,
       age => Integer,
       address => My::Address,
       active => Boolean,
-		}
-  }`, false))
-	c.ResolveDefinitions()
+		}`)
+	if err != nil {
+		panic(err)
+	}
+
+	c := eval.Puppet.RootContext()
+	eval.AddTypes(c, types.NamedType(``, `My::Address`, address), types.NamedType(``, `My::Person`, person))
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
-	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
+	ir.RegisterType(c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
+	ir.RegisterType(c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap(c, ts)
@@ -154,27 +185,26 @@ func ExampleImplementationRegistry_tags() {
 		Active  bool `puppet:"name=>enabled"`
 	}
 
-	c := eval.Puppet.RootContext()
-	c.AddDefinitions(c.ParseAndValidate(``, `
-  type My::Address = {
+	address, _ := types.Parse(`
     attributes => {
       street => String,
       zip_code => Optional[String],
-    }
-  }
-  type My::Person = {
+    }`)
+
+	person, _ := types.Parse(`
 		attributes => {
       name => String,
       age => Integer,
       address => My::Address,
       enabled => Boolean,
-		}
-  }`, false))
-	c.ResolveDefinitions()
+		}`)
+
+	c := eval.Puppet.RootContext()
+	eval.AddTypes(c, types.NamedType(``, `My::Address`, address), types.NamedType(``, `My::Person`, person))
 
 	ir := c.ImplementationRegistry()
-	ir.RegisterType(c, c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
-	ir.RegisterType(c, c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
+	ir.RegisterType(c.ParseType2(`My::Address`), reflect.TypeOf(TestAddress{}))
+	ir.RegisterType(c.ParseType2(`My::Person`), reflect.TypeOf(TestPerson{}))
 
 	ts := &TestPerson{`Bob Tester`, 34, &TestAddress{`Example Road 23`, `12345`}, true}
 	ev := eval.Wrap(c, ts)
@@ -195,7 +225,7 @@ func TestReflectorAndImplRepo(t *testing.T) {
 	eval.Puppet.Do(func(c eval.Context) {
 		typeSet := c.Reflector().TypeSetFromReflect(`My`, semver.MustParseVersion(`1.0.0`), map[string]string{`ObscurelyNamedAddress`: `Address`},
 			reflect.TypeOf(&ObscurelyNamedAddress{}), reflect.TypeOf(&Person{}))
-		c.AddTypes(typeSet)
+		eval.AddTypes(c, typeSet)
 		tss := typeSet.String()
 		exp := `TypeSet[{pcore_uri => 'http://puppet.com/2016.1/pcore', pcore_version => '1.0.0', name_authority => 'http://puppet.com/2016.1/runtime', name => 'My', version => '1.0.0', types => {Address => {attributes => {'street' => String, 'zip_code' => String}}, Person => {attributes => {'name' => String, 'address' => Address}}}}]`
 		if tss != exp {

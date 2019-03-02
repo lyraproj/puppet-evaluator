@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/semver/semver"
-	"reflect"
 )
 
 type (
@@ -20,14 +21,15 @@ type (
 	}
 )
 
-var semVerRangeType_DEFAULT = &SemVerRangeType{}
+var semVerRangeTypeDefault = &SemVerRangeType{}
 
 var SemVerRangeMetaType eval.ObjectType
 
 func init() {
-	SemVerRangeMetaType = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-		return DefaultSemVerRangeType()
-	})
+	SemVerRangeMetaType = newObjectType(`Pcore::SemVerRangeType`, `Pcore::AnyType {}`,
+		func(ctx eval.Context, args []eval.Value) eval.Value {
+			return DefaultSemVerRangeType()
+		})
 
 	newGoConstructor2(`SemVerRange`,
 		func(t eval.LocalTypes) {
@@ -97,7 +99,7 @@ func init() {
 }
 
 func DefaultSemVerRangeType() *SemVerRangeType {
-	return semVerRangeType_DEFAULT
+	return semVerRangeTypeDefault
 }
 
 func (t *SemVerRangeType) Accept(v eval.Visitor, g eval.Guard) {
@@ -173,7 +175,7 @@ func (bv *SemVerRangeValue) Reflect(c eval.Context) reflect.Value {
 func (bv *SemVerRangeValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := bv.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }
@@ -187,7 +189,7 @@ func (bv *SemVerRangeValue) SerializationString() string {
 }
 
 func (bv *SemVerRangeValue) String() string {
-	return eval.ToString2(bv, NONE)
+	return eval.ToString2(bv, None)
 }
 
 func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -195,13 +197,13 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 	vr := bv.rng
 	switch f.FormatChar() {
 	case 'p':
-		io.WriteString(b, `SemVerRange(`)
+		utils.WriteString(b, `SemVerRange(`)
 		if f.IsAlt() {
 			utils.PuppetQuote(b, vr.NormalizedString())
 		} else {
 			utils.PuppetQuote(b, vr.String())
 		}
-		io.WriteString(b, `)`)
+		utils.WriteString(b, `)`)
 	case 's':
 		if f.IsAlt() {
 			vr.ToNormalizedString(b)
@@ -215,7 +217,7 @@ func (bv *SemVerRangeValue) ToString(b io.Writer, s eval.FormatContext, g eval.R
 
 func (bv *SemVerRangeValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
-	b.WriteByte(HK_VERSION_RANGE)
+	b.WriteByte(HkVersionRange)
 	bv.rng.ToString(b)
 }
 

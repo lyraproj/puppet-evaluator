@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/semver/semver"
-	"reflect"
 )
 
 type (
@@ -20,13 +21,12 @@ type (
 	SemVerValue SemVerType
 )
 
-var semVerType_DEFAULT = &SemVerType{semver.MatchAll}
+var semVerTypeDefault = &SemVerType{semver.MatchAll}
 
 var SemVerMetaType eval.ObjectType
 
 func init() {
-	SemVerMetaType = newObjectType(`Pcore::SemVerType`,
-		`Pcore::ScalarType {
+	SemVerMetaType = newObjectType(`Pcore::SemVerType`, `Pcore::ScalarType {
 	attributes => {
 		ranges => {
       type => Array[Variant[SemVerRange,String[1]]],
@@ -34,8 +34,8 @@ func init() {
     }
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewSemVerType2(args...)
-		})
+		return newSemVerType2(args...)
+	})
 
 	newGoConstructor2(`SemVer`,
 		func(t eval.LocalTypes) {
@@ -111,7 +111,7 @@ func init() {
 }
 
 func DefaultSemVerType() *SemVerType {
-	return semVerType_DEFAULT
+	return semVerTypeDefault
 }
 
 func NewSemVerType(vr semver.VersionRange) *SemVerType {
@@ -121,11 +121,11 @@ func NewSemVerType(vr semver.VersionRange) *SemVerType {
 	return &SemVerType{vr}
 }
 
-func NewSemVerType2(limits ...eval.Value) *SemVerType {
-	return NewSemVerType3(WrapValues(limits))
+func newSemVerType2(limits ...eval.Value) *SemVerType {
+	return newSemVerType3(WrapValues(limits))
 }
 
-func NewSemVerType3(limits eval.List) *SemVerType {
+func newSemVerType3(limits eval.List) *SemVerType {
 	argc := limits.Len()
 	if argc == 0 {
 		return DefaultSemVerType()
@@ -133,7 +133,7 @@ func NewSemVerType3(limits eval.List) *SemVerType {
 
 	if argc == 1 {
 		if ranges, ok := limits.At(0).(eval.List); ok {
-			return NewSemVerType3(ranges)
+			return newSemVerType3(ranges)
 		}
 	}
 
@@ -150,7 +150,7 @@ func NewSemVerType3(limits eval.List) *SemVerType {
 		} else {
 			rv, ok := arg.(*SemVerRangeValue)
 			if !ok {
-				panic(NewIllegalArgumentType2(`SemVer[]`, idx, `Variant[String,SemVerRange]`, arg))
+				panic(NewIllegalArgumentType(`SemVer[]`, idx, `Variant[String,SemVerRange]`, arg))
 			}
 			rng = rv.VersionRange()
 		}
@@ -168,7 +168,7 @@ func (t *SemVerType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *SemVerType) Default() eval.Type {
-	return semVerType_DEFAULT
+	return semVerTypeDefault
 }
 
 func (t *SemVerType) Equals(o interface{}, g eval.Guard) bool {
@@ -206,7 +206,7 @@ func (t *SemVerType) SerializationString() string {
 }
 
 func (t *SemVerType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *SemVerType) IsAssignable(o eval.Type, g eval.Guard) bool {
@@ -225,7 +225,7 @@ func (t *SemVerType) IsInstance(o eval.Value, g eval.Guard) bool {
 
 func (t *SemVerType) Parameters() []eval.Value {
 	if t.vRange.Equals(semver.MatchAll) {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{stringValue(t.vRange.String())}
 }
@@ -260,7 +260,7 @@ func (v *SemVerValue) Reflect(c eval.Context) reflect.Value {
 func (v *SemVerValue) ReflectTo(c eval.Context, dest reflect.Value) {
 	rv := v.Reflect(c)
 	if !rv.Type().AssignableTo(dest.Type()) {
-		panic(eval.Error(eval.EVAL_ATTEMPT_TO_SET_WRONG_KIND, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
+		panic(eval.Error(eval.AttemptToSetWrongKind, issue.H{`expected`: rv.Type().String(), `actual`: dest.Type().String()}))
 	}
 	dest.Set(rv)
 }
@@ -279,7 +279,7 @@ func (v *SemVerValue) String() string {
 
 func (v *SemVerValue) ToKey(b *bytes.Buffer) {
 	b.WriteByte(1)
-	b.WriteByte(HK_VERSION)
+	b.WriteByte(HkVersion)
 	v.Version().ToString(b)
 }
 
@@ -290,7 +290,7 @@ func (v *SemVerValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect
 	case 's':
 		f.ApplyStringFlags(b, val, f.IsAlt())
 	case 'p':
-		io.WriteString(b, `SemVer(`)
+		utils.WriteString(b, `SemVer(`)
 		utils.PuppetQuote(b, val)
 		utils.WriteByte(b, ')')
 	default:

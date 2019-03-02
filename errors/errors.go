@@ -3,8 +3,8 @@ package errors
 import (
 	"fmt"
 
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type (
@@ -29,10 +29,6 @@ type (
 	InstantiationError interface {
 		TypeName() string
 		Error() string
-	}
-
-	JumperError struct {
-		realError interface{}
 	}
 
 	GenericError string

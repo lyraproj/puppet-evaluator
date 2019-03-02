@@ -22,7 +22,7 @@ type (
 	// 2. A scope must be considered immutable once it is used as a parent scope.
 	Scope interface {
 		// WithLocalScope pushes an ephemeral scope and calls the producer. The
-		// ephemeral scope is quaraneed to be popped before this method returns.
+		// ephemeral scope is guaranteed to be popped before this method returns.
 		WithLocalScope(producer Producer) Value
 
 		// Fork Creates a copy of this scope. If the scope is parented, the copy will
@@ -33,7 +33,7 @@ type (
 		// if the variable was found or not
 		Get(name string) (value Value, found bool)
 
-		// Set assignes a named variable to this scope provided that the name didn't
+		// Set assigns a named variable to this scope provided that the name didn't
 		// already exist. It returns a boolean indicating success.
 		Set(name string, value Value) bool
 

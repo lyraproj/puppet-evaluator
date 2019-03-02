@@ -3,10 +3,11 @@ package types
 import (
 	"io"
 
+	"reflect"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/hash"
-	"reflect"
 )
 
 type objectTypeExtension struct {
@@ -67,7 +68,7 @@ func (te *objectTypeExtension) Get(key string) (eval.Value, bool) {
 }
 
 func (te *objectTypeExtension) GoType() reflect.Type {
-	return te.GoType()
+	return te.baseType.GoType()
 }
 
 func (te *objectTypeExtension) HasHashConstructor() bool {
@@ -87,7 +88,7 @@ func (te *objectTypeExtension) IsAssignable(t eval.Type, g eval.Guard) bool {
 		return te.baseType.IsAssignable(ote.baseType, g) && te.testAssignable(ote.parameters, g)
 	}
 	if ot, ok := t.(*objectType); ok {
-		return te.baseType.IsAssignable(ot, g) && te.testAssignable(hash.EMPTY_STRINGHASH, g)
+		return te.baseType.IsAssignable(ot, g) && te.testAssignable(hash.EmptyStringHash, g)
 	}
 	return false
 }
@@ -108,7 +109,7 @@ func (te *objectTypeExtension) Member(name string) (eval.CallableMember, bool) {
 	return te.baseType.Member(name)
 }
 
-func (t *objectTypeExtension) MetaType() eval.ObjectType {
+func (te *objectTypeExtension) MetaType() eval.ObjectType {
 	return ObjectTypeExtensionMetaType
 }
 
@@ -151,7 +152,7 @@ func (te *objectTypeExtension) ToReflectedValue(c eval.Context, src eval.PuppetO
 }
 
 func (te *objectTypeExtension) String() string {
-	return eval.ToString2(te, NONE)
+	return eval.ToString2(te, None)
 }
 
 func (te *objectTypeExtension) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
@@ -166,7 +167,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 	pts := baseType.typeParameters(true)
 	pvs := pts.Values()
 	if pts.IsEmpty() {
-		panic(eval.Error(eval.EVAL_NOT_PARAMETERIZED_TYPE, issue.H{`type`: baseType.Label()}))
+		panic(eval.Error(eval.NotParameterizedType, issue.H{`type`: baseType.Label()}))
 	}
 	te.baseType = baseType
 	namedArgs := false
@@ -184,12 +185,12 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 
 	byName := hash.NewStringHash(pts.Len())
 	if namedArgs {
-		hash := initParameters[0].(*HashValue)
-		hash.EachPair(func(k, pv eval.Value) {
+		h := initParameters[0].(*HashValue)
+		h.EachPair(func(k, pv eval.Value) {
 			pn := k.String()
 			tp := pts.Get(pn, nil)
 			if tp == nil {
-				panic(eval.Error(eval.EVAL_MISSING_TYPE_PARAMETER, issue.H{`name`: pn, `label`: baseType.Label()}))
+				panic(eval.Error(eval.MissingTypeParameter, issue.H{`name`: pn, `label`: baseType.Label()}))
 			}
 			if !eval.Equals(pv, WrapDefault()) {
 				byName.Put(pn, checkParam(tp.(*typeParameter), pv))
@@ -207,7 +208,7 @@ func (te *objectTypeExtension) initialize(c eval.Context, baseType *objectType, 
 		}
 	}
 	if byName.IsEmpty() {
-		panic(eval.Error(eval.EVAL_EMPTY_TYPE_PARAMETER_LIST, issue.H{`label`: baseType.Label()}))
+		panic(eval.Error(eval.EmptyTypeParameterList, issue.H{`label`: baseType.Label()}))
 	}
 	te.parameters = byName
 }

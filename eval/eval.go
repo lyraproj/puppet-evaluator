@@ -9,7 +9,7 @@ import (
 // An Evaluator is responsible for evaluating an Abstract Syntax Tree, typically produced by
 // the parser. An implementation must be re-entrant.
 type Evaluator interface {
-	Context
+	EvaluationContext
 
 	// Eval should be considered internal. The only reason it is public is to allow
 	// the evaluator to be extended. This is subject to change. Don't use
@@ -44,12 +44,21 @@ func LogWarning(issueCode issue.Code, args issue.H) {
 
 // Error creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error func(issueCode issue.Code, args issue.H) issue.Reported
+func Error(issueCode issue.Code, args issue.H) issue.Reported {
+	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, StackTop())
+}
 
 // Error2 creates a Reported with the given issue code, location from stack top, and arguments
 // Typical use is to panic with the returned value
-var Error2 func(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported
+func Error2(location issue.Location, issueCode issue.Code, args issue.H) issue.Reported {
+	return issue.NewReported(issueCode, issue.SEVERITY_ERROR, args, location)
+}
 
 // Warning creates a Reported with the given issue code, location from stack top, and arguments
 // and logs it on the currently active logger
-var Warning func(issueCode issue.Code, args issue.H) issue.Reported
+func Warning(issueCode issue.Code, args issue.H) issue.Reported {
+	c := CurrentContext()
+	ri := issue.NewReported(issueCode, issue.SEVERITY_WARNING, args, c.StackTop())
+	c.Logger().LogIssue(ri)
+	return ri
+}

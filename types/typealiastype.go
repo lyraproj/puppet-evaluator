@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/lyraproj/puppet-evaluator/utils"
+
 	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-parser/parser"
@@ -11,7 +13,7 @@ import (
 
 type TypeAliasType struct {
 	name           string
-	typeExpression parser.Expression
+	typeExpression interface{}
 	resolvedType   eval.Type
 	loader         eval.Loader
 }
@@ -29,26 +31,29 @@ func init() {
 		}
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewTypeAliasType2(args...)
+			return newTypeAliasType2(args...)
 		})
 }
 
 func DefaultTypeAliasType() *TypeAliasType {
-	return typeAliasType_DEFAULT
+	return typeAliasTypeDefault
 }
 
-func NewTypeAliasType(name string, typeExpression parser.Expression, resolvedType eval.Type) *TypeAliasType {
+// NewTypeAliasType creates a new TypeAliasType from a name and a typeExpression which
+// must either be a *DeferredType, a parser.Expression, or nil. If it is nil, the
+// resolved Type must be given.
+func NewTypeAliasType(name string, typeExpression interface{}, resolvedType eval.Type) *TypeAliasType {
 	return &TypeAliasType{name, typeExpression, resolvedType, nil}
 }
 
-func NewTypeAliasType2(args ...eval.Value) *TypeAliasType {
+func newTypeAliasType2(args ...eval.Value) *TypeAliasType {
 	switch len(args) {
 	case 0:
 		return DefaultTypeAliasType()
 	case 2:
 		name, ok := args[0].(stringValue)
 		if !ok {
-			panic(NewIllegalArgumentType2(`TypeAlias`, 0, `String`, args[0]))
+			panic(NewIllegalArgumentType(`TypeAlias`, 0, `String`, args[0]))
 		}
 		var pt eval.Type
 		if pt, ok = args[1].(eval.Type); ok {
@@ -56,12 +61,9 @@ func NewTypeAliasType2(args ...eval.Value) *TypeAliasType {
 		}
 		var rt *RuntimeValue
 		if rt, ok = args[1].(*RuntimeValue); ok {
-			var ex parser.Expression
-			if ex, ok = rt.Interface().(parser.Expression); ok {
-				return NewTypeAliasType(string(name), ex, nil)
-			}
+			return NewTypeAliasType(string(name), rt.Interface(), nil)
 		}
-		panic(NewIllegalArgumentType2(`TypeAlias[]`, 1, `Type or Expression`, args[1]))
+		panic(NewIllegalArgumentType(`TypeAlias[]`, 1, `Type or Expression`, args[1]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`TypeAlias[]`, `0 or 2`, len(args)))
 	}
@@ -79,7 +81,7 @@ func (t *TypeAliasType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *TypeAliasType) Default() eval.Type {
-	return typeAliasType_DEFAULT
+	return typeAliasTypeDefault
 }
 
 func (t *TypeAliasType) Equals(o interface{}, g eval.Guard) bool {
@@ -142,7 +144,11 @@ func (t *TypeAliasType) Name() string {
 
 func (t *TypeAliasType) Resolve(c eval.Context) eval.Type {
 	if t.resolvedType == nil {
-		t.resolvedType = c.ResolveType(t.typeExpression)
+		if dt, ok := t.typeExpression.(*DeferredType); ok {
+			t.resolvedType = dt.Resolve(c)
+		} else {
+			t.resolvedType = c.(eval.EvaluationContext).ResolveType(t.typeExpression.(parser.Expression))
+		}
 		t.loader = c.Loader()
 	}
 	return t
@@ -156,26 +162,26 @@ func (t *TypeAliasType) ResolvedType() eval.Type {
 }
 
 func (t *TypeAliasType) String() string {
-	return eval.ToString2(t, EXPANDED)
+	return eval.ToString2(t, Expanded)
 }
 
 func (t *TypeAliasType) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
 	f := eval.GetFormat(s.FormatMap(), t.PType())
 	if t.name == `UnresolvedAlias` {
-		io.WriteString(b, `TypeAlias`)
+		utils.WriteString(b, `TypeAlias`)
 	} else {
-		io.WriteString(b, t.name)
+		utils.WriteString(b, t.name)
 		if !(f.IsAlt() && f.FormatChar() == 'b') {
 			return
 		}
 		if g == nil {
 			g = make(eval.RDetect)
 		} else if g[t] {
-			io.WriteString(b, `<recursive reference>`)
+			utils.WriteString(b, `<recursive reference>`)
 			return
 		}
 		g[t] = true
-		io.WriteString(b, ` = `)
+		utils.WriteString(b, ` = `)
 
 		// TODO: Need to be adjusted when included in TypeSet
 		t.resolvedType.ToString(b, s, g)
@@ -187,4 +193,4 @@ func (t *TypeAliasType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var typeAliasType_DEFAULT = &TypeAliasType{`UnresolvedAlias`, nil, defaultType_DEFAULT, nil}
+var typeAliasTypeDefault = &TypeAliasType{`UnresolvedAlias`, nil, defaultTypeDefault, nil}

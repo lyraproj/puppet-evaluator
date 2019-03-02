@@ -21,19 +21,19 @@ func init() {
 		type_string => String[1]
 	}
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewTypeReferenceType2(args...)
+			return newTypeReferenceType2(args...)
 		})
 }
 
 func DefaultTypeReferenceType() *TypeReferenceType {
-	return typeReferenceType_DEFAULT
+	return typeReferenceTypeDefault
 }
 
 func NewTypeReferenceType(typeString string) *TypeReferenceType {
 	return &TypeReferenceType{typeString}
 }
 
-func NewTypeReferenceType2(args ...eval.Value) *TypeReferenceType {
+func newTypeReferenceType2(args ...eval.Value) *TypeReferenceType {
 	switch len(args) {
 	case 0:
 		return DefaultTypeReferenceType()
@@ -41,7 +41,7 @@ func NewTypeReferenceType2(args ...eval.Value) *TypeReferenceType {
 		if str, ok := args[0].(stringValue); ok {
 			return &TypeReferenceType{string(str)}
 		}
-		panic(NewIllegalArgumentType2(`TypeReference[]`, 0, `String`, args[0]))
+		panic(NewIllegalArgumentType(`TypeReference[]`, 0, `String`, args[0]))
 	default:
 		panic(errors.NewIllegalArgumentCount(`TypeReference[]`, `0 - 1`, len(args)))
 	}
@@ -52,7 +52,7 @@ func (t *TypeReferenceType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *TypeReferenceType) Default() eval.Type {
-	return typeReferenceType_DEFAULT
+	return typeReferenceTypeDefault
 }
 
 func (t *TypeReferenceType) Equals(o interface{}, g eval.Guard) bool {
@@ -97,12 +97,12 @@ func (t *TypeReferenceType) SerializationString() string {
 }
 
 func (t *TypeReferenceType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *TypeReferenceType) Parameters() []eval.Value {
-	if *t == *typeReferenceType_DEFAULT {
-		return eval.EMPTY_VALUES
+	if *t == *typeReferenceTypeDefault {
+		return eval.EmptyValues
 	}
 	return []eval.Value{stringValue(t.typeString)}
 }
@@ -111,7 +111,7 @@ func (t *TypeReferenceType) Resolve(c eval.Context) eval.Type {
 	r := c.ParseType2(t.typeString)
 	if rt, ok := r.(eval.ResolvableType); ok {
 		if tr, ok := rt.(*TypeReferenceType); ok && t.typeString == tr.typeString {
-			panic(eval.Error(eval.EVAL_UNRESOLVED_TYPE, issue.H{`typeString`: t.typeString}))
+			panic(eval.Error(eval.UnresolvedType, issue.H{`typeString`: t.typeString}))
 		}
 		r = rt.Resolve(c)
 	}
@@ -130,4 +130,4 @@ func (t *TypeReferenceType) TypeString() string {
 	return t.typeString
 }
 
-var typeReferenceType_DEFAULT = &TypeReferenceType{`UnresolvedReference`}
+var typeReferenceTypeDefault = &TypeReferenceType{`UnresolvedReference`}

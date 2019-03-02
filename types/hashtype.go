@@ -2,13 +2,15 @@ package types
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/hash"
 	"io"
 	"math"
 	"reflect"
 	"sort"
+
+	"github.com/lyraproj/puppet-evaluator/errors"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/hash"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 type (
@@ -35,8 +37,8 @@ type (
 	}
 )
 
-var hashType_EMPTY = &HashType{IntegerTypeZero, unitType_DEFAULT, unitType_DEFAULT}
-var hashType_DEFAULT = &HashType{IntegerTypePositive, anyType_DEFAULT, anyType_DEFAULT}
+var hashTypeEmpty = &HashType{IntegerTypeZero, unitTypeDefault, unitTypeDefault}
+var hashTypeDefault = &HashType{IntegerTypePositive, anyTypeDefault, anyTypeDefault}
 
 var HashMetaType eval.ObjectType
 
@@ -55,14 +57,14 @@ func init() {
 	},
   serialization => [ 'key_type', 'value_type', 'size_type' ]
 }`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewHashType2(args...)
+			return newHashType2(args...)
 		},
 		func(ctx eval.Context, args []eval.Value) eval.Value {
 			h := args[0].(*HashValue)
 			kt := h.Get5(`key_type`, DefaultAnyType())
 			vt := h.Get5(`value_type`, DefaultAnyType())
 			st := h.Get5(`size_type`, PositiveIntegerType())
-			return NewHashType2(kt, vt, st)
+			return newHashType2(kt, vt, st)
 		})
 
 	newGoConstructor3([]string{`Hash`, `Struct`},
@@ -110,7 +112,7 @@ func init() {
 									return av.At(int(ix))
 								}
 							}
-							return _UNDEF
+							return undef
 						})
 						if hr, ok := r.(*MutableHashValue); ok {
 							if allHashes {
@@ -136,10 +138,9 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`Iterable`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := args[0]
-				switch arg.(type) {
+				switch arg := args[0].(type) {
 				case *ArrayValue:
-					return WrapHashFromArray(arg.(*ArrayValue))
+					return WrapHashFromArray(arg)
 				case *HashValue:
 					return arg
 				default:
@@ -151,11 +152,11 @@ func init() {
 }
 
 func DefaultHashType() *HashType {
-	return hashType_DEFAULT
+	return hashTypeDefault
 }
 
 func EmptyHashType() *HashType {
-	return hashType_EMPTY
+	return hashTypeEmpty
 }
 
 func NewHashType(keyType eval.Type, valueType eval.Type, rng *IntegerType) *HashType {
@@ -163,21 +164,21 @@ func NewHashType(keyType eval.Type, valueType eval.Type, rng *IntegerType) *Hash
 		rng = IntegerTypePositive
 	}
 	if keyType == nil {
-		keyType = anyType_DEFAULT
+		keyType = anyTypeDefault
 	}
 	if valueType == nil {
-		valueType = anyType_DEFAULT
+		valueType = anyTypeDefault
 	}
-	if keyType == anyType_DEFAULT && valueType == anyType_DEFAULT && rng == IntegerTypePositive {
+	if keyType == anyTypeDefault && valueType == anyTypeDefault && rng == IntegerTypePositive {
 		return DefaultHashType()
 	}
 	return &HashType{rng, keyType, valueType}
 }
 
-func NewHashType2(args ...eval.Value) *HashType {
+func newHashType2(args ...eval.Value) *HashType {
 	argc := len(args)
 	if argc == 0 {
-		return hashType_DEFAULT
+		return hashTypeDefault
 	}
 
 	if argc == 1 || argc > 4 {
@@ -190,7 +191,7 @@ func NewHashType2(args ...eval.Value) *HashType {
 	if ok {
 		valueType, ok = args[1].(eval.Type)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Hash[]`, 1, `Type`, args[1]))
+			panic(NewIllegalArgumentType(`Hash[]`, 1, `Type`, args[1]))
 		}
 		offset += 2
 	} else {
@@ -207,20 +208,20 @@ func NewHashType2(args ...eval.Value) *HashType {
 		if rng, ok = sizeArg.(*IntegerType); !ok {
 			var sz int64
 			if sz, ok = toInt(sizeArg); !ok {
-				panic(NewIllegalArgumentType2(`Hash[]`, offset, `Integer or Type[Integer]`, args[2]))
+				panic(NewIllegalArgumentType(`Hash[]`, offset, `Integer or Type[Integer]`, args[2]))
 			}
 			rng = NewIntegerType(sz, math.MaxInt64)
 		}
 	case 2:
 		var min, max int64
 		if min, ok = toInt(args[offset]); !ok {
-			panic(NewIllegalArgumentType2(`Hash[]`, offset, `Integer`, args[offset]))
+			panic(NewIllegalArgumentType(`Hash[]`, offset, `Integer`, args[offset]))
 		}
 		if max, ok = toInt(args[offset+1]); !ok {
-			panic(NewIllegalArgumentType2(`Hash[]`, offset+1, `Integer`, args[offset+1]))
+			panic(NewIllegalArgumentType(`Hash[]`, offset+1, `Integer`, args[offset+1]))
 		}
 		if min == 0 && max == 0 && offset == 0 {
-			return hashType_EMPTY
+			return hashTypeEmpty
 		}
 		rng = NewIntegerType(min, max)
 	}
@@ -235,7 +236,7 @@ func (t *HashType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *HashType) Default() eval.Type {
-	return hashType_DEFAULT
+	return hashTypeDefault
 }
 
 func (t *HashType) EntryType() eval.Type {
@@ -266,19 +267,17 @@ func (t *HashType) Get(key string) (value eval.Value, ok bool) {
 }
 
 func (t *HashType) IsAssignable(o eval.Type, g eval.Guard) bool {
-	switch o.(type) {
+	switch o := o.(type) {
 	case *HashType:
-		if t.size.min == 0 && o == hashType_EMPTY {
+		if t.size.min == 0 && o == hashTypeEmpty {
 			return true
 		}
-		ht := o.(*HashType)
-		return t.size.IsAssignable(ht.size, g) && GuardedIsAssignable(t.keyType, ht.keyType, g) && GuardedIsAssignable(t.valueType, ht.valueType, g)
+		return t.size.IsAssignable(o.size, g) && GuardedIsAssignable(t.keyType, o.keyType, g) && GuardedIsAssignable(t.valueType, o.valueType, g)
 	case *StructType:
-		st := o.(*StructType)
-		if !t.size.IsInstance3(len(st.elements)) {
+		if !t.size.IsInstance3(len(o.elements)) {
 			return false
 		}
-		for _, element := range st.elements {
+		for _, element := range o.elements {
 			if !(GuardedIsAssignable(t.keyType, element.ActualKeyType(), g) && GuardedIsAssignable(t.valueType, element.value, g)) {
 				return false
 			}
@@ -314,10 +313,10 @@ func (t *HashType) Name() string {
 }
 
 func (t *HashType) Parameters() []eval.Value {
-	if *t == *hashType_DEFAULT {
-		return eval.EMPTY_VALUES
+	if *t == *hashTypeDefault {
+		return eval.EmptyValues
 	}
-	if *t == *hashType_EMPTY {
+	if *t == *hashTypeEmpty {
 		return []eval.Value{ZERO, ZERO}
 	}
 	params := make([]eval.Value, 0, 4)
@@ -357,7 +356,7 @@ func (t *HashType) Size() *IntegerType {
 }
 
 func (t *HashType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *HashType) ValueType() eval.Type {
@@ -407,7 +406,7 @@ func (he *HashEntry) At(i int) eval.Value {
 	case 1:
 		return he.value
 	default:
-		return _UNDEF
+		return undef
 	}
 }
 
@@ -504,12 +503,12 @@ func (he *HashEntry) Select(predicate eval.Predicate) eval.List {
 	if predicate(he.value) {
 		return SingletonArray(he.value)
 	}
-	return eval.EMPTY_ARRAY
+	return eval.EmptyArray
 }
 
 func (he *HashEntry) Slice(i int, j int) eval.List {
 	if i > 1 || i >= j {
-		return eval.EMPTY_ARRAY
+		return eval.EmptyArray
 	}
 	if i == 1 {
 		return SingletonArray(he.value)
@@ -531,7 +530,7 @@ func (he *HashEntry) Reduce2(initialValue eval.Value, redactor eval.BiMapper) ev
 func (he *HashEntry) Reject(predicate eval.Predicate) eval.List {
 	if predicate(he.key) {
 		if predicate(he.value) {
-			return eval.EMPTY_ARRAY
+			return eval.EmptyArray
 		}
 		return SingletonArray(he.value)
 	}
@@ -557,7 +556,7 @@ func (he *HashEntry) Value() eval.Value {
 }
 
 func (he *HashEntry) String() string {
-	return eval.ToString2(he, NONE)
+	return eval.ToString2(he, None)
 }
 
 func (he *HashEntry) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -691,24 +690,23 @@ func SingletonHash2(key string, value eval.Value) *HashValue {
 }
 
 func (hv *HashValue) Add(v eval.Value) eval.List {
-	switch v.(type) {
+	switch v := v.(type) {
 	case *HashEntry:
-		return hv.Merge(WrapHash([]*HashEntry{v.(*HashEntry)}))
+		return hv.Merge(WrapHash([]*HashEntry{v}))
 	case *ArrayValue:
-		a := v.(*ArrayValue)
-		if a.Len() == 2 {
-			return hv.Merge(WrapHash([]*HashEntry{WrapHashEntry(a.At(0), a.At(1))}))
+		if v.Len() == 2 {
+			return hv.Merge(WrapHash([]*HashEntry{WrapHashEntry(v.At(0), v.At(1))}))
 		}
 	}
 	panic(`Operation not supported`)
 }
 
 func (hv *HashValue) AddAll(v eval.List) eval.List {
-	switch v.(type) {
+	switch v := v.(type) {
 	case *HashValue:
-		return hv.Merge(v.(*HashValue))
+		return hv.Merge(v)
 	case *ArrayValue:
-		return hv.Merge(WrapHashFromArray(v.(*ArrayValue)))
+		return hv.Merge(WrapHashFromArray(v))
 	}
 	panic(`Operation not supported`)
 }
@@ -781,7 +779,7 @@ func (hv *HashValue) At(i int) eval.Value {
 	if i >= 0 && i < len(hv.entries) {
 		return hv.entries[i]
 	}
-	return _UNDEF
+	return undef
 }
 
 func (hv *HashValue) Delete(key eval.Value) eval.List {
@@ -806,7 +804,7 @@ func (hv *HashValue) DeleteAll(keys eval.List) eval.List {
 }
 
 func (hv *HashValue) DetailedType() eval.Type {
-	return hv.prtvDetailedType()
+	return hv.privateDetailedType()
 }
 
 func (hv *HashValue) ElementType() eval.Type {
@@ -924,7 +922,7 @@ func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 		ht = ht.Elem()
 	}
 	if ht.Kind() == reflect.Interface {
-		ok := false
+		var ok bool
 		if ht, ok = ReflectType(c, hv.PType()); !ok {
 			ht = reflect.TypeOf(map[interface{}]interface{}{})
 		}
@@ -947,7 +945,7 @@ func (hv *HashValue) ReflectTo(c eval.Context, value reflect.Value) {
 
 func (hv *HashValue) Reduce(redactor eval.BiMapper) eval.Value {
 	if hv.IsEmpty() {
-		return _UNDEF
+		return undef
 	}
 	return reduceEntries(hv.entries[1:], hv.At(0), redactor)
 }
@@ -1045,7 +1043,7 @@ func (hv *HashValue) get(key eval.HashKey) (eval.Value, bool) {
 	if pos, ok := hv.valueIndex()[key]; ok {
 		return hv.entries[pos].value, true
 	}
-	return _UNDEF, false
+	return undef, false
 }
 
 func (hv *HashValue) get2(key eval.HashKey, dflt eval.Value) eval.Value {
@@ -1153,7 +1151,7 @@ func (hv *HashValue) Sort(comparator eval.Comparator) eval.List {
 }
 
 func (hv *HashValue) String() string {
-	return eval.ToString2(hv, NONE)
+	return eval.ToString2(hv, None)
 }
 
 func (hv *HashValue) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
@@ -1164,7 +1162,7 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 	if g == nil {
 		g = make(eval.RDetect)
 	} else if g[hv] {
-		io.WriteString(b, `<recursive reference>`)
+		utils.WriteString(b, `<recursive reference>`)
 		return
 	}
 	g[hv] = true
@@ -1178,8 +1176,8 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 		indent = indent.Indenting(f.IsAlt() || indent.IsIndenting())
 
 		if indent.Breaks() && delim != '(' {
-			io.WriteString(b, "\n")
-			io.WriteString(b, indent.Padding())
+			utils.WriteString(b, "\n")
+			utils.WriteString(b, indent.Padding())
 		}
 
 		var delims [2]byte
@@ -1189,11 +1187,11 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 			delims = delimiterPairs[f.LeftDelimiter()]
 		}
 		if delims[0] != 0 {
-			b.Write(delims[:1])
+			utils.WriteByte(b, delims[0])
 		}
 
 		if f.IsAlt() {
-			io.WriteString(b, "\n")
+			utils.WriteString(b, "\n")
 		}
 
 		top := len(hv.entries)
@@ -1202,7 +1200,7 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 			assoc := f.Separator2(` => `)
 			cf := f.ContainerFormats()
 			if cf == nil {
-				cf = DEFAULT_CONTAINER_FORMATS
+				cf = DefaultContainerFormats
 			}
 			if f.IsAlt() {
 				sep += "\n"
@@ -1219,14 +1217,14 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 			last := top - 1
 			for idx, entry := range hv.entries {
 				k := entry.Key()
-				io.WriteString(b, padding)
+				utils.WriteString(b, padding)
 				if isContainer(k, s) {
 					k.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
 					k.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				v := entry.Value()
-				io.WriteString(b, assoc)
+				utils.WriteString(b, assoc)
 				if isContainer(v, s) {
 					v.ToString(b, eval.NewFormatContext2(childrenIndent, s.FormatMap(), s.Properties()), g)
 				} else {
@@ -1236,17 +1234,17 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 					v.ToString(b, eval.NewFormatContext2(childrenIndent, cf, s.Properties()), g)
 				}
 				if idx < last {
-					io.WriteString(b, sep)
+					utils.WriteString(b, sep)
 				}
 			}
 		}
 
 		if f.IsAlt() {
-			io.WriteString(b, "\n")
-			io.WriteString(b, indent.Padding())
+			utils.WriteString(b, "\n")
+			utils.WriteString(b, indent.Padding())
 		}
 		if delims[1] != 0 {
-			b.Write(delims[1:])
+			utils.WriteByte(b, delims[1])
 		}
 	default:
 		panic(s.UnsupportedFormat(hv.PType(), `hasp`, f))
@@ -1255,7 +1253,7 @@ func (hv *HashValue) ToString2(b io.Writer, s eval.FormatContext, f eval.Format,
 }
 
 func (hv *HashValue) PType() eval.Type {
-	return hv.prtvReducedType()
+	return hv.privateReducedType()
 }
 
 // Unique on a HashValue will always return self since the keys of a hash are unique
@@ -1271,11 +1269,11 @@ func (hv *HashValue) Values() eval.List {
 	return WrapValues(values)
 }
 
-func (hv *HashValue) prtvDetailedType() eval.Type {
+func (hv *HashValue) privateDetailedType() eval.Type {
 	if hv.detailedType == nil {
 		top := len(hv.entries)
 		if top == 0 {
-			hv.detailedType = hv.prtvReducedType()
+			hv.detailedType = hv.privateReducedType()
 			return hv.detailedType
 		}
 
@@ -1287,7 +1285,7 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 			}
 
 			// Struct type cannot be used unless all keys are strings
-			hv.detailedType = hv.prtvReducedType()
+			hv.detailedType = hv.privateReducedType()
 			return hv.detailedType
 		}
 		hv.detailedType = NewStructType(structEntries)
@@ -1315,7 +1313,7 @@ func (hv *HashValue) prtvDetailedType() eval.Type {
 	return hv.detailedType
 }
 
-func (hv *HashValue) prtvReducedType() eval.Type {
+func (hv *HashValue) privateReducedType() eval.Type {
 	if hv.reducedType == nil {
 		top := len(hv.entries)
 		if top == 0 {

@@ -9,18 +9,18 @@ type typeParameter struct {
 	attribute
 }
 
-var TYPE_TYPE_PARAMETER = NewStructType([]*StructElement{
-	NewStructElement2(KEY_TYPE, DefaultTypeType()),
-	NewStructElement(NewOptionalType3(KEY_ANNOTATIONS), TYPE_ANNOTATIONS),
+var TypeTypeParameter = NewStructType([]*StructElement{
+	newStructElement2(keyType, DefaultTypeType()),
+	NewStructElement(newOptionalType3(keyAnnotations), typeAnnotations),
 })
 
 func (t *typeParameter) initHash() *hash.StringHash {
-	hash := t.attribute.initHash()
-	hash.Put(KEY_TYPE, hash.Get(KEY_TYPE, nil).(*TypeType).PType())
-	if v, ok := hash.Get3(KEY_VALUE); ok && eval.Equals(v, _UNDEF) {
-		hash.Delete(KEY_VALUE)
+	h := t.attribute.initHash()
+	h.Put(keyType, h.Get(keyType, nil).(*TypeType).PType())
+	if v, ok := h.Get3(keyValue); ok && eval.Equals(v, undef) {
+		h.Delete(keyValue)
 	}
-	return hash
+	return h
 }
 
 func (t *typeParameter) Equals(o interface{}, g eval.Guard) bool {

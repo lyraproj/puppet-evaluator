@@ -23,29 +23,29 @@ func init() {
 				},
 			}
 		}`, func(ctx eval.Context, args []eval.Value) eval.Value {
-			return NewIterableType2(args...)
+			return newIterableType2(args...)
 		})
 }
 
 func DefaultIterableType() *IterableType {
-	return iterableType_DEFAULT
+	return iterableTypeDefault
 }
 
 func NewIterableType(elementType eval.Type) *IterableType {
-	if elementType == nil || elementType == anyType_DEFAULT {
+	if elementType == nil || elementType == anyTypeDefault {
 		return DefaultIterableType()
 	}
 	return &IterableType{elementType}
 }
 
-func NewIterableType2(args ...eval.Value) *IterableType {
+func newIterableType2(args ...eval.Value) *IterableType {
 	switch len(args) {
 	case 0:
 		return DefaultIterableType()
 	case 1:
 		containedType, ok := args[0].(eval.Type)
 		if !ok {
-			panic(NewIllegalArgumentType2(`Iterable[]`, 0, `Type`, args[0]))
+			panic(NewIllegalArgumentType(`Iterable[]`, 0, `Type`, args[0]))
 		}
 		return NewIterableType(containedType)
 	default:
@@ -59,7 +59,7 @@ func (t *IterableType) Accept(v eval.Visitor, g eval.Guard) {
 }
 
 func (t *IterableType) Default() eval.Type {
-	return iterableType_DEFAULT
+	return iterableTypeDefault
 }
 
 func (t *IterableType) Equals(o interface{}, g eval.Guard) bool {
@@ -83,17 +83,17 @@ func (t *IterableType) Get(key string) (value eval.Value, ok bool) {
 
 func (t *IterableType) IsAssignable(o eval.Type, g eval.Guard) bool {
 	var et eval.Type
-	switch o.(type) {
+	switch o := o.(type) {
 	case *ArrayType:
-		et = o.(*ArrayType).ElementType()
+		et = o.ElementType()
 	case *BinaryType:
 		et = NewIntegerType(0, 255)
 	case *HashType:
-		et = o.(*HashType).EntryType()
+		et = o.EntryType()
 	case *stringType, *vcStringType, *scStringType:
 		et = OneCharStringType
 	case *TupleType:
-		return allAssignableTo(o.(*TupleType).types, t.typ, g)
+		return allAssignableTo(o.types, t.typ, g)
 	default:
 		return false
 	}
@@ -117,7 +117,7 @@ func (t *IterableType) Name() string {
 
 func (t *IterableType) Parameters() []eval.Value {
 	if t.typ == DefaultAnyType() {
-		return eval.EMPTY_VALUES
+		return eval.EmptyValues
 	}
 	return []eval.Value{t.typ}
 }
@@ -136,7 +136,7 @@ func (t *IterableType) SerializationString() string {
 }
 
 func (t *IterableType) String() string {
-	return eval.ToString2(t, NONE)
+	return eval.ToString2(t, None)
 }
 
 func (t *IterableType) ElementType() eval.Type {
@@ -151,4 +151,4 @@ func (t *IterableType) PType() eval.Type {
 	return &TypeType{t}
 }
 
-var iterableType_DEFAULT = &IterableType{typ: DefaultAnyType()}
+var iterableTypeDefault = &IterableType{typ: DefaultAnyType()}
