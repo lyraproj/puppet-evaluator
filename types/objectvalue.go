@@ -141,7 +141,7 @@ func (o *attributeSlice) Call(c eval.Context, method eval.ObjFunc, args []eval.V
 
 func (o *attributeSlice) Equals(other interface{}, g eval.Guard) bool {
 	if ov, ok := other.(*attributeSlice); ok {
-		return ov.typ.Equals(ov.typ, g) && eval.GuardedEquals(ov.values, ov.values, g)
+		return o.typ.Equals(ov.typ, g) && eval.GuardedEquals(o.values, ov.values, g)
 	}
 	return false
 }
