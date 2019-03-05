@@ -2,8 +2,9 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func init() {
@@ -50,7 +51,7 @@ func matchPatterns(s string, v eval.Value) eval.Value {
 
 func matchRegexp(s string, rx *types.RegexpValue) eval.Value {
 	if rx.PatternString() == `` {
-		panic(eval.Error(eval.MissingRegexpInType, issue.NO_ARGS))
+		panic(eval.Error(pdsl.MissingRegexpInType, issue.NO_ARGS))
 	}
 
 	g := rx.Match(s)

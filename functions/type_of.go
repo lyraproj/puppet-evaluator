@@ -1,8 +1,6 @@
 package functions
 
-import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-)
+import "github.com/lyraproj/pcore/eval"
 
 func typeOf(v eval.Value, i string) eval.Type {
 	switch i {

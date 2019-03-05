@@ -2,7 +2,7 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/eval"
 )
 
 func assertType(c eval.Context, t eval.Type, v eval.Value, b eval.Lambda) eval.Value {

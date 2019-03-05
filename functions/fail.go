@@ -3,7 +3,7 @@ package functions
 import (
 	"bytes"
 
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/eval"
 )
 
 func init() {

@@ -1,8 +1,8 @@
 package functions
 
 import (
-	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/errors"
+	"github.com/lyraproj/pcore/eval"
 )
 
 func init() {

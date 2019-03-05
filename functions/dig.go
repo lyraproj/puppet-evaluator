@@ -2,8 +2,9 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func init() {
@@ -30,7 +31,7 @@ func init() {
 						}
 						return eval.Undef
 					default:
-						panic(eval.Error(eval.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
+						panic(eval.Error(pdsl.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

@@ -1,8 +1,6 @@
 package functions
 
-import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-)
+import "github.com/lyraproj/pcore/eval"
 
 func init() {
 	eval.NewGoFunction(`new`,
