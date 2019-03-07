@@ -1,6 +1,6 @@
 package pdsl
 
-import "github.com/lyraproj/pcore/eval"
+import "github.com/lyraproj/pcore/px"
 
 type VariableState int
 
@@ -25,7 +25,7 @@ type (
 	Scope interface {
 		// WithLocalScope pushes an ephemeral scope and calls the producer. The
 		// ephemeral scope is guaranteed to be popped before this method returns.
-		WithLocalScope(producer eval.Producer) eval.Value
+		WithLocalScope(producer px.Producer) px.Value
 
 		// Fork Creates a copy of this scope. If the scope is parented, the copy will
 		// contain a fork of the parent
@@ -33,11 +33,11 @@ type (
 
 		// Get returns a named variable from this scope together with a boolean indicating
 		// if the variable was found or not
-		Get(name string) (value eval.Value, found bool)
+		Get(name string) (value px.Value, found bool)
 
 		// Set assigns a named variable to this scope provided that the name didn't
 		// already exist. It returns a boolean indicating success.
-		Set(name string, value eval.Value) bool
+		Set(name string, value px.Value) bool
 
 		// RxSet assigns the result of a regular expression match to this scope. It
 		// will be available until the current ephemeral scope it is popped or a new
@@ -46,7 +46,7 @@ type (
 
 		// RxGet returns a numeric variable that has been assigned by RxSet together
 		// with a boolean indicating success.
-		RxGet(index int) (value eval.Value, found bool)
+		RxGet(index int) (value px.Value, found bool)
 
 		// State returns NotFound, Global, or Local
 		State(name string) VariableState

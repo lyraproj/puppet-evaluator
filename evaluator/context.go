@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
-	"github.com/lyraproj/pcore/impl"
+	"github.com/lyraproj/pcore/pcore"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
@@ -14,7 +14,7 @@ import (
 
 type (
 	evalCtx struct {
-		eval.Context
+		px.Context
 
 		evaluator   pdsl.Evaluator
 		scope       pdsl.Scope
@@ -23,24 +23,24 @@ type (
 	}
 )
 
-func NewContext(evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator, loader eval.Loader, logger eval.Logger) pdsl.EvaluationContext {
-	c := &evalCtx{Context: impl.NewContext(loader, logger)}
+func NewContext(evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator, loader px.Loader, logger px.Logger) pdsl.EvaluationContext {
+	c := &evalCtx{Context: pcore.NewContext(loader, logger)}
 	c.evaluator = evaluatorCtor(c)
 	return c
 }
 
 func WithParent(
-	parent eval.Context,
+	parent px.Context,
 	evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator,
-	loader eval.Loader,
-	logger eval.Logger,
-	ir eval.ImplementationRegistry) pdsl.EvaluationContext {
+	loader px.Loader,
+	logger px.Logger,
+	ir px.ImplementationRegistry) pdsl.EvaluationContext {
 	var c *evalCtx
 	if cp, ok := parent.(*evalCtx); ok {
 		c = cp.clone()
-		c.Context = impl.WithParent(cp.Context, loader, logger, ir)
+		c.Context = pcore.WithParent(cp.Context, loader, logger, ir)
 	} else {
-		c = &evalCtx{Context: impl.WithParent(parent, loader, logger, ir)}
+		c = &evalCtx{Context: pcore.WithParent(parent, loader, logger, ir)}
 	}
 	c.evaluator = evaluatorCtor(c)
 	return c
@@ -55,7 +55,7 @@ func (c *evalCtx) AddDefinitions(expr parser.Expression) {
 	}
 }
 
-func (c *evalCtx) DoStatic(doer eval.Doer) {
+func (c *evalCtx) DoStatic(doer px.Doer) {
 	if c.static {
 		doer()
 		return
@@ -68,7 +68,7 @@ func (c *evalCtx) DoStatic(doer eval.Doer) {
 	doer()
 }
 
-func (c *evalCtx) DoWithScope(scope pdsl.Scope, doer eval.Doer) {
+func (c *evalCtx) DoWithScope(scope pdsl.Scope, doer px.Doer) {
 	saveScope := c.scope
 	defer func() {
 		c.scope = saveScope
@@ -90,7 +90,7 @@ func (c *evalCtx) clone() *evalCtx {
 	return clone
 }
 
-func (c *evalCtx) Fork() eval.Context {
+func (c *evalCtx) Fork() px.Context {
 	clone := c.clone()
 	clone.Context = clone.Context.Fork()
 	if clone.scope != nil {
@@ -102,10 +102,10 @@ func (c *evalCtx) Fork() eval.Context {
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
-	if eval.GetSetting(`workflow`, types.BooleanFalse).(eval.BooleanValue).Bool() {
+	if pcore.Get(`workflow`, func() px.Value { return types.BooleanFalse }).(px.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
 	}
-	if eval.GetSetting(`tasks`, types.BooleanFalse).(eval.BooleanValue).Bool() {
+	if pcore.Get(`tasks`, func() px.Value { return types.BooleanFalse }).(px.BooleanValue).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
 	}
 	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
@@ -118,7 +118,7 @@ func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) 
 	if len(issues) > 0 {
 		severity := issue.SEVERITY_IGNORE
 		for _, i := range issues {
-			c.Logger().Log(eval.LogLevel(i.Severity()), types.WrapString(i.String()))
+			c.Logger().Log(px.LogLevel(i.Severity()), types.WrapString(i.String()))
 			if i.Severity() > severity {
 				severity = i.Severity()
 			}
@@ -137,27 +137,27 @@ func (c *evalCtx) ResolveDefinitions() []interface{} {
 
 	defs := c.definitions
 	c.definitions = nil
-	ts := make([]eval.ResolvableType, 0, 8)
+	ts := make([]px.ResolvableType, 0, 8)
 	for _, d := range defs {
 		switch d := d.(type) {
-		case eval.Resolvable:
+		case px.Resolvable:
 			d.Resolve(c)
-		case eval.ResolvableType:
+		case px.ResolvableType:
 			ts = append(ts, d)
 		}
 	}
 	if len(ts) > 0 {
-		impl.ResolveTypes(c, ts...)
+		px.ResolveTypes(c, ts...)
 	}
 	return defs
 }
 
-func (c *evalCtx) ResolveType(expr parser.Expression) eval.Type {
-	var resolved eval.Value
+func (c *evalCtx) ResolveType(expr parser.Expression) px.Type {
+	var resolved px.Value
 	c.DoStatic(func() {
 		resolved = pdsl.Evaluate(c, expr)
 	})
-	if pt, ok := resolved.(eval.Type); ok {
+	if pt, ok := resolved.(px.Type); ok {
 		return pt
 	}
 	panic(fmt.Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
@@ -174,23 +174,23 @@ func (c *evalCtx) Static() bool {
 	return c.static
 }
 
-func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
+func (c *evalCtx) define(loader px.DefiningLoader, d parser.Definition) {
 	var ta interface{}
-	var tn eval.TypedName
+	var tn px.TypedName
 	switch d := d.(type) {
 	case *parser.ActivityExpression:
-		tn = eval.NewTypedName2(eval.NsActivity, d.Name(), loader.NameAuthority())
+		tn = px.NewTypedName2(px.NsActivity, d.Name(), loader.NameAuthority())
 		ta = NewPuppetActivity(c, d)
 	case *parser.PlanDefinition:
-		tn = eval.NewTypedName2(eval.NsPlan, d.Name(), loader.NameAuthority())
+		tn = px.NewTypedName2(px.NsPlan, d.Name(), loader.NameAuthority())
 		ta = NewPuppetPlan(d)
 	case *parser.FunctionDefinition:
-		tn = eval.NewTypedName2(eval.NsFunction, d.Name(), loader.NameAuthority())
+		tn = px.NewTypedName2(px.NsFunction, d.Name(), loader.NameAuthority())
 		ta = NewPuppetFunction(d)
 	default:
 		ta, tn = CreateTypeDefinition(c.evaluator, d, loader.NameAuthority())
 	}
-	loader.SetEntry(tn, eval.NewLoaderEntry(ta, d))
+	loader.SetEntry(tn, px.NewLoaderEntry(ta, d))
 	if c.definitions == nil {
 		c.definitions = []interface{}{ta}
 	} else {
@@ -198,18 +198,18 @@ func (c *evalCtx) define(loader eval.DefiningLoader, d parser.Definition) {
 	}
 }
 
-func CreateTypeDefinition(e pdsl.Evaluator, d parser.Definition, na eval.URI) (interface{}, eval.TypedName) {
+func CreateTypeDefinition(e pdsl.Evaluator, d parser.Definition, na px.URI) (interface{}, px.TypedName) {
 	switch d := d.(type) {
 	case *parser.TypeAlias:
 		name := d.Name()
-		return createTypeDefinition(e, na, name, d.Type()), eval.NewTypedName2(eval.NsType, name, na)
+		return createTypeDefinition(e, na, name, d.Type()), px.NewTypedName2(px.NsType, name, na)
 	default:
 		panic(fmt.Sprintf(`Don't know how to define a %T`, d))
 	}
 }
 
-func createTypeDefinition(e pdsl.Evaluator, na eval.URI, name string, body parser.Expression) eval.Type {
-	var ta eval.Type
+func createTypeDefinition(e pdsl.Evaluator, na px.URI, name string, body parser.Expression) px.Type {
+	var ta px.Type
 	switch body := body.(type) {
 	case *parser.QualifiedReference:
 		ta = types.NewTypeAliasType(name, types.NewDeferredType(body.Name()), nil)
@@ -251,7 +251,7 @@ func extractParentName(hash *parser.LiteralHash) string {
 	return ``
 }
 
-func createMetaType(e pdsl.Evaluator, na eval.URI, name string, parentName string, hash *parser.LiteralHash) eval.Type {
+func createMetaType(e pdsl.Evaluator, na px.URI, name string, parentName string, hash *parser.LiteralHash) px.Type {
 	if parentName == `` {
 		return objectTypeFromAST(e, name, nil, hash)
 	}

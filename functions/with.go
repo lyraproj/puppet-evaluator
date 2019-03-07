@@ -1,13 +1,13 @@
 package functions
 
-import "github.com/lyraproj/pcore/eval"
+import "github.com/lyraproj/pcore/px"
 
 func init() {
-	eval.NewGoFunction(`with`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`with`,
+		func(d px.Dispatch) {
 			d.RepeatedParam(`Any`)
 			d.Block(`Callable`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
 				return block.Call(c, nil, args...)
 			})
 		},

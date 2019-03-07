@@ -4,43 +4,43 @@ import (
 	"io"
 
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/pcore/utils"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
-var deferredExprType eval.ObjectType
+var deferredExprType px.ObjectType
 
 func init() {
-	deferredExprType = eval.NewObjectType(`DeferredExpression`, `{}`)
+	deferredExprType = px.NewObjectType(`DeferredExpression`, `{}`)
 
-	types.DeferredResolve = func(e types.Deferred, c eval.Context) eval.Value {
+	types.DeferredResolve = func(e types.Deferred, c px.Context) px.Value {
 		fn := e.Name()
 		da := e.Arguments()
 
-		var args []eval.Value
+		var args []px.Value
 		if fn[0] == '$' {
 			vn := fn[1:]
 			vv, ok := c.(pdsl.EvaluationContext).Scope().Get(vn)
 			if !ok {
-				panic(eval.Error(pdsl.UnknownVariable, issue.H{`name`: vn}))
+				panic(px.Error(pdsl.UnknownVariable, issue.H{`name`: vn}))
 			}
 			if da.Len() == 0 {
 				// No point digging with zero arguments
 				return vv
 			}
 			fn = `dig`
-			args = append(make([]eval.Value, 0, 1+da.Len()), vv)
+			args = append(make([]px.Value, 0, 1+da.Len()), vv)
 		} else {
-			args = make([]eval.Value, 0, da.Len())
+			args = make([]px.Value, 0, da.Len())
 		}
 		args = da.AppendTo(args)
 		for i, a := range args {
 			args[i] = types.ResolveDeferred(c, a)
 		}
-		return eval.Call(c, fn, args, nil)
+		return px.Call(c, fn, args, nil)
 	}
 }
 
@@ -61,32 +61,32 @@ func (d *deferredExpr) Arguments() *types.ArrayValue {
 }
 
 func (d *deferredExpr) String() string {
-	return eval.ToString(d)
+	return px.ToString(d)
 }
 
-func (d *deferredExpr) Equals(other interface{}, guard eval.Guard) bool {
+func (d *deferredExpr) Equals(other interface{}, guard px.Guard) bool {
 	return d == other
 }
 
-func (d *deferredExpr) ToString(b io.Writer, s eval.FormatContext, g eval.RDetect) {
+func (d *deferredExpr) ToString(b io.Writer, s px.FormatContext, g px.RDetect) {
 	utils.WriteString(b, `DeferredExpression(`)
 	utils.PuppetQuote(b, d.expression.String())
 	utils.WriteString(b, `)`)
 }
 
-func (d *deferredExpr) PType() eval.Type {
+func (d *deferredExpr) PType() px.Type {
 	return deferredExprType
 }
 
-func (d *deferredExpr) Resolve(c eval.Context) eval.Value {
+func (d *deferredExpr) Resolve(c px.Context) px.Value {
 	return pdsl.Evaluate(c.(pdsl.EvaluationContext), d.expression)
 }
 
-func objectTypeFromAST(e pdsl.Evaluator, name string, parent eval.Type, initHashExpression *parser.LiteralHash) eval.ObjectType {
+func objectTypeFromAST(e pdsl.Evaluator, name string, parent px.Type, initHashExpression *parser.LiteralHash) px.ObjectType {
 	return types.NewParentedObjectType(name, parent, deferLiteralHash(e, initHashExpression))
 }
 
-func typeSetTypeFromAST(e pdsl.Evaluator, na eval.URI, name string, initHashExpression *parser.LiteralHash) eval.TypeSet {
+func typeSetTypeFromAST(e pdsl.Evaluator, na px.URI, name string, initHashExpression *parser.LiteralHash) px.TypeSet {
 	return types.NewTypeSet(na, name, deferLiteralHash(e, initHashExpression))
 }
 
@@ -95,12 +95,12 @@ func deferToTypeName(expr parser.Expression) string {
 	case *parser.QualifiedReference:
 		return expr.Name()
 	default:
-		panic(eval.Error2(expr, pdsl.IllegalWhenStaticExpression, issue.H{`expression`: expr}))
+		panic(px.Error2(expr, pdsl.IllegalWhenStaticExpression, issue.H{`expression`: expr}))
 	}
 }
 
-func deferToArray(e pdsl.Evaluator, array []parser.Expression) []eval.Value {
-	result := make([]eval.Value, 0, len(array))
+func deferToArray(e pdsl.Evaluator, array []parser.Expression) []px.Value {
+	result := make([]px.Value, 0, len(array))
 	for _, ex := range array {
 		ex = unwindParenthesis(ex)
 		if u, ok := ex.(*parser.UnfoldExpression); ok {
@@ -118,11 +118,11 @@ func deferToArray(e pdsl.Evaluator, array []parser.Expression) []eval.Value {
 	return result
 }
 
-func deferLiteralHash(e pdsl.Evaluator, expr *parser.LiteralHash) eval.OrderedMap {
+func deferLiteralHash(e pdsl.Evaluator, expr *parser.LiteralHash) px.OrderedMap {
 	entries := expr.Entries()
 	top := len(entries)
 	if top == 0 {
-		return eval.EmptyMap
+		return px.EmptyMap
 	}
 	result := make([]*types.HashEntry, top)
 	for i, en := range entries {
@@ -144,7 +144,7 @@ func deferParentedObject(e pdsl.Evaluator, expr *parser.ResourceDefaultsExpressi
 		// the name `parent` is not allowed here
 		for _, op := range expr.Operations() {
 			if op.(issue.Named).Name() == `parent` {
-				panic(eval.Error2(op, eval.DuplicateKey, issue.H{`key`: `parent`}))
+				panic(px.Error2(op, px.DuplicateKey, issue.H{`key`: `parent`}))
 			}
 		}
 		entries = append(entries, types.WrapHashEntry2(`parent`, types.WrapString(name)))
@@ -158,7 +158,7 @@ func deferParentedObject(e pdsl.Evaluator, expr *parser.ResourceDefaultsExpressi
 	return types.NewDeferredType(name, types.WrapHash(entries))
 }
 
-func deferAny(e pdsl.Evaluator, expr parser.Expression) eval.Value {
+func deferAny(e pdsl.Evaluator, expr parser.Expression) px.Value {
 	switch expr := expr.(type) {
 	case *parser.AccessExpression:
 		return types.NewDeferredType(deferToTypeName(expr.Operand()), deferToArray(e, expr.Keys())...)
@@ -189,12 +189,12 @@ func deferAny(e pdsl.Evaluator, expr parser.Expression) eval.Value {
 	case *parser.LiteralString:
 		return evalLiteralString(expr)
 	case *parser.LiteralUndef, *parser.Nop:
-		return eval.Undef
+		return px.Undef
 	case *parser.ResourceDefaultsExpression:
 		return deferParentedObject(e, expr)
 	case *parser.TextExpression:
 		return types.WrapString(deferAny(e, expr.Expr()).String())
 	default:
-		panic(eval.Error2(expr, pdsl.IllegalWhenStaticExpression, issue.H{`expression`: expr}))
+		panic(px.Error2(expr, pdsl.IllegalWhenStaticExpression, issue.H{`expression`: expr}))
 	}
 }

@@ -2,20 +2,20 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
 
 func init() {
-	eval.NewGoFunction(`name`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`name`,
+		func(d px.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+			d.Function(func(c px.Context, args []px.Value) px.Value {
 				v := args[0]
 				if n, ok := v.(issue.Named); ok {
 					return types.WrapString(n.Name())
 				}
-				panic(eval.Error(eval.UnknownFunction, issue.H{`name`: `name`}))
+				panic(px.Error(px.UnknownFunction, issue.H{`name`: `name`}))
 			})
 		})
 }

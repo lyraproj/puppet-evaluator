@@ -1,17 +1,17 @@
 package functions
 
-import "github.com/lyraproj/pcore/eval"
+import "github.com/lyraproj/pcore/px"
 
 func init() {
-	eval.NewGoFunction(`flatten`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`flatten`,
+		func(d px.Dispatch) {
 			d.Param(`Iterable`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+			d.Function(func(c px.Context, args []px.Value) px.Value {
 				switch arg := args[0].(type) {
-				case eval.List:
+				case px.List:
 					return arg.Flatten()
 				default:
-					return arg.(eval.IterableValue).Iterator().AsArray().Flatten()
+					return arg.(px.IterableValue).Iterator().AsArray().Flatten()
 				}
 			})
 		},

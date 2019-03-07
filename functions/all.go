@@ -1,60 +1,60 @@
 package functions
 
 import (
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
 
-func allIterator(c eval.Context, arg eval.IterableValue, block eval.Lambda) eval.Value {
-	return types.WrapBoolean(arg.Iterator().All(func(v eval.Value) bool { return eval.IsTruthy(block.Call(c, nil, v)) }))
+func allIterator(c px.Context, arg px.IterableValue, block px.Lambda) px.Value {
+	return types.WrapBoolean(arg.Iterator().All(func(v px.Value) bool { return px.IsTruthy(block.Call(c, nil, v)) }))
 }
 
-func allIndexIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.Value {
+func allIndexIterator(c px.Context, iter px.IterableValue, block px.Lambda) px.Value {
 	index := int64(-1)
-	return types.WrapBoolean(iter.Iterator().All(func(v eval.Value) bool {
+	return types.WrapBoolean(iter.Iterator().All(func(v px.Value) bool {
 		index++
-		return eval.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
+		return px.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
 	}))
 }
 
-func allHashIterator(c eval.Context, iter eval.IterableValue, block eval.Lambda) eval.Value {
-	return types.WrapBoolean(iter.Iterator().All(func(v eval.Value) bool {
-		vi := v.(eval.List)
-		return eval.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
+func allHashIterator(c px.Context, iter px.IterableValue, block px.Lambda) px.Value {
+	return types.WrapBoolean(iter.Iterator().All(func(v px.Value) bool {
+		vi := v.(px.List)
+		return px.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
 	}))
 }
 
 func init() {
-	eval.NewGoFunction(`all`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`all`,
+		func(d px.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
 				return allIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
 
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
 				return allHashIterator(c, args[0].(*types.HashValue), block)
 			})
 		},
 
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				return allIterator(c, args[0].(eval.IterableValue), block)
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				return allIterator(c, args[0].(px.IterableValue), block)
 			})
 		},
 
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Iterable`)
 			d.Block(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				iter := args[0].(eval.IterableValue)
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				iter := args[0].(px.IterableValue)
 				if iter.IsHashStyle() {
 					return allHashIterator(c, iter, block)
 				}

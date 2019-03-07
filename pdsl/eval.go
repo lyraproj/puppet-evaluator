@@ -1,7 +1,7 @@
 package pdsl
 
 import (
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
@@ -12,9 +12,9 @@ type Evaluator interface {
 
 	// Eval should be considered internal. The only reason it is public is to allow
 	// the evaluator to be extended. This is subject to change. Don't use
-	Eval(expression parser.Expression) eval.Value
+	Eval(expression parser.Expression) px.Value
 }
 
 type ParserExtension interface {
-	Evaluate(e Evaluator) eval.Value
+	Evaluate(e Evaluator) px.Value
 }

@@ -1,31 +1,31 @@
 package functions
 
-import "github.com/lyraproj/pcore/eval"
+import "github.com/lyraproj/pcore/px"
 
-func typeOf(v eval.Value, i string) eval.Type {
+func typeOf(v px.Value, i string) px.Type {
 	switch i {
 	case `generalized`:
-		return eval.GenericValueType(v)
+		return px.GenericValueType(v)
 	case `reduced`:
 		return v.PType()
 	default:
-		return eval.DetailedValueType(v)
+		return px.DetailedValueType(v)
 	}
 }
 
 func init() {
-	eval.NewGoFunction(`type`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`type`,
+		func(d px.Dispatch) {
 			d.Param(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+			d.Function(func(c px.Context, args []px.Value) px.Value {
 				return typeOf(args[0], `generalized`)
 			})
 		},
 
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Any`)
 			d.Param(`Enum[detailed, reduced, generalized]`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+			d.Function(func(c px.Context, args []px.Value) px.Value {
 				return typeOf(args[0], args[1].String())
 			})
 		},

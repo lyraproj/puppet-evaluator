@@ -2,18 +2,18 @@ package evaluator
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
-func evalAssignmentExpression(e pdsl.Evaluator, expr *parser.AssignmentExpression) eval.Value {
+func evalAssignmentExpression(e pdsl.Evaluator, expr *parser.AssignmentExpression) px.Value {
 	return assign(expr, e.Scope(), lvalue(expr.Lhs()), e.Eval(expr.Rhs()))
 }
 
-func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv eval.Value, rv eval.Value) eval.Value {
-	if sv, ok := lv.(eval.StringValue); ok {
+func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv px.Value, rv px.Value) px.Value {
+	if sv, ok := lv.(px.StringValue); ok {
 		if !scope.Set(sv.String(), rv) {
 			panic(evalError(pdsl.IllegalReassignment, expr, issue.H{`var`: sv.String()}))
 		}
@@ -23,8 +23,8 @@ func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv eval.Value, 
 	names := lv.(*types.ArrayValue)
 	switch rv := rv.(type) {
 	case *types.HashValue:
-		r := make([]eval.Value, names.Len())
-		names.EachWithIndex(func(name eval.Value, idx int) {
+		r := make([]px.Value, names.Len())
+		names.EachWithIndex(func(name px.Value, idx int) {
 			v, ok := rv.Get(name)
 			if !ok {
 				panic(evalError(pdsl.MissingMultiAssignmentKey, expr, issue.H{`name`: name.String()}))
@@ -36,7 +36,7 @@ func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv eval.Value, 
 		if names.Len() != rv.Len() {
 			panic(evalError(pdsl.IllegalMultiAssignmentSize, expr, issue.H{`expected`: names.Len(), `actual`: rv.Len()}))
 		}
-		names.EachWithIndex(func(name eval.Value, idx int) {
+		names.EachWithIndex(func(name px.Value, idx int) {
 			assign(expr, scope, name, rv.At(idx))
 		})
 		return rv
@@ -45,7 +45,7 @@ func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv eval.Value, 
 	}
 }
 
-func lvalue(expr parser.Expression) eval.Value {
+func lvalue(expr parser.Expression) px.Value {
 	switch expr := expr.(type) {
 	case *parser.VariableExpression:
 		if name, ok := expr.Name(); ok {
@@ -53,7 +53,7 @@ func lvalue(expr parser.Expression) eval.Value {
 		}
 	case *parser.LiteralList:
 		le := expr.Elements()
-		ev := make([]eval.Value, len(le))
+		ev := make([]px.Value, len(le))
 		for idx, ex := range le {
 			ev[idx] = lvalue(ex)
 		}

@@ -5,59 +5,59 @@ import (
 	"strings"
 
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
-func evalComparisonExpression(e pdsl.Evaluator, expr *parser.ComparisonExpression) eval.Value {
+func evalComparisonExpression(e pdsl.Evaluator, expr *parser.ComparisonExpression) px.Value {
 	return types.WrapBoolean(doCompare(expr, expr.Operator(), e.Eval(expr.Lhs()), e.Eval(expr.Rhs())))
 }
 
-func doCompare(expr parser.Expression, op string, a, b eval.Value) bool {
+func doCompare(expr parser.Expression, op string, a, b px.Value) bool {
 	return compare(expr, op, a, b)
 }
 
-func evalMatchExpression(e pdsl.Evaluator, expr *parser.MatchExpression) eval.Value {
+func evalMatchExpression(e pdsl.Evaluator, expr *parser.MatchExpression) px.Value {
 	return types.WrapBoolean(match(e, expr.Lhs(), expr.Rhs(), expr.Operator(), e.Eval(expr.Lhs()), e.Eval(expr.Rhs())))
 }
 
-func compare(expr parser.Expression, op string, a eval.Value, b eval.Value) bool {
+func compare(expr parser.Expression, op string, a px.Value, b px.Value) bool {
 	var result bool
 	switch op {
 	case `==`:
-		result = eval.PuppetEquals(a, b)
+		result = px.PuppetEquals(a, b)
 	case `!=`:
-		result = !eval.PuppetEquals(a, b)
+		result = !px.PuppetEquals(a, b)
 	default:
 		result = compareMagnitude(expr, op, a, b, false)
 	}
 	return result
 }
 
-func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Value, caseSensitive bool) bool {
+func compareMagnitude(expr parser.Expression, op string, a px.Value, b px.Value, caseSensitive bool) bool {
 	switch a.(type) {
-	case eval.Type:
-		left := a.(eval.Type)
+	case px.Type:
+		left := a.(px.Type)
 		switch b := b.(type) {
-		case eval.Type:
+		case px.Type:
 			switch op {
 			case `<`:
-				return eval.IsAssignable(b, left) && !eval.Equals(left, b)
+				return px.IsAssignable(b, left) && !px.Equals(left, b)
 			case `<=`:
-				return eval.IsAssignable(b, left)
+				return px.IsAssignable(b, left)
 			case `>`:
-				return eval.IsAssignable(left, b) && !eval.Equals(left, b)
+				return px.IsAssignable(left, b) && !px.Equals(left, b)
 			case `>=`:
-				return eval.IsAssignable(left, b)
+				return px.IsAssignable(left, b)
 			default:
 				panic(evalError(pdsl.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 			}
 		}
 
-	case eval.StringValue:
-		if _, ok := b.(eval.StringValue); ok {
+	case px.StringValue:
+		if _, ok := b.(px.StringValue); ok {
 			sa := a.String()
 			sb := b.String()
 			if !caseSensitive {
@@ -97,9 +97,9 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 			}
 		}
 
-	case eval.NumericValue:
-		if rhv, ok := b.(eval.NumericValue); ok {
-			cmp := a.(eval.NumericValue).Float() - rhv.Float()
+	case px.NumericValue:
+		if rhv, ok := b.(px.NumericValue); ok {
+			cmp := a.(px.NumericValue).Float() - rhv.Float()
 			switch op {
 			case `<`:
 				return cmp < 0.0
@@ -120,31 +120,31 @@ func compareMagnitude(expr parser.Expression, op string, a eval.Value, b eval.Va
 	panic(evalError(pdsl.OperatorNotApplicableWhen, expr, issue.H{`operator`: op, `left`: a.PType(), `right`: b.PType()}))
 }
 
-func match(c eval.Context, lhs parser.Expression, rhs parser.Expression, operator string, a eval.Value, b eval.Value) bool {
+func match(c px.Context, lhs parser.Expression, rhs parser.Expression, operator string, a px.Value, b px.Value) bool {
 	result := false
 	switch b := b.(type) {
-	case eval.StringValue, *types.RegexpValue:
+	case px.StringValue, *types.RegexpValue:
 		var rx *regexp.Regexp
-		if s, ok := b.(eval.StringValue); ok {
+		if s, ok := b.(px.StringValue); ok {
 			var err error
 			rx, err = regexp.Compile(s.String())
 			if err != nil {
-				panic(eval.Error2(rhs, eval.MatchNotRegexp, issue.H{`detail`: err.Error()}))
+				panic(px.Error2(rhs, px.MatchNotRegexp, issue.H{`detail`: err.Error()}))
 			}
 		} else {
 			rx = b.(*types.RegexpValue).Regexp()
 		}
 
-		sv, ok := a.(eval.StringValue)
+		sv, ok := a.(px.StringValue)
 		if !ok {
-			panic(eval.Error2(lhs, eval.MatchNotString, issue.H{`left`: a.PType()}))
+			panic(px.Error2(lhs, px.MatchNotString, issue.H{`left`: a.PType()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
 			c.(pdsl.EvaluationContext).Scope().RxSet(group)
 			result = true
 		}
 	default:
-		result = eval.PuppetMatch(a, b)
+		result = px.PuppetMatch(a, b)
 	}
 	if operator == `!~` {
 		result = !result

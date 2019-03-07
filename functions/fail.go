@@ -3,20 +3,20 @@ package functions
 import (
 	"bytes"
 
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 )
 
 func init() {
-	eval.NewGoFunction(`fail`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`fail`,
+		func(d px.Dispatch) {
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
+			d.Function(func(c px.Context, args []px.Value) px.Value {
 				w := bytes.NewBufferString(``)
 				for ix, arg := range args {
 					if ix > 0 {
 						w.WriteByte(' ')
 					}
-					eval.ToString3(arg, w)
+					px.ToString3(arg, w)
 				}
 				panic(c.Fail(w.String()))
 			})

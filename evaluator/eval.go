@@ -3,10 +3,10 @@ package evaluator
 import (
 	"bytes"
 
+	"github.com/lyraproj/pcore/px"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/errors"
-	"github.com/lyraproj/pcore/eval"
-	"github.com/lyraproj/pcore/impl"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/literal"
@@ -26,7 +26,7 @@ func NewEvaluator(ctx pdsl.EvaluationContext) pdsl.Evaluator {
 	return &evaluator{ctx}
 }
 
-func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) eval.Value {
+func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) px.Value {
 	defer func() {
 		if r := recover(); r != nil {
 			switch r := r.(type) {
@@ -37,7 +37,7 @@ func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) eval.Value 
 			case *errors.Return:
 				panic(evalError(pdsl.IllegalReturn, r.Location(), issue.NO_ARGS))
 			case *errors.ArgumentsError:
-				panic(evalError(eval.ArgumentsError, expr, issue.H{`expression`: expr, `message`: r.Error()}))
+				panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: r.Error()}))
 			default:
 				panic(r)
 			}
@@ -51,27 +51,27 @@ func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) eval.Value 
 	return result
 }
 
-func (e *evaluator) Eval(expr parser.Expression) eval.Value {
+func (e *evaluator) Eval(expr parser.Expression) px.Value {
 	return BasicEval(e, expr)
 }
 
-func callFunction(e pdsl.Evaluator, name string, args []eval.Value, ce parser.CallExpression) eval.Value {
+func callFunction(e pdsl.Evaluator, name string, args []px.Value, ce parser.CallExpression) px.Value {
 	return call(e, `function`, name, args, ce)
 }
 
-func call(e pdsl.Evaluator, funcType eval.Namespace, name string, args []eval.Value, call parser.CallExpression) (result eval.Value) {
-	tn := eval.NewTypedName2(funcType, name, e.Loader().NameAuthority())
-	f, ok := eval.Load(e, tn)
+func call(e pdsl.Evaluator, funcType px.Namespace, name string, args []px.Value, call parser.CallExpression) (result px.Value) {
+	tn := px.NewTypedName2(funcType, name, e.Loader().NameAuthority())
+	f, ok := px.Load(e, tn)
 	if !ok {
-		panic(evalError(eval.UnknownFunction, call, issue.H{`name`: tn.String()}))
+		panic(evalError(px.UnknownFunction, call, issue.H{`name`: tn.String()}))
 	}
 
-	var blk eval.Lambda
+	var blk px.Lambda
 	if call.Lambda() != nil {
-		blk = e.Eval(call.Lambda()).(eval.Lambda)
+		blk = e.Eval(call.Lambda()).(px.Lambda)
 	}
 
-	fn := f.(eval.Function)
+	fn := f.(px.Function)
 
 	e.StackPush(call)
 	defer func() {
@@ -88,7 +88,7 @@ func convertCallError(err interface{}, expr parser.Expression, args []parser.Exp
 	switch err := err.(type) {
 	case nil:
 	case *errors.ArgumentsError:
-		panic(evalError(eval.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
+		panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
 	case *errors.IllegalArgument:
 		panic(evalError(pdsl.IllegalArgument, args[err.Index()], issue.H{`expression`: expr, `number`: err.Index(), `message`: err.Error()}))
 	case *errors.IllegalArgumentType:
@@ -101,32 +101,32 @@ func convertCallError(err interface{}, expr parser.Expression, args []parser.Exp
 	}
 }
 
-func evalAndExpression(e pdsl.Evaluator, expr *parser.AndExpression) eval.Value {
-	return types.WrapBoolean(eval.IsTruthy(e.Eval(expr.Lhs())) && eval.IsTruthy(e.Eval(expr.Rhs())))
+func evalAndExpression(e pdsl.Evaluator, expr *parser.AndExpression) px.Value {
+	return types.WrapBoolean(px.IsTruthy(e.Eval(expr.Lhs())) && px.IsTruthy(e.Eval(expr.Rhs())))
 }
 
-func evalOrExpression(e pdsl.Evaluator, expr *parser.OrExpression) eval.Value {
-	return types.WrapBoolean(eval.IsTruthy(e.Eval(expr.Lhs())) || eval.IsTruthy(e.Eval(expr.Rhs())))
+func evalOrExpression(e pdsl.Evaluator, expr *parser.OrExpression) px.Value {
+	return types.WrapBoolean(px.IsTruthy(e.Eval(expr.Lhs())) || px.IsTruthy(e.Eval(expr.Rhs())))
 }
 
-func evalParameter(e pdsl.Evaluator, expr *parser.Parameter) eval.Value {
-	var pt eval.Type
+func evalParameter(e pdsl.Evaluator, expr *parser.Parameter) px.Value {
+	var pt px.Type
 	if expr.Type() == nil {
 		pt = types.DefaultAnyType()
 	} else {
 		pt = e.ResolveType(expr.Type())
 	}
 
-	var value eval.Value
+	var value px.Value
 	if valueExpr := expr.Value(); valueExpr != nil {
 		if lit, ok := literal.ToLiteral(valueExpr); ok {
-			value = eval.Wrap(e, lit)
+			value = px.Wrap(e, lit)
 		} else {
 			var cf *parser.CallNamedFunctionExpression
 			if cf, ok = valueExpr.(*parser.CallNamedFunctionExpression); ok {
 				var qn *parser.QualifiedName
 				if qn, ok = cf.Functor().(*parser.QualifiedName); ok {
-					va := make([]eval.Value, len(cf.Arguments()))
+					va := make([]px.Value, len(cf.Arguments()))
 					for i, a := range cf.Arguments() {
 						va[i] = e.Eval(a)
 					}
@@ -146,18 +146,18 @@ func evalParameter(e pdsl.Evaluator, expr *parser.Parameter) eval.Value {
 			}
 		}
 	}
-	return impl.NewParameter(expr.Name(), pt, value, expr.CapturesRest())
+	return px.NewParameter(expr.Name(), pt, value, expr.CapturesRest())
 }
 
-func evalBlockExpression(e pdsl.Evaluator, expr *parser.BlockExpression) (result eval.Value) {
-	result = eval.Undef
+func evalBlockExpression(e pdsl.Evaluator, expr *parser.BlockExpression) (result px.Value) {
+	result = px.Undef
 	for _, statement := range expr.Statements() {
 		result = e.Eval(statement)
 	}
 	return result
 }
 
-func evalConcatenatedString(e pdsl.Evaluator, expr *parser.ConcatenatedString) eval.Value {
+func evalConcatenatedString(e pdsl.Evaluator, expr *parser.ConcatenatedString) px.Value {
 	bld := bytes.NewBufferString(``)
 	for _, s := range expr.Segments() {
 		bld.WriteString(e.Eval(s).String())
@@ -165,11 +165,11 @@ func evalConcatenatedString(e pdsl.Evaluator, expr *parser.ConcatenatedString) e
 	return types.WrapString(bld.String())
 }
 
-func evalHeredocExpression(e pdsl.Evaluator, expr *parser.HeredocExpression) eval.Value {
+func evalHeredocExpression(e pdsl.Evaluator, expr *parser.HeredocExpression) px.Value {
 	return e.Eval(expr.Text())
 }
 
-func evalCallMethodExpression(e pdsl.Evaluator, call *parser.CallMethodExpression) eval.Value {
+func evalCallMethodExpression(e pdsl.Evaluator, call *parser.CallMethodExpression) px.Value {
 	fc, ok := call.Functor().(*parser.NamedAccessExpression)
 	if !ok {
 		panic(evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
@@ -182,13 +182,13 @@ func evalCallMethodExpression(e pdsl.Evaluator, call *parser.CallMethodExpressio
 	}
 	receiver := unfold(e, []parser.Expression{fc.Lhs()})
 	obj := receiver[0]
-	var tem eval.TypeWithCallableMembers
-	if tem, ok = obj.PType().(eval.TypeWithCallableMembers); ok {
-		var mbr eval.CallableMember
+	var tem px.TypeWithCallableMembers
+	if tem, ok = obj.PType().(px.TypeWithCallableMembers); ok {
+		var mbr px.CallableMember
 		if mbr, ok = tem.Member(qn.Name()); ok {
-			var b eval.Lambda
+			var b px.Lambda
 			if call.Lambda() != nil {
-				b = e.Eval(call.Lambda()).(eval.Lambda)
+				b = e.Eval(call.Lambda()).(px.Lambda)
 			}
 			return mbr.Call(e, obj, b, unfold(e, call.Arguments()))
 		}
@@ -196,7 +196,7 @@ func evalCallMethodExpression(e pdsl.Evaluator, call *parser.CallMethodExpressio
 	return callFunction(e, qn.Name(), unfold(e, call.Arguments(), receiver...), call)
 }
 
-func evalCallNamedFunctionExpression(e pdsl.Evaluator, call *parser.CallNamedFunctionExpression) eval.Value {
+func evalCallNamedFunctionExpression(e pdsl.Evaluator, call *parser.CallNamedFunctionExpression) px.Value {
 	fc := call.Functor()
 	switch fc := fc.(type) {
 	case *parser.QualifiedName:
@@ -211,53 +211,53 @@ func evalCallNamedFunctionExpression(e pdsl.Evaluator, call *parser.CallNamedFun
 		issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 }
 
-func evalIfExpression(e pdsl.Evaluator, expr *parser.IfExpression) eval.Value {
-	return e.Scope().WithLocalScope(func() eval.Value {
-		if eval.IsTruthy(e.Eval(expr.Test())) {
+func evalIfExpression(e pdsl.Evaluator, expr *parser.IfExpression) px.Value {
+	return e.Scope().WithLocalScope(func() px.Value {
+		if px.IsTruthy(e.Eval(expr.Test())) {
 			return e.Eval(expr.Then())
 		}
 		return e.Eval(expr.Else())
 	})
 }
 
-func evalInExpression(e pdsl.Evaluator, expr *parser.InExpression) eval.Value {
+func evalInExpression(e pdsl.Evaluator, expr *parser.InExpression) px.Value {
 	a := e.Eval(expr.Lhs())
 	x := e.Eval(expr.Rhs())
 	switch x := x.(type) {
 	case *types.ArrayValue:
-		return types.WrapBoolean(x.Any(func(b eval.Value) bool {
+		return types.WrapBoolean(x.Any(func(b px.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
 	case *types.HashValue:
-		return types.WrapBoolean(x.AnyPair(func(b, v eval.Value) bool {
+		return types.WrapBoolean(x.AnyPair(func(b, v px.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
 	}
 	return types.BooleanFalse
 }
 
-func evalUnlessExpression(e pdsl.Evaluator, expr *parser.UnlessExpression) eval.Value {
-	return e.Scope().WithLocalScope(func() eval.Value {
-		if !eval.IsTruthy(e.Eval(expr.Test())) {
+func evalUnlessExpression(e pdsl.Evaluator, expr *parser.UnlessExpression) px.Value {
+	return e.Scope().WithLocalScope(func() px.Value {
+		if !px.IsTruthy(e.Eval(expr.Test())) {
 			return e.Eval(expr.Then())
 		}
 		return e.Eval(expr.Else())
 	})
 }
 
-func evalKeyedEntry(e pdsl.Evaluator, expr *parser.KeyedEntry) eval.Value {
+func evalKeyedEntry(e pdsl.Evaluator, expr *parser.KeyedEntry) px.Value {
 	return types.WrapHashEntry(e.Eval(expr.Key()), e.Eval(expr.Value()))
 }
 
-func evalLambdaExpression(e pdsl.Evaluator, expr *parser.LambdaExpression) eval.Value {
+func evalLambdaExpression(e pdsl.Evaluator, expr *parser.LambdaExpression) px.Value {
 	return NewPuppetLambda(expr, e)
 }
 
-func evalLiteralHash(e pdsl.Evaluator, expr *parser.LiteralHash) eval.Value {
+func evalLiteralHash(e pdsl.Evaluator, expr *parser.LiteralHash) px.Value {
 	entries := expr.Entries()
 	top := len(entries)
 	if top == 0 {
-		return eval.EmptyMap
+		return px.EmptyMap
 	}
 	result := make([]*types.HashEntry, top)
 	for idx := 0; idx < top; idx++ {
@@ -266,48 +266,48 @@ func evalLiteralHash(e pdsl.Evaluator, expr *parser.LiteralHash) eval.Value {
 	return types.WrapHash(result)
 }
 
-func evalLiteralList(e pdsl.Evaluator, expr *parser.LiteralList) eval.Value {
+func evalLiteralList(e pdsl.Evaluator, expr *parser.LiteralList) px.Value {
 	es := expr.Elements()
 	top := len(es)
 	if top == 0 {
-		return eval.EmptyArray
+		return px.EmptyArray
 	}
-	result := make([]eval.Value, top)
+	result := make([]px.Value, top)
 	for idx := 0; idx < top; idx++ {
 		result[idx] = e.Eval(es[idx])
 	}
 	return types.WrapValues(result)
 }
 
-func evalLiteralBoolean(expr *parser.LiteralBoolean) eval.Value {
+func evalLiteralBoolean(expr *parser.LiteralBoolean) px.Value {
 	return types.WrapBoolean(expr.Bool())
 }
 
-func evalLiteralDefault() eval.Value {
+func evalLiteralDefault() px.Value {
 	return types.WrapDefault()
 }
 
-func evalLiteralFloat(expr *parser.LiteralFloat) eval.Value {
+func evalLiteralFloat(expr *parser.LiteralFloat) px.Value {
 	return types.WrapFloat(expr.Float())
 }
 
-func evalLiteralInteger(expr *parser.LiteralInteger) eval.Value {
+func evalLiteralInteger(expr *parser.LiteralInteger) px.Value {
 	return types.WrapInteger(expr.Int())
 }
 
-func evalLiteralString(expr *parser.LiteralString) eval.Value {
+func evalLiteralString(expr *parser.LiteralString) px.Value {
 	return types.WrapString(expr.StringValue())
 }
 
-func evalNotExpression(e pdsl.Evaluator, expr *parser.NotExpression) eval.Value {
-	return types.WrapBoolean(!eval.IsTruthy(e.Eval(expr.Expr())))
+func evalNotExpression(e pdsl.Evaluator, expr *parser.NotExpression) px.Value {
+	return types.WrapBoolean(!px.IsTruthy(e.Eval(expr.Expr())))
 }
 
-func evalParenthesizedExpression(e pdsl.Evaluator, expr *parser.ParenthesizedExpression) eval.Value {
+func evalParenthesizedExpression(e pdsl.Evaluator, expr *parser.ParenthesizedExpression) px.Value {
 	return e.Eval(expr.Expr())
 }
 
-func evalProgram(e pdsl.Evaluator, expr *parser.Program) eval.Value {
+func evalProgram(e pdsl.Evaluator, expr *parser.Program) px.Value {
 	e.StackPush(expr)
 	defer func() {
 		e.StackPop()
@@ -315,20 +315,20 @@ func evalProgram(e pdsl.Evaluator, expr *parser.Program) eval.Value {
 	return e.Eval(expr.Body())
 }
 
-func evalQualifiedName(expr *parser.QualifiedName) eval.Value {
+func evalQualifiedName(expr *parser.QualifiedName) px.Value {
 	return types.WrapString(expr.Name())
 }
 
-func evalQualifiedReference(e pdsl.Evaluator, expr *parser.QualifiedReference) eval.Value {
+func evalQualifiedReference(e pdsl.Evaluator, expr *parser.QualifiedReference) px.Value {
 	return types.Resolve(e, expr.Name())
 }
 
-func evalRegexpExpression(expr *parser.RegexpExpression) eval.Value {
+func evalRegexpExpression(expr *parser.RegexpExpression) px.Value {
 	return types.WrapRegexp(expr.PatternString())
 }
 
-func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) eval.Value {
-	return e.Scope().WithLocalScope(func() eval.Value {
+func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) px.Value {
+	return e.Scope().WithLocalScope(func() px.Value {
 		test := e.Eval(expr.Test())
 		var theDefault *parser.CaseOption
 		var selected *parser.CaseOption
@@ -341,7 +341,7 @@ func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) eval.Valu
 				case *parser.LiteralDefault:
 					theDefault = co
 				case *parser.UnfoldExpression:
-					if eval.Any2(e.Eval(cv).(eval.List), func(v eval.Value) bool { return match(e, expr.Test(), cv, `match`, test, v) }) {
+					if px.Any2(e.Eval(cv).(px.List), func(v px.Value) bool { return match(e, expr.Test(), cv, `match`, test, v) }) {
 						selected = co
 						break options
 					}
@@ -357,14 +357,14 @@ func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) eval.Valu
 			selected = theDefault
 		}
 		if selected == nil {
-			return eval.Undef
+			return px.Undef
 		}
 		return e.Eval(selected.Then())
 	})
 }
 
-func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) eval.Value {
-	return e.Scope().WithLocalScope(func() eval.Value {
+func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) px.Value {
+	return e.Scope().WithLocalScope(func() px.Value {
 		test := e.Eval(expr.Lhs())
 		var theDefault *parser.SelectorEntry
 		var selected *parser.SelectorEntry
@@ -376,7 +376,7 @@ func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) e
 			case *parser.LiteralDefault:
 				theDefault = se
 			case *parser.UnfoldExpression:
-				if eval.Any2(e.Eval(me).(eval.List), func(v eval.Value) bool { return match(e, expr.Lhs(), me, `match`, test, v) }) {
+				if px.Any2(e.Eval(me).(px.List), func(v px.Value) bool { return match(e, expr.Lhs(), me, `match`, test, v) }) {
 					selected = se
 					break selectors
 				}
@@ -391,17 +391,17 @@ func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) e
 			selected = theDefault
 		}
 		if selected == nil {
-			return eval.Undef
+			return px.Undef
 		}
 		return e.Eval(selected.Value())
 	})
 }
 
-func evalTextExpression(e pdsl.Evaluator, expr *parser.TextExpression) eval.Value {
+func evalTextExpression(e pdsl.Evaluator, expr *parser.TextExpression) px.Value {
 	return types.WrapString(e.Eval(expr.Expr()).String())
 }
 
-func evalVariableExpression(e pdsl.Evaluator, expr *parser.VariableExpression) (value eval.Value) {
+func evalVariableExpression(e pdsl.Evaluator, expr *parser.VariableExpression) (value px.Value) {
 	name, ok := expr.Name()
 	if ok {
 		if value, ok = e.Scope().Get(name); ok {
@@ -416,17 +416,17 @@ func evalVariableExpression(e pdsl.Evaluator, expr *parser.VariableExpression) (
 	panic(evalError(pdsl.UnknownVariable, expr, issue.H{`name`: idx}))
 }
 
-func evalUnfoldExpression(e pdsl.Evaluator, expr *parser.UnfoldExpression) eval.Value {
+func evalUnfoldExpression(e pdsl.Evaluator, expr *parser.UnfoldExpression) px.Value {
 	candidate := e.Eval(expr.Expr())
 	switch candidate := candidate.(type) {
 	case *types.UndefValue:
-		return types.SingletonArray(eval.Undef)
+		return types.SingletonArray(px.Undef)
 	case *types.ArrayValue:
 		return candidate
 	case *types.HashValue:
 		return types.WrapArray3(candidate)
-	case eval.IteratorValue:
-		return candidate.(eval.IteratorValue).AsArray()
+	case px.IteratorValue:
+		return candidate.(px.IteratorValue).AsArray()
 	default:
 		return types.SingletonArray(candidate)
 	}
@@ -437,7 +437,7 @@ func evalError(code issue.Code, location issue.Location, args issue.H) issue.Rep
 }
 
 // BasicEval is exported to enable the evaluator to be extended
-func BasicEval(e pdsl.Evaluator, expr parser.Expression) eval.Value {
+func BasicEval(e pdsl.Evaluator, expr parser.Expression) px.Value {
 	switch ex := expr.(type) {
 	case *parser.AccessExpression:
 		return evalAccessExpression(e, ex)
@@ -480,7 +480,7 @@ func BasicEval(e pdsl.Evaluator, expr parser.Expression) eval.Value {
 	case *parser.LiteralString:
 		return evalLiteralString(ex)
 	case *parser.LiteralUndef, *parser.Nop:
-		return eval.Undef
+		return px.Undef
 	case *parser.TextExpression:
 		return evalTextExpression(e, ex)
 	case pdsl.ParserExtension:
@@ -518,7 +518,7 @@ func BasicEval(e pdsl.Evaluator, expr parser.Expression) eval.Value {
 		return evalSelectorExpression(e, ex)
 	case *parser.FunctionDefinition, *parser.PlanDefinition, *parser.ActivityExpression, *parser.TypeAlias, *parser.TypeMapping:
 		// All definitions must be processed at this time
-		return eval.Undef
+		return px.Undef
 	case *parser.UnfoldExpression:
 		return evalUnfoldExpression(e, ex)
 	case *parser.UnlessExpression:
@@ -530,8 +530,8 @@ func BasicEval(e pdsl.Evaluator, expr parser.Expression) eval.Value {
 	}
 }
 
-func unfold(e pdsl.Evaluator, array []parser.Expression, initial ...eval.Value) []eval.Value {
-	result := make([]eval.Value, len(initial), len(initial)+len(array))
+func unfold(e pdsl.Evaluator, array []parser.Expression, initial ...px.Value) []px.Value {
+	result := make([]px.Value, len(initial), len(initial)+len(array))
 	copy(result, initial)
 	for _, ex := range array {
 		ex = unwindParenthesis(ex)

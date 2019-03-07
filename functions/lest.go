@@ -1,14 +1,14 @@
 package functions
 
-import "github.com/lyraproj/pcore/eval"
+import "github.com/lyraproj/pcore/px"
 
 func init() {
-	eval.NewGoFunction(`lest`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`lest`,
+		func(d px.Dispatch) {
 			d.Param(`Any`)
 			d.Block(`Callable[0,0]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				if eval.Undef.Equals(args[0], nil) {
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				if px.Undef.Equals(args[0], nil) {
 					return block.Call(c, nil)
 				}
 				return args[0]

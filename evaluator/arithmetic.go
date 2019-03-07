@@ -5,17 +5,17 @@ import (
 
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/errors"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
-func evalArithmeticExpression(e pdsl.Evaluator, expr *parser.ArithmeticExpression) eval.Value {
+func evalArithmeticExpression(e pdsl.Evaluator, expr *parser.ArithmeticExpression) px.Value {
 	return calculate(expr, e.Eval(expr.Lhs()), e.Eval(expr.Rhs()))
 }
 
-func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
+func calculate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	op := expr.Operator()
 	switch a := a.(type) {
 	case *types.HashValue, *types.ArrayValue, *types.UriValue:
@@ -29,11 +29,11 @@ func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) ev
 				return av.Add(b)
 			}
 		}
-	case eval.FloatValue:
+	case px.FloatValue:
 		return lhsFloatArithmetic(expr, a.Float(), b)
-	case eval.IntegerValue:
+	case px.IntegerValue:
 		return lhsIntArithmetic(expr, a.Int(), b)
-	case eval.StringValue:
+	case px.StringValue:
 		s := a.String()
 		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return lhsIntArithmetic(expr, iv, b)
@@ -46,14 +46,14 @@ func calculate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) ev
 	panic(evalError(pdsl.OperatorNotApplicable, expr, issue.H{`operator`: op, `left`: a.PType()}))
 }
 
-func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value) eval.Value {
+func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b px.Value) px.Value {
 	op := expr.Operator()
 	switch b := b.(type) {
-	case eval.IntegerValue:
+	case px.IntegerValue:
 		return types.WrapInteger(intArithmetic(expr, ai, b.Int()))
-	case eval.FloatValue:
+	case px.FloatValue:
 		return types.WrapFloat(floatArithmetic(expr, float64(ai), b.Float()))
-	case eval.StringValue:
+	case px.StringValue:
 		s := b.String()
 		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return types.WrapInteger(intArithmetic(expr, ai, iv))
@@ -67,14 +67,14 @@ func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b eval.Value)
 	}
 }
 
-func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b eval.Value) eval.Value {
+func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b px.Value) px.Value {
 	op := expr.Operator()
 	switch b := b.(type) {
-	case eval.FloatValue:
+	case px.FloatValue:
 		return types.WrapFloat(floatArithmetic(expr, af, b.Float()))
-	case eval.IntegerValue:
+	case px.IntegerValue:
 		return types.WrapFloat(floatArithmetic(expr, af, float64(b.Int())))
-	case eval.StringValue:
+	case px.StringValue:
 		s := b.String()
 		if iv, err := strconv.ParseInt(s, 0, 64); err == nil {
 			return types.WrapFloat(floatArithmetic(expr, af, float64(iv)))
@@ -124,7 +124,7 @@ func intArithmetic(expr *parser.ArithmeticExpression, a int64, b int64) int64 {
 	}
 }
 
-func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
+func concatenate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	switch a := a.(type) {
 	case *types.ArrayValue:
 		switch b := b.(type) {
@@ -145,7 +145,7 @@ func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) 
 				switch err := err.(type) {
 				case nil:
 				case *errors.ArgumentsError:
-					panic(evalError(eval.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
+					panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
 				default:
 					panic(err)
 				}
@@ -156,7 +156,7 @@ func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) 
 		}
 	case *types.UriValue:
 		switch b := b.(type) {
-		case eval.StringValue:
+		case px.StringValue:
 			return types.WrapURI(a.URL().ResolveReference(types.ParseURI(b.String())))
 		case *types.UriValue:
 			return types.WrapURI(a.URL().ResolveReference(b.URL()))
@@ -165,7 +165,7 @@ func concatenate(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) 
 	panic(evalError(pdsl.OperatorNotApplicableWhen, expr, issue.H{`operator`: expr.Operator(), `left`: a.PType(), `right`: b.PType()}))
 }
 
-func collectionDelete(expr *parser.ArithmeticExpression, a eval.Value, b eval.Value) eval.Value {
+func collectionDelete(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	switch a := a.(type) {
 	case *types.ArrayValue:
 		switch b := b.(type) {

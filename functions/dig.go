@@ -2,36 +2,36 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func init() {
-	eval.NewGoFunction(`dig`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`dig`,
+		func(d px.Dispatch) {
 			d.Param(`Optional[Collection]`)
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				walkedPath := make([]eval.Value, 0)
-				return types.WrapValues(args).Reduce(func(d, k eval.Value) eval.Value {
-					if eval.Equals(eval.Undef, k) {
-						return eval.Undef
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				walkedPath := make([]px.Value, 0)
+				return types.WrapValues(args).Reduce(func(d, k px.Value) px.Value {
+					if px.Equals(px.Undef, k) {
+						return px.Undef
 					}
 					switch d := d.(type) {
 					case *types.UndefValue:
-						return eval.Undef
+						return px.Undef
 					case *types.HashValue:
 						walkedPath = append(walkedPath, k)
-						return d.Get2(k, eval.Undef)
+						return d.Get2(k, px.Undef)
 					case *types.ArrayValue:
 						walkedPath = append(walkedPath, k)
-						if idx, ok := k.(eval.IntegerValue); ok {
+						if idx, ok := k.(px.IntegerValue); ok {
 							return d.At(int(idx.Int()))
 						}
-						return eval.Undef
+						return px.Undef
 					default:
-						panic(eval.Error(pdsl.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
+						panic(px.Error(pdsl.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

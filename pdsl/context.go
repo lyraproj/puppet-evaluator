@@ -1,23 +1,23 @@
 package pdsl
 
 import (
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
 const PuppetContextKey = `puppet.context`
 
 type EvaluationContext interface {
-	eval.Context
+	px.Context
 
 	AddDefinitions(expression parser.Expression)
 
 	// DoStatic ensures that the receiver is in static mode during the evaluation of the given doer
-	DoStatic(doer eval.Doer)
+	DoStatic(doer px.Doer)
 
 	// DoWithScope assigns the given scope to the receiver and calls the doer. The original scope is
 	// restored before this call returns.
-	DoWithScope(scope Scope, doer eval.Doer)
+	DoWithScope(scope Scope, doer px.Doer)
 
 	// EvaluatorConstructor returns the evaluator constructor
 	GetEvaluator() Evaluator
@@ -32,7 +32,7 @@ type EvaluationContext interface {
 	// ResolveType evaluates the given Expression into a Type. It will panic with
 	// an issue.Reported unless the evaluation was successful and the result
 	// is evaluates to a Type
-	ResolveType(expr parser.Expression) eval.Type
+	ResolveType(expr parser.Expression) px.Type
 
 	// Scope returns the scope
 	Scope() Scope
@@ -44,9 +44,9 @@ type EvaluationContext interface {
 
 // TopEvaluate resolves all pending definitions prior to evaluating. The evaluated expression is not
 // allowed ot contain return, next, or break.
-var TopEvaluate func(c EvaluationContext, expr parser.Expression) eval.Value
+var TopEvaluate func(c EvaluationContext, expr parser.Expression) px.Value
 
 // Evaluate the given expression. Allow return, break, etc.
-func Evaluate(c EvaluationContext, expr parser.Expression) eval.Value {
+func Evaluate(c EvaluationContext, expr parser.Expression) px.Value {
 	return c.GetEvaluator().Eval(expr)
 }

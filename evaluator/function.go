@@ -6,7 +6,7 @@ import (
 	"math"
 
 	"github.com/lyraproj/pcore/errors"
-	"github.com/lyraproj/pcore/eval"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/pcore/utils"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
@@ -17,21 +17,21 @@ type (
 	puppetLambda struct {
 		signature  *types.CallableType
 		expression *parser.LambdaExpression
-		parameters []eval.Parameter
+		parameters []px.Parameter
 	}
 
 	PuppetFunction interface {
-		eval.Function
-		Signature() eval.Signature
+		px.Function
+		Signature() px.Signature
 		Expression() parser.Definition
 		ReturnType() parser.Expression
-		Parameters() []eval.Parameter
+		Parameters() []px.Parameter
 	}
 
 	puppetFunction struct {
 		signature  *types.CallableType
 		expression *parser.FunctionDefinition
-		parameters []eval.Parameter
+		parameters []px.Parameter
 	}
 
 	puppetPlan struct {
@@ -39,14 +39,14 @@ type (
 	}
 )
 
-func NewPuppetLambda(expr *parser.LambdaExpression, c pdsl.EvaluationContext) eval.Lambda {
+func NewPuppetLambda(expr *parser.LambdaExpression, c pdsl.EvaluationContext) px.Lambda {
 	rps := resolveParameters(c, expr.Parameters())
 	sg := createTupleType(rps)
 
 	return &puppetLambda{types.NewCallableType(sg, resolveReturnType(c, expr.ReturnType()), nil), expr, rps}
 }
 
-func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (v eval.Value) {
+func (l *puppetLambda) Call(c px.Context, block px.Lambda, args ...px.Value) (v px.Value) {
 	if block != nil {
 		panic(errors.NewArgumentsError(`lambda`, `nested lambdas are not supported`))
 	}
@@ -63,16 +63,16 @@ func (l *puppetLambda) Call(c eval.Context, block eval.Lambda, args ...eval.Valu
 	return
 }
 
-func (l *puppetLambda) Equals(other interface{}, guard eval.Guard) bool {
+func (l *puppetLambda) Equals(other interface{}, guard px.Guard) bool {
 	ol, ok := other.(*puppetLambda)
 	return ok && l.signature.Equals(ol.signature, guard)
 }
 
-func (l *puppetLambda) Parameters() []eval.Parameter {
+func (l *puppetLambda) Parameters() []px.Parameter {
 	return l.parameters
 }
 
-func (l *puppetLambda) Signature() eval.Signature {
+func (l *puppetLambda) Signature() px.Signature {
 	return l.signature
 }
 
@@ -81,11 +81,11 @@ func (l *puppetLambda) String() string {
 	return `lambda`
 }
 
-func (l *puppetLambda) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
+func (l *puppetLambda) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
 	utils.WriteString(bld, `lambda`)
 }
 
-func (l *puppetLambda) PType() eval.Type {
+func (l *puppetLambda) PType() px.Type {
 	return l.signature
 }
 
@@ -93,7 +93,7 @@ func NewPuppetFunction(expr *parser.FunctionDefinition) *puppetFunction {
 	return &puppetFunction{expression: expr}
 }
 
-func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Value) (v eval.Value) {
+func (f *puppetFunction) Call(c px.Context, block px.Lambda, args ...px.Value) (v px.Value) {
 	if block != nil {
 		panic(errors.NewArgumentsError(f.Name(), `Puppet functions does not yet support lambdas`))
 	}
@@ -113,36 +113,36 @@ func (f *puppetFunction) Call(c eval.Context, block eval.Lambda, args ...eval.Va
 	return
 }
 
-func (f *puppetFunction) Signature() eval.Signature {
+func (f *puppetFunction) Signature() px.Signature {
 	return f.signature
 }
 
-func CallBlock(c pdsl.EvaluationContext, name string, parameters []eval.Parameter, signature *types.CallableType, body parser.Expression, args []eval.Value) eval.Value {
-	return c.Scope().WithLocalScope(func() (v eval.Value) {
+func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter, signature *types.CallableType, body parser.Expression, args []px.Value) px.Value {
+	return c.Scope().WithLocalScope(func() (v px.Value) {
 		na := len(args)
 		np := len(parameters)
 		if np > na {
 			// Resolve parameter defaults in special parameter scope and assign values to function scope
-			c.Scope().WithLocalScope(func() eval.Value {
-				ap := make([]eval.Value, np)
+			c.Scope().WithLocalScope(func() px.Value {
+				ap := make([]px.Value, np)
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
 					p := parameters[idx]
 					if !p.HasValue() {
-						ap[idx] = eval.Undef
+						ap[idx] = px.Undef
 						continue
 					}
 					d := p.Value()
 					if df, ok := d.(types.Deferred); ok {
 						d = df.Resolve(c)
 					}
-					if !eval.IsInstance(p.Type(), d) {
+					if !px.IsInstance(p.Type(), d) {
 						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.Type(), d.PType())))
 					}
 					ap[idx] = d
 				}
 				args = ap
-				return eval.Undef
+				return px.Undef
 			})
 		}
 
@@ -155,33 +155,33 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []eval.Paramete
 			scope.Set(p.Name(), args[idx])
 		}
 		v = pdsl.Evaluate(c, body)
-		if !eval.IsInstance(signature.ReturnType(), v) {
+		if !px.IsInstance(signature.ReturnType(), v) {
 			panic(fmt.Sprintf(`Value returned from function '%s' has incorrect type. Expected %s, got %s`,
-				name, signature.ReturnType().String(), eval.DetailedValueType(v).String()))
+				name, signature.ReturnType().String(), px.DetailedValueType(v).String()))
 		}
 		return
 	})
 }
 
-func AssertArgument(name string, index int, pt eval.Type, arg eval.Value) {
-	if !eval.IsInstance(pt, arg) {
+func AssertArgument(name string, index int, pt px.Type, arg px.Value) {
+	if !px.IsInstance(pt, arg) {
 		panic(types.NewIllegalArgumentType(name, index, pt.String(), arg))
 	}
 }
 
-func (f *puppetFunction) Dispatchers() []eval.Lambda {
-	return []eval.Lambda{f}
+func (f *puppetFunction) Dispatchers() []px.Lambda {
+	return []px.Lambda{f}
 }
 
-func (f *puppetFunction) Defaults() []eval.Value {
-	ds := make([]eval.Value, len(f.parameters))
+func (f *puppetFunction) Defaults() []px.Value {
+	ds := make([]px.Value, len(f.parameters))
 	for i, p := range f.parameters {
 		ds[i] = p.Value()
 	}
 	return ds
 }
 
-func (f *puppetFunction) Equals(other interface{}, guard eval.Guard) bool {
+func (f *puppetFunction) Equals(other interface{}, guard px.Guard) bool {
 	of, ok := other.(*puppetFunction)
 	return ok && f.signature.Equals(of.signature, guard)
 }
@@ -194,11 +194,11 @@ func (f *puppetFunction) Name() string {
 	return f.expression.Name()
 }
 
-func (f *puppetFunction) Parameters() []eval.Parameter {
+func (f *puppetFunction) Parameters() []px.Parameter {
 	return f.parameters
 }
 
-func (f *puppetFunction) Resolve(c eval.Context) {
+func (f *puppetFunction) Resolve(c px.Context) {
 	if f.parameters != nil {
 		panic(fmt.Sprintf(`Attempt to resolve already resolved function %s`, f.Name()))
 	}
@@ -212,15 +212,15 @@ func (f *puppetFunction) ReturnType() parser.Expression {
 }
 
 func (f *puppetFunction) String() string {
-	return eval.ToString(f)
+	return px.ToString(f)
 }
 
-func (f *puppetFunction) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
+func (f *puppetFunction) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
 	utils.WriteString(bld, `function `)
 	utils.WriteString(bld, f.Name())
 }
 
-func (f *puppetFunction) PType() eval.Type {
+func (f *puppetFunction) PType() px.Type {
 	return f.signature
 }
 
@@ -228,19 +228,19 @@ func NewPuppetPlan(expr *parser.PlanDefinition) *puppetPlan {
 	return &puppetPlan{puppetFunction{expression: &expr.FunctionDefinition}}
 }
 
-func (p *puppetPlan) ToString(bld io.Writer, format eval.FormatContext, g eval.RDetect) {
+func (p *puppetPlan) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
 	utils.WriteString(bld, `plan `)
 	utils.WriteString(bld, p.Name())
 }
 
 func (p *puppetPlan) String() string {
-	return eval.ToString(p)
+	return px.ToString(p)
 }
 
-func createTupleType(params []eval.Parameter) *types.TupleType {
+func createTupleType(params []px.Parameter) *types.TupleType {
 	min := 0
 	max := len(params)
-	tps := make([]eval.Type, max)
+	tps := make([]px.Type, max)
 	for idx, p := range params {
 		tps[idx] = p.Type()
 		if !p.HasValue() {
@@ -253,17 +253,17 @@ func createTupleType(params []eval.Parameter) *types.TupleType {
 	return types.NewTupleType(tps, types.NewIntegerType(int64(min), int64(max)))
 }
 
-func resolveReturnType(c pdsl.EvaluationContext, typeExpr parser.Expression) eval.Type {
+func resolveReturnType(c pdsl.EvaluationContext, typeExpr parser.Expression) px.Type {
 	if typeExpr == nil {
 		return types.DefaultAnyType()
 	}
 	return c.ResolveType(typeExpr)
 }
 
-func resolveParameters(c pdsl.EvaluationContext, eps []parser.Expression) []eval.Parameter {
-	pps := make([]eval.Parameter, len(eps))
+func resolveParameters(c pdsl.EvaluationContext, eps []parser.Expression) []px.Parameter {
+	pps := make([]px.Parameter, len(eps))
 	for idx, ep := range eps {
-		pps[idx] = pdsl.Evaluate(c, ep).(eval.Parameter)
+		pps[idx] = pdsl.Evaluate(c, ep).(px.Parameter)
 	}
 	return pps
 }
