@@ -20,9 +20,9 @@ func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv px.Value, rv
 		return rv
 	}
 
-	names := lv.(*types.ArrayValue)
+	names := lv.(*types.Array)
 	switch rv := rv.(type) {
-	case *types.HashValue:
+	case *types.Hash:
 		r := make([]px.Value, names.Len())
 		names.EachWithIndex(func(name px.Value, idx int) {
 			v, ok := rv.Get(name)
@@ -32,7 +32,7 @@ func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv px.Value, rv
 			r[idx] = assign(expr, scope, name, v)
 		})
 		return types.WrapValues(r)
-	case *types.ArrayValue:
+	case *types.Array:
 		if names.Len() != rv.Len() {
 			panic(evalError(pdsl.IllegalMultiAssignmentSize, expr, issue.H{`expected`: names.Len(), `actual`: rv.Len()}))
 		}

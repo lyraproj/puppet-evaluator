@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/errors"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
@@ -18,20 +17,20 @@ func evalArithmeticExpression(e pdsl.Evaluator, expr *parser.ArithmeticExpressio
 func calculate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	op := expr.Operator()
 	switch a := a.(type) {
-	case *types.HashValue, *types.ArrayValue, *types.UriValue:
+	case *types.Hash, *types.Array, *types.UriValue:
 		switch op {
 		case `+`:
 			return concatenate(expr, a, b)
 		case `-`:
 			return collectionDelete(expr, a, b)
 		case `<<`:
-			if av, ok := a.(*types.ArrayValue); ok {
+			if av, ok := a.(*types.Array); ok {
 				return av.Add(b)
 			}
 		}
-	case px.FloatValue:
+	case px.Float:
 		return lhsFloatArithmetic(expr, a.Float(), b)
-	case px.IntegerValue:
+	case px.Integer:
 		return lhsIntArithmetic(expr, a.Int(), b)
 	case px.StringValue:
 		s := a.String()
@@ -49,9 +48,9 @@ func calculate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Val
 func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b px.Value) px.Value {
 	op := expr.Operator()
 	switch b := b.(type) {
-	case px.IntegerValue:
+	case px.Integer:
 		return types.WrapInteger(intArithmetic(expr, ai, b.Int()))
-	case px.FloatValue:
+	case px.Float:
 		return types.WrapFloat(floatArithmetic(expr, float64(ai), b.Float()))
 	case px.StringValue:
 		s := b.String()
@@ -70,9 +69,9 @@ func lhsIntArithmetic(expr *parser.ArithmeticExpression, ai int64, b px.Value) p
 func lhsFloatArithmetic(expr *parser.ArithmeticExpression, af float64, b px.Value) px.Value {
 	op := expr.Operator()
 	switch b := b.(type) {
-	case px.FloatValue:
+	case px.Float:
 		return types.WrapFloat(floatArithmetic(expr, af, b.Float()))
-	case px.IntegerValue:
+	case px.Integer:
 		return types.WrapFloat(floatArithmetic(expr, af, float64(b.Int())))
 	case px.StringValue:
 		s := b.String()
@@ -126,32 +125,22 @@ func intArithmetic(expr *parser.ArithmeticExpression, a int64, b int64) int64 {
 
 func concatenate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	switch a := a.(type) {
-	case *types.ArrayValue:
+	case *types.Array:
 		switch b := b.(type) {
-		case *types.ArrayValue:
+		case *types.Array:
 			return a.AddAll(b)
 
-		case *types.HashValue:
+		case *types.Hash:
 			return a.AddAll(b)
 
 		default:
 			return a.Add(b)
 		}
-	case *types.HashValue:
+	case *types.Hash:
 		switch b := b.(type) {
-		case *types.ArrayValue:
-			defer func() {
-				err := recover()
-				switch err := err.(type) {
-				case nil:
-				case *errors.ArgumentsError:
-					panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
-				default:
-					panic(err)
-				}
-			}()
+		case *types.Array:
 			return a.Merge(types.WrapHashFromArray(b))
-		case *types.HashValue:
+		case *types.Hash:
 			return a.Merge(b)
 		}
 	case *types.UriValue:
@@ -167,20 +156,20 @@ func concatenate(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.V
 
 func collectionDelete(expr *parser.ArithmeticExpression, a px.Value, b px.Value) px.Value {
 	switch a := a.(type) {
-	case *types.ArrayValue:
+	case *types.Array:
 		switch b := b.(type) {
-		case *types.ArrayValue:
+		case *types.Array:
 			return a.DeleteAll(b)
-		case *types.HashValue:
+		case *types.Hash:
 			return a.DeleteAll(b)
 		default:
 			return a.Delete(b)
 		}
-	case *types.HashValue:
+	case *types.Hash:
 		switch b := b.(type) {
-		case *types.ArrayValue:
+		case *types.Array:
 			return a.DeleteAll(b)
-		case *types.HashValue:
+		case *types.Hash:
 			return a.DeleteAll(b.Keys())
 		default:
 			return a.Delete(b)

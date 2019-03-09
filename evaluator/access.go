@@ -107,7 +107,7 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs px.List, args []px.Va
 		return
 	}
 
-	if hv, ok := lhs.(*types.HashValue); ok {
+	if hv, ok := lhs.(*types.Hash); ok {
 		if hv.Len() == 0 {
 			return px.Undef
 		}
@@ -160,10 +160,5 @@ func accessIndexedValue(expr *parser.AccessExpression, lhs px.List, args []px.Va
 }
 
 func evalParameterizedTypeExpression(e pdsl.Evaluator, qr *parser.QualifiedReference, args []px.Value, expr *parser.AccessExpression) (tp px.Type) {
-	defer func() {
-		if err := recover(); err != nil {
-			convertCallError(err, expr, expr.Keys())
-		}
-	}()
 	return types.ResolveWithParams(e, qr.Name(), args)
 }

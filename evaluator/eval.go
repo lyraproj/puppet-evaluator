@@ -3,11 +3,10 @@ package evaluator
 import (
 	"bytes"
 
-	"github.com/lyraproj/pcore/px"
-
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/errors"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/literal"
 	"github.com/lyraproj/puppet-parser/parser"
@@ -36,8 +35,6 @@ func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) px.Value {
 				panic(evalError(pdsl.IllegalNext, r.Location(), issue.NO_ARGS))
 			case *errors.Return:
 				panic(evalError(pdsl.IllegalReturn, r.Location(), issue.NO_ARGS))
-			case *errors.ArgumentsError:
-				panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: r.Error()}))
 			default:
 				panic(r)
 			}
@@ -76,29 +73,9 @@ func call(e pdsl.Evaluator, funcType px.Namespace, name string, args []px.Value,
 	e.StackPush(call)
 	defer func() {
 		e.StackPop()
-		if err := recover(); err != nil {
-			convertCallError(err, call, call.Arguments())
-		}
 	}()
 	result = fn.Call(e, blk, args...)
 	return
-}
-
-func convertCallError(err interface{}, expr parser.Expression, args []parser.Expression) {
-	switch err := err.(type) {
-	case nil:
-	case *errors.ArgumentsError:
-		panic(evalError(px.ArgumentsError, expr, issue.H{`expression`: expr, `message`: err.Error()}))
-	case *errors.IllegalArgument:
-		panic(evalError(pdsl.IllegalArgument, args[err.Index()], issue.H{`expression`: expr, `number`: err.Index(), `message`: err.Error()}))
-	case *errors.IllegalArgumentType:
-		panic(evalError(pdsl.IllegalArgumentType, args[err.Index()],
-			issue.H{`expression`: expr, `number`: err.Index(), `expected`: err.Expected(), `actual`: err.Actual()}))
-	case *errors.IllegalArgumentCount:
-		panic(evalError(pdsl.IllegalArgumentCount, expr, issue.H{`expression`: expr, `expected`: err.Expected(), `actual`: err.Actual()}))
-	default:
-		panic(err)
-	}
 }
 
 func evalAndExpression(e pdsl.Evaluator, expr *parser.AndExpression) px.Value {
@@ -224,11 +201,11 @@ func evalInExpression(e pdsl.Evaluator, expr *parser.InExpression) px.Value {
 	a := e.Eval(expr.Lhs())
 	x := e.Eval(expr.Rhs())
 	switch x := x.(type) {
-	case *types.ArrayValue:
+	case *types.Array:
 		return types.WrapBoolean(x.Any(func(b px.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
-	case *types.HashValue:
+	case *types.Hash:
 		return types.WrapBoolean(x.AnyPair(func(b, v px.Value) bool {
 			return doCompare(expr, `==`, a, b)
 		}))
@@ -341,7 +318,7 @@ func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) px.Value 
 				case *parser.LiteralDefault:
 					theDefault = co
 				case *parser.UnfoldExpression:
-					if px.Any2(e.Eval(cv).(px.List), func(v px.Value) bool { return match(e, expr.Test(), cv, `match`, test, v) }) {
+					if e.Eval(cv).(px.List).Any(func(v px.Value) bool { return match(e, expr.Test(), cv, `match`, test, v) }) {
 						selected = co
 						break options
 					}
@@ -376,7 +353,7 @@ func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) p
 			case *parser.LiteralDefault:
 				theDefault = se
 			case *parser.UnfoldExpression:
-				if px.Any2(e.Eval(me).(px.List), func(v px.Value) bool { return match(e, expr.Lhs(), me, `match`, test, v) }) {
+				if e.Eval(me).(px.List).Any(func(v px.Value) bool { return match(e, expr.Lhs(), me, `match`, test, v) }) {
 					selected = se
 					break selectors
 				}
@@ -421,9 +398,9 @@ func evalUnfoldExpression(e pdsl.Evaluator, expr *parser.UnfoldExpression) px.Va
 	switch candidate := candidate.(type) {
 	case *types.UndefValue:
 		return types.SingletonArray(px.Undef)
-	case *types.ArrayValue:
+	case *types.Array:
 		return candidate
-	case *types.HashValue:
+	case *types.Hash:
 		return types.WrapArray3(candidate)
 	case px.IteratorValue:
 		return candidate.(px.IteratorValue).AsArray()
@@ -538,7 +515,7 @@ func unfold(e pdsl.Evaluator, array []parser.Expression, initial ...px.Value) []
 		if u, ok := ex.(*parser.UnfoldExpression); ok {
 			ev := e.Eval(u.Expr())
 			switch ev := ev.(type) {
-			case *types.ArrayValue:
+			case *types.Array:
 				result = ev.AppendTo(result)
 			default:
 				result = append(result, ev)

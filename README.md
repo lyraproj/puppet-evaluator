@@ -95,10 +95,11 @@ directory.
 * [x] Error
 * [x] Float
 * [x] Hash
-* [ ] Init
+* [x] Init
 * [x] Integer
 * [x] Iterable
 * [x] Iterator
+* [x] Like
 * [x] NotUndef
 * [x] Numeric
 * [x] Optional
@@ -127,7 +128,7 @@ directory.
 
 * [ ] CatalogEntry
 * [ ] Class
-* [x] Resource
+* [ ] Resource
 
 ### Puppet functions:
 

@@ -3,22 +3,23 @@ package functions
 import (
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/puppet-evaluator/evaluator"
 )
 
-func selectIterator(c px.Context, arg px.IterableValue, block px.Lambda) px.List {
-	return arg.Iterator().Select(func(v px.Value) bool { return px.IsTruthy(block.Call(c, nil, v)) }).AsArray()
+func selectIterator(c px.Context, arg px.Indexed, block px.Lambda) px.List {
+	return evaluator.WrapIterable(arg).Select(func(v px.Value) bool { return px.IsTruthy(block.Call(c, nil, v)) }).AsArray()
 }
 
-func selectIndexIterator(c px.Context, iter px.IterableValue, block px.Lambda) px.List {
+func selectIndexIterator(c px.Context, iter px.Indexed, block px.Lambda) px.List {
 	index := int64(-1)
-	return iter.Iterator().Select(func(v px.Value) bool {
+	return evaluator.WrapIterable(iter).Select(func(v px.Value) bool {
 		index++
 		return px.IsTruthy(block.Call(c, nil, types.WrapInteger(index), v))
 	}).AsArray()
 }
 
-func selectHashIterator(c px.Context, iter px.IterableValue, block px.Lambda) px.List {
-	return iter.Iterator().Select(func(v px.Value) bool {
+func selectHashIterator(c px.Context, iter px.Indexed, block px.Lambda) px.List {
+	return evaluator.WrapIterable(iter).Select(func(v px.Value) bool {
 		vi := v.(px.List)
 		return px.IsTruthy(block.Call(c, nil, vi.At(0), vi.At(1)))
 	}).AsArray()
@@ -30,7 +31,7 @@ func init() {
 			d.Param(`Hash`)
 			d.Block(`Callable[1,1]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				return selectIterator(c, args[0].(*types.HashValue), block)
+				return selectIterator(c, args[0].(*types.Hash), block)
 			})
 		},
 
@@ -38,7 +39,7 @@ func init() {
 			d.Param(`Hash`)
 			d.Block(`Callable[2,2]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				return selectHashIterator(c, args[0].(*types.HashValue), block)
+				return selectHashIterator(c, args[0].(*types.Hash), block)
 			})
 		},
 
@@ -46,7 +47,7 @@ func init() {
 			d.Param(`Iterable`)
 			d.Block(`Callable[1,1]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				return selectIterator(c, args[0].(px.IterableValue), block)
+				return selectIterator(c, args[0].(px.Indexed), block)
 			})
 		},
 
@@ -54,7 +55,7 @@ func init() {
 			d.Param(`Iterable`)
 			d.Block(`Callable[2,2]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				iter := args[0].(px.IterableValue)
+				iter := args[0].(px.Indexed)
 				if iter.IsHashStyle() {
 					return selectHashIterator(c, iter, block)
 				}

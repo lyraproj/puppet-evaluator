@@ -56,7 +56,7 @@ func (d *deferredExpr) Name() string {
 	return ``
 }
 
-func (d *deferredExpr) Arguments() *types.ArrayValue {
+func (d *deferredExpr) Arguments() *types.Array {
 	return nil
 }
 
@@ -106,7 +106,7 @@ func deferToArray(e pdsl.Evaluator, array []parser.Expression) []px.Value {
 		if u, ok := ex.(*parser.UnfoldExpression); ok {
 			ev := deferAny(e, u.Expr())
 			switch ev := ev.(type) {
-			case *types.ArrayValue:
+			case *types.Array:
 				result = ev.AppendTo(result)
 			default:
 				result = append(result, ev)

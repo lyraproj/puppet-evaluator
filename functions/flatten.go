@@ -1,6 +1,9 @@
 package functions
 
-import "github.com/lyraproj/pcore/px"
+import (
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/puppet-evaluator/evaluator"
+)
 
 func init() {
 	px.NewGoFunction(`flatten`,
@@ -11,7 +14,7 @@ func init() {
 				case px.List:
 					return arg.Flatten()
 				default:
-					return arg.(px.IterableValue).Iterator().AsArray().Flatten()
+					return evaluator.WrapIterable(arg.(px.Indexed)).AsArray().Flatten()
 				}
 			})
 		},

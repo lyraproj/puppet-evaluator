@@ -36,7 +36,7 @@ func NewParentedScope(parent pdsl.Scope, mutable bool) pdsl.Scope {
 	return &parentedScope{BasicScope{[]map[string]px.Value{make(map[string]px.Value, 8)}, mutable}, parent}
 }
 
-func NewScope2(h *types.HashValue, mutable bool) pdsl.Scope {
+func NewScope2(h *types.Hash, mutable bool) pdsl.Scope {
 	top := make(map[string]px.Value, h.Len())
 	h.EachPair(func(k, v px.Value) { top[k.String()] = v })
 	return &BasicScope{[]map[string]px.Value{top}, mutable}
@@ -50,7 +50,7 @@ func (e *BasicScope) RxGet(index int) (value px.Value, found bool) {
 	// in this scope using the special key '::R'. No attempt is made to traverse parent
 	// scopes.
 	if r, ok := e.scopes[len(e.scopes)-1][groupKey]; ok {
-		if gv, ok := r.(*types.ArrayValue); ok && index < gv.Len() {
+		if gv, ok := r.(*types.Array); ok && index < gv.Len() {
 			return gv.At(index), true
 		}
 	}

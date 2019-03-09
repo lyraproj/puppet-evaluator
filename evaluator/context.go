@@ -102,10 +102,10 @@ func (c *evalCtx) Fork() px.Context {
 
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
-	if pcore.Get(`workflow`, func() px.Value { return types.BooleanFalse }).(px.BooleanValue).Bool() {
+	if pcore.Get(`workflow`, func() px.Value { return types.BooleanFalse }).(px.Boolean).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
 	}
-	if pcore.Get(`tasks`, func() px.Value { return types.BooleanFalse }).(px.BooleanValue).Bool() {
+	if pcore.Get(`tasks`, func() px.Value { return types.BooleanFalse }).(px.Boolean).Bool() {
 		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
 	}
 	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)

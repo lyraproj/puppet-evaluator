@@ -5,10 +5,12 @@ import (
 	"io"
 	"math"
 
-	"github.com/lyraproj/pcore/errors"
+	"github.com/lyraproj/issue/issue"
+
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/pcore/utils"
+	"github.com/lyraproj/puppet-evaluator/errors"
 	"github.com/lyraproj/puppet-evaluator/pdsl"
 	"github.com/lyraproj/puppet-parser/parser"
 )
@@ -48,7 +50,7 @@ func NewPuppetLambda(expr *parser.LambdaExpression, c pdsl.EvaluationContext) px
 
 func (l *puppetLambda) Call(c px.Context, block px.Lambda, args ...px.Value) (v px.Value) {
 	if block != nil {
-		panic(errors.NewArgumentsError(`lambda`, `nested lambdas are not supported`))
+		panic(px.Error(px.IllegalArguments, issue.H{`function`: `lambda`, `message`: `nested lambdas are not supported`}))
 	}
 	defer func() {
 		if err := recover(); err != nil {
@@ -95,7 +97,7 @@ func NewPuppetFunction(expr *parser.FunctionDefinition) *puppetFunction {
 
 func (f *puppetFunction) Call(c px.Context, block px.Lambda, args ...px.Value) (v px.Value) {
 	if block != nil {
-		panic(errors.NewArgumentsError(f.Name(), `Puppet functions does not yet support lambdas`))
+		panic(px.Error(px.IllegalArguments, issue.H{`function`: f.Name(), `message`: `Puppet functions does not yet support lambdas`}))
 	}
 	defer func() {
 		if err := recover(); err != nil {
@@ -137,7 +139,7 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 						d = df.Resolve(c)
 					}
 					if !px.IsInstance(p.Type(), d) {
-						panic(errors.NewArgumentsError(name, fmt.Sprintf("expected default for parameter 1 to be %s, got %s", p.Type(), d.PType())))
+						panic(px.Error(px.IllegalArgumentType, issue.H{`function`: name, `index`: 1, `expected`: p.Type().String(), `actual`: d.PType().String()}))
 					}
 					ap[idx] = d
 				}
@@ -165,7 +167,7 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 
 func AssertArgument(name string, index int, pt px.Type, arg px.Value) {
 	if !px.IsInstance(pt, arg) {
-		panic(types.NewIllegalArgumentType(name, index, pt.String(), arg))
+		panic(px.Error(px.IllegalArgumentType, issue.H{`function`: name, `index`: index, `expected`: pt.String(), `actual`: arg.PType().String()}))
 	}
 }
 

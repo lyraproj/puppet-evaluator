@@ -18,7 +18,7 @@ func init() {
 		func(d px.Dispatch) {
 			d.Param(`Binary`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return yaml.Unmarshal(c, args[0].(*types.BinaryValue).Bytes())
+				return yaml.Unmarshal(c, args[0].(*types.Binary).Bytes())
 			})
 		})
 }

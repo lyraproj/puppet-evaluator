@@ -10,7 +10,7 @@ func init() {
 		func(d px.Dispatch) {
 			d.Param(`Sensitive`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return args[0].(*types.SensitiveValue).Unwrap()
+				return args[0].(*types.Sensitive).Unwrap()
 			})
 		},
 
@@ -18,7 +18,7 @@ func init() {
 			d.Param(`Sensitive`)
 			d.Block(`Callable[1,1]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				return block.Call(c, nil, args[0].(*types.SensitiveValue).Unwrap())
+				return block.Call(c, nil, args[0].(*types.Sensitive).Unwrap())
 			})
 		})
 }

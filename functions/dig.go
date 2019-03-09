@@ -21,12 +21,12 @@ func init() {
 					switch d := d.(type) {
 					case *types.UndefValue:
 						return px.Undef
-					case *types.HashValue:
+					case *types.Hash:
 						walkedPath = append(walkedPath, k)
 						return d.Get2(k, px.Undef)
-					case *types.ArrayValue:
+					case *types.Array:
 						walkedPath = append(walkedPath, k)
-						if idx, ok := k.(px.IntegerValue); ok {
+						if idx, ok := k.(px.Integer); ok {
 							return d.At(int(idx.Int()))
 						}
 						return px.Undef

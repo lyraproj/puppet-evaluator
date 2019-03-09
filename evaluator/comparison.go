@@ -80,9 +80,9 @@ func compareMagnitude(expr parser.Expression, op string, a px.Value, b px.Value,
 			}
 		}
 
-	case *types.SemVerValue:
-		if rhv, ok := b.(*types.SemVerValue); ok {
-			cmp := a.(*types.SemVerValue).Version().CompareTo(rhv.Version())
+	case *types.SemVer:
+		if rhv, ok := b.(*types.SemVer); ok {
+			cmp := a.(*types.SemVer).Version().CompareTo(rhv.Version())
 			switch op {
 			case `<`:
 				return cmp < 0.0
@@ -97,9 +97,9 @@ func compareMagnitude(expr parser.Expression, op string, a px.Value, b px.Value,
 			}
 		}
 
-	case px.NumericValue:
-		if rhv, ok := b.(px.NumericValue); ok {
-			cmp := a.(px.NumericValue).Float() - rhv.Float()
+	case px.Number:
+		if rhv, ok := b.(px.Number); ok {
+			cmp := a.(px.Number).Float() - rhv.Float()
 			switch op {
 			case `<`:
 				return cmp < 0.0
@@ -123,7 +123,7 @@ func compareMagnitude(expr parser.Expression, op string, a px.Value, b px.Value,
 func match(c px.Context, lhs parser.Expression, rhs parser.Expression, operator string, a px.Value, b px.Value) bool {
 	result := false
 	switch b := b.(type) {
-	case px.StringValue, *types.RegexpValue:
+	case px.StringValue, *types.Regexp:
 		var rx *regexp.Regexp
 		if s, ok := b.(px.StringValue); ok {
 			var err error
@@ -132,7 +132,7 @@ func match(c px.Context, lhs parser.Expression, rhs parser.Expression, operator 
 				panic(px.Error2(rhs, px.MatchNotRegexp, issue.H{`detail`: err.Error()}))
 			}
 		} else {
-			rx = b.(*types.RegexpValue).Regexp()
+			rx = b.(*types.Regexp).Regexp()
 		}
 
 		sv, ok := a.(px.StringValue)

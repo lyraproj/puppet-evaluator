@@ -20,7 +20,7 @@ func init() {
 			d.Param(`String`)
 			d.Param(`Regexp`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return args[0].(px.StringValue).Split(args[1].(*types.RegexpValue).Regexp())
+				return args[0].(px.StringValue).Split(args[1].(*types.Regexp).Regexp())
 			})
 		},
 
