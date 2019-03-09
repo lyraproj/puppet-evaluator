@@ -1,4 +1,4 @@
-package evaluator
+package pdsl_test
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/puppet-evaluator/evaluator"
+	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func ExampleNewError_reflectTo() {
@@ -18,9 +20,9 @@ func ExampleNewError_reflectTo() {
 	c := pcore.RootContext()
 	ts := &TestStruct{}
 
-	ev := px.NewError(c, `the message`, `THE_KIND`, `THE_CODE`, nil, nil)
+	ev := pdsl.NewError(c, `the message`, `THE_KIND`, `THE_CODE`, nil, nil)
 	c.Reflector().ReflectTo(ev, reflect.ValueOf(ts).Elem())
-	fmt.Printf("message: %s, kind %s, issueCode %s\n", ts.Message, ts.Kind, ts.IssueCode)
+	fmt.Printf("\nmessage: %s, kind %s, issueCode %s\n", ts.Message, ts.Kind, ts.IssueCode)
 	// Output: message: the message, kind THE_KIND, issueCode THE_CODE
 }
 
@@ -35,6 +37,6 @@ func ExampleErrorMetaType() {
 	ts := &TestStruct{`the message`, `THE_KIND`, `THE_CODE`}
 	et, _ := px.Load(c, px.NewTypedName(px.NsType, `Error`))
 	ev := et.(px.ObjectType).FromReflectedValue(c, reflect.ValueOf(ts).Elem())
-	fmt.Println(ErrorMetaType.IsInstance(ev, nil))
+	fmt.Println(evaluator.ErrorMetaType.IsInstance(ev, nil))
 	// Output: true
 }

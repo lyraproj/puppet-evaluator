@@ -21,6 +21,10 @@ type (
 		static      bool
 		definitions []interface{}
 	}
+
+	Resolvable interface {
+		Resolve(c px.Context)
+	}
 )
 
 func NewContext(evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator, loader px.Loader, logger px.Logger) pdsl.EvaluationContext {
@@ -140,7 +144,7 @@ func (c *evalCtx) ResolveDefinitions() []interface{} {
 	ts := make([]px.ResolvableType, 0, 8)
 	for _, d := range defs {
 		switch d := d.(type) {
-		case px.Resolvable:
+		case Resolvable:
 			d.Resolve(c)
 		case px.ResolvableType:
 			ts = append(ts, d)

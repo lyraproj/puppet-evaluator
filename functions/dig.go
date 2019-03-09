@@ -15,7 +15,7 @@ func init() {
 			d.Function(func(c px.Context, args []px.Value) px.Value {
 				walkedPath := make([]px.Value, 0)
 				return types.WrapValues(args).Reduce(func(d, k px.Value) px.Value {
-					if px.Equals(px.Undef, k) {
+					if px.Undef.Equals(k, nil) {
 						return px.Undef
 					}
 					switch d := d.(type) {

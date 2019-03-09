@@ -153,7 +153,7 @@ func createTaskFromHash(ctx px.Context, name, taskSource string, hash map[string
 					if paramHash, ok := param.(map[string]interface{}); ok {
 						if t, ok := paramHash[`type`]; ok {
 							if s, ok := t.(string); ok {
-								paramHash[`type`] = ctx.ParseType2(s)
+								paramHash[`type`] = ctx.ParseType(s)
 							}
 						} else {
 							paramHash[`type`] = types.DefaultDataType()

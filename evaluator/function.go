@@ -22,6 +22,22 @@ type (
 		parameters []px.Parameter
 	}
 
+	// ParameterDefaults is implemented by functions that can have
+	// default values for the parameters. Currently only applicable
+	// to the Puppet DSL function.
+	//
+	// A default is often an instance of types.Deferred and it is the
+	// callers responsibility to resolve.
+	ParameterDefaults interface {
+		Defaults() []px.Value
+	}
+
+	// CallNamed is implemented by functions that can be called with
+	// named arguments.
+	CallNamed interface {
+		CallNamed(c px.Context, block px.Lambda, args px.OrderedMap) px.Value
+	}
+
 	PuppetFunction interface {
 		px.Function
 		Signature() px.Signature

@@ -23,7 +23,7 @@ func init() {
 			d.Param(`Any`)
 			d.OptionalBlock(`Callable[2,2]`)
 			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
-				return assertType(c, c.ParseType(args[0]), args[1], block)
+				return assertType(c, c.ParseTypeValue(args[0]), args[1], block)
 			})
 		},
 

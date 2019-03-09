@@ -4,6 +4,8 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/lyraproj/puppet-evaluator/pdsl"
+
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -12,7 +14,7 @@ import (
 var ErrorMetaType px.ObjectType
 
 func init() {
-	ErrorMetaType = px.NewGoObjectType(`Error`, reflect.TypeOf((*px.ErrorObject)(nil)).Elem(), `{
+	ErrorMetaType = px.NewGoObjectType(`Error`, reflect.TypeOf((*pdsl.ErrorObject)(nil)).Elem(), `{
 		type_parameters => {
 		  kind => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]],
 	  	issue_code => Optional[Variant[String,Regexp,Type[Enum],Type[Pattern],Type[NotUndef],Type[Undef]]]
@@ -31,8 +33,8 @@ func init() {
 			return newErrorFromHash(ctx, args[0].(px.OrderedMap))
 		})
 
-	px.NewError = newError
-	px.ErrorFromReported = errorFromReported
+	pdsl.NewError = newError
+	pdsl.ErrorFromReported = errorFromReported
 }
 
 type errorObj struct {
@@ -44,7 +46,7 @@ type errorObj struct {
 	details       px.OrderedMap
 }
 
-func newError2(c px.Context, args ...px.Value) px.ErrorObject {
+func newError2(c px.Context, args ...px.Value) pdsl.ErrorObject {
 	argc := len(args)
 	ev := &errorObj{partialResult: px.Undef, details: px.EmptyMap}
 	ev.message = args[0].String()
@@ -64,7 +66,7 @@ func newError2(c px.Context, args ...px.Value) px.ErrorObject {
 	return ev
 }
 
-func newError(c px.Context, message, kind, issueCode string, partialResult px.Value, details px.OrderedMap) px.ErrorObject {
+func newError(c px.Context, message, kind, issueCode string, partialResult px.Value, details px.OrderedMap) pdsl.ErrorObject {
 	if partialResult == nil {
 		partialResult = px.Undef
 	}
@@ -76,7 +78,7 @@ func newError(c px.Context, message, kind, issueCode string, partialResult px.Va
 	return ev
 }
 
-func errorFromReported(c px.Context, err issue.Reported) px.ErrorObject {
+func errorFromReported(c px.Context, err issue.Reported) pdsl.ErrorObject {
 	ev := &errorObj{partialResult: px.Undef, details: px.EmptyMap}
 	ev.message = err.Error()
 	ev.kind = `PUPPET_ERROR`
@@ -88,7 +90,7 @@ func errorFromReported(c px.Context, err issue.Reported) px.ErrorObject {
 	return ev
 }
 
-func newErrorFromHash(c px.Context, hash px.OrderedMap) px.ErrorObject {
+func newErrorFromHash(c px.Context, hash px.OrderedMap) pdsl.ErrorObject {
 	ev := &errorObj{}
 	ev.message = hash.Get5(`message`, px.EmptyString).String()
 	ev.kind = hash.Get5(`kind`, px.EmptyString).String()
@@ -126,8 +128,8 @@ func (e *errorObj) String() string {
 func (e *errorObj) Equals(other interface{}, guard px.Guard) bool {
 	if o, ok := other.(*errorObj); ok {
 		return e.message == o.message && e.kind == o.kind && e.issueCode == o.issueCode &&
-			px.GuardedEquals(e.partialResult, o.partialResult, guard) &&
-			px.GuardedEquals(e.details, o.details, guard)
+			px.Equals(e.partialResult, o.partialResult, guard) &&
+			px.Equals(e.details, o.details, guard)
 	}
 	return false
 }

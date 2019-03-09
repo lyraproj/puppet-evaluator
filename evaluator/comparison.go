@@ -44,11 +44,11 @@ func compareMagnitude(expr parser.Expression, op string, a px.Value, b px.Value,
 		case px.Type:
 			switch op {
 			case `<`:
-				return px.IsAssignable(b, left) && !px.Equals(left, b)
+				return px.IsAssignable(b, left) && !left.Equals(b, nil)
 			case `<=`:
 				return px.IsAssignable(b, left)
 			case `>`:
-				return px.IsAssignable(left, b) && !px.Equals(left, b)
+				return px.IsAssignable(left, b) && !left.Equals(b, nil)
 			case `>=`:
 				return px.IsAssignable(left, b)
 			default:
