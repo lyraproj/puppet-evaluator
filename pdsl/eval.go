@@ -1,7 +1,6 @@
 package pdsl
 
 import (
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/puppet-parser/parser"
 )
