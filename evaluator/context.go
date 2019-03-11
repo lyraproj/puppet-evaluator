@@ -33,18 +33,13 @@ func NewContext(evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator, loa
 	return c
 }
 
-func WithParent(
-	parent px.Context,
-	evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator,
-	loader px.Loader,
-	logger px.Logger,
-	ir px.ImplementationRegistry) pdsl.EvaluationContext {
+func WithParent(parent px.Context, evaluatorCtor func(c pdsl.EvaluationContext) pdsl.Evaluator) pdsl.EvaluationContext {
 	var c *evalCtx
 	if cp, ok := parent.(*evalCtx); ok {
 		c = cp.clone()
-		c.Context = pcore.WithParent(cp.Context, loader, logger, ir)
+		c.Context = pcore.WithParent(cp.Context, cp.Loader(), cp.Logger(), cp.ImplementationRegistry())
 	} else {
-		c = &evalCtx{Context: pcore.WithParent(parent, loader, logger, ir)}
+		c = &evalCtx{Context: parent}
 	}
 	c.evaluator = evaluatorCtor(c)
 	return c
@@ -90,7 +85,6 @@ func (c *evalCtx) GetEvaluator() pdsl.Evaluator {
 func (c *evalCtx) clone() *evalCtx {
 	clone := &evalCtx{}
 	*clone = *c
-	clone.Context = c
 	return clone
 }
 

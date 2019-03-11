@@ -28,7 +28,6 @@ const (
 	UnhandledExpression         = `EVAL_UNHANDLED_EXPRESSION`
 	UnknownPlan                 = `EVAL_UNKNOWN_PLAN`
 	UnknownTask                 = `EVAL_UNKNOWN_TASK`
-	UnknownVariable             = `EVAL_UNKNOWN_VARIABLE`
 )
 
 func init() {
@@ -90,6 +89,4 @@ func init() {
 	issue.Hard(UnknownPlan, `Unknown plan: '%{name}'`)
 
 	issue.Hard(UnknownTask, `Task not found: '%{name}'`)
-
-	issue.Hard(UnknownVariable, `Unknown variable: '$%{name}'`)
 }

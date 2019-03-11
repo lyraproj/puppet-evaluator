@@ -152,7 +152,7 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 					}
 					d := p.Value()
 					if df, ok := d.(types.Deferred); ok {
-						d = df.Resolve(c)
+						d = df.Resolve(c, c.Scope())
 					}
 					if !px.IsInstance(p.Type(), d) {
 						panic(px.Error(px.IllegalArgumentType, issue.H{`function`: name, `index`: 1, `expected`: p.Type().String(), `actual`: d.PType().String()}))

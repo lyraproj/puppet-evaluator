@@ -86,7 +86,11 @@ func (e *BasicScope) copyFrom(src *BasicScope) {
 	}
 }
 
-func (e *BasicScope) Get(name string) (value px.Value, found bool) {
+func (e *BasicScope) Get(nv px.Value) (value px.Value, found bool) {
+	return e.Get2(nv.String())
+}
+
+func (e *BasicScope) Get2(name string) (value px.Value, found bool) {
 	if strings.HasPrefix(name, `::`) {
 		if value, found = e.scopes[0][name[2:]]; found {
 			return
@@ -161,10 +165,14 @@ func (e *parentedScope) Fork() pdsl.Scope {
 	return clone
 }
 
-func (e *parentedScope) Get(name string) (value px.Value, found bool) {
-	value, found = e.BasicScope.Get(name)
+func (e *parentedScope) Get(nv px.Value) (value px.Value, found bool) {
+	return e.Get2(nv.String())
+}
+
+func (e *parentedScope) Get2(name string) (value px.Value, found bool) {
+	value, found = e.BasicScope.Get2(name)
 	if !found {
-		value, found = e.parent.Get(name)
+		value, found = e.parent.Get2(name)
 	}
 	return
 }

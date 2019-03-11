@@ -381,16 +381,16 @@ func evalTextExpression(e pdsl.Evaluator, expr *parser.TextExpression) px.Value 
 func evalVariableExpression(e pdsl.Evaluator, expr *parser.VariableExpression) (value px.Value) {
 	name, ok := expr.Name()
 	if ok {
-		if value, ok = e.Scope().Get(name); ok {
+		if value, ok = e.Scope().Get2(name); ok {
 			return value
 		}
-		panic(evalError(pdsl.UnknownVariable, expr, issue.H{`name`: name}))
+		panic(evalError(px.UnknownVariable, expr, issue.H{`name`: name}))
 	}
 	idx, _ := expr.Index()
 	if value, ok = e.Scope().RxGet(int(idx)); ok {
 		return value
 	}
-	panic(evalError(pdsl.UnknownVariable, expr, issue.H{`name`: idx}))
+	panic(evalError(px.UnknownVariable, expr, issue.H{`name`: idx}))
 }
 
 func evalUnfoldExpression(e pdsl.Evaluator, expr *parser.UnfoldExpression) px.Value {

@@ -15,33 +15,6 @@ var deferredExprType px.ObjectType
 
 func init() {
 	deferredExprType = px.NewObjectType(`DeferredExpression`, `{}`)
-
-	types.DeferredResolve = func(e types.Deferred, c px.Context) px.Value {
-		fn := e.Name()
-		da := e.Arguments()
-
-		var args []px.Value
-		if fn[0] == '$' {
-			vn := fn[1:]
-			vv, ok := c.(pdsl.EvaluationContext).Scope().Get(vn)
-			if !ok {
-				panic(px.Error(pdsl.UnknownVariable, issue.H{`name`: vn}))
-			}
-			if da.Len() == 0 {
-				// No point digging with zero arguments
-				return vv
-			}
-			fn = `dig`
-			args = append(make([]px.Value, 0, 1+da.Len()), vv)
-		} else {
-			args = make([]px.Value, 0, da.Len())
-		}
-		args = da.AppendTo(args)
-		for i, a := range args {
-			args[i] = types.ResolveDeferred(c, a)
-		}
-		return px.Call(c, fn, args, nil)
-	}
 }
 
 func newDeferredExpression(expression parser.Expression) types.Deferred {
@@ -78,7 +51,7 @@ func (d *deferredExpr) PType() px.Type {
 	return deferredExprType
 }
 
-func (d *deferredExpr) Resolve(c px.Context) px.Value {
+func (d *deferredExpr) Resolve(c px.Context, scope px.Keyed) px.Value {
 	return pdsl.Evaluate(c.(pdsl.EvaluationContext), d.expression)
 }
 

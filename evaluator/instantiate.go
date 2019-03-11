@@ -16,13 +16,8 @@ import (
 
 func init() {
 	loader.SmartPathFactories[px.PuppetFunctionPath] = newPuppetFunctionPath
-	loader.SmartPathFactories[px.PuppetDataTypePath] = newPuppetDataTypePath
 	loader.SmartPathFactories[px.PlanPath] = newPuppetPlanPath
 	loader.SmartPathFactories[px.TaskPath] = newPuppetTaskPath
-}
-
-func newPuppetDataTypePath(ml px.ModuleLoader, moduleNameRelative bool) loader.SmartPath {
-	return loader.NewSmartPath(`types`, `.pp`, ml, px.NsType, moduleNameRelative, false, InstantiatePuppetType)
 }
 
 func newPuppetFunctionPath(ml px.ModuleLoader, moduleNameRelative bool) loader.SmartPath {
@@ -71,30 +66,6 @@ func instantiatePuppetFunction(ctx px.Context, loader loader.ContentProvidingLoa
 	}
 	if !strings.EqualFold(fd.Name(), name) {
 		panic(ctx.Error(expr, px.WrongDefinition, issue.H{`source`: expr.File(), `type`: tn.Namespace(), `expected`: name, `actual`: fd.Name()}))
-	}
-	ec.AddDefinitions(expr)
-	ec.ResolveDefinitions()
-}
-
-func InstantiatePuppetType(ctx px.Context, loader loader.ContentProvidingLoader, tn px.TypedName, sources []string) {
-	ec := ctx.(pdsl.EvaluationContext)
-	content := string(loader.GetContent(ctx, sources[0]))
-	expr := ec.ParseAndValidate(sources[0], content, false)
-	name := tn.Name()
-	def := getDefinition(expr, px.NsType, name)
-	var tdn string
-	switch def := def.(type) {
-	case *parser.TypeAlias:
-		tdn = def.Name()
-	case *parser.TypeDefinition:
-		tdn = def.Name()
-	case *parser.TypeMapping:
-		tdn = def.Type().Label()
-	default:
-		panic(ctx.Error(expr, px.NoDefinition, issue.H{`source`: expr.File(), `type`: px.NsType, `name`: name}))
-	}
-	if !strings.EqualFold(tdn, name) {
-		panic(ctx.Error(expr, px.WrongDefinition, issue.H{`source`: expr.File(), `type`: px.NsType, `expected`: name, `actual`: tdn}))
 	}
 	ec.AddDefinitions(expr)
 	ec.ResolveDefinitions()

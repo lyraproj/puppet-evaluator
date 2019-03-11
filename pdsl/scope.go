@@ -33,7 +33,11 @@ type (
 
 		// Get returns a named variable from this scope together with a boolean indicating
 		// if the variable was found or not
-		Get(name string) (value px.Value, found bool)
+		Get(name px.Value) (value px.Value, found bool)
+
+		// Get returns a named variable from this scope together with a boolean indicating
+		// if the variable was found or not
+		Get2(name string) (value px.Value, found bool)
 
 		// Set assigns a named variable to this scope provided that the name didn't
 		// already exist. It returns a boolean indicating success.
