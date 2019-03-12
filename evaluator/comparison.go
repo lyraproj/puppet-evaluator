@@ -140,7 +140,7 @@ func match(c px.Context, lhs parser.Expression, rhs parser.Expression, operator 
 			panic(px.Error2(lhs, px.MatchNotString, issue.H{`left`: a.PType()}))
 		}
 		if group := rx.FindStringSubmatch(sv.String()); group != nil {
-			c.(pdsl.EvaluationContext).Scope().RxSet(group)
+			c.Scope().(pdsl.Scope).RxSet(group)
 			result = true
 		}
 	default:

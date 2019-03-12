@@ -137,25 +137,25 @@ func (e *BasicScope) Set(name string, value px.Value) bool {
 	return false
 }
 
-func (e *BasicScope) State(name string) pdsl.VariableState {
+func (e *BasicScope) State(name string) px.VariableState {
 	if strings.HasPrefix(name, `::`) {
 		// Shortcut to global scope
 		_, ok := e.scopes[0][name[2:]]
 		if ok {
-			return pdsl.Global
+			return px.Global
 		}
-		return pdsl.NotFound
+		return px.NotFound
 	}
 
 	for idx := len(e.scopes) - 1; idx >= 0; idx-- {
 		if _, ok := e.scopes[idx][name]; ok {
 			if idx == 0 {
-				return pdsl.Global
+				return px.Global
 			}
-			return pdsl.Local
+			return px.Local
 		}
 	}
-	return pdsl.NotFound
+	return px.NotFound
 }
 
 func (e *parentedScope) Fork() pdsl.Scope {
@@ -184,7 +184,7 @@ func (e *parentedScope) Set(name string, value px.Value) bool {
 	} else {
 		scopeIdx = len(e.scopes) - 1
 	}
-	if scopeIdx == 0 && e.parent.State(name) == pdsl.Global {
+	if scopeIdx == 0 && e.parent.State(name) == px.Global {
 		// Attempt to override global declared in parent. Only $pnr can do
 		// that and the override ends up here, not in the parent.
 		if name == `pnr` {
@@ -207,7 +207,7 @@ func (e *parentedScope) Set(name string, value px.Value) bool {
 	return false
 }
 
-func (e *parentedScope) State(name string) pdsl.VariableState {
+func (e *parentedScope) State(name string) px.VariableState {
 	s := e.BasicScope.State(name)
 	if s != 0 {
 		return s

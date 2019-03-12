@@ -12,9 +12,9 @@ func evalAssignmentExpression(e pdsl.Evaluator, expr *parser.AssignmentExpressio
 	return assign(expr, e.Scope(), lvalue(expr.Lhs()), e.Eval(expr.Rhs()))
 }
 
-func assign(expr *parser.AssignmentExpression, scope pdsl.Scope, lv px.Value, rv px.Value) px.Value {
+func assign(expr *parser.AssignmentExpression, scope px.Keyed, lv px.Value, rv px.Value) px.Value {
 	if sv, ok := lv.(px.StringValue); ok {
-		if !scope.Set(sv.String(), rv) {
+		if !scope.(pdsl.Scope).Set(sv.String(), rv) {
 			panic(evalError(pdsl.IllegalReassignment, expr, issue.H{`var`: sv.String()}))
 		}
 		return rv

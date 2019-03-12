@@ -3,7 +3,6 @@ package functions
 import (
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func init() {
@@ -19,7 +18,7 @@ func init() {
 		func(d px.Dispatch) {
 			d.Param(`Deferred`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return args[0].(types.Deferred).Resolve(c, c.(pdsl.EvaluationContext).Scope())
+				return args[0].(types.Deferred).Resolve(c, c.Scope())
 			})
 		},
 	)

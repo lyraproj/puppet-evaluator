@@ -136,12 +136,13 @@ func (f *puppetFunction) Signature() px.Signature {
 }
 
 func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter, signature *types.CallableType, body parser.Expression, args []px.Value) px.Value {
-	return c.Scope().WithLocalScope(func() (v px.Value) {
+	scope := c.Scope().(pdsl.Scope)
+	return scope.WithLocalScope(func() (v px.Value) {
 		na := len(args)
 		np := len(parameters)
 		if np > na {
 			// Resolve parameter defaults in special parameter scope and assign values to function scope
-			c.Scope().WithLocalScope(func() px.Value {
+			scope.WithLocalScope(func() px.Value {
 				ap := make([]px.Value, np)
 				copy(ap, args)
 				for idx := na; idx < np; idx++ {
@@ -152,7 +153,7 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 					}
 					d := p.Value()
 					if df, ok := d.(types.Deferred); ok {
-						d = df.Resolve(c, c.Scope())
+						d = df.Resolve(c, scope)
 					}
 					if !px.IsInstance(p.Type(), d) {
 						panic(px.Error(px.IllegalArgumentType, issue.H{`function`: name, `index`: 1, `expected`: p.Type().String(), `actual`: d.PType().String()}))
@@ -168,7 +169,6 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 			AssertArgument(name, idx, parameters[idx].Type(), arg)
 		}
 
-		scope := c.Scope()
 		for idx, p := range parameters {
 			scope.Set(p.Name(), args[idx])
 		}

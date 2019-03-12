@@ -2,12 +2,6 @@ package pdsl
 
 import "github.com/lyraproj/pcore/px"
 
-type VariableState int
-
-const NotFound = VariableState(0)
-const Global = VariableState(1)
-const Local = VariableState(2)
-
 type (
 	// A Scope is the container for Puppet variables. It is constituted of
 	// a stack of ephemeral scopes where each ephemeral scope represents a local
@@ -23,6 +17,8 @@ type (
 	//
 	// 2. A scope must be considered immutable once it is used as a parent scope.
 	Scope interface {
+		px.VariableStates
+
 		// WithLocalScope pushes an ephemeral scope and calls the producer. The
 		// ephemeral scope is guaranteed to be popped before this method returns.
 		WithLocalScope(producer px.Producer) px.Value
@@ -51,8 +47,5 @@ type (
 		// RxGet returns a numeric variable that has been assigned by RxSet together
 		// with a boolean indicating success.
 		RxGet(index int) (value px.Value, found bool)
-
-		// State returns NotFound, Global, or Local
-		State(name string) VariableState
 	}
 )

@@ -161,7 +161,7 @@ func (c *evalCtx) ResolveType(expr parser.Expression) px.Type {
 	panic(fmt.Sprintf(`Expression "%s" does no resolve to a Type`, expr.String()))
 }
 
-func (c *evalCtx) Scope() pdsl.Scope {
+func (c *evalCtx) Scope() px.Keyed {
 	if c.scope == nil {
 		c.scope = NewScope(false)
 	}

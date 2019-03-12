@@ -34,9 +34,6 @@ type EvaluationContext interface {
 	// is evaluates to a Type
 	ResolveType(expr parser.Expression) px.Type
 
-	// Scope returns the scope
-	Scope() Scope
-
 	// Static returns true during evaluation of type expressions. It is used to prevent
 	// dynamic expressions within such expressions
 	Static() bool

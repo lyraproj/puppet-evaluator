@@ -189,7 +189,7 @@ func evalCallNamedFunctionExpression(e pdsl.Evaluator, call *parser.CallNamedFun
 }
 
 func evalIfExpression(e pdsl.Evaluator, expr *parser.IfExpression) px.Value {
-	return e.Scope().WithLocalScope(func() px.Value {
+	return e.Scope().(pdsl.Scope).WithLocalScope(func() px.Value {
 		if px.IsTruthy(e.Eval(expr.Test())) {
 			return e.Eval(expr.Then())
 		}
@@ -214,7 +214,7 @@ func evalInExpression(e pdsl.Evaluator, expr *parser.InExpression) px.Value {
 }
 
 func evalUnlessExpression(e pdsl.Evaluator, expr *parser.UnlessExpression) px.Value {
-	return e.Scope().WithLocalScope(func() px.Value {
+	return e.Scope().(pdsl.Scope).WithLocalScope(func() px.Value {
 		if !px.IsTruthy(e.Eval(expr.Test())) {
 			return e.Eval(expr.Then())
 		}
@@ -305,7 +305,7 @@ func evalRegexpExpression(expr *parser.RegexpExpression) px.Value {
 }
 
 func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) px.Value {
-	return e.Scope().WithLocalScope(func() px.Value {
+	return e.Scope().(pdsl.Scope).WithLocalScope(func() px.Value {
 		test := e.Eval(expr.Test())
 		var theDefault *parser.CaseOption
 		var selected *parser.CaseOption
@@ -341,7 +341,7 @@ func evalCaseExpression(e pdsl.Evaluator, expr *parser.CaseExpression) px.Value 
 }
 
 func evalSelectorExpression(e pdsl.Evaluator, expr *parser.SelectorExpression) px.Value {
-	return e.Scope().WithLocalScope(func() px.Value {
+	return e.Scope().(pdsl.Scope).WithLocalScope(func() px.Value {
 		test := e.Eval(expr.Lhs())
 		var theDefault *parser.SelectorEntry
 		var selected *parser.SelectorEntry
@@ -381,13 +381,13 @@ func evalTextExpression(e pdsl.Evaluator, expr *parser.TextExpression) px.Value 
 func evalVariableExpression(e pdsl.Evaluator, expr *parser.VariableExpression) (value px.Value) {
 	name, ok := expr.Name()
 	if ok {
-		if value, ok = e.Scope().Get2(name); ok {
+		if value, ok = e.Scope().(pdsl.Scope).Get2(name); ok {
 			return value
 		}
 		panic(evalError(px.UnknownVariable, expr, issue.H{`name`: name}))
 	}
 	idx, _ := expr.Index()
-	if value, ok = e.Scope().RxGet(int(idx)); ok {
+	if value, ok = e.Scope().(pdsl.Scope).RxGet(int(idx)); ok {
 		return value
 	}
 	panic(evalError(px.UnknownVariable, expr, issue.H{`name`: idx}))
