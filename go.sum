@@ -7,6 +7,8 @@ github.com/lyraproj/pcore v0.0.0-20190312090417-c3ed62d0aa05 h1:JNIo0lVg4D0H9A4F
 github.com/lyraproj/pcore v0.0.0-20190312090417-c3ed62d0aa05/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
 github.com/lyraproj/pcore v0.0.0-20190312155502-c99dcf0e4746 h1:be9oDrVUUbh7G3wxTRK9m+F5aA6OX1ZZ5hLOReOSViM=
 github.com/lyraproj/pcore v0.0.0-20190312155502-c99dcf0e4746/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
+github.com/lyraproj/pcore v0.0.0-20190312215929-fcacd5c4e31e h1:65AkH+QhSFMOO4KiFdsRQmMEev5+x7dyFvzsQRysXCA=
+github.com/lyraproj/pcore v0.0.0-20190312215929-fcacd5c4e31e/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57 h1:z84TqgQCPiltNpKV5LEld5U0dQ//w/uk3+4HakwvNWM=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57/go.mod h1:KYBqLHpK7D2FNFp47m9BZfr6Xvd6PnEYOpI31aEGAX0=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
