@@ -56,7 +56,7 @@ func (d *deferredExpr) Resolve(c px.Context, scope px.Keyed) px.Value {
 }
 
 func objectTypeFromAST(e pdsl.Evaluator, name string, parent px.Type, initHashExpression *parser.LiteralHash) px.ObjectType {
-	return types.NewParentedObjectType(name, parent, deferLiteralHash(e, initHashExpression))
+	return types.MakeObjectType(name, parent, deferLiteralHash(e, initHashExpression), false)
 }
 
 func typeSetTypeFromAST(e pdsl.Evaluator, na px.URI, name string, initHashExpression *parser.LiteralHash) px.TypeSet {
