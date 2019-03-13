@@ -2,35 +2,36 @@ package functions
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/puppet-evaluator/pdsl"
 )
 
 func init() {
-	eval.NewGoFunction(`dig`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`dig`,
+		func(d px.Dispatch) {
 			d.Param(`Optional[Collection]`)
 			d.RepeatedParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				walkedPath := []eval.Value{}
-				return types.WrapValues(args).Reduce(func(d, k eval.Value) eval.Value {
-					if eval.Equals(eval.UNDEF, k) {
-						return eval.UNDEF
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				walkedPath := make([]px.Value, 0)
+				return types.WrapValues(args).Reduce(func(d, k px.Value) px.Value {
+					if px.Undef.Equals(k, nil) {
+						return px.Undef
 					}
-					switch d.(type) {
+					switch d := d.(type) {
 					case *types.UndefValue:
-						return eval.UNDEF
-					case *types.HashValue:
+						return px.Undef
+					case *types.Hash:
 						walkedPath = append(walkedPath, k)
-						return d.(*types.HashValue).Get2(k, eval.UNDEF)
-					case *types.ArrayValue:
+						return d.Get2(k, px.Undef)
+					case *types.Array:
 						walkedPath = append(walkedPath, k)
-						if idx, ok := k.(eval.IntegerValue); ok {
-							return d.(*types.ArrayValue).At(int(idx.Int()))
+						if idx, ok := k.(px.Integer); ok {
+							return d.At(int(idx.Int()))
 						}
-						return eval.UNDEF
+						return px.Undef
 					default:
-						panic(eval.Error(eval.EVAL_NOT_COLLECTION_AT, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
+						panic(px.Error(pdsl.NotCollectionAt, issue.H{`walked_path`: types.WrapValues(walkedPath), `klass`: d.PType().String()}))
 					}
 				})
 			})

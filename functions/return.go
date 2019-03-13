@@ -1,16 +1,16 @@
 package functions
 
 import (
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/puppet-evaluator/errors"
-	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func init() {
-	eval.NewGoFunction(`return`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`return`,
+		func(d px.Dispatch) {
 			d.OptionalParam(`Any`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := eval.UNDEF
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				arg := px.Undef
 				if len(args) > 0 {
 					arg = args[0]
 				}

@@ -1,24 +1,24 @@
 package functions
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 )
 
 func init() {
-	eval.NewGoFunction(`call`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`call`,
+		func(d px.Dispatch) {
 			d.Param(`String`)
 			d.RepeatedParam(`Any`)
 			d.OptionalBlock(`Callable`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				return eval.Call(c, args[0].String(), args[1:], block)
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				return px.Call(c, args[0].String(), args[1:], block)
 			})
 		},
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Deferred`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return args[0].(types.Deferred).Resolve(c)
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				return args[0].(types.Deferred).Resolve(c, c.Scope())
 			})
 		},
 	)

@@ -1,17 +1,15 @@
 package functions
 
-import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-)
+import "github.com/lyraproj/pcore/px"
 
 func init() {
-	for _, level := range eval.LOG_LEVELS {
-		eval.NewGoFunction(string(level),
-			func(d eval.Dispatch) {
+	for _, level := range px.LogLevels {
+		px.NewGoFunction(string(level),
+			func(d px.Dispatch) {
 				d.RepeatedParam(`Any`)
-				d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-					c.Logger().Log(eval.LogLevel(d.Name()), args...)
-					return eval.UNDEF
+				d.Function(func(c px.Context, args []px.Value) px.Value {
+					c.Logger().Log(px.LogLevel(d.Name()), args...)
+					return px.Undef
 				})
 			})
 	}

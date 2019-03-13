@@ -1,20 +1,20 @@
 package functions
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/puppet-evaluator/evaluator"
 )
 
 func init() {
-	eval.NewGoFunction(`flatten`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`flatten`,
+		func(d px.Dispatch) {
 			d.Param(`Iterable`)
-			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				arg := args[0]
-				switch arg.(type) {
-				case eval.List:
-					return arg.(eval.List).Flatten()
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				switch arg := args[0].(type) {
+				case px.List:
+					return arg.Flatten()
 				default:
-					return arg.(eval.IterableValue).Iterator().AsArray().Flatten()
+					return evaluator.WrapIterable(arg.(px.Indexed)).AsArray().Flatten()
 				}
 			})
 		},

@@ -1,10 +1,10 @@
 package functions
 
-// Ensure that impl package is initialized
-import _ "github.com/lyraproj/puppet-evaluator/impl"
+// Ensure that evaluator package is initialized
+import _ "github.com/lyraproj/puppet-evaluator/evaluator"
 
 // Ensure that loader package is initialized
-import _ "github.com/lyraproj/puppet-evaluator/loader"
+import _ "github.com/lyraproj/pcore/loader"
 
 func init() {
 }

@@ -1,38 +1,38 @@
 package functions
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/pcore/px"
 )
 
-func assertType(c eval.Context, t eval.Type, v eval.Value, b eval.Lambda) eval.Value {
-	if eval.IsInstance(t, v) {
+func assertType(c px.Context, t px.Type, v px.Value, b px.Lambda) px.Value {
+	if px.IsInstance(t, v) {
 		return v
 	}
-	vt := eval.DetailedValueType(v)
+	vt := px.DetailedValueType(v)
 	if b == nil {
-		panic(eval.Error(eval.EVAL_TYPE_MISMATCH, issue.H{`detail`: eval.DescribeMismatch(`assert_type():`, t, vt)}))
+		panic(px.Error(px.TypeMismatch, issue.H{`detail`: px.DescribeMismatch(`assert_type():`, t, vt)}))
 	}
 	return b.Call(c, nil, t, vt)
 }
 
 func init() {
-	eval.NewGoFunction(`assert_type`,
-		func(d eval.Dispatch) {
+	px.NewGoFunction(`assert_type`,
+		func(d px.Dispatch) {
 			d.Param(`String[1]`)
 			d.Param(`Any`)
 			d.OptionalBlock(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				return assertType(c, c.ParseType(args[0]), args[1], block)
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				return assertType(c, c.ParseTypeValue(args[0]), args[1], block)
 			})
 		},
 
-		func(d eval.Dispatch) {
+		func(d px.Dispatch) {
 			d.Param(`Type`)
 			d.Param(`Any`)
 			d.OptionalBlock(`Callable[2,2]`)
-			d.Function2(func(c eval.Context, args []eval.Value, block eval.Lambda) eval.Value {
-				return assertType(c, args[0].(eval.Type), args[1], block)
+			d.Function2(func(c px.Context, args []px.Value, block px.Lambda) px.Value {
+				return assertType(c, args[0].(px.Type), args[1], block)
 			})
 		},
 	)
