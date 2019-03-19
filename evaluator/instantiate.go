@@ -139,7 +139,7 @@ func createTaskFromHash(ctx px.Context, name, taskSource string, hash map[string
 	if taskCtor, ok := px.Load(ctx, px.NewTypedName(px.NsConstructor, `Task`)); ok {
 		return taskCtor.(px.Function).Call(ctx, nil, types.WrapStringToInterfaceMap(ctx, arguments))
 	}
-	panic(px.Error(pdsl.TaskInitializerNotFound, issue.NO_ARGS))
+	panic(px.Error(pdsl.TaskInitializerNotFound, issue.NoArgs))
 }
 
 // Extract a single Definition and return it. Will fail and report an error unless the program contains
