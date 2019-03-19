@@ -21,15 +21,15 @@ func init() {
 }
 
 func newPuppetFunctionPath(ml px.ModuleLoader, moduleNameRelative bool) loader.SmartPath {
-	return loader.NewSmartPath(`functions`, `.pp`, ml, px.NsFunction, moduleNameRelative, false, InstantiatePuppetFunction)
+	return loader.NewSmartPath(`functions`, `.pp`, ml, []px.Namespace{px.NsFunction}, moduleNameRelative, false, InstantiatePuppetFunction)
 }
 
 func newPuppetPlanPath(ml px.ModuleLoader, moduleNameRelative bool) loader.SmartPath {
-	return loader.NewSmartPath(`plans`, `.pp`, ml, px.NsPlan, moduleNameRelative, false, InstantiatePuppetPlan)
+	return loader.NewSmartPath(`plans`, `.pp`, ml, []px.Namespace{px.NsPlan}, moduleNameRelative, false, InstantiatePuppetPlan)
 }
 
 func newPuppetTaskPath(ml px.ModuleLoader, moduleNameRelative bool) loader.SmartPath {
-	return loader.NewSmartPath(`tasks`, ``, ml, px.NsTask, moduleNameRelative, true, InstantiatePuppetTask)
+	return loader.NewSmartPath(`tasks`, ``, ml, []px.Namespace{px.NsTask}, moduleNameRelative, true, InstantiatePuppetTask)
 }
 
 func InstantiatePuppetActivityFromFile(ctx px.Context, loader loader.ContentProvidingLoader, file string) px.TypedName {
