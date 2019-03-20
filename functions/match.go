@@ -51,7 +51,7 @@ func matchPatterns(s string, v px.Value) px.Value {
 
 func matchRegexp(s string, rx *types.Regexp) px.Value {
 	if rx.PatternString() == `` {
-		panic(px.Error(pdsl.MissingRegexpInType, issue.NO_ARGS))
+		panic(px.Error(pdsl.MissingRegexpInType, issue.NoArgs))
 	}
 
 	g := rx.Match(s)

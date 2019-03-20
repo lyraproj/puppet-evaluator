@@ -1,7 +1,7 @@
 module github.com/lyraproj/puppet-evaluator
 
 require (
-	github.com/lyraproj/issue v0.0.0-20190213110846-64f0e861a560
-	github.com/lyraproj/pcore v0.0.0-20190317133239-e367a175e431
-	github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57
+	github.com/lyraproj/issue v0.0.0-20190319145359-029b4266d45b
+	github.com/lyraproj/pcore v0.0.0-20190319163905-c435c6e1b96e
+	github.com/lyraproj/puppet-parser v0.0.0-20190319214357-9cf036d14d08
 )

@@ -30,11 +30,11 @@ func topEvaluate(ctx pdsl.EvaluationContext, expr parser.Expression) px.Value {
 		if r := recover(); r != nil {
 			switch r := r.(type) {
 			case *errors.StopIteration:
-				panic(evalError(pdsl.IllegalBreak, r.Location(), issue.NO_ARGS))
+				panic(evalError(pdsl.IllegalBreak, r.Location(), issue.NoArgs))
 			case *errors.NextIteration:
-				panic(evalError(pdsl.IllegalNext, r.Location(), issue.NO_ARGS))
+				panic(evalError(pdsl.IllegalNext, r.Location(), issue.NoArgs))
 			case *errors.Return:
-				panic(evalError(pdsl.IllegalReturn, r.Location(), issue.NO_ARGS))
+				panic(evalError(pdsl.IllegalReturn, r.Location(), issue.NoArgs))
 			default:
 				panic(r)
 			}
@@ -149,12 +149,12 @@ func evalHeredocExpression(e pdsl.Evaluator, expr *parser.HeredocExpression) px.
 func evalCallMethodExpression(e pdsl.Evaluator, call *parser.CallMethodExpression) px.Value {
 	fc, ok := call.Functor().(*parser.NamedAccessExpression)
 	if !ok {
-		panic(evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+		panic(evalError(validator.ValidateIllegalExpression, call.Functor(),
 			issue.H{`expression`: call.Functor(), `feature`: `function accessor`, `container`: call}))
 	}
 	qn, ok := fc.Rhs().(*parser.QualifiedName)
 	if !ok {
-		panic(evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+		panic(evalError(validator.ValidateIllegalExpression, call.Functor(),
 			issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 	}
 	receiver := unfold(e, []parser.Expression{fc.Lhs()})
@@ -184,7 +184,7 @@ func evalCallNamedFunctionExpression(e pdsl.Evaluator, call *parser.CallNamedFun
 		receiver := unfold(e, []parser.Expression{fc})
 		return callFunction(e, `new`, unfold(e, call.Arguments(), receiver...), call)
 	}
-	panic(evalError(validator.VALIDATE_ILLEGAL_EXPRESSION, call.Functor(),
+	panic(evalError(validator.ValidateIllegalExpression, call.Functor(),
 		issue.H{`expression`: call.Functor(), `feature`: `function name`, `container`: call}))
 }
 
@@ -410,7 +410,7 @@ func evalUnfoldExpression(e pdsl.Evaluator, expr *parser.UnfoldExpression) px.Va
 }
 
 func evalError(code issue.Code, location issue.Location, args issue.H) issue.Reported {
-	return issue.NewReported(code, issue.SEVERITY_ERROR, args, location)
+	return issue.NewReported(code, issue.SeverityError, args, location)
 }
 
 // BasicEval is exported to enable the evaluator to be extended

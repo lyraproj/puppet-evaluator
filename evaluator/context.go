@@ -101,27 +101,27 @@ func (c *evalCtx) Fork() px.Context {
 func (c *evalCtx) ParseAndValidate(filename, str string, singleExpression bool) parser.Expression {
 	var parserOptions []parser.Option
 	if pcore.Get(`workflow`, func() px.Value { return types.BooleanFalse }).(px.Boolean).Bool() {
-		parserOptions = append(parserOptions, parser.PARSER_WORKFLOW_ENABLED)
+		parserOptions = append(parserOptions, parser.WorkflowEnabled)
 	}
 	if pcore.Get(`tasks`, func() px.Value { return types.BooleanFalse }).(px.Boolean).Bool() {
-		parserOptions = append(parserOptions, parser.PARSER_TASKS_ENABLED)
+		parserOptions = append(parserOptions, parser.TasksEnabled)
 	}
 	expr, err := parser.CreateParser(parserOptions...).Parse(filename, str, singleExpression)
 	if err != nil {
 		panic(err)
 	}
-	checker := validator.NewChecker(validator.STRICT_ERROR)
+	checker := validator.NewChecker(validator.StrictError)
 	checker.Validate(expr)
 	issues := checker.Issues()
 	if len(issues) > 0 {
-		severity := issue.SEVERITY_IGNORE
+		severity := issue.SeverityIgnore
 		for _, i := range issues {
 			c.Logger().Log(px.LogLevel(i.Severity()), types.WrapString(i.String()))
 			if i.Severity() > severity {
 				severity = i.Severity()
 			}
 		}
-		if severity == issue.SEVERITY_ERROR {
+		if severity == issue.SeverityError {
 			panic(c.Fail(fmt.Sprintf(`Error validating %s`, filename)))
 		}
 	}
