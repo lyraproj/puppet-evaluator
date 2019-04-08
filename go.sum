@@ -5,6 +5,7 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
+github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.3.0/go.mod h1:Qd/q+1AKNOZr9uGQzbzCmRO6sUih6GTPZv6a1/R87v0=
 github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd/go.mod h1:9bjs9uLqI8l75knNv3lV1kA55veR+WUPSiKIWcQHudI=
@@ -12,6 +13,8 @@ github.com/hashicorp/go-hclog v0.8.0/go.mod h1:5CU+agLiy3J7N7QjHK5d05KxGsuXiQLrj
 github.com/hashicorp/go-plugin v0.0.0-20190220160451-3f118e8ee104/go.mod h1:++UyYGoz3o5w9ZzAdZxtQKrWWP+iqPBn3cQptSMzBuY=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/lyraproj/data-protobuf v0.0.0-20181217135414-3d508204b820/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
+github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b h1:qGgMkFUQVnT5qjIKV4MB0j6RkRBVSZvhuD35vsnvglI=
+github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
 github.com/lyraproj/issue v0.0.0-20190213110846-64f0e861a560 h1:VVFwiMUrZe1a64kpEGzrPdeB6QzGEZTAVeo1OTOEWEk=
 github.com/lyraproj/issue v0.0.0-20190213110846-64f0e861a560/go.mod h1:F3Zu9SjR6zROUIVdxgxuX0/Mi4npwgDRalQCNzCyzU0=
 github.com/lyraproj/issue v0.0.0-20190319142512-87bdca048c6e h1:sUMHEmbU4Hwj1BXtYyU/VzFxgD3wv8KLMKfljGOP6RY=
@@ -36,12 +39,16 @@ github.com/lyraproj/pcore v0.0.0-20190319163905-c435c6e1b96e h1:W2omAJqkyi++wiad
 github.com/lyraproj/pcore v0.0.0-20190319163905-c435c6e1b96e/go.mod h1:zaYm7Mn2rIKNNpcMGy+QkWUqoTpGAQiAmVwJpJ4wYDc=
 github.com/lyraproj/pcore v0.0.0-20190405075742-500ef041fe7e h1:BpZKLbm6kW3W3+WeCnXkIRaUWpHx7mIFTZq/v8s47Bc=
 github.com/lyraproj/pcore v0.0.0-20190405075742-500ef041fe7e/go.mod h1:zaYm7Mn2rIKNNpcMGy+QkWUqoTpGAQiAmVwJpJ4wYDc=
+github.com/lyraproj/pcore v0.0.0-20190408134742-7ef8f288585f h1:XdWLz+VOIGEiZa2q8krUCjUDXo5jxNg/YzYu0xlv2iM=
+github.com/lyraproj/pcore v0.0.0-20190408134742-7ef8f288585f/go.mod h1:rEl2ewvqyi/MUo+sEoADKduVlO971HgiLJmu26EO+vM=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57 h1:z84TqgQCPiltNpKV5LEld5U0dQ//w/uk3+4HakwvNWM=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57/go.mod h1:KYBqLHpK7D2FNFp47m9BZfr6Xvd6PnEYOpI31aEGAX0=
 github.com/lyraproj/puppet-parser v0.0.0-20190319214357-9cf036d14d08 h1:8l06fZnwBq1PwxD6R7wV/wHHEeUK5Mj35LyQunGorpA=
 github.com/lyraproj/puppet-parser v0.0.0-20190319214357-9cf036d14d08/go.mod h1:gMRi/vCBXe1nAq+CBZl1eNm8yCT32b3tRZH03yjecGQ=
 github.com/lyraproj/puppet-parser v0.0.0-20190329160058-fd1d57e87f6d h1:TxDeKpN1mReSIYwKbyyn5nokH538UkxYQ8su5AVszQA=
 github.com/lyraproj/puppet-parser v0.0.0-20190329160058-fd1d57e87f6d/go.mod h1:gMRi/vCBXe1nAq+CBZl1eNm8yCT32b3tRZH03yjecGQ=
+github.com/lyraproj/puppet-parser v0.0.0-20190408134638-04ce07bb0d8a h1:5DyjQco5pv/jnA/kvcxbTkMP2RpJ0MghwwNLbGCKMMo=
+github.com/lyraproj/puppet-parser v0.0.0-20190408134638-04ce07bb0d8a/go.mod h1:SBAnx/uxMMKy29qME9jFlgHtVJOLI4q7dVMu0UTcIk0=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2/go.mod h1:KOdZKnEBdDb2iGPUnHiKpk3M5cvv949xMyj8XPqaMF0=
 github.com/lyraproj/servicesdk v0.0.0-20190405110630-7e35406a94bd h1:Q09zC2++K1iZ+azuqlnpKCWB7n2A+OGQSrKpqDNEvhU=
