@@ -493,7 +493,7 @@ func BasicEval(e pdsl.Evaluator, expr parser.Expression) px.Value {
 		return evalProgram(e, ex)
 	case *parser.SelectorExpression:
 		return evalSelectorExpression(e, ex)
-	case *parser.FunctionDefinition, *parser.PlanDefinition, *parser.ActivityExpression, *parser.TypeAlias, *parser.TypeMapping:
+	case *parser.FunctionDefinition, *parser.PlanDefinition, *parser.StepExpression, *parser.TypeAlias, *parser.TypeMapping:
 		// All definitions must be processed at this time
 		return px.Undef
 	case *parser.UnfoldExpression:

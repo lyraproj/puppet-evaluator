@@ -5,10 +5,10 @@ import (
 	"github.com/lyraproj/puppet-parser/parser"
 )
 
-var NewPuppetActivity func(c pdsl.EvaluationContext, expr *parser.ActivityExpression) Resolvable
+var NewPuppetStep func(c pdsl.EvaluationContext, expr *parser.StepExpression) Resolvable
 
 func init() {
-	NewPuppetActivity = func(c pdsl.EvaluationContext, expr *parser.ActivityExpression) Resolvable {
+	NewPuppetStep = func(c pdsl.EvaluationContext, expr *parser.StepExpression) Resolvable {
 		panic("no workflow support in this runtime")
 	}
 }

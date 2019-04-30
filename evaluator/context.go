@@ -176,9 +176,9 @@ func (c *evalCtx) define(loader px.DefiningLoader, d parser.Definition) {
 	var ta interface{}
 	var tn px.TypedName
 	switch d := d.(type) {
-	case *parser.ActivityExpression:
-		tn = px.NewTypedName2(px.NsActivity, d.Name(), loader.NameAuthority())
-		ta = NewPuppetActivity(c, d)
+	case *parser.StepExpression:
+		tn = px.NewTypedName2(px.NsStep, d.Name(), loader.NameAuthority())
+		ta = NewPuppetStep(c, d)
 	case *parser.PlanDefinition:
 		tn = px.NewTypedName2(px.NsPlan, d.Name(), loader.NameAuthority())
 		ta = NewPuppetPlan(d)
