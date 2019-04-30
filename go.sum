@@ -41,6 +41,10 @@ github.com/lyraproj/pcore v0.0.0-20190405075742-500ef041fe7e h1:BpZKLbm6kW3W3+We
 github.com/lyraproj/pcore v0.0.0-20190405075742-500ef041fe7e/go.mod h1:zaYm7Mn2rIKNNpcMGy+QkWUqoTpGAQiAmVwJpJ4wYDc=
 github.com/lyraproj/pcore v0.0.0-20190408134742-7ef8f288585f h1:XdWLz+VOIGEiZa2q8krUCjUDXo5jxNg/YzYu0xlv2iM=
 github.com/lyraproj/pcore v0.0.0-20190408134742-7ef8f288585f/go.mod h1:rEl2ewvqyi/MUo+sEoADKduVlO971HgiLJmu26EO+vM=
+github.com/lyraproj/pcore v0.0.0-20190429150850-3b29355aed1c h1:uwAnWEj9TM3kDEQD9sFoAruaNOmMKOg3pIRzxrknFdI=
+github.com/lyraproj/pcore v0.0.0-20190429150850-3b29355aed1c/go.mod h1:rEl2ewvqyi/MUo+sEoADKduVlO971HgiLJmu26EO+vM=
+github.com/lyraproj/pcore v0.0.0-20190430053642-093a201f677b h1:doK+oOBYQW3UU6FhTIQXNYjjFF823lQsoWbhtp4Kexs=
+github.com/lyraproj/pcore v0.0.0-20190430053642-093a201f677b/go.mod h1:rEl2ewvqyi/MUo+sEoADKduVlO971HgiLJmu26EO+vM=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57 h1:z84TqgQCPiltNpKV5LEld5U0dQ//w/uk3+4HakwvNWM=
 github.com/lyraproj/puppet-parser v0.0.0-20190220160521-d5f541fd6c57/go.mod h1:KYBqLHpK7D2FNFp47m9BZfr6Xvd6PnEYOpI31aEGAX0=
 github.com/lyraproj/puppet-parser v0.0.0-20190319214357-9cf036d14d08 h1:8l06fZnwBq1PwxD6R7wV/wHHEeUK5Mj35LyQunGorpA=
@@ -49,6 +53,8 @@ github.com/lyraproj/puppet-parser v0.0.0-20190329160058-fd1d57e87f6d h1:TxDeKpN1
 github.com/lyraproj/puppet-parser v0.0.0-20190329160058-fd1d57e87f6d/go.mod h1:gMRi/vCBXe1nAq+CBZl1eNm8yCT32b3tRZH03yjecGQ=
 github.com/lyraproj/puppet-parser v0.0.0-20190408134638-04ce07bb0d8a h1:5DyjQco5pv/jnA/kvcxbTkMP2RpJ0MghwwNLbGCKMMo=
 github.com/lyraproj/puppet-parser v0.0.0-20190408134638-04ce07bb0d8a/go.mod h1:SBAnx/uxMMKy29qME9jFlgHtVJOLI4q7dVMu0UTcIk0=
+github.com/lyraproj/puppet-parser v0.0.0-20190430052804-3c6055ab642d h1:HSHXWQ4QI2rkwUXtPWlRPUU6bNcBF77InBff1hHgYQE=
+github.com/lyraproj/puppet-parser v0.0.0-20190430052804-3c6055ab642d/go.mod h1:SBAnx/uxMMKy29qME9jFlgHtVJOLI4q7dVMu0UTcIk0=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2/go.mod h1:KOdZKnEBdDb2iGPUnHiKpk3M5cvv949xMyj8XPqaMF0=
 github.com/lyraproj/servicesdk v0.0.0-20190405110630-7e35406a94bd h1:Q09zC2++K1iZ+azuqlnpKCWB7n2A+OGQSrKpqDNEvhU=

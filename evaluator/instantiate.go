@@ -32,18 +32,18 @@ func newPuppetTaskPath(ml px.ModuleLoader, moduleNameRelative bool) loader.Smart
 	return loader.NewSmartPath(`tasks`, ``, ml, []px.Namespace{px.NsTask}, moduleNameRelative, true, InstantiatePuppetTask)
 }
 
-func InstantiatePuppetActivityFromFile(ctx px.Context, loader loader.ContentProvidingLoader, file string) px.TypedName {
+func InstantiatePuppetStepFromFile(ctx px.Context, loader loader.ContentProvidingLoader, file string) px.TypedName {
 	ec := ctx.(pdsl.EvaluationContext)
 	content := string(loader.GetContent(ctx, file))
 	expr := ec.ParseAndValidate(file, content, false)
 	name := `<any name>`
-	fd, ok := getDefinition(expr, px.NsActivity, name).(parser.NamedDefinition)
+	fd, ok := getDefinition(expr, px.NsStep, name).(parser.NamedDefinition)
 	if !ok {
-		panic(ctx.Error(expr, px.NoDefinition, issue.H{`source`: expr.File(), `type`: px.NsActivity, `name`: name}))
+		panic(ctx.Error(expr, px.NoDefinition, issue.H{`source`: expr.File(), `type`: px.NsStep, `name`: name}))
 	}
 	ec.AddDefinitions(expr)
 	ec.ResolveDefinitions()
-	return px.NewTypedName(px.NsActivity, fd.Name())
+	return px.NewTypedName(px.NsStep, fd.Name())
 }
 
 func InstantiatePuppetFunction(ctx px.Context, loader loader.ContentProvidingLoader, tn px.TypedName, sources []string) {
