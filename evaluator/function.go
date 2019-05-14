@@ -166,7 +166,16 @@ func CallBlock(c pdsl.EvaluationContext, name string, parameters []px.Parameter,
 		}
 
 		for idx, arg := range args {
-			AssertArgument(name, idx, parameters[idx].Type(), arg)
+			if idx < np {
+				AssertArgument(name, idx, parameters[idx].Type(), arg)
+			} else {
+				if np > 0 {
+					last := parameters[np-1]
+					if last.CapturesRest() {
+						AssertArgument(name, idx, last.Type(), arg)
+					}
+				}
+			}
 		}
 
 		for idx, p := range parameters {

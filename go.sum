@@ -6,8 +6,8 @@ github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b h1:qGgMkFUQ
 github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594 h1:IcsHRQ3xzCIcK0eXpot8IYgEyUQPEFHmFErZwJcsDqk=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594/go.mod h1:jqRRmAiVqjTehhncbKJPoC2AFoxxkritzzlfWioTa00=
-github.com/lyraproj/pcore v0.0.0-20190513110440-3136007d878d h1:UGQ37YS1mhNm2I4xutG+DaM+4P4x/TEdWpQk950eWaI=
-github.com/lyraproj/pcore v0.0.0-20190513110440-3136007d878d/go.mod h1:NGvVSNVj6tF0acszsfqcu+qtNt5b1hlSiiL3oNSuNMI=
+github.com/lyraproj/pcore v0.0.0-20190514082225-61649d71c936 h1:oEI8jC1efmrpvMBe0ndLy9RVadxOwv8iYNV/FENemRA=
+github.com/lyraproj/pcore v0.0.0-20190514082225-61649d71c936/go.mod h1:NGvVSNVj6tF0acszsfqcu+qtNt5b1hlSiiL3oNSuNMI=
 github.com/lyraproj/puppet-parser v0.0.0-20190513085601-0448059066e7 h1:gQ6z47XnHB/WndnxMnBP/5KprCqYMM5VzCni7wbmiuc=
 github.com/lyraproj/puppet-parser v0.0.0-20190513085601-0448059066e7/go.mod h1:kM/x+lqmCiuxsK4FgAF1kIwlgQrcZfsI6gnX5YzTIe4=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
