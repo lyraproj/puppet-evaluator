@@ -6,8 +6,8 @@ github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b h1:qGgMkFUQ
 github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594 h1:IcsHRQ3xzCIcK0eXpot8IYgEyUQPEFHmFErZwJcsDqk=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594/go.mod h1:jqRRmAiVqjTehhncbKJPoC2AFoxxkritzzlfWioTa00=
-github.com/lyraproj/pcore v0.0.0-20190604084249-96c922091533 h1:wfjjlWN0OIUcjOaAfqsgqzbu0+F3jY5cehtuKlPAjHA=
-github.com/lyraproj/pcore v0.0.0-20190604084249-96c922091533/go.mod h1:NEsDhoJnhU6dqrNy3M2W4AWryrwPhADubXu6RWVdAl4=
+github.com/lyraproj/pcore v0.0.0-20190604153946-03f706b24291 h1:XrveF2dlFKU7Ngi0rF1kyHPGRAyMZDerAl9y9peA0ps=
+github.com/lyraproj/pcore v0.0.0-20190604153946-03f706b24291/go.mod h1:ZnU8IagnqPnmjQDz2DiQaQvkKZVYpdePETJpOY8BAo0=
 github.com/lyraproj/puppet-parser v0.0.0-20190513085601-0448059066e7 h1:gQ6z47XnHB/WndnxMnBP/5KprCqYMM5VzCni7wbmiuc=
 github.com/lyraproj/puppet-parser v0.0.0-20190513085601-0448059066e7/go.mod h1:kM/x+lqmCiuxsK4FgAF1kIwlgQrcZfsI6gnX5YzTIe4=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
@@ -17,7 +17,7 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20190502103701-55513cacd4ae h1:ehhBuCxzgQEGk38YjhFv/97fMIc2JGHZAhAWMmEjmu0=
