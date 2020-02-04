@@ -1,6 +1,6 @@
 # Puppet Evaluator
 
-This is an evaluator for the AST produced by the [Puppet Language Parser](/lyraproj/puppet-parser)
+This is an evaluator for the AST produced by the [Puppet Language Parser](https://github.com/lyraproj/puppet-parser)
 
 ## Unit Testing
 
